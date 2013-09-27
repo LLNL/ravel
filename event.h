@@ -7,7 +7,13 @@
 class Event
 {
 public:
-    Event();
+    Event(unsigned long long _enter, unsigned long long _exit, int _function,
+          int _process, int _step, long long _lateness);
+    ~Event();
+
+    QVector<Event *> * parents;
+    QVector<Event *> * children;
+    QVector<Message *> * messages;
 
 private:
     unsigned long long enter;
@@ -16,9 +22,6 @@ private:
     int process;
     int step;
     long long lateness;
-    QVector<Event *> parents;
-    QVector<Event *> children;
-    QVector<Message *> messages;
 
 };
 

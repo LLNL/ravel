@@ -1,5 +1,6 @@
 #include "message.h"
 
-Message::Message()
+Message::Message(unsigned long long send, unsigned long long recv)
+    : sendtime(send), recvtime(recv)
 {
 }
