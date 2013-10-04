@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include "viswidget.h"
 #include "trace.h"
 
 #include "json/json.h"
@@ -25,6 +26,7 @@ private:
     Ui::MainWindow *ui;
 
     QVector<Trace *> traces;
+    QVector<VisWidget *> viswidgets;
 };
 
 #endif // MAINWINDOW_H

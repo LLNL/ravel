@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+//#include "overviewvis.h"
 
 #include <QFileDialog>
 
@@ -7,9 +8,29 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+
+    std::cout << "Setup" << std::endl;
+
     ui->setupUi(this);
 
+    std::cout << "Create overview" << std::endl;
+
+    /*OverviewVis* overview = new OverviewVis();
+
+    std::cout << "add to layout" << std::endl;
+
+    ui->overviewLayout->addWidget(overview);
+
+    std::cout << "Pushback" << std::endl;
+
+    viswidgets.push_back(overview);
+
+    std::cout << "UI Action" << std::endl;*/
+
     connect(ui->actionOpen_JSON, SIGNAL(triggered()),this,SLOT(importJSON()));
+
+    std::cout << "Done" << std::endl;
+
 }
 
 MainWindow::~MainWindow()
@@ -88,4 +109,10 @@ void MainWindow::importJSON()
 
     this->traces.push_back(trace);
     dataFile.close();
+
+    /*for(int i = 0; i < viswidgets.size(); i++)
+    {
+        viswidgets[i]->setTrace(trace);
+        viswidgets[i]->processVis();
+    }*/
 }

@@ -9,13 +9,19 @@ SOURCES  += main.cpp \
     trace.cpp \
     event.cpp \
     message.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    viswidget.cpp \
+    overviewvis.cpp
+
 
 HEADERS += \
     trace.h \
     event.h \
     message.h \
-    mainwindow.h
+    mainwindow.h \
+    viswidget.h \
+    overviewvis.h
+
 
 FORMS += \
     mainwindow.ui

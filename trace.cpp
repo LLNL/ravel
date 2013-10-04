@@ -15,4 +15,5 @@ Trace::~Trace()
 int Trace::addEvent(Event * e)
 {
     events->push_back(e);
+    return 0;
 }

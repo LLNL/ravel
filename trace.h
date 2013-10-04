@@ -13,10 +13,8 @@ public:
     int addEvent(Event * e);
 
     QMap<int, QString> * functions;
-
-private:
-    int num_processes;
     QVector<Event *> * events;
+    int num_processes;
 };
 
 #endif // TRACE_H

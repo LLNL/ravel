@@ -15,7 +15,6 @@ public:
     QVector<Event *> * children;
     QVector<Message *> * messages;
 
-private:
     unsigned long long enter;
     unsigned long long exit;
     int function;
