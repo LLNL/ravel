@@ -1,10 +1,12 @@
 #include "viswidget.h"
 
-VisWidget::VisWidget(QObject *parent)
+VisWidget::VisWidget(QWidget *parent)
 {
+    QGLWidget(parent = parent);
+
     // GLWidget options
     setMinimumSize(200, 200);
-    setAutoFillBackground(false);
+    setAutoFillBackground(true);
 
     // Set painting variables
     backgroundColor = QBrush(QColor(204, 229, 255));

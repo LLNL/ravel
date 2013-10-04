@@ -10,8 +10,9 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    OverviewVis* overview = new OverviewVis();
+    OverviewVis* overview = new OverviewVis(this);
     ui->overviewLayout->addWidget(overview);
+    ui->overviewLayout->setStretchFactor(overview, 1);
 
     viswidgets.push_back(overview);
 

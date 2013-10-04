@@ -14,27 +14,27 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QWidget" name="verticalLayoutWidget">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>10</y>
-      <width>781</width>
-      <height>531</height>
-     </rect>
-    </property>
-    <layout class="QVBoxLayout" name="verticalLayout">
-     <item>
-      <layout class="QHBoxLayout" name="traditionalLayout"/>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="overviewLayout"/>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="stepLayout"/>
-     </item>
-    </layout>
-   </widget>
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+     <horstretch>1</horstretch>
+     <verstretch>1</verstretch>
+    </sizepolicy>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout_2">
+    <item>
+     <layout class="QVBoxLayout" name="verticalLayout" stretch="1,1,1">
+      <item>
+       <layout class="QHBoxLayout" name="traditionalLayout"/>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="overviewLayout"/>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="stepLayout" stretch=""/>
+      </item>
+     </layout>
+    </item>
+   </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">

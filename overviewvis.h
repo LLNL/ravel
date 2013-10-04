@@ -6,12 +6,12 @@
 class OverviewVis : public VisWidget
 {
 public:
-    OverviewVis();
+    OverviewVis(QWidget *parent = 0);
     void setSteps(int start, int stop);
     void setTrace(Trace * t);
-    void resizeEvent(QResizeEvent * event);
     void processVis();
     void paint(QPainter *painter, QPaintEvent *event, int elapsed);
+    void resizeEvent(QResizeEvent * event);
 
 private:
     unsigned long long minTime;

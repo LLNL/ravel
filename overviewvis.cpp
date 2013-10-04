@@ -3,14 +3,14 @@
 #include <cfloat>
 #include <iostream>
 
-OverviewVis::OverviewVis()
+OverviewVis::OverviewVis(QWidget *parent)
 {
-    VisWidget();
+    VisWidget(parent = parent);
 
     // GLWidget options
     setMinimumSize(200, height);
     setMaximumHeight(height);
-    setAutoFillBackground(false);
+    setAutoFillBackground(true);
 
     // Set painting variables
     backgroundColor = QBrush(QColor(204, 229, 255));
@@ -29,9 +29,11 @@ void OverviewVis::setSteps(int start, int stop)
 }
 
 void OverviewVis::resizeEvent(QResizeEvent * event) {
+    std::cout << "Resize!" << std::endl;
     visProcessed = false;
-    processVis();
     VisWidget::resizeEvent(event);
+    processVis();
+    repaint();
 }
 
 // Upon setting the trace, we determine the min and max that don't change
@@ -67,7 +69,6 @@ void OverviewVis::processVis()
         if ((*itr)->lateness > 0) {
             float start = (width - 1) * (((*itr)->enter - minTime) / 1.0 / timespan);
             float stop = (width - 1) * (((*itr)->exit - minTime) / 1.0 / timespan);
-            std::cout << start << ", " << stop << std::endl;
             int start_int = static_cast<int>(start);
             int stop_int = static_cast<int>(stop);
             heights[start_int] += (*itr)->lateness * (start - start_int);
