@@ -1,6 +1,7 @@
 #include "overviewvis.h"
 #include <QPaintEvent>
 #include <cfloat>
+#include <iostream>
 
 OverviewVis::OverviewVis()
 {
@@ -16,6 +17,7 @@ OverviewVis::OverviewVis()
     visProcessed = false;
     border = 20;
     height = 70;
+    trace = NULL;
 }
 
 // We use the set steps to find out where the cursor goes in the overview.
@@ -48,33 +50,42 @@ void OverviewVis::setTrace(Trace * t)
         if ((*itr)->enter < minTime)
             minTime = (*itr)->enter;
     }
-    stepPositions = QVector<std::pair<int, int> >(maxStep, std::pair<int, int>(-1, -1));
-    processVis();
+    stepPositions = QVector<std::pair<int, int> >(maxStep+1, std::pair<int, int>(-1, -1));
 }
 
 void OverviewVis::processVis()
 {
+    // Don't do anything if there's no trace available
+    if (trace == NULL)
+        return;
+
     int width = size().width() - 2 * border;
     heights = QVector<float>(width, 0);
+    int timespan = maxTime - minTime;
     for (QVector<Event *>::Iterator itr = trace->events->begin(); itr != trace->events->end(); itr++) {
         // Accumulate lateness on the overview. We assume overview is real time
         if ((*itr)->lateness > 0) {
-            float start = width * ((*itr)->enter - minTime / 1.0 / maxTime);
-            float stop = width * ((*itr)->exit - minTime / 1.0 / maxTime);
+            float start = (width - 1) * (((*itr)->enter - minTime) / 1.0 / timespan);
+            float stop = (width - 1) * (((*itr)->exit - minTime) / 1.0 / timespan);
+            std::cout << start << ", " << stop << std::endl;
             int start_int = static_cast<int>(start);
             int stop_int = static_cast<int>(stop);
             heights[start_int] += (*itr)->lateness * (start - start_int);
-            heights[stop_int] += (*itr)->lateness * (stop - stop_int);
+            if (stop_int != start_int) {
+                heights[stop_int] += (*itr)->lateness * (stop - stop_int);
+            }
             for (int i = start_int + 1; i < stop_int; i++) {
                 heights[i] += (*itr)->lateness;
             }
         }
         // Figure out where the steps fall in width
-        int stepMax = width * ((*itr)->step / maxStep);
-        if (stepPositions[(*itr)->step].second < stepMax)
-            stepPositions[(*itr)->step].second = stepMax;
-        if (stepPositions[(*itr)->step].first > stepMax)
-            stepPositions[(*itr)->step].first = stepMax;
+        if ((*itr)->step >= 0) {
+            int stepMax = width * ((*itr)->step / 1.0 / maxStep);
+            if (stepPositions[(*itr)->step].second < stepMax)
+                stepPositions[(*itr)->step].second = stepMax;
+            if (stepPositions[(*itr)->step].first > stepMax)
+                stepPositions[(*itr)->step].first = stepMax;
+        }
     }
     float minLateness = FLT_MAX;
     float maxLateness = 0;
@@ -87,7 +98,7 @@ void OverviewVis::processVis()
 
     int maxHeight = height - border;
     for (int i = 0; i < width; i++) {
-        heights[i] = maxHeight * (tmpLateness[i] - minLateness) / maxLateness;
+        heights[i] = maxHeight * (heights[i] - minLateness) / maxLateness;
     }
     visProcessed = true;
 }

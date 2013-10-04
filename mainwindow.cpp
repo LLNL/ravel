@@ -1,6 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-//#include "overviewvis.h"
+#include "overviewvis.h"
 
 #include <QFileDialog>
 
@@ -8,29 +8,14 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
-
-    std::cout << "Setup" << std::endl;
-
     ui->setupUi(this);
 
-    std::cout << "Create overview" << std::endl;
-
-    /*OverviewVis* overview = new OverviewVis();
-
-    std::cout << "add to layout" << std::endl;
-
+    OverviewVis* overview = new OverviewVis();
     ui->overviewLayout->addWidget(overview);
-
-    std::cout << "Pushback" << std::endl;
 
     viswidgets.push_back(overview);
 
-    std::cout << "UI Action" << std::endl;*/
-
     connect(ui->actionOpen_JSON, SIGNAL(triggered()),this,SLOT(importJSON()));
-
-    std::cout << "Done" << std::endl;
-
 }
 
 MainWindow::~MainWindow()
@@ -62,8 +47,6 @@ void MainWindow::importJSON()
         return;
     }
 
-    std::cout << "Has root" << std::endl;
-    std::cout << root["nodes"] << std::endl;
     Trace* trace = new Trace(root["nodes"].asInt());
     Json::Value fxns = root["fxns"];
     for (Json::ValueIterator itr = fxns.begin(); itr != fxns.end(); itr++) {
@@ -81,6 +64,7 @@ void MainWindow::importJSON()
                 (*itr)["fxn"].asInt(), (*itr)["process"].asInt(), (*itr)["step"].asInt(),
                 static_cast<long long>((*itr)["lateness"].asDouble()));
         eventmap[key] = e;
+        trace->events->push_back(e);
     }
     // Second pass to link parents and children
     for (Json::ValueIterator itr = events.begin(); itr != events.end(); itr++) {
@@ -109,10 +93,11 @@ void MainWindow::importJSON()
 
     this->traces.push_back(trace);
     dataFile.close();
+    std::cout << "Num events: " << trace->events->size() << std::endl;
 
-    /*for(int i = 0; i < viswidgets.size(); i++)
+    for(int i = 0; i < viswidgets.size(); i++)
     {
         viswidgets[i]->setTrace(trace);
         viswidgets[i]->processVis();
-    }*/
+    }
 }

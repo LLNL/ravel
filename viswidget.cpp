@@ -17,6 +17,12 @@ void VisWidget::setSteps(int start, int stop)
 
 }
 
+
+void VisWidget::setTrace(Trace * t)
+{
+    trace = t;
+}
+
 void VisWidget::paintEvent(QPaintEvent *event)
 {
     QPainter painter;
