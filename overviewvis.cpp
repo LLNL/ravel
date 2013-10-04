@@ -6,18 +6,19 @@
 OverviewVis::OverviewVis(QWidget *parent)
 {
     VisWidget(parent = parent);
+    height = 70;
 
     // GLWidget options
     setMinimumSize(200, height);
     setMaximumHeight(height);
-    setAutoFillBackground(true);
+    setAutoFillBackground(false);
 
     // Set painting variables
     backgroundColor = QBrush(QColor(204, 229, 255));
     visProcessed = false;
     border = 20;
-    height = 70;
     trace = NULL;
+    mousePressed = false;
 }
 
 // We use the set steps to find out where the cursor goes in the overview.
@@ -25,16 +26,62 @@ void OverviewVis::setSteps(int start, int stop)
 {
     startCursor = stepPositions[start].first;
     stopCursor = stepPositions[stop].second;
+    startTime = (startCursor / 1.0  / (size().width() - 2 * border)) * (maxTime - minTime) + minTime;
+    stopTime = (stopCursor / 1.0  / (size().width() - 2 * border)) * (maxTime - minTime) + minTime;
     repaint();
 }
 
 void OverviewVis::resizeEvent(QResizeEvent * event) {
-    std::cout << "Resize!" << std::endl;
     visProcessed = false;
     VisWidget::resizeEvent(event);
     processVis();
     repaint();
 }
+
+void OverviewVis::mousePressEvent(QMouseEvent * event) {
+    startCursor = event->x() - border;
+    stopCursor = startCursor;
+    mousePressed = true;
+    repaint();
+}
+
+void OverviewVis::mouseMoveEvent(QMouseEvent * event) {
+    if (mousePressed) {
+        stopCursor = event->x() - border;
+        repaint();
+    }
+}
+
+void OverviewVis::mouseReleaseEvent(QMouseEvent * event) {
+    mousePressed = false;
+    stopCursor = event->x() - border;
+    if (startCursor > stopCursor) {
+        int tmp = startCursor;
+        startCursor = stopCursor;
+        stopCursor = tmp;
+    }
+    repaint();
+    startTime = (startCursor / 1.0  / (size().width() - 2 * border)) * (maxTime - minTime) + minTime;
+    stopTime = (stopCursor / 1.0  / (size().width() - 2 * border)) * (maxTime - minTime) + minTime;
+    int start = ((startCursor - 0.5) / (size().width() - 2 * border)) * (maxTime - minTime) + minTime;
+    int stop = ((stopCursor + 0.5) / (size().width() - 2 * border)) * (maxTime - minTime) + minTime;
+    int currentstart = maxTime;
+    int currentstop = minTime;
+    int startStep = -1;
+    int stopStep = -1;
+    for (int i = 0; i < stepPositions.size(); i++) {
+        if (stepPositions[i].first >= start && stepPositions[i].first < currentstart) {
+            currentstart = stepPositions[i].first;
+            startStep = i;
+        }
+        if (stepPositions[i].second <= stop && stepPositions[i].second < currentstop) {
+            currentstop = stepPositions[i].second;
+            stopStep = i;
+        }
+    }
+    emit stepsChanged(startStep, stopStep);
+}
+
 
 // Upon setting the trace, we determine the min and max that don't change
 // We also set the initial cursorStep
@@ -53,6 +100,8 @@ void OverviewVis::setTrace(Trace * t)
             minTime = (*itr)->enter;
     }
     stepPositions = QVector<std::pair<int, int> >(maxStep+1, std::pair<int, int>(-1, -1));
+    startTime = minTime;
+    stopTime = minTime;
 }
 
 void OverviewVis::processVis()
@@ -101,6 +150,10 @@ void OverviewVis::processVis()
     for (int i = 0; i < width; i++) {
         heights[i] = maxHeight * (heights[i] - minLateness) / maxLateness;
     }
+
+    startCursor = (startTime - minTime) / 1.0 / (maxTime - minTime) * width;
+    stopCursor = (stopTime - minTime) / 1.0 / (maxTime - minTime) * width;
+
     visProcessed = true;
 }
 
@@ -111,7 +164,7 @@ void OverviewVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
     if(!visProcessed)
         return;
 
-    QRectF plotBBox = QRectF(border, 0,
+    QRectF plotBBox(border, 0,
                       event->rect().width()-2*border,
                       event->rect().height()-border);
 
@@ -131,7 +184,7 @@ void OverviewVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
     QPointF o = plotBBox.bottomLeft();
     QPointF p1, p2;
 
-    // Draw latenes
+    // Draw lateness
     painter->setPen(QPen(Qt::red, 1, Qt::SolidLine));
     for(int i = 0; i < heights.size(); i++)
     {
@@ -139,4 +192,22 @@ void OverviewVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
         p2 = QPointF(o.x() + i, o.y() - heights[i]);
         painter->drawLine(p1, p2);
     }
+
+    // Draw selection
+    int startSelect = startCursor;
+    int stopSelect = stopCursor;
+    if (startSelect > stopSelect) {
+        int tmp = startSelect;
+        startSelect = stopSelect;
+        stopSelect = tmp;
+    }
+    std::cout << startCursor << ", " << stopCursor << ", " << startTime << ", " << stopTime << std::endl;
+    painter->setPen(QPen(QColor(255, 255, 144, 150)));
+    painter->setBrush(QBrush(QColor(255, 255, 144, 100)));
+    QRectF selection(plotBBox.bottomLeft().x() + startSelect,
+                     plotBBox.bottomLeft().y() - height + border, // starting top left
+                     stopSelect - startSelect,
+                     height - border);
+    painter->fillRect(selection, QBrush(QColor(255, 255, 144, 100)));
+    painter->drawRect(selection);
 }

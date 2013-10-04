@@ -24,13 +24,13 @@
     <item>
      <layout class="QVBoxLayout" name="verticalLayout" stretch="1,1,1">
       <item>
-       <layout class="QHBoxLayout" name="traditionalLayout"/>
+       <layout class="QHBoxLayout" name="stepLayout"/>
       </item>
       <item>
        <layout class="QHBoxLayout" name="overviewLayout"/>
       </item>
       <item>
-       <layout class="QHBoxLayout" name="stepLayout" stretch=""/>
+       <layout class="QHBoxLayout" name="traditionalLayout" stretch=""/>
       </item>
      </layout>
     </item>

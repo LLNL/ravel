@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "overviewvis.h"
+#include "stepvis.h"
 
 #include <QFileDialog>
 
@@ -15,6 +16,11 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->overviewLayout->setStretchFactor(overview, 1);
 
     viswidgets.push_back(overview);
+
+    StepVis* stepvis = new StepVis(this);
+    ui->stepLayout->addWidget(stepvis);
+
+    viswidgets.push_back(stepvis);
 
     connect(ui->actionOpen_JSON, SIGNAL(triggered()),this,SLOT(importJSON()));
 }

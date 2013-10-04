@@ -11,7 +11,8 @@ SOURCES  += main.cpp \
     message.cpp \
     mainwindow.cpp \
     viswidget.cpp \
-    overviewvis.cpp
+    overviewvis.cpp \
+    stepvis.cpp
 
 
 HEADERS += \
@@ -20,7 +21,8 @@ HEADERS += \
     message.h \
     mainwindow.h \
     viswidget.h \
-    overviewvis.h
+    overviewvis.h \
+    stepvis.h
 
 
 FORMS += \
