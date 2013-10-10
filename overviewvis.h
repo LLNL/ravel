@@ -8,7 +8,6 @@ class OverviewVis : public VisWidget
     Q_OBJECT
 public:
     OverviewVis(QWidget *parent = 0);
-    void setSteps(int start, int stop);
     void setTrace(Trace * t);
     void processVis();
     void paint(QPainter *painter, QPaintEvent *event, int elapsed);
@@ -17,8 +16,8 @@ public:
     void mouseReleaseEvent(QMouseEvent * event);
     void mouseMoveEvent(QMouseEvent * event);
 
-signals:
-    void stepsChanged(int start, int stop);
+public slots:
+    void setSteps(float start, float stop);
 
 private:
     unsigned long long minTime;

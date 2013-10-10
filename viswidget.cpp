@@ -14,7 +14,7 @@ VisWidget::VisWidget(QWidget *parent)
     visProcessed = false;
 }
 
-void VisWidget::setSteps(int start, int stop)
+void VisWidget::setSteps(float start, float stop)
 {
 
 }

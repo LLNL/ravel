@@ -12,7 +12,8 @@ SOURCES  += main.cpp \
     mainwindow.cpp \
     viswidget.cpp \
     overviewvis.cpp \
-    stepvis.cpp
+    stepvis.cpp \
+    colormap.cpp
 
 
 HEADERS += \
@@ -22,7 +23,8 @@ HEADERS += \
     mainwindow.h \
     viswidget.h \
     overviewvis.h \
-    stepvis.h
+    stepvis.h \
+    colormap.h
 
 
 FORMS += \

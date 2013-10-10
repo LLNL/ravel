@@ -2,6 +2,7 @@
 #include <QPaintEvent>
 #include <cfloat>
 #include <iostream>
+#include <cmath>
 
 OverviewVis::OverviewVis(QWidget *parent)
 {
@@ -22,10 +23,10 @@ OverviewVis::OverviewVis(QWidget *parent)
 }
 
 // We use the set steps to find out where the cursor goes in the overview.
-void OverviewVis::setSteps(int start, int stop)
+void OverviewVis::setSteps(float start, float stop)
 {
-    startCursor = stepPositions[start].first;
-    stopCursor = stepPositions[stop].second;
+    startCursor = stepPositions[static_cast<int>(round(start))].first;
+    stopCursor = stepPositions[static_cast<int>(round(stop))].second;
     startTime = (startCursor / 1.0  / (size().width() - 2 * border)) * (maxTime - minTime) + minTime;
     stopTime = (stopCursor / 1.0  / (size().width() - 2 * border)) * (maxTime - minTime) + minTime;
     repaint();
@@ -159,14 +160,14 @@ void OverviewVis::processVis()
 
 void OverviewVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
 {
-    painter->fillRect(event->rect(), backgroundColor);
+    painter->fillRect(rect(), backgroundColor);
 
     if(!visProcessed)
         return;
 
     QRectF plotBBox(border, 0,
-                      event->rect().width()-2*border,
-                      event->rect().height()-border);
+                      rect().width()-2*border,
+                      rect().height()-border);
 
     // Draw axes
     painter->setBrush(QBrush(QColor(0,0,0)));
