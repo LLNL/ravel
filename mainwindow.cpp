@@ -4,6 +4,8 @@
 #include "stepvis.h"
 
 #include <QFileDialog>
+#include <iostream>
+#include <string>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
