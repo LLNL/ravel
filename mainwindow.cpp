@@ -52,7 +52,7 @@ void MainWindow::importJSON()
     bool parsingSuccessful = reader.parse(content.toStdString(), root);
     if (!parsingSuccessful)
     {
-        std::cout << "Failed to parse JSON\n" << reader.getFormatedErrorMessages();
+        std::cout << "Failed to parse JSON\n" << reader.getFormatedErrorMessages().c_str();
         return;
     }
 
@@ -108,5 +108,6 @@ void MainWindow::importJSON()
     {
         viswidgets[i]->setTrace(trace);
         viswidgets[i]->processVis();
+        viswidgets[i]->repaint();
     }
 }

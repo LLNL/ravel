@@ -3,10 +3,8 @@
 #include <iostream>
 #include <cmath>
 
-StepVis::StepVis(QWidget* parent)
+StepVis::StepVis(QWidget* parent) : VisWidget(parent = parent)
 {
-    VisWidget(parent = parent);
-
     // GLWidget options
     setMinimumSize(200, 200);
     setAutoFillBackground(false);
@@ -20,12 +18,14 @@ StepVis::StepVis(QWidget* parent)
     trace = NULL;
 
     // Create color map
-    std::cout << "Before constructor" << std::endl;
-    colormap = ColorMap();
-    std::cout << "After Constructor" << std::endl;
-    colormap.addColor(QColor(), 0);
-    colormap.addColor(QColor(), 0.5);
-    colormap.addColor(QColor(), 1);
+    colormap = new ColorMap(QColor(), 0);
+    colormap->addColor(QColor(), 0.5);
+    colormap->addColor(QColor(), 1);
+}
+
+StepVis::~StepVis()
+{
+    delete colormap;
 }
 
 void StepVis::setTrace(Trace * t)
@@ -39,7 +39,7 @@ void StepVis::setTrace(Trace * t)
         if ((*itr)->lateness > maxLateness)
             maxLateness = (*itr)->lateness;
     }
-    colormap.setRange(0, maxLateness);
+    colormap->setRange(0, maxLateness);
 
     // Initial conditions
     startStep = 0;
@@ -148,7 +148,7 @@ void StepVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
             w = rect().width() - x;
             complete = false;
         }
-        painter->fillRect(QRectF(x, y, w, h), QBrush(colormap.color((*itr)->lateness)));
+        painter->fillRect(QRectF(x, y, w, h), QBrush(colormap->color((*itr)->lateness)));
         if (complete)
             painter->drawRect(QRectF(x,y,w,h));
 

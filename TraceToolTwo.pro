@@ -2,8 +2,7 @@ QT       += opengl core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-macx: QMAKE_CXXFLAGS += -Xarch_ppc64 -mmacosx-version-min=10.7
-macx: QMAKE_CXXFLAGS += -fpermissive
+#macx: QMAKE_CXXFLAGS += -fpermissive
 
 TARGET = TraceToolTwo
 TEMPLATE = app

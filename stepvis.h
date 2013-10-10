@@ -9,6 +9,7 @@ class StepVis : public VisWidget
     Q_OBJECT
 public:
     StepVis(QWidget* parent = 0);
+    ~StepVis();
     void setTrace(Trace * t);
     void processVis();
     //void resizeEvent(QResizeEvent * event);
@@ -35,7 +36,7 @@ private:
     long long maxLateness;
     QMap<int, int> proc_to_order;
     QMap<int, int> order_to_proc;
-    ColorMap colormap;
+    ColorMap * colormap;
 };
 
 #endif // STEPVIS_H

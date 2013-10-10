@@ -1,9 +1,10 @@
 #include "colormap.h"
 #include <iostream>
 
-ColorMap::ColorMap()
+ColorMap::ColorMap(QColor color, float value)
 {
-    colors = new QVector< std::pair<QColor, float> >();
+    colors = new QVector<ColorValue *>();
+    colors->push_back(new ColorValue(color, value));
     std::cout << "Constructor: " << colors->size() << std::endl;
     minValue = 0;
     maxValue = 1;
@@ -11,6 +12,10 @@ ColorMap::ColorMap()
 
 ColorMap::~ColorMap()
 {
+    for (QVector<ColorValue *>::Iterator itr = colors->begin(); itr != colors->end(); itr++) {
+            delete *itr;
+            *itr = NULL;
+    }
     delete colors;
 }
 
@@ -25,14 +30,15 @@ void ColorMap::addColor(QColor color, float stop)
     bool added = false;
     std::cout << "Add: " << colors->size() << std::endl;
     colors->begin();
-    for (QVector< std::pair<QColor, float> >::Iterator itr = colors->begin(); itr != colors->end(); ++itr) {
-        if (stop < (*itr).second) {
-            colors->insert(itr, std::pair<QColor, float>(color, stop));
+    for (QVector<ColorValue *>::Iterator itr = colors->begin(); itr != colors->end(); ++itr) {
+        if (stop < (*itr)->value) {
+            colors->insert(itr, new ColorValue(color, stop));
             added = true;
         }
     }
-    if (!added)
-        colors->push_back(std::pair<QColor, float>(color, stop));
+    if (!added) {
+        colors->push_back(new ColorValue(color, stop));
+    }
 }
 
 QColor ColorMap::color(double value)
@@ -40,12 +46,12 @@ QColor ColorMap::color(double value)
     QColor low(0,0,0);
     QColor high(0,0,0);
     double norm_value = (value - minValue) / (maxValue - minValue);
-    for (QVector< std::pair<QColor, float> >::Iterator itr = colors->begin(); itr != colors->end(); itr++) {
-        if ((*itr).second > norm_value) {
-            high = (*itr).first;
+    for (QVector<ColorValue* >::Iterator itr = colors->begin(); itr != colors->end(); itr++) {
+        if ((*itr)->value > norm_value) {
+            high = (*itr)->color;
             return average(&low, &high);
         } else {
-            low = (*itr).first;
+            low = (*itr)->color;
         }
     }
     return low;

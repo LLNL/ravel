@@ -202,7 +202,6 @@ void OverviewVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
         startSelect = stopSelect;
         stopSelect = tmp;
     }
-    std::cout << startCursor << ", " << stopCursor << ", " << startTime << ", " << stopTime << std::endl;
     painter->setPen(QPen(QColor(255, 255, 144, 150)));
     painter->setBrush(QBrush(QColor(255, 255, 144, 100)));
     QRectF selection(plotBBox.bottomLeft().x() + startSelect,
