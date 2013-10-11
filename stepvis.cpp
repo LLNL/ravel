@@ -52,7 +52,10 @@ void StepVis::setTrace(Trace * t)
 
 void StepVis::setSteps(float start, float stop)
 {
-
+    startStep = start;
+    stopStep = stop;
+    stepSpan = start - stop + 1;
+    repaint();
 }
 
 void StepVis::processVis()
@@ -125,8 +128,8 @@ void StepVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
             continue;
         // 0 = startProcess, rect().height() = stopProcess
         // 0 = startStep, rect().width() = stopStep
-        y = (position - startProcess) * blockheight;
-        x = ((*itr)->step - startStep) * blockwidth;
+        y = (position - startProcess) * blockheight + 1;
+        x = ((*itr)->step - startStep) * blockwidth + 1;
         w = barwidth;
         h = barheight;
 
