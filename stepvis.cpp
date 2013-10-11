@@ -119,8 +119,10 @@ void StepVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
     float x, y, w, h;
     int position;
     bool complete;
+    QSet<Message *> drawMessages();
     painter->setPen(QPen(QColor(0, 0, 0)));
-    for (QVector<Event *>::Iterator itr = trace->events->begin(); itr != trace->events->end(); itr++) {
+    for (QVector<Event *>::Iterator itr = trace->events->begin(); itr != trace->events->end(); ++itr)
+    {
         position = proc_to_order[(*itr)->process];
         if ((*itr)->step < floor(startStep) || (*itr)->step > ceil(stopStep)) // Out of span
             continue;
@@ -155,6 +157,22 @@ void StepVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
         if (complete)
             painter->drawRect(QRectF(x,y,w,h));
 
+        for (QVector<Message *>::Iterator mitr = (*itr)->messages->begin(); mitr != (*itr)->messages->end(); ++mitr)
+            drawMessages.insert((*mitr));
+
     }
 
+    // Messages
+    // We need to do all of the message drawing after the event drawing
+    // for overlap purposes
+    painter->setPen(QPen(Qt::black, 1, Qt::SolidLine));
+    Event * send_event;
+    Event * recv_event;
+    for (QSet<Message *>::Iterator itr = drawMessages.begin(); itr != drawMessages.end(); ++itr) {
+        send_event = (*itr)->sender;
+        recv_event = (*itr)->receiver;
+        p1 = QPointF(?, ?);
+        p2 = QPointF(?, ?);
+        painter->drawLine(p1, p2);
+    }
 }
