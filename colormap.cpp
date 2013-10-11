@@ -5,7 +5,6 @@ ColorMap::ColorMap(QColor color, float value)
 {
     colors = new QVector<ColorValue *>();
     colors->push_back(new ColorValue(color, value));
-    std::cout << "Constructor: " << colors->size() << std::endl;
     minValue = 0;
     maxValue = 1;
 }
@@ -28,7 +27,6 @@ void ColorMap::setRange(double low, double high)
 void ColorMap::addColor(QColor color, float stop)
 {
     bool added = false;
-    std::cout << "Add: " << colors->size() << std::endl;
     colors->begin();
     for (QVector<ColorValue *>::Iterator itr = colors->begin(); itr != colors->end(); ++itr) {
         if (stop < (*itr)->value) {
@@ -43,26 +41,29 @@ void ColorMap::addColor(QColor color, float stop)
 
 QColor ColorMap::color(double value)
 {
-    QColor low(0,0,0);
-    QColor high(0,0,0);
+    ColorValue base1 = ColorValue(QColor(0,0,0), 0);
+    ColorValue base2 = ColorValue(QColor(0,0,0), 1);
+    ColorValue* low = &base1;
+    ColorValue* high = &base2;
     double norm_value = (value - minValue) / (maxValue - minValue);
     for (QVector<ColorValue* >::Iterator itr = colors->begin(); itr != colors->end(); itr++) {
         if ((*itr)->value > norm_value) {
-            high = (*itr)->color;
-            return average(&low, &high);
+            high = (*itr);
+            return average(low, high, norm_value);
         } else {
-            low = (*itr)->color;
+            low = (*itr);
         }
     }
-    return low;
+    return low->color;
 }
 
-QColor ColorMap::average(QColor * low, QColor * high)
+QColor ColorMap::average(ColorValue * low, ColorValue * high, double norm)
 {
     int r, g, b, a;
-    r = 0.5 * (low->red() + high->red());
-    g = 0.5 * (low->green() + high->green());
-    b = 0.5 * (low->blue() + high->blue());
-    a = 0.5 * (low->alpha() + high->alpha());
+    float alpha = (norm - low->value) / (high->value - low->value);
+    r = (1 - alpha) * low->color.red() + alpha * high->color.red();
+    g = (1 - alpha) * low->color.green() + alpha * high->color.green();
+    b = (1 - alpha) * low->color.blue() + alpha * high->color.blue();
+    a = (1 - alpha) * low->color.alpha() + alpha * high->color.alpha();
     return QColor(r, g, b, a);
 }

@@ -25,7 +25,7 @@ private:
         float value;
     };
 
-    QColor average(QColor * low, QColor * high);
+    QColor average(ColorValue * low, ColorValue * high, double norm);
 
     double minValue;
     double maxValue;

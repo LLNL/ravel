@@ -18,9 +18,9 @@ StepVis::StepVis(QWidget* parent) : VisWidget(parent = parent)
     trace = NULL;
 
     // Create color map
-    colormap = new ColorMap(QColor(), 0);
-    colormap->addColor(QColor(), 0.5);
-    colormap->addColor(QColor(), 1);
+    colormap = new ColorMap(QColor(173, 216, 230), 0);
+    colormap->addColor(QColor(240, 230, 140), 0.5);
+    colormap->addColor(QColor(178, 34, 34), 1);
 }
 
 StepVis::~StepVis()
