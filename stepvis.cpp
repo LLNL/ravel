@@ -87,9 +87,24 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
     }
 }
 
+// zooms, but which zoom?
 void StepVis::wheelEvent(QWheelEvent * event)
-{
-
+{/*
+    QPoint p = event->angleDelta(); // pixelDelta not supported on all displays
+    if (Qt::MetaModifier && event->modifiers()) {
+        // Vertical
+        float avgProc = (startProcess + stopProcess) / 2.0;
+        processSpan *= 1.1;
+        startProcess = avgProc - processSpan / 2.0;
+        stopProcess = avgProc + processSpan / 2.0;
+    } else {
+        // Horizontal
+        float avgStep = (startStep + stopStep) / 2.0;
+        stepSpan *= 1.1;
+        startStep = avgStep - stepSpan / 2.0;
+        stopStep = avgStep + stepSpan / 2.0;
+    }
+    repaint();*/
 }
 
 // If we want an odd step, we actually need the step after it since that is
@@ -151,11 +166,11 @@ void StepVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
 
 
     float x, y, w, h, xa, wa, blockwidth;
-    float blockheight = rect().height() / processSpan;
+    float blockheight = floor(rect().height() / processSpan);
     if (showAggSteps)
-        blockwidth = rect().width() / stepSpan;
+        blockwidth = floor(rect().width() / stepSpan);
     else
-        blockwidth = rect().width() / (ceil(stepSpan / 2.0));
+        blockwidth = floor(rect().width() / (ceil(stepSpan / 2.0)));
     float barheight = blockheight - process_spacing;
     float barwidth = blockwidth - step_spacing;
 
@@ -173,11 +188,11 @@ void StepVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
                 continue;
             // 0 = startProcess, rect().height() = stopProcess
             // 0 = startStep, rect().width() = stopStep
-            y = (position - startProcess) * blockheight + 1;
-            x = ((*itr)->step - startStep) * blockwidth + 1;
+            y = floor(position - startProcess) * blockheight + 1;
+            x = floor((*itr)->step - startStep) * blockwidth + 1;
             w = barwidth;
             h = barheight;
-
+            std::cout << position << ", " << x << ", " << w << std::endl;
 
             // Corrections for partially drawn
             complete = true;
@@ -203,9 +218,14 @@ void StepVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
             else
                 incompleteBox(painter, x, y, w, h);
 
+            for (QVector<Message *>::Iterator mitr = (*itr)->messages->begin(); mitr != (*itr)->messages->end(); ++mitr)
+                drawMessages.insert((*mitr));
+
             if (showAggSteps) {
-                xa = ((*itr)->step - startStep - 1) * blockwidth + 1;
+                xa = floor((*itr)->step - startStep - 1) * blockwidth + 1;
                 wa = barwidth;
+                if (xa + wa <= 0)
+                    continue;
 
                 aggcomplete = true;
                 if (xa < 0) {
@@ -216,6 +236,7 @@ void StepVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
                     wa = rect().width() - xa;
                     aggcomplete = false;
                 }
+                std::cout << position << ", " << xa << ", " << wa << ", Agg" << std::endl;
 
                 aggcomplete = aggcomplete && complete;
                 painter->fillRect(QRectF(xa, y, wa, h), QBrush(colormap->color((*itr)->lateness)));
@@ -224,9 +245,6 @@ void StepVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
                 else
                     incompleteBox(painter, xa, y, wa, h);
             }
-
-            for (QVector<Message *>::Iterator mitr = (*itr)->messages->begin(); mitr != (*itr)->messages->end(); ++mitr)
-                drawMessages.insert((*mitr));
 
         }
 
