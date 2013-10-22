@@ -43,7 +43,7 @@ void StepVis::setTrace(Trace * t)
 
     // Initial conditions
     startStep = 0;
-    stopStep = 16;
+    stopStep = 14;
     startProcess = 1;
     stopProcess = trace->num_processes;
     stepSpan = stopStep - startStep + 1;
@@ -92,9 +92,47 @@ void StepVis::wheelEvent(QWheelEvent * event)
 
 }
 
+// If we want an odd step, we actually need the step after it since that is
+// where in the information is stored. This function computes that.
+int StepVis::boundStep(float step) {
+    int bstep = ceil(step);
+    if (bstep % 2)
+        bstep++;
+    return bstep;
+}
+
+void StepVis::incompleteBox(QPainter *painter, float x, float y, float w, float h)
+{
+    bool left = true;
+    bool right = true;
+    bool top = true;
+    bool bottom = true;
+    if (x <= 0)
+        left = false;
+    if (x >= rect().width())
+        right = false;
+    if (y <= 0)
+        top = false;
+    if (y >= rect().height())
+        bottom = false;
+
+    if (left)
+        painter->drawLine(QPointF(x, y), QPointF(x, y + h));
+
+    if (right)
+        painter->drawLine(QPointF(x + w, y), QPointF(x + w, y + h));
+
+    if (top)
+        painter->drawLine(QPointF(x, y), QPointF(x + w, y));
+
+    if (bottom)
+        painter->drawLine(QPointF(x, y + h), QPointF(x + w, y + h));
+}
+
 void StepVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
 {
     painter->fillRect(rect(), backgroundColor);
+    painter->setRenderHint(QPainter::Antialiasing);
 
     if(!visProcessed)
         return;
@@ -112,67 +150,108 @@ void StepVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
         step_spacing = 3;
 
 
+    float x, y, w, h, xa, wa, blockwidth;
     float blockheight = rect().height() / processSpan;
-    float blockwidth = rect().width() / stepSpan;
+    if (showAggSteps)
+        blockwidth = rect().width() / stepSpan;
+    else
+        blockwidth = rect().width() / (ceil(stepSpan / 2.0));
     float barheight = blockheight - process_spacing;
     float barwidth = blockwidth - step_spacing;
-    float x, y, w, h;
+
     int position;
-    bool complete;
-    QSet<Message *> drawMessages();
+    bool complete, aggcomplete;
+    QSet<Message *> drawMessages = QSet<Message *>();
     painter->setPen(QPen(QColor(0, 0, 0)));
-    for (QVector<Event *>::Iterator itr = trace->events->begin(); itr != trace->events->end(); ++itr)
-    {
-        position = proc_to_order[(*itr)->process];
-        if ((*itr)->step < floor(startStep) || (*itr)->step > ceil(stopStep)) // Out of span
-            continue;
-        if (position < floor(startProcess) || position > ceil(stopProcess)) // Out of span
-            continue;
-        // 0 = startProcess, rect().height() = stopProcess
-        // 0 = startStep, rect().width() = stopStep
-        y = (position - startProcess) * blockheight + 1;
-        x = ((*itr)->step - startStep) * blockwidth + 1;
+
+        for (QVector<Event *>::Iterator itr = trace->events->begin(); itr != trace->events->end(); ++itr)
+        {
+            position = proc_to_order[(*itr)->process];
+            if ((*itr)->step < floor(startStep) || (*itr)->step > boundStep(stopStep)) // Out of span
+                continue;
+            if (position < floor(startProcess) || position > ceil(stopProcess)) // Out of span
+                continue;
+            // 0 = startProcess, rect().height() = stopProcess
+            // 0 = startStep, rect().width() = stopStep
+            y = (position - startProcess) * blockheight + 1;
+            x = ((*itr)->step - startStep) * blockwidth + 1;
+            w = barwidth;
+            h = barheight;
+
+
+            // Corrections for partially drawn
+            complete = true;
+            if (y < 0) {
+                h = barheight - fabs(y);
+                y = 0;
+                complete = false;
+            } else if (y + barheight > rect().height()) {
+                h = rect().height() - y;
+                complete = false;
+            }
+            if (x < 0) {
+                w = barwidth - fabs(x);
+                x = 0;
+                complete = false;
+            } else if (x + barwidth > rect().width()) {
+                w = rect().width() - x;
+                complete = false;
+            }
+            painter->fillRect(QRectF(x, y, w, h), QBrush(colormap->color((*itr)->lateness)));
+            if (complete)
+                painter->drawRect(QRectF(x,y,w,h));
+            else
+                incompleteBox(painter, x, y, w, h);
+
+            if (showAggSteps) {
+                xa = ((*itr)->step - startStep - 1) * blockwidth + 1;
+                wa = barwidth;
+
+                aggcomplete = true;
+                if (xa < 0) {
+                    wa = barwidth = fabs(xa);
+                    xa = 0;
+                    aggcomplete = false;
+                } else if (xa + barwidth > rect().width()) {
+                    wa = rect().width() - xa;
+                    aggcomplete = false;
+                }
+
+                aggcomplete = aggcomplete && complete;
+                painter->fillRect(QRectF(xa, y, wa, h), QBrush(colormap->color((*itr)->lateness)));
+                if (aggcomplete)
+                    painter->drawRect(QRectF(xa, y, wa, h));
+                else
+                    incompleteBox(painter, xa, y, wa, h);
+            }
+
+            for (QVector<Message *>::Iterator mitr = (*itr)->messages->begin(); mitr != (*itr)->messages->end(); ++mitr)
+                drawMessages.insert((*mitr));
+
+        }
+
+        // Messages
+        // We need to do all of the message drawing after the event drawing
+        // for overlap purposes
+        painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
+        Event * send_event;
+        Event * recv_event;
+        QPointF p1, p2;
         w = barwidth;
         h = barheight;
-
-        // Corrections for partially drawn
-        complete = true;
-        if (y < 0) {
-            h = barheight - fabs(y);
-            y = 0;
-            complete = false;
-        } else if (y + barheight > rect().height()) {
-            h = rect().height() - y;
-            complete = false;
+        for (QSet<Message *>::Iterator itr = drawMessages.begin(); itr != drawMessages.end(); ++itr) {
+            send_event = (*itr)->sender;
+            recv_event = (*itr)->receiver;
+            position = proc_to_order[send_event->process];
+            y = (position - startProcess) * blockheight + 1;
+            x = (send_event->step - startStep) * blockwidth + 1;
+            p1 = QPointF(x + w/2.0, y + h/2.0);
+            position = proc_to_order[recv_event->process];
+            y = (position - startProcess) * blockheight + 1;
+            x = (recv_event->step - startStep) * blockwidth + 1;
+            p2 = QPointF(x + w/2.0, y + h/2.0);
+            painter->drawLine(p1, p2);
         }
-        if (x < 0) {
-            w = barwidth - fabs(x);
-            x = 0;
-            complete = false;
-        } else if (x + barwidth > rect().width()) {
-            w = rect().width() - x;
-            complete = false;
-        }
-        painter->fillRect(QRectF(x, y, w, h), QBrush(colormap->color((*itr)->lateness)));
-        if (complete)
-            painter->drawRect(QRectF(x,y,w,h));
 
-        for (QVector<Message *>::Iterator mitr = (*itr)->messages->begin(); mitr != (*itr)->messages->end(); ++mitr)
-            drawMessages.insert((*mitr));
 
-    }
-
-    // Messages
-    // We need to do all of the message drawing after the event drawing
-    // for overlap purposes
-    painter->setPen(QPen(Qt::black, 1, Qt::SolidLine));
-    Event * send_event;
-    Event * recv_event;
-    for (QSet<Message *>::Iterator itr = drawMessages.begin(); itr != drawMessages.end(); ++itr) {
-        send_event = (*itr)->sender;
-        recv_event = (*itr)->receiver;
-        p1 = QPointF(?, ?);
-        p2 = QPointF(?, ?);
-        painter->drawLine(p1, p2);
-    }
 }

@@ -23,6 +23,9 @@ public slots:
     void setSteps(float start, float stop);
 
 private:
+    int boundStep(float step); // Determine upper bound on step
+    void incompleteBox(QPainter * painter, float x, float y, float w, float h);
+
     int border;
     bool mousePressed;
     bool showAggSteps;
