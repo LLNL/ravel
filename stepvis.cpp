@@ -87,6 +87,16 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
         startStep += diffx / 1.0 / stepwidth;
         startProcess += diffy / 1.0 / processheight;
 
+        if (startStep < 0)
+            startStep = 0;
+        if (startStep > maxStep)
+            startStep = maxStep;
+
+        if (startProcess < 1)
+            startProcess = 1;
+        if (startProcess + processSpan > trace->num_processes)
+            startProcess = trace->num_processes - processSpan + 1;
+
         mousex = event->x();
         mousey = event->y();
     }
@@ -128,11 +138,11 @@ void StepVis::incompleteBox(QPainter *painter, float x, float y, float w, float 
     bool bottom = true;
     if (x <= 0)
         left = false;
-    if (x >= rect().width())
+    if (x + w >= rect().width())
         right = false;
     if (y <= 0)
         top = false;
-    if (y >= rect().height())
+    if (y + h >= rect().height())
         bottom = false;
 
     if (left)
