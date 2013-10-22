@@ -72,13 +72,11 @@ void StepVis::mousePressEvent(QMouseEvent * event)
     mousePressed = true;
     mousex = event->x();
     mousey = event->y();
-    std::cout << "Press!" << std::endl;
 }
 
 void StepVis::mouseReleaseEvent(QMouseEvent * event)
 {
     mousePressed = false;
-    std::cout << "Unpress!" << std::endl;
 }
 
 void StepVis::mouseMoveEvent(QMouseEvent * event)
@@ -196,11 +194,10 @@ void StepVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
                 continue;
             // 0 = startProcess, rect().height() = stopProcess (startProcess + processSpan)
             // 0 = startStep, rect().width() = stopStep (startStep + stepSpan)
-            y = floor(position - startProcess) * blockheight + 1;
-            x = floor((*itr)->step - startStep) * blockwidth + 1;
+            y = floor((position - startProcess) * blockheight) + 1;
+            x = floor(((*itr)->step - startStep) * blockwidth) + 1;
             w = barwidth;
             h = barheight;
-            std::cout << position << ", " << x << ", " << w << std::endl;
 
             // Corrections for partially drawn
             complete = true;
@@ -230,21 +227,20 @@ void StepVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
                 drawMessages.insert((*mitr));
 
             if (showAggSteps) {
-                xa = floor((*itr)->step - startStep - 1) * blockwidth + 1;
+                xa = floor(((*itr)->step - startStep - 1) * blockwidth) + 1;
                 wa = barwidth;
                 if (xa + wa <= 0)
                     continue;
 
                 aggcomplete = true;
                 if (xa < 0) {
-                    wa = barwidth = fabs(xa);
+                    wa = barwidth - fabs(xa);
                     xa = 0;
                     aggcomplete = false;
                 } else if (xa + barwidth > rect().width()) {
                     wa = rect().width() - xa;
                     aggcomplete = false;
                 }
-                std::cout << position << ", " << xa << ", " << wa << ", Agg" << std::endl;
 
                 aggcomplete = aggcomplete && complete;
                 painter->fillRect(QRectF(xa, y, wa, h), QBrush(colormap->color((*itr)->lateness)));
@@ -269,12 +265,12 @@ void StepVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
             send_event = (*itr)->sender;
             recv_event = (*itr)->receiver;
             position = proc_to_order[send_event->process];
-            y = (position - startProcess) * blockheight + 1;
-            x = (send_event->step - startStep) * blockwidth + 1;
+            y = floor((position - startProcess) * blockheight) + 1;
+            x = floor((send_event->step - startStep) * blockwidth) + 1;
             p1 = QPointF(x + w/2.0, y + h/2.0);
             position = proc_to_order[recv_event->process];
-            y = (position - startProcess) * blockheight + 1;
-            x = (recv_event->step - startStep) * blockwidth + 1;
+            y = floor((position - startProcess) * blockheight) + 1;
+            x = floor((recv_event->step - startStep) * blockwidth) + 1;
             p2 = QPointF(x + w/2.0, y + h/2.0);
             painter->drawLine(p1, p2);
         }
