@@ -28,12 +28,14 @@ private:
 
     int border;
     bool mousePressed;
+    int mousex;
+    int mousey;
+    int stepwidth;
+    int processheight;
     bool showAggSteps;
     int maxStep;
     float startStep;
-    float stopStep;
     float startProcess; // refers to order rather than process really
-    float stopProcess;
     float stepSpan;
     float processSpan;
     long long maxLateness;

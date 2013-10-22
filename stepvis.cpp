@@ -43,17 +43,14 @@ void StepVis::setTrace(Trace * t)
 
     // Initial conditions
     startStep = 0;
-    stopStep = 14;
+    stepSpan = 15;
     startProcess = 1;
-    stopProcess = trace->num_processes;
-    stepSpan = stopStep - startStep + 1;
-    processSpan = stopProcess - startProcess + 1;
+    processSpan = trace->num_processes;
 }
 
 void StepVis::setSteps(float start, float stop)
 {
     startStep = start;
-    stopStep = stop;
     stepSpan = start - stop + 1;
     repaint();
 }
@@ -73,18 +70,29 @@ void StepVis::processVis()
 void StepVis::mousePressEvent(QMouseEvent * event)
 {
     mousePressed = true;
+    mousex = event->x();
+    mousey = event->y();
+    std::cout << "Press!" << std::endl;
 }
 
 void StepVis::mouseReleaseEvent(QMouseEvent * event)
 {
     mousePressed = false;
+    std::cout << "Unpress!" << std::endl;
 }
 
 void StepVis::mouseMoveEvent(QMouseEvent * event)
 {
     if (mousePressed) {
+        int diffx = event->x() - mousex;
+        int diffy = event->y() - mousey;
+        startStep += diffx / 1.0 / stepwidth;
+        startProcess += diffy / 1.0 / processheight;
 
+        mousex = event->x();
+        mousey = event->y();
     }
+    repaint();
 }
 
 // zooms, but which zoom?
@@ -93,16 +101,14 @@ void StepVis::wheelEvent(QWheelEvent * event)
     QPoint p = event->angleDelta(); // pixelDelta not supported on all displays
     if (Qt::MetaModifier && event->modifiers()) {
         // Vertical
-        float avgProc = (startProcess + stopProcess) / 2.0;
+        float avgProc = startProcess + processSpan / 2.0;
         processSpan *= 1.1;
         startProcess = avgProc - processSpan / 2.0;
-        stopProcess = avgProc + processSpan / 2.0;
     } else {
         // Horizontal
-        float avgStep = (startStep + stopStep) / 2.0;
+        float avgStep = startStep + stepSpan / 2.0;
         stepSpan *= 1.1;
         startStep = avgStep - stepSpan / 2.0;
-        stopStep = avgStep + stepSpan / 2.0;
     }
     repaint();*/
 }
@@ -173,6 +179,8 @@ void StepVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
         blockwidth = floor(rect().width() / (ceil(stepSpan / 2.0)));
     float barheight = blockheight - process_spacing;
     float barwidth = blockwidth - step_spacing;
+    processheight = blockheight;
+    stepwidth = blockwidth;
 
     int position;
     bool complete, aggcomplete;
@@ -182,12 +190,12 @@ void StepVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
         for (QVector<Event *>::Iterator itr = trace->events->begin(); itr != trace->events->end(); ++itr)
         {
             position = proc_to_order[(*itr)->process];
-            if ((*itr)->step < floor(startStep) || (*itr)->step > boundStep(stopStep)) // Out of span
+            if ((*itr)->step < floor(startStep) || (*itr)->step > boundStep(startStep + stepSpan)) // Out of span
                 continue;
-            if (position < floor(startProcess) || position > ceil(stopProcess)) // Out of span
+            if (position < floor(startProcess) || position > ceil(startProcess + processSpan)) // Out of span
                 continue;
-            // 0 = startProcess, rect().height() = stopProcess
-            // 0 = startStep, rect().width() = stopStep
+            // 0 = startProcess, rect().height() = stopProcess (startProcess + processSpan)
+            // 0 = startStep, rect().width() = stopStep (startStep + stepSpan)
             y = floor(position - startProcess) * blockheight + 1;
             x = floor((*itr)->step - startStep) * blockwidth + 1;
             w = barwidth;
