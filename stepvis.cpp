@@ -55,7 +55,7 @@ void StepVis::setSteps(float start, float stop)
         return;
     }
     startStep = start;
-    stepSpan = start - stop + 1;
+    stepSpan = stop - start + 1;
     repaint();
 }
 
