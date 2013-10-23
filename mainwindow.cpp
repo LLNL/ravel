@@ -17,11 +17,13 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->overviewLayout->addWidget(overview);
     ui->overviewLayout->setStretchFactor(overview, 1);
 
+    connect(overview, SIGNAL(stepsChanged(float, float)), this, SLOT(pushSteps(float, float)));
     viswidgets.push_back(overview);
 
     StepVis* stepvis = new StepVis(this);
     ui->stepLayout->addWidget(stepvis);
 
+    connect((stepvis), SIGNAL(stepsChanged(float, float)), this, SLOT(pushSteps(float, float)));
     viswidgets.push_back(stepvis);
 
     connect(ui->actionOpen_JSON, SIGNAL(triggered()),this,SLOT(importJSON()));
@@ -30,6 +32,14 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::pushSteps(float start, float stop)
+{
+    for(int i = 0; i < viswidgets.size(); i++)
+    {
+        viswidgets[i]->setSteps(start, stop);
+    }
 }
 
 void MainWindow::importJSON()

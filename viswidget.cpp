@@ -12,6 +12,7 @@ VisWidget::VisWidget(QWidget *parent)
     backgroundColor = QBrush(QColor(204, 229, 255));
     selectColor = QBrush(Qt::yellow);
     visProcessed = false;
+    changeSource = false;
 }
 
 void VisWidget::setSteps(float start, float stop)

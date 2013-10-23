@@ -32,6 +32,7 @@ protected:
     bool visProcessed;
     QBrush backgroundColor;
     QBrush selectColor;
+    bool changeSource;
 };
 
 #endif // VISWIDGET_H

@@ -25,6 +25,10 @@ OverviewVis::OverviewVis(QWidget *parent)
 // We use the set steps to find out where the cursor goes in the overview.
 void OverviewVis::setSteps(float start, float stop)
 {
+    if (changeSource) {
+        changeSource = false;
+        return;
+    }
     startCursor = stepPositions[static_cast<int>(round(start))].first;
     stopCursor = stepPositions[static_cast<int>(round(stop))].second;
     startTime = (startCursor / 1.0  / (size().width() - 2 * border)) * (maxTime - minTime) + minTime;
@@ -62,24 +66,34 @@ void OverviewVis::mouseReleaseEvent(QMouseEvent * event) {
         stopCursor = tmp;
     }
     repaint();
-    startTime = (startCursor / 1.0  / (size().width() - 2 * border)) * (maxTime - minTime) + minTime;
-    stopTime = (stopCursor / 1.0  / (size().width() - 2 * border)) * (maxTime - minTime) + minTime;
-    int start = ((startCursor - 0.5) / (size().width() - 2 * border)) * (maxTime - minTime) + minTime;
-    int stop = ((stopCursor + 0.5) / (size().width() - 2 * border)) * (maxTime - minTime) + minTime;
-    int currentstart = maxTime;
-    int currentstop = minTime;
+
+    int timespan = maxTime - minTime;
+    int width = size().width() - 2 * border;
+
+    startTime = (startCursor / 1.0 / width) * timespan + minTime;
+    stopTime = (stopCursor / 1.0 / width) * timespan + minTime;
     int startStep = -1;
-    int stopStep = -1;
+    int stopStep = -1 ;
+    std::cout << startCursor << ", " << stopCursor << std::endl;
+
+    // We know first is always greater than second
+    // Each stepPosition is the range of cursor positions for that step
+    // For a range, we want the startStep to be the first one where first < cursor and second > cursor or
+    // both are above cursor
+    // and stopStep to be the last one where second > cursor or first > cursor
+    // and we want to ignore invalid values (where second is -1)
     for (int i = 0; i < stepPositions.size(); i++) {
-        if (stepPositions[i].first >= start && stepPositions[i].first < currentstart) {
-            currentstart = stepPositions[i].first;
-            startStep = i;
-        }
-        if (stepPositions[i].second <= stop && stepPositions[i].second < currentstop) {
-            currentstop = stepPositions[i].second;
-            stopStep = i;
+        std::cout << i << " :  " << stepPositions[i].first << ", " << stepPositions[i].second << std::endl;
+        std::cout << startStep << ", " << stopStep << std::endl;
+        if (stepPositions[i].second != -1) {
+            if (stepPositions[i].second >= startCursor && startStep == -1)
+                startStep = i;
+            if (stepPositions[i].second >= stopCursor && stopStep == -1)
+                stopStep = i;
         }
     }
+    changeSource = true;
+    std::cout << startStep << ", " << stopStep << ", " << maxStep << std::endl;
     emit stepsChanged(startStep, stopStep);
 }
 
@@ -100,7 +114,7 @@ void OverviewVis::setTrace(Trace * t)
         if ((*itr)->enter < minTime)
             minTime = (*itr)->enter;
     }
-    stepPositions = QVector<std::pair<int, int> >(maxStep+1, std::pair<int, int>(-1, -1));
+
     startTime = minTime;
     stopTime = minTime;
 }
@@ -114,9 +128,11 @@ void OverviewVis::processVis()
     int width = size().width() - 2 * border;
     heights = QVector<float>(width, 0);
     int timespan = maxTime - minTime;
+    stepPositions = QVector<std::pair<int, int> >(maxStep+1, std::pair<int, int>(width + 1, -1));
     for (QVector<Event *>::Iterator itr = trace->events->begin(); itr != trace->events->end(); itr++) {
         // Accumulate lateness on the overview. We assume overview is real time
         if ((*itr)->lateness > 0) {
+            // start and stop are the cursor positions
             float start = (width - 1) * (((*itr)->enter - minTime) / 1.0 / timespan);
             float stop = (width - 1) * (((*itr)->exit - minTime) / 1.0 / timespan);
             int start_int = static_cast<int>(start);
@@ -128,15 +144,17 @@ void OverviewVis::processVis()
             for (int i = start_int + 1; i < stop_int; i++) {
                 heights[i] += (*itr)->lateness;
             }
+
+            // Figure out where the steps fall in width for later
+            // stepPositions maps steps to position in the cursor
+            if ((*itr)->step >= 0) {
+                if (stepPositions[(*itr)->step].second < stop_int)
+                    stepPositions[(*itr)->step].second = stop_int;
+                if (stepPositions[(*itr)->step].first > start_int)
+                    stepPositions[(*itr)->step].first = start_int;
+            }
         }
-        // Figure out where the steps fall in width
-        if ((*itr)->step >= 0) {
-            int stepMax = width * ((*itr)->step / 1.0 / maxStep);
-            if (stepPositions[(*itr)->step].second < stepMax)
-                stepPositions[(*itr)->step].second = stepMax;
-            if (stepPositions[(*itr)->step].first > stepMax)
-                stepPositions[(*itr)->step].first = stepMax;
-        }
+
     }
     float minLateness = FLT_MAX;
     float maxLateness = 0;

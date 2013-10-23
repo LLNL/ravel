@@ -50,6 +50,10 @@ void StepVis::setTrace(Trace * t)
 
 void StepVis::setSteps(float start, float stop)
 {
+    if (changeSource) {
+        changeSource = false;
+        return;
+    }
     startStep = start;
     stepSpan = start - stop + 1;
     repaint();
@@ -99,6 +103,9 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
 
         mousex = event->x();
         mousey = event->y();
+
+        changeSource = true;
+        emit stepsChanged(startStep, startStep + stepSpan);
     }
     repaint();
 }

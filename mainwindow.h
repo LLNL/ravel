@@ -21,6 +21,7 @@ public:
 
 public slots:
     void importJSON();
+    void pushSteps(float start, float stop);
     
 private:
     Ui::MainWindow *ui;
