@@ -114,22 +114,22 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
 // zooms, but which zoom?
 void StepVis::wheelEvent(QWheelEvent * event)
 {
-    int scale = 1;
-    int degrees = event->delta() / 8 / 15;
-    if (degrees < 0)
-        scale = -1 * (1 - degrees * 0.05);
-    else
-        scale = 1 + degrees * 0.05;
+    float scale = 1;
+    int clicks = event->delta() / 8 / 15;
+    std::cout << "wheel clicks " << clicks << std::endl;
+    scale = 1 + clicks * 0.05;
     if (Qt::MetaModifier && event->modifiers()) {
         // Vertical
         float avgProc = startProcess + processSpan / 2.0;
         processSpan *= scale;
         startProcess = avgProc - processSpan / 2.0;
+        std::cout << "Verti Scale " << startProcess << ", " << processSpan << std::endl;
     } else {
         // Horizontal
         float avgStep = startStep + stepSpan / 2.0;
         stepSpan *= scale;
         startStep = avgStep - stepSpan / 2.0;
+        std::cout << "Horiz Scale " << startStep << ", " << stepSpan << std::endl;
     }
     repaint();
 }
