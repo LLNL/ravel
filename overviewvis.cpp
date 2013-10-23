@@ -22,6 +22,16 @@ OverviewVis::OverviewVis(QWidget *parent)
     mousePressed = false;
 }
 
+int OverviewVis::roundeven(float step)
+{
+    int rounded = floor(step);
+    if (rounded % 2 == 1)
+        rounded += 1;
+    while (rounded > maxStep)
+        rounded -= 2;
+    return rounded;
+}
+
 // We use the set steps to find out where the cursor goes in the overview.
 void OverviewVis::setSteps(float start, float stop)
 {
@@ -29,10 +39,23 @@ void OverviewVis::setSteps(float start, float stop)
         changeSource = false;
         return;
     }
-    startCursor = stepPositions[static_cast<int>(round(start))].first;
-    stopCursor = stepPositions[static_cast<int>(round(stop))].second;
+    int startStep = roundeven(start);
+    int stopStep = roundeven(stop);
+    startCursor = stepPositions[startStep].first;
+    while (startCursor >= rect().width()) // For no-data steps
+    {
+        startStep -= 2;
+        startCursor = stepPositions[startStep].second;
+    }
+    stopCursor = stepPositions[stopStep].second;
+    while (stopCursor < 0) // For no-data steps
+    {
+        stopStep += 2;
+        stopCursor = stepPositions[stopStep].second;
+    }
     startTime = (startCursor / 1.0  / (size().width() - 2 * border)) * (maxTime - minTime) + minTime;
     stopTime = (stopCursor / 1.0  / (size().width() - 2 * border)) * (maxTime - minTime) + minTime;
+    //std::cout << startCursor << ", " << stopCursor << std::endl;
     repaint();
 }
 

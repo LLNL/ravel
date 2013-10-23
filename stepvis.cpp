@@ -105,6 +105,7 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
         mousey = event->y();
 
         changeSource = true;
+        //std::cout << "Emitting " << startStep << ", " << (startStep + stepSpan) << std::endl;
         emit stepsChanged(startStep, startStep + stepSpan);
     }
     repaint();
@@ -112,20 +113,25 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
 
 // zooms, but which zoom?
 void StepVis::wheelEvent(QWheelEvent * event)
-{/*
-    QPoint p = event->angleDelta(); // pixelDelta not supported on all displays
+{
+    int scale = 1;
+    int degrees = event->delta() / 8 / 15;
+    if (degrees < 0)
+        scale = -1 * (1 - degrees * 0.05);
+    else
+        scale = 1 + degrees * 0.05;
     if (Qt::MetaModifier && event->modifiers()) {
         // Vertical
         float avgProc = startProcess + processSpan / 2.0;
-        processSpan *= 1.1;
+        processSpan *= scale;
         startProcess = avgProc - processSpan / 2.0;
     } else {
         // Horizontal
         float avgStep = startStep + stepSpan / 2.0;
-        stepSpan *= 1.1;
+        stepSpan *= scale;
         startStep = avgStep - stepSpan / 2.0;
     }
-    repaint();*/
+    repaint();
 }
 
 // If we want an odd step, we actually need the step after it since that is
@@ -212,7 +218,10 @@ void StepVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
             // 0 = startProcess, rect().height() = stopProcess (startProcess + processSpan)
             // 0 = startStep, rect().width() = stopStep (startStep + stepSpan)
             y = floor((position - startProcess) * blockheight) + 1;
-            x = floor(((*itr)->step - startStep) * blockwidth) + 1;
+            if (showAggSteps)
+                x = floor(((*itr)->step - startStep) * blockwidth) + 1;
+            else
+                x = floor(((*itr)->step - startStep) / 2 * blockwidth) + 1;
             w = barwidth;
             h = barheight;
 
@@ -283,14 +292,18 @@ void StepVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
             recv_event = (*itr)->receiver;
             position = proc_to_order[send_event->process];
             y = floor((position - startProcess) * blockheight) + 1;
-            x = floor((send_event->step - startStep) * blockwidth) + 1;
+            if (showAggSteps)
+                x = floor((send_event->step - startStep) * blockwidth) + 1;
+            else
+                x = floor((send_event->step - startStep) / 2 * blockwidth) + 1;
             p1 = QPointF(x + w/2.0, y + h/2.0);
             position = proc_to_order[recv_event->process];
             y = floor((position - startProcess) * blockheight) + 1;
-            x = floor((recv_event->step - startStep) * blockwidth) + 1;
+            if (showAggSteps)
+                x = floor((recv_event->step - startStep) * blockwidth) + 1;
+            else
+                x = floor((recv_event->step - startStep) / 2 * blockwidth) + 1;
             p2 = QPointF(x + w/2.0, y + h/2.0);
             painter->drawLine(p1, p2);
         }
-
-
 }

@@ -20,6 +20,8 @@ public slots:
     void setSteps(float start, float stop);
 
 private:
+    int roundeven(float step);
+
     unsigned long long minTime;
     unsigned long long maxTime;
     int maxStep;
