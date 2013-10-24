@@ -13,7 +13,7 @@ public:
     void setTrace(Trace * t);
     void processVis();
     //void resizeEvent(QResizeEvent * event);
-    void paint(QPainter *painter, QPaintEvent *event, int elapsed);
+
     void mousePressEvent(QMouseEvent * event);
     void mouseReleaseEvent(QMouseEvent * event);
     void mouseMoveEvent(QMouseEvent * event);
@@ -21,6 +21,9 @@ public:
 
 public slots:
     void setSteps(float start, float stop);
+
+protected:
+    void qtPaint(QPainter *painter);
 
 private:
     int boundStep(float step); // Determine upper bound on step

@@ -10,7 +10,6 @@ public:
     OverviewVis(QWidget *parent = 0);
     void setTrace(Trace * t);
     void processVis();
-    void paint(QPainter *painter, QPaintEvent *event, int elapsed);
     void resizeEvent(QResizeEvent * event);
     void mousePressEvent(QMouseEvent * event);
     void mouseReleaseEvent(QMouseEvent * event);
@@ -18,6 +17,9 @@ public:
 
 public slots:
     void setSteps(float start, float stop);
+
+protected:
+    void qtPaint(QPainter *painter);
 
 private:
     int roundeven(float step);

@@ -15,7 +15,7 @@ OverviewVis::OverviewVis(QWidget *parent)
     setAutoFillBackground(false);
 
     // Set painting variables
-    backgroundColor = QBrush(QColor(204, 229, 255));
+    backgroundColor = QColor(204, 229, 255);
     visProcessed = false;
     border = 20;
     trace = NULL;
@@ -199,7 +199,7 @@ void OverviewVis::processVis()
     visProcessed = true;
 }
 
-void OverviewVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
+void OverviewVis::qtPaint(QPainter *painter)
 {
     painter->fillRect(rect(), backgroundColor);
 

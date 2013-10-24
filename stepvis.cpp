@@ -10,7 +10,7 @@ StepVis::StepVis(QWidget* parent) : VisWidget(parent = parent)
     setAutoFillBackground(false);
 
     // Set painting variables
-    backgroundColor = QBrush(QColor(255, 255, 255));
+    backgroundColor = QColor(255, 255, 255);
     visProcessed = false;
     border = 20;
     mousePressed = false;
@@ -171,7 +171,7 @@ void StepVis::incompleteBox(QPainter *painter, float x, float y, float w, float 
         painter->drawLine(QPointF(x, y + h), QPointF(x + w, y + h));
 }
 
-void StepVis::paint(QPainter *painter, QPaintEvent *event, int elapsed)
+void StepVis::qtPaint(QPainter *painter)
 {
     painter->fillRect(rect(), backgroundColor);
     painter->setRenderHint(QPainter::Antialiasing);

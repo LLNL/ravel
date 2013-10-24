@@ -12,9 +12,10 @@ class VisWidget : public QGLWidget
     Q_OBJECT
 public:
     explicit VisWidget(QWidget *parent = 0);
+    ~VisWidget();
     virtual void setTrace(Trace *t);
-    virtual void paint(QPainter *painter, QPaintEvent *event, int elapsed);
     virtual void processVis();
+    QSize sizeHint() const;
 
 signals:
     void repaintAll();
@@ -25,12 +26,20 @@ public slots:
     virtual void setSteps(float start, float stop);
 
 protected:
+    void initializeGL();
     void paintEvent(QPaintEvent *event);
+
+    virtual void drawNativeGL();
+    virtual void qtPaint(QPainter *painter);
+
+private:
+    void beginNativeGL();
+    void endNativeGL();
 
 protected:
     Trace * trace;
     bool visProcessed;
-    QBrush backgroundColor;
+    QColor backgroundColor;
     QBrush selectColor;
     bool changeSource;
 };
