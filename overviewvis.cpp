@@ -151,15 +151,17 @@ void OverviewVis::processVis()
     int width = size().width() - 2 * border;
     heights = QVector<float>(width, 0);
     int timespan = maxTime - minTime;
+    int start_int, stop_int;
     stepPositions = QVector<std::pair<int, int> >(maxStep+1, std::pair<int, int>(width + 1, -1));
     for (QVector<Event *>::Iterator itr = trace->events->begin(); itr != trace->events->end(); itr++) {
         // Accumulate lateness on the overview. We assume overview is real time
+
+        // start and stop are the cursor positions
+        float start = (width - 1) * (((*itr)->enter - minTime) / 1.0 / timespan);
+        float stop = (width - 1) * (((*itr)->exit - minTime) / 1.0 / timespan);
+        start_int = static_cast<int>(start);
+        stop_int = static_cast<int>(stop);
         if ((*itr)->lateness > 0) {
-            // start and stop are the cursor positions
-            float start = (width - 1) * (((*itr)->enter - minTime) / 1.0 / timespan);
-            float stop = (width - 1) * (((*itr)->exit - minTime) / 1.0 / timespan);
-            int start_int = static_cast<int>(start);
-            int stop_int = static_cast<int>(stop);
             heights[start_int] += (*itr)->lateness * (start - start_int);
             if (stop_int != start_int) {
                 heights[stop_int] += (*itr)->lateness * (stop - stop_int);
@@ -168,14 +170,15 @@ void OverviewVis::processVis()
                 heights[i] += (*itr)->lateness;
             }
 
-            // Figure out where the steps fall in width for later
-            // stepPositions maps steps to position in the cursor
-            if ((*itr)->step >= 0) {
-                if (stepPositions[(*itr)->step].second < stop_int)
-                    stepPositions[(*itr)->step].second = stop_int;
-                if (stepPositions[(*itr)->step].first > start_int)
-                    stepPositions[(*itr)->step].first = start_int;
-            }
+        }
+
+        // Figure out where the steps fall in width for later
+        // stepPositions maps steps to position in the cursor
+        if ((*itr)->step >= 0) {
+            if (stepPositions[(*itr)->step].second < stop_int)
+                stepPositions[(*itr)->step].second = stop_int;
+            if (stepPositions[(*itr)->step].first > start_int)
+                stepPositions[(*itr)->step].first = start_int;
         }
 
     }

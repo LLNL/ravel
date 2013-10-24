@@ -86,8 +86,8 @@ void StepVis::mouseReleaseEvent(QMouseEvent * event)
 void StepVis::mouseMoveEvent(QMouseEvent * event)
 {
     if (mousePressed) {
-        int diffx = event->x() - mousex;
-        int diffy = event->y() - mousey;
+        int diffx = mousex - event->x();
+        int diffy = mousey - event->y();
         startStep += diffx / 1.0 / stepwidth;
         startProcess += diffy / 1.0 / processheight;
 
@@ -174,7 +174,6 @@ void StepVis::incompleteBox(QPainter *painter, float x, float y, float w, float 
 void StepVis::qtPaint(QPainter *painter)
 {
     painter->fillRect(rect(), backgroundColor);
-    painter->setRenderHint(QPainter::Antialiasing);
 
     if(!visProcessed)
         return;
