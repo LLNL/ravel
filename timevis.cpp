@@ -110,9 +110,9 @@ void TimeVis::mouseMoveEvent(QMouseEvent * event)
         startProcess += diffy / 1.0 / processheight;
 
         if (startTime < minTime)
-            startStep = minTime;
-        if (startStep > maxTime)
-            startStep = maxTime - timeSpan;
+            startTime = minTime;
+        if (startTime > maxTime)
+            startTime = maxTime;
 
         if (startProcess < 1)
             startProcess = 1;
