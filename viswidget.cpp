@@ -12,11 +12,12 @@ VisWidget::VisWidget(QWidget *parent) :
     selectColor = QBrush(Qt::yellow);
     visProcessed = false;
     changeSource = false;
+    border = 20;
 }
 
 VisWidget::~VisWidget()
 {
-
+    QGLWidget::~QGLWidget();
 }
 
 QSize VisWidget::sizeHint() const
@@ -105,4 +106,42 @@ void VisWidget::processVis()
 void VisWidget::qtPaint(QPainter *painter)
 {
 
+}
+
+void VisWidget::incompleteBox(QPainter *painter, float x, float y, float w, float h)
+{
+    bool left = true;
+    bool right = true;
+    bool top = true;
+    bool bottom = true;
+    if (x <= 0)
+        left = false;
+    if (x + w >= rect().width())
+        right = false;
+    if (y <= 0)
+        top = false;
+    if (y + h >= rect().height())
+        bottom = false;
+
+    if (left)
+        painter->drawLine(QPointF(x, y), QPointF(x, y + h));
+
+    if (right)
+        painter->drawLine(QPointF(x + w, y), QPointF(x + w, y + h));
+
+    if (top)
+        painter->drawLine(QPointF(x, y), QPointF(x + w, y));
+
+    if (bottom)
+        painter->drawLine(QPointF(x, y + h), QPointF(x + w, y + h));
+}
+
+
+// If we want an odd step, we actually need the step after it since that is
+// where in the information is stored. This function computes that.
+int VisWidget::boundStep(float step) {
+    int bstep = ceil(step);
+    if (bstep % 2)
+        bstep++;
+    return bstep;
 }

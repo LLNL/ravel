@@ -28,6 +28,8 @@ public slots:
 protected:
     void initializeGL();
     void paintEvent(QPaintEvent *event);
+    void incompleteBox(QPainter *painter, float x, float y, float w, float h);
+    int boundStep(float step); // Determine upper bound on step
 
     virtual void drawNativeGL();
     virtual void qtPaint(QPainter *painter);
@@ -42,6 +44,9 @@ protected:
     QColor backgroundColor;
     QBrush selectColor;
     bool changeSource;
+    int border;
+
+    const int initStepSpan = 15;
 };
 
 #endif // VISWIDGET_H

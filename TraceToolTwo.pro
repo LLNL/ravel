@@ -15,7 +15,8 @@ SOURCES  += main.cpp \
     viswidget.cpp \
     overviewvis.cpp \
     stepvis.cpp \
-    colormap.cpp
+    colormap.cpp \
+    timevis.cpp
 
 
 HEADERS += \
@@ -26,7 +27,8 @@ HEADERS += \
     viswidget.h \
     overviewvis.h \
     stepvis.h \
-    colormap.h
+    colormap.h \
+    timevis.h
 
 
 FORMS += \

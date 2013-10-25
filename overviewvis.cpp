@@ -4,20 +4,16 @@
 #include <iostream>
 #include <cmath>
 
-OverviewVis::OverviewVis(QWidget *parent)
+OverviewVis::OverviewVis(QWidget *parent) : VisWidget(parent = parent)
 {
-    VisWidget(parent = parent);
     height = 70;
 
     // GLWidget options
     setMinimumSize(200, height);
     setMaximumHeight(height);
-    setAutoFillBackground(false);
 
     // Set painting variables
     backgroundColor = QColor(204, 229, 255);
-    visProcessed = false;
-    border = 20;
     trace = NULL;
     mousePressed = false;
 }

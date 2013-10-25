@@ -1,18 +1,16 @@
-#ifndef STEPVIS_H
-#define STEPVIS_H
+#ifndef TIMEVIS_H
+#define TIMEVIS_H
 
 #include "viswidget.h"
-#include "colormap.h"
 
-class StepVis : public VisWidget
+class TimeVis : public VisWidget
 {
     Q_OBJECT
 public:
-    StepVis(QWidget* parent = 0);
-    ~StepVis();
+    TimeVis(QWidget * parent = 0);
+    ~TimeVis();
     void setTrace(Trace * t);
     void processVis();
-    //void resizeEvent(QResizeEvent * event);
 
     void mousePressEvent(QMouseEvent * event);
     void mouseReleaseEvent(QMouseEvent * event);
@@ -26,21 +24,33 @@ protected:
     void qtPaint(QPainter *painter);
 
 private:
+    class TimePair {
+    public:
+        TimePair(unsigned long long _s1, unsigned long long _s2)
+            : start(_s1), stop(_s2) {}
+
+        unsigned long long start;
+        unsigned long long stop;
+    };
+
     bool mousePressed;
     int mousex;
     int mousey;
-    int stepwidth;
     int processheight;
-    bool showAggSteps;
-    int maxStep;
+    unsigned long long minTime;
+    unsigned long long maxTime;
+    unsigned long long startTime;
+    unsigned long long timeSpan;
     float startStep;
-    float startProcess; // refers to order rather than process really
-    float stepSpan;
+    float stopStep;
+    int maxStep;
+    float startProcess;
     float processSpan;
-    long long maxLateness;
     QMap<int, int> proc_to_order;
     QMap<int, int> order_to_proc;
+    QVector<TimePair> stepToTime;
     ColorMap * colormap;
+
 };
 
-#endif // STEPVIS_H
+#endif // TIMEVIS_H

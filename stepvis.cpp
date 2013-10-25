@@ -5,14 +5,8 @@
 
 StepVis::StepVis(QWidget* parent) : VisWidget(parent = parent)
 {
-    // GLWidget options
-    setMinimumSize(200, 200);
-    setAutoFillBackground(false);
-
     // Set painting variables
     backgroundColor = QColor(255, 255, 255);
-    visProcessed = false;
-    border = 20;
     mousePressed = false;
     showAggSteps = true;
     trace = NULL;
@@ -26,6 +20,7 @@ StepVis::StepVis(QWidget* parent) : VisWidget(parent = parent)
 StepVis::~StepVis()
 {
     delete colormap;
+    VisWidget::~VisWidget();
 }
 
 void StepVis::setTrace(Trace * t)
@@ -43,7 +38,7 @@ void StepVis::setTrace(Trace * t)
 
     // Initial conditions
     startStep = 0;
-    stepSpan = 15;
+    stepSpan = initStepSpan;
     startProcess = 1;
     processSpan = trace->num_processes;
 }
@@ -80,6 +75,7 @@ void StepVis::mousePressEvent(QMouseEvent * event)
 
 void StepVis::mouseReleaseEvent(QMouseEvent * event)
 {
+    Q_UNUSED(event);
     mousePressed = false;
 }
 
@@ -132,43 +128,8 @@ void StepVis::wheelEvent(QWheelEvent * event)
         std::cout << "Horiz Scale " << startStep << ", " << stepSpan << std::endl;
     }
     repaint();
-}
-
-// If we want an odd step, we actually need the step after it since that is
-// where in the information is stored. This function computes that.
-int StepVis::boundStep(float step) {
-    int bstep = ceil(step);
-    if (bstep % 2)
-        bstep++;
-    return bstep;
-}
-
-void StepVis::incompleteBox(QPainter *painter, float x, float y, float w, float h)
-{
-    bool left = true;
-    bool right = true;
-    bool top = true;
-    bool bottom = true;
-    if (x <= 0)
-        left = false;
-    if (x + w >= rect().width())
-        right = false;
-    if (y <= 0)
-        top = false;
-    if (y + h >= rect().height())
-        bottom = false;
-
-    if (left)
-        painter->drawLine(QPointF(x, y), QPointF(x, y + h));
-
-    if (right)
-        painter->drawLine(QPointF(x + w, y), QPointF(x + w, y + h));
-
-    if (top)
-        painter->drawLine(QPointF(x, y), QPointF(x + w, y));
-
-    if (bottom)
-        painter->drawLine(QPointF(x, y + h), QPointF(x + w, y + h));
+    changeSource = true;
+    emit stepsChanged(startStep, startStep + stepSpan);
 }
 
 void StepVis::qtPaint(QPainter *painter)
