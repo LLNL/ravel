@@ -37,6 +37,11 @@ void OverviewVis::setSteps(float start, float stop)
     }
     int startStep = roundeven(start);
     int stopStep = roundeven(stop);
+    std::cout << "Overview setSteps: " << startStep << ", " << stopStep << std::endl;
+    if (startStep < 0)
+        startStep = 0;
+    if (stopStep > maxStep)
+        stopStep = maxStep;
     startCursor = stepPositions[startStep].first;
     while (startCursor >= rect().width()) // For no-data steps
     {

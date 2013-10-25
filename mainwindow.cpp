@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include "overviewvis.h"
 #include "stepvis.h"
+#include "timevis.h"
 
 #include <QFileDialog>
 #include <iostream>
@@ -25,6 +26,12 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect((stepvis), SIGNAL(stepsChanged(float, float)), this, SLOT(pushSteps(float, float)));
     viswidgets.push_back(stepvis);
+
+    TimeVis* timevis = new TimeVis(this);
+    ui->traditionalLayout->addWidget(timevis);
+
+    connect((timevis), SIGNAL(stepsChanged(float, float)), this, SLOT(pushSteps(float, float)));
+    viswidgets.push_back(timevis);
 
     connect(ui->actionOpen_JSON, SIGNAL(triggered()),this,SLOT(importJSON()));
 }

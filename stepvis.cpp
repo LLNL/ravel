@@ -42,12 +42,14 @@ void StepVis::setTrace(Trace * t)
 
 void StepVis::setSteps(float start, float stop)
 {
+    std::cout << "setSteps triggered" << std::endl;
     if (changeSource) {
         changeSource = false;
         return;
     }
     startStep = start;
     stepSpan = stop - start + 1;
+    std::cout << "steps obtained: " << startStep << ", " << stepSpan << std::endl;
     repaint();
 }
 

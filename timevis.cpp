@@ -7,6 +7,7 @@ TimeVis::TimeVis(QWidget * parent) : VisWidget(parent = parent)
     backgroundColor = QColor(255, 255, 255);
     mousePressed = false;
     trace = NULL;
+    firstFlag = false;
 }
 
 TimeVis::~TimeVis()
@@ -47,9 +48,10 @@ void TimeVis::setTrace(Trace * t)
         if ((*itr)->step > maxStep)
             maxStep = (*itr)->step;
     }
+    std::cout << "Determined time " << startTime << ", " << stopTime << std::endl;
     timeSpan = stopTime - startTime;
 
-    if (stepToTime) {
+    if (firstFlag) {
         for (QVector<TimePair *>::Iterator itr = stepToTime->begin(); itr != stepToTime->end(); itr++) {
             delete *itr;
             *itr = NULL;
@@ -57,8 +59,9 @@ void TimeVis::setTrace(Trace * t)
         delete stepToTime;
     }
 
+    firstFlag = true;
     stepToTime = new QVector<TimePair *>();
-    for (int i = 0; i < maxStep/2; i++)
+    for (int i = 0; i < maxStep/2 + 1; i++)
         stepToTime->insert(i, new TimePair(ULLONG_MAX, 0));
     int step;
     for (QVector<Event *>::Iterator itr = trace->events->begin(); itr != trace->events->end(); itr++) {
@@ -102,7 +105,8 @@ void TimeVis::mouseMoveEvent(QMouseEvent * event)
     if (mousePressed) {
         int diffx = mousex - event->x();
         int diffy = mousey - event->y();
-        startTime += diffx / 1.0 / timeSpan;
+        //startTime += rect().width() * diffx / 1.0 / timeSpan;
+        startTime += timeSpan / 1.0 / rect().width() * diffx;
         startProcess += diffy / 1.0 / processheight;
 
         if (startTime < minTime)
@@ -141,11 +145,12 @@ void TimeVis::wheelEvent(QWheelEvent * event)
         // Horizontal
         float middleTime = startTime + timeSpan / 2.0;
         timeSpan *= scale;
-        startStep = middleTime - timeSpan / 2.0;
+        startTime = middleTime - timeSpan / 2.0;
         std::cout << "Horiz Scale " << startTime << ", " << timeSpan << std::endl;
     }
     repaint();
     changeSource = true;
+    std::cout << "steps emitted: " << startStep << ", " << stopStep << std::endl;
     emit stepsChanged(startStep, stopStep); // Calculated during painting
 }
 
@@ -198,19 +203,22 @@ void TimeVis::qtPaint(QPainter *painter)
 
             // save step information for emitting
             step = (*itr)->step;
-            if (step > stopStep)
+            if (step >= 0 && step > stopStep)
                 stopStep = step;
-            if (step < startStep)
+            if (step >= 0 && step < startStep) {
+                std::cout << "Setting start " << step << ", " << startStep << std::endl;
                 startStep = step;
+            }
 
 
-            w = ((*itr)->exit - (*itr)->enter) / 1.0 / timeSpan;
+            w = ((*itr)->exit - (*itr)->enter) / 1.0 / timeSpan * rect().width();
             if (w < 2)
                 continue;
 
             y = floor((position - startProcess) * blockheight) + 1;
-            x = floor(((*itr)->enter - startTime) / 1.0 / timeSpan * rect().width()) + 1;
+            x = floor(static_cast<long long>((*itr)->enter - startTime) / 1.0 / timeSpan * rect().width()) + 1;
             h = barheight;
+
 
             // Corrections for partially drawn
             complete = true;
@@ -230,7 +238,8 @@ void TimeVis::qtPaint(QPainter *painter)
                 w = rect().width() - x;
                 complete = false;
             }
-            painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(250, 250, 255)));
+
+            painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(200, 200, 255)));
             if (complete)
                 painter->drawRect(QRectF(x,y,w,h));
             else
@@ -252,11 +261,11 @@ void TimeVis::qtPaint(QPainter *painter)
             recv_event = (*itr)->receiver;
             position = proc_to_order[send_event->process];
             y = floor((position - startProcess + 0.5) * blockheight) + 1;
-            x = floor((send_event->enter - startTime) / 1.0 / timeSpan * rect().width()) + 1;
+            x = floor(static_cast<long long>(send_event->enter - startTime) / 1.0 / timeSpan * rect().width()) + 1;
             p1 = QPointF(x, y);
             position = proc_to_order[recv_event->process];
             y = floor((position - startProcess + 0.5) * blockheight) + 1;
-            x = floor((recv_event->exit - startTime) / 1.0 / timeSpan * rect().width()) + 1;
+            x = floor(static_cast<long long>(recv_event->exit - startTime) / 1.0 / timeSpan * rect().width()) + 1;
             p2 = QPointF(x, y);
             painter->drawLine(p1, p2);
         }
