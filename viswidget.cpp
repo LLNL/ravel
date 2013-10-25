@@ -15,11 +15,6 @@ VisWidget::VisWidget(QWidget *parent) :
     border = 20;
 }
 
-VisWidget::~VisWidget()
-{
-    QGLWidget::~QGLWidget();
-}
-
 QSize VisWidget::sizeHint() const
 {
     return QSize(400, 400);

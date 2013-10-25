@@ -3,7 +3,9 @@
 
 #include <QGLWidget>
 #include <QVector>
+#include <QPaintEvent>
 #include <climits>
+#include <cmath>
 
 #include "trace.h"
 
@@ -12,7 +14,6 @@ class VisWidget : public QGLWidget
     Q_OBJECT
 public:
     explicit VisWidget(QWidget *parent = 0);
-    ~VisWidget();
     virtual void setTrace(Trace *t);
     virtual void processVis();
     QSize sizeHint() const;
@@ -46,7 +47,7 @@ protected:
     bool changeSource;
     int border;
 
-    const int initStepSpan = 15;
+    static const int initStepSpan = 15;
 };
 
 #endif // VISWIDGET_H

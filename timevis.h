@@ -48,8 +48,7 @@ private:
     float processSpan;
     QMap<int, int> proc_to_order;
     QMap<int, int> order_to_proc;
-    QVector<TimePair> stepToTime;
-    ColorMap * colormap;
+    QVector<TimePair* > * stepToTime;
 
 };
 

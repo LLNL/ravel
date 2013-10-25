@@ -1,4 +1,5 @@
 #include "timevis.h"
+#include <iostream>
 
 TimeVis::TimeVis(QWidget * parent) : VisWidget(parent = parent)
 {
@@ -10,8 +11,13 @@ TimeVis::TimeVis(QWidget * parent) : VisWidget(parent = parent)
 
 TimeVis::~TimeVis()
 {
-    VisWidget::~VisWidget();
+    for (QVector<TimePair *>::Iterator itr = stepToTime->begin(); itr != stepToTime->end(); itr++) {
+        delete *itr;
+        *itr = NULL;
+    }
+    delete stepToTime;
 }
+
 
 void TimeVis::setTrace(Trace * t)
 {
@@ -43,16 +49,26 @@ void TimeVis::setTrace(Trace * t)
     }
     timeSpan = stopTime - startTime;
 
-    stepToTime = QVector<TimePair>(maxStep/2, TimePair(ULLONG_MAX, 0));
+    if (stepToTime) {
+        for (QVector<TimePair *>::Iterator itr = stepToTime->begin(); itr != stepToTime->end(); itr++) {
+            delete *itr;
+            *itr = NULL;
+        }
+        delete stepToTime;
+    }
+
+    stepToTime = new QVector<TimePair *>();
+    for (int i = 0; i < maxStep/2; i++)
+        stepToTime->insert(i, new TimePair(ULLONG_MAX, 0));
     int step;
     for (QVector<Event *>::Iterator itr = trace->events->begin(); itr != trace->events->end(); itr++) {
         if ((*itr)->step < 0)
             continue;
         step = (*itr)->step / 2;
-        if (stepToTime[step].start > (*itr)->enter)
-            stepToTime[step].start = (*itr)->enter;
-        if (stepToTime[step].stop < (*itr)->exit)
-            stepToTime[step].stop = (*itr)->exit;
+        if ((*stepToTime)[step]->start > (*itr)->enter)
+            (*stepToTime)[step]->start = (*itr)->enter;
+        if ((*stepToTime)[step]->stop < (*itr)->exit)
+            (*stepToTime)[step]->stop = (*itr)->exit;
     }
 
 }
@@ -139,8 +155,8 @@ void TimeVis::setSteps(float start, float stop)
         changeSource = false;
         return;
     }
-    startTime = stepToTime[boundStep(start)].start;
-    timeSpan = stepToTime[boundStep(stop)].stop - startTime;
+    startTime = (*stepToTime)[boundStep(start)/2]->start;
+    timeSpan = (*stepToTime)[boundStep(stop)/2]->stop - startTime;
     repaint();
 }
 
@@ -210,11 +226,11 @@ void TimeVis::qtPaint(QPainter *painter)
                 w -= fabs(x);
                 x = 0;
                 complete = false;
-            } else if (x + barwidth > rect().width()) {
+            } else if (x + w > rect().width()) {
                 w = rect().width() - x;
                 complete = false;
             }
-            painter->fillRect(QRectF(x, y, w, h), QBrush(colormap->color((*itr)->lateness)));
+            painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(250, 250, 255)));
             if (complete)
                 painter->drawRect(QRectF(x,y,w,h));
             else

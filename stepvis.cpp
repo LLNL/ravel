@@ -1,7 +1,5 @@
 #include "stepvis.h"
-#include <QPaintEvent>
 #include <iostream>
-#include <cmath>
 
 StepVis::StepVis(QWidget* parent) : VisWidget(parent = parent)
 {
@@ -20,7 +18,6 @@ StepVis::StepVis(QWidget* parent) : VisWidget(parent = parent)
 StepVis::~StepVis()
 {
     delete colormap;
-    VisWidget::~VisWidget();
 }
 
 void StepVis::setTrace(Trace * t)
