@@ -87,8 +87,9 @@ void MainWindow::importJSON()
         int key = QString(itr.key().asString().c_str()).toInt();
         Event* e = new Event(static_cast<unsigned long long>((*itr)["entertime"].asDouble()),
                 static_cast<unsigned long long>((*itr)["leavetime"].asDouble()),
-                (*itr)["fxn"].asInt(), (*itr)["process"].asInt(), (*itr)["step"].asInt(),
-                static_cast<long long>((*itr)["lateness"].asDouble()));
+                (*itr)["fxn"].asInt(), (*itr)["process"].asInt(), (*itr)["step"].asInt());
+        e->addMetric("lateness", static_cast<long long>((*itr)["lateness"].asDouble()),
+                static_cast<long long>((*itr)["comp_lateness"].asDouble()));
         eventmap[key] = e;
         trace->events->push_back(e);
     }

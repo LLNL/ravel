@@ -25,11 +25,14 @@ void StepVis::setTrace(Trace * t)
     VisWidget::setTrace(t);
     maxStep = 0;
     maxLateness = 0;
+    QString lateness("lateness");
     for (QVector<Event *>::Iterator itr = trace->events->begin(); itr != trace->events->end(); itr++) {
         if ((*itr)->step > maxStep)
             maxStep = (*itr)->step;
-        if ((*itr)->lateness > maxLateness)
-            maxLateness = (*itr)->lateness;
+        if ((*(*itr)->metrics)[lateness]->event > maxLateness)
+            maxLateness = (*(*itr)->metrics)[lateness]->event;
+        if ((*(*itr)->metrics)[lateness]->aggregate > maxLateness)
+            maxLateness = (*(*itr)->metrics)[lateness]->aggregate;
     }
     colormap->setRange(0, maxLateness);
 
@@ -162,6 +165,7 @@ void StepVis::qtPaint(QPainter *painter)
     processheight = blockheight;
     stepwidth = blockwidth;
 
+    QString metric("lateness");
     int position;
     bool complete, aggcomplete;
     QSet<Message *> drawMessages = QSet<Message *>();
@@ -202,7 +206,7 @@ void StepVis::qtPaint(QPainter *painter)
                 w = rect().width() - x;
                 complete = false;
             }
-            painter->fillRect(QRectF(x, y, w, h), QBrush(colormap->color((*itr)->lateness)));
+            painter->fillRect(QRectF(x, y, w, h), QBrush(colormap->color((*(*itr)->metrics)[metric]->event)));
             if (complete)
                 painter->drawRect(QRectF(x,y,w,h));
             else
@@ -228,7 +232,7 @@ void StepVis::qtPaint(QPainter *painter)
                 }
 
                 aggcomplete = aggcomplete && complete;
-                painter->fillRect(QRectF(xa, y, wa, h), QBrush(colormap->color((*itr)->lateness)));
+                painter->fillRect(QRectF(xa, y, wa, h), QBrush(colormap->color((*(*itr)->metrics)[metric]->aggregate)));
                 if (aggcomplete)
                     painter->drawRect(QRectF(xa, y, wa, h));
                 else

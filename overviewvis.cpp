@@ -153,22 +153,25 @@ void OverviewVis::processVis()
     heights = QVector<float>(width, 0);
     int timespan = maxTime - minTime;
     int start_int, stop_int;
+    QString lateness("lateness");
     stepPositions = QVector<std::pair<int, int> >(maxStep+1, std::pair<int, int>(width + 1, -1));
     for (QVector<Event *>::Iterator itr = trace->events->begin(); itr != trace->events->end(); itr++) {
         // Accumulate lateness on the overview. We assume overview is real time
+        // Note we're not counting aggregate lateness here. That would require that our vector is
+        // in order and keeping track of the last for each process. We don't want to do that right now.
 
         // start and stop are the cursor positions
         float start = (width - 1) * (((*itr)->enter - minTime) / 1.0 / timespan);
         float stop = (width - 1) * (((*itr)->exit - minTime) / 1.0 / timespan);
         start_int = static_cast<int>(start);
         stop_int = static_cast<int>(stop);
-        if ((*itr)->lateness > 0) {
-            heights[start_int] += (*itr)->lateness * (start - start_int);
+        if ((*(*itr)->metrics)[lateness]->event > 0) {
+            heights[start_int] += (*(*itr)->metrics)[lateness]->event * (start - start_int);
             if (stop_int != start_int) {
-                heights[stop_int] += (*itr)->lateness * (stop - stop_int);
+                heights[stop_int] += (*(*itr)->metrics)[lateness]->event * (stop - stop_int);
             }
             for (int i = start_int + 1; i < stop_int; i++) {
-                heights[i] += (*itr)->lateness;
+                heights[i] += (*(*itr)->metrics)[lateness]->event;
             }
 
         }

@@ -3,6 +3,7 @@
 
 #include "viswidget.h"
 #include "colormap.h"
+#include "event.h"
 
 class StepVis : public VisWidget
 {

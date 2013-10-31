@@ -114,10 +114,11 @@ void TimeVis::mouseMoveEvent(QMouseEvent * event)
         if (startTime > maxTime)
             startTime = maxTime;
 
-        if (startProcess < 1)
-            startProcess = 1;
         if (startProcess + processSpan > trace->num_processes + 1)
             startProcess = trace->num_processes - processSpan + 1;
+        if (startProcess < 1)
+            startProcess = 1;
+
 
         mousex = event->x();
         mousey = event->y();

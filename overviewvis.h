@@ -2,6 +2,7 @@
 #define OVERVIEWVIS_H
 
 #include "viswidget.h"
+#include "event.h"
 
 class OverviewVis : public VisWidget
 {
