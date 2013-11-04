@@ -11,7 +11,7 @@ ColorMap::ColorMap(QColor color, float value)
 
 ColorMap::~ColorMap()
 {
-    for (QVector<ColorValue *>::Iterator itr = colors->begin(); itr != colors->end(); itr++) {
+    for (QVector<ColorValue *>::Iterator itr = colors->begin(); itr != colors->end(); ++itr) {
         delete *itr;
         *itr = NULL;
     }

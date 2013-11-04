@@ -6,12 +6,10 @@
 class EventRecord
 {
 public:
-    EventRecord();
+    EventRecord(unsigned int _p, unsigned long long _t, unsigned int _v);
 
     unsigned int process;
-    unsigned int thread;
     unsigned long long time;
-    unsigned int type;
     unsigned int value;
 };
 

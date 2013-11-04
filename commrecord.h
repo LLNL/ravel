@@ -6,7 +6,9 @@
 class CommRecord
 {
 public:
-    CommRecord();
+    CommRecord(unsigned int _s, unsigned long long _st,
+               unsigned int _r, unsigned long long _rt,
+               unsigned int _size, unsigned int _tag);
 
     unsigned int sender;
     unsigned long long send_time;
@@ -16,6 +18,7 @@ public:
     unsigned int size;
     unsigned int tag;
     unsigned int type;
+    bool matched;
 };
 
 #endif // COMMRECORD_H
