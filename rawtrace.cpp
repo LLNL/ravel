@@ -2,6 +2,9 @@
 
 RawTrace::RawTrace()
 {
+    functions = new QMap<int, QString>();
+    events = new QVector<EventRecord *>();
+    messages = new QVector<CommRecord *>();
 }
 
 // Note we do not delete the function map because

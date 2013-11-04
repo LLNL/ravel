@@ -12,6 +12,8 @@ public:
     RawTrace * importOTF();
 
     static int handleDefTimerResolution(void * userData, uint32_t stream, uint64_t ticksPerSecond);
+    static int handleDefFunction(void * userData, uint32_t stream, uint32_t func,
+                                 const char* name, uint32_t funcGroup, uint32_t source);
 
     unsigned long long ticks_per_second;
 
