@@ -7,7 +7,7 @@ TimeVis::TimeVis(QWidget * parent) : VisWidget(parent = parent)
     backgroundColor = QColor(255, 255, 255);
     mousePressed = false;
     trace = NULL;
-    firstFlag = false;
+    stepToTime = new QVector<TimePair *>();
 }
 
 TimeVis::~TimeVis()
@@ -51,15 +51,12 @@ void TimeVis::setTrace(Trace * t)
     std::cout << "Determined time " << startTime << ", " << stopTime << std::endl;
     timeSpan = stopTime - startTime;
 
-    if (firstFlag) {
-        for (QVector<TimePair *>::Iterator itr = stepToTime->begin(); itr != stepToTime->end(); itr++) {
-            delete *itr;
-            *itr = NULL;
-        }
-        delete stepToTime;
+    for (QVector<TimePair *>::Iterator itr = stepToTime->begin(); itr != stepToTime->end(); itr++) {
+        delete *itr;
+        *itr = NULL;
     }
+    delete stepToTime;
 
-    firstFlag = true;
     stepToTime = new QVector<TimePair *>();
     for (int i = 0; i < maxStep/2 + 1; i++)
         stepToTime->insert(i, new TimePair(ULLONG_MAX, 0));

@@ -16,7 +16,11 @@ SOURCES  += main.cpp \
     overviewvis.cpp \
     stepvis.cpp \
     colormap.cpp \
-    timevis.cpp
+    timevis.cpp \
+    commrecord.cpp \
+    eventrecord.cpp \
+    otfimporter.cpp \
+    rawtrace.cpp
 
 
 HEADERS += \
@@ -28,7 +32,11 @@ HEADERS += \
     overviewvis.h \
     stepvis.h \
     colormap.h \
-    timevis.h
+    timevis.h \
+    commrecord.h \
+    eventrecord.h \
+    otfimporter.h \
+    rawtrace.h
 
 
 FORMS += \
@@ -44,3 +52,8 @@ macx: LIBS += -L$$PWD/../../Downloads/jsoncpp-src-0.5.0/buildscons/linux-gcc-4.2
 INCLUDEPATH += $$PWD/../../Downloads/jsoncpp-src-0.5.0/include
 DEPENDPATH += $$PWD/../../Downloads/jsoncpp-src-0.5.0/include
 
+
+macx: LIBS += -L$$PWD/../../libs/lib/ -lopen-trace-format
+
+INCLUDEPATH += $$PWD/../../libs/include/open-trace-format/
+DEPENDPATH += $$PWD/../../libs/include/open-trace-format/

@@ -49,6 +49,7 @@
     <property name="title">
      <string>File</string>
     </property>
+    <addaction name="actionOpen_OTF"/>
     <addaction name="actionOpen_JSON"/>
    </widget>
    <addaction name="menuFile"/>
@@ -57,6 +58,11 @@
   <action name="actionOpen_JSON">
    <property name="text">
     <string>Open JSON</string>
+   </property>
+  </action>
+  <action name="actionOpen_OTF">
+   <property name="text">
+    <string>Open OTF</string>
    </property>
   </action>
  </widget>

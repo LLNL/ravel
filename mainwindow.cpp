@@ -3,6 +3,7 @@
 #include "overviewvis.h"
 #include "stepvis.h"
 #include "timevis.h"
+#include "otfimporter.h"
 
 #include <QFileDialog>
 #include <iostream>
@@ -34,6 +35,7 @@ MainWindow::MainWindow(QWidget *parent) :
     viswidgets.push_back(timevis);
 
     connect(ui->actionOpen_JSON, SIGNAL(triggered()),this,SLOT(importJSON()));
+    connect(ui->actionOpen_OTF, SIGNAL(triggered()),this,SLOT(importOTF()));
 }
 
 MainWindow::~MainWindow()
@@ -49,11 +51,21 @@ void MainWindow::pushSteps(float start, float stop)
     }
 }
 
+void MainWindow::importOTF()
+{
+    QString dataFileName = QFileDialog::getOpenFileName(this, tr("Import OTF Data"),
+                                                     "",
+                                                     tr("Files (*.otf)"));
+    OTFImporter importer(dataFileName.toStdString().c_str());
+    importer.importOTF();
+
+}
+
 void MainWindow::importJSON()
 {
     QString dataFileName = QFileDialog::getOpenFileName(this, tr("Import JSON Data"),
                                                      "",
-                                                     tr("Files (*.*)"));
+                                                     tr("Files (*.json)"));
     QFile dataFile(dataFileName);
 
     QFile file(dataFileName);

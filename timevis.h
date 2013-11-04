@@ -49,7 +49,6 @@ private:
     QMap<int, int> proc_to_order;
     QMap<int, int> order_to_proc;
     QVector<TimePair* > * stepToTime;
-    bool firstFlag;
 
 };
 
