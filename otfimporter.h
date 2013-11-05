@@ -34,8 +34,10 @@ public:
 
     static bool compareComms(CommRecord * comm, unsigned int sender, unsigned int receiver,
                              unsigned int tag, unsigned int size);
+    static uint64_t convertTime(void* userData, uint64_t time);
 
-    unsigned long long ticks_per_second;
+    unsigned long long int ticks_per_second;
+    double time_conversion_factor;
     int num_processes;
 
 private:
