@@ -3,7 +3,7 @@
 #include "overviewvis.h"
 #include "stepvis.h"
 #include "timevis.h"
-#include "otfimporter.h"
+#include "otfconverter.h"
 
 #include <QFileDialog>
 #include <iostream>
@@ -56,8 +56,8 @@ void MainWindow::importOTF()
     QString dataFileName = QFileDialog::getOpenFileName(this, tr("Import OTF Data"),
                                                      "",
                                                      tr("Files (*.otf)"));
-    OTFImporter importer(dataFileName.toStdString().c_str());
-    importer.importOTF();
+    OTFConverter importer = OTFConverter();
+    importer.importOTF(dataFileName);
 
 }
 
@@ -103,7 +103,7 @@ void MainWindow::importJSON()
         e->addMetric("lateness", static_cast<long long>((*itr)["lateness"].asDouble()),
                 static_cast<long long>((*itr)["comp_lateness"].asDouble()));
         eventmap[key] = e;
-        trace->events->push_back(e);
+        (*(trace->events))[(e->process) - 1]->push_back(e);
     }
     // Second pass to link parents and children
     for (Json::ValueIterator itr = events.begin(); itr != events.end(); itr++) {

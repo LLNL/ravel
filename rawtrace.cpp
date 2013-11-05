@@ -1,9 +1,12 @@
 #include "rawtrace.h"
 
-RawTrace::RawTrace()
+RawTrace::RawTrace(int np) : num_processes(np)
 {
     functions = new QMap<int, QString>();
-    events = new QVector<EventRecord *>();
+    events = new QVector<QVector<EventRecord *> *>(np);
+    for (int i = 0; i < np; i++) {
+        (*events)[i] = new QVector<EventRecord *>();
+    }
     messages = new QVector<CommRecord *>();
 }
 
@@ -11,9 +14,13 @@ RawTrace::RawTrace()
 // we know that will get passed to the processed trace
 RawTrace::~RawTrace()
 {
-    for (QVector<EventRecord *>::Iterator itr = events->begin(); itr != events->end(); ++itr) {
-        delete *itr;
-        *itr = NULL;
+    for (QVector<QVector<EventRecord *> *>::Iterator eitr = events->begin(); eitr != events->end(); ++eitr) {
+        for (QVector<EventRecord *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
+            delete *itr;
+            *itr = NULL;
+        }
+        delete *eitr;
+        *eitr = NULL;
     }
     delete events;
     for (QVector<CommRecord *>::Iterator itr = messages->begin(); itr != messages->end(); ++itr) {

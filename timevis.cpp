@@ -36,17 +36,19 @@ void TimeVis::setTrace(Trace * t)
     startTime = ULLONG_MAX;
     unsigned long long stopTime = 0;
     maxStep = 0;
-    for (QVector<Event *>::Iterator itr = trace->events->begin(); itr != trace->events->end(); itr++) {
-        if ((*itr)->exit > maxTime)
-            maxTime = (*itr)->exit;
-        if ((*itr)->enter < minTime)
-            minTime = (*itr)->enter;
-        if ((*itr)->step >= boundStep(startStep) && (*itr)->enter < startTime)
-            startTime = (*itr)->enter;
-        if ((*itr)->step <= boundStep(stopStep) && (*itr)->exit > stopTime)
-            stopTime = (*itr)->exit;
-        if ((*itr)->step > maxStep)
-            maxStep = (*itr)->step;
+    for (QVector<QVector<Event *> *>::Iterator eitr = trace->events->begin(); eitr != trace->events->end(); ++eitr) {
+        for (QVector<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
+            if ((*itr)->exit > maxTime)
+                maxTime = (*itr)->exit;
+            if ((*itr)->enter < minTime)
+                minTime = (*itr)->enter;
+            if ((*itr)->step >= boundStep(startStep) && (*itr)->enter < startTime)
+                startTime = (*itr)->enter;
+            if ((*itr)->step <= boundStep(stopStep) && (*itr)->exit > stopTime)
+                stopTime = (*itr)->exit;
+            if ((*itr)->step > maxStep)
+                maxStep = (*itr)->step;
+        }
     }
     std::cout << "Determined time " << startTime << ", " << stopTime << std::endl;
     timeSpan = stopTime - startTime;
@@ -61,14 +63,16 @@ void TimeVis::setTrace(Trace * t)
     for (int i = 0; i < maxStep/2 + 1; i++)
         stepToTime->insert(i, new TimePair(ULLONG_MAX, 0));
     int step;
-    for (QVector<Event *>::Iterator itr = trace->events->begin(); itr != trace->events->end(); itr++) {
-        if ((*itr)->step < 0)
-            continue;
-        step = (*itr)->step / 2;
-        if ((*stepToTime)[step]->start > (*itr)->enter)
-            (*stepToTime)[step]->start = (*itr)->enter;
-        if ((*stepToTime)[step]->stop < (*itr)->exit)
-            (*stepToTime)[step]->stop = (*itr)->exit;
+    for (QVector<QVector<Event *> *>::Iterator eitr = trace->events->begin(); eitr != trace->events->end(); ++eitr) {
+        for (QVector<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
+            if ((*itr)->step < 0)
+                continue;
+            step = (*itr)->step / 2;
+            if ((*stepToTime)[step]->start > (*itr)->enter)
+                (*stepToTime)[step]->start = (*itr)->enter;
+            if ((*stepToTime)[step]->stop < (*itr)->exit)
+                (*stepToTime)[step]->stop = (*itr)->exit;
+        }
     }
 
 }
@@ -191,7 +195,9 @@ void TimeVis::qtPaint(QPainter *painter)
     unsigned long long stopTime = startTime + timeSpan;
     painter->setPen(QPen(QColor(0, 0, 0)));
 
-        for (QVector<Event *>::Iterator itr = trace->events->begin(); itr != trace->events->end(); ++itr)
+    for (QVector<QVector<Event *> *>::Iterator eitr = trace->events->begin(); eitr != trace->events->end(); ++eitr)
+    {
+        for (QVector<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr)
         {
             position = proc_to_order[(*itr)->process];
             if ((*itr)->exit < startTime || (*itr)->enter > stopTime) // Out of time span
@@ -246,6 +252,7 @@ void TimeVis::qtPaint(QPainter *painter)
             for (QVector<Message *>::Iterator mitr = (*itr)->messages->begin(); mitr != (*itr)->messages->end(); ++mitr)
                 drawMessages.insert((*mitr));
         }
+    }
 
         // Messages
         // We need to do all of the message drawing after the event drawing

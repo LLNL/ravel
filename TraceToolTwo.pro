@@ -20,7 +20,8 @@ SOURCES  += main.cpp \
     commrecord.cpp \
     eventrecord.cpp \
     otfimporter.cpp \
-    rawtrace.cpp
+    rawtrace.cpp \
+    otfconverter.cpp
 
 
 HEADERS += \
@@ -36,7 +37,8 @@ HEADERS += \
     commrecord.h \
     eventrecord.h \
     otfimporter.h \
-    rawtrace.h
+    rawtrace.h \
+    otfconverter.h
 
 
 FORMS += \

@@ -26,13 +26,15 @@ void StepVis::setTrace(Trace * t)
     maxStep = 0;
     maxLateness = 0;
     QString lateness("lateness");
-    for (QVector<Event *>::Iterator itr = trace->events->begin(); itr != trace->events->end(); itr++) {
-        if ((*itr)->step > maxStep)
-            maxStep = (*itr)->step;
-        if ((*(*itr)->metrics)[lateness]->event > maxLateness)
-            maxLateness = (*(*itr)->metrics)[lateness]->event;
-        if ((*(*itr)->metrics)[lateness]->aggregate > maxLateness)
-            maxLateness = (*(*itr)->metrics)[lateness]->aggregate;
+    for (QVector<QVector<Event *> *>::Iterator eitr = trace->events->begin(); eitr != trace->events->end(); ++eitr) {
+        for (QVector<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
+            if ((*itr)->step > maxStep)
+                maxStep = (*itr)->step;
+            if ((*(*itr)->metrics)[lateness]->event > maxLateness)
+                maxLateness = (*(*itr)->metrics)[lateness]->event;
+            if ((*(*itr)->metrics)[lateness]->aggregate > maxLateness)
+                maxLateness = (*(*itr)->metrics)[lateness]->aggregate;
+        }
     }
     colormap->setRange(0, maxLateness);
 
@@ -170,8 +172,8 @@ void StepVis::qtPaint(QPainter *painter)
     bool complete, aggcomplete;
     QSet<Message *> drawMessages = QSet<Message *>();
     painter->setPen(QPen(QColor(0, 0, 0)));
-
-        for (QVector<Event *>::Iterator itr = trace->events->begin(); itr != trace->events->end(); ++itr)
+    for (QVector<QVector<Event *> *>::Iterator eitr = trace->events->begin(); eitr != trace->events->end(); ++eitr) {
+        for (QVector<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr)
         {
             position = proc_to_order[(*itr)->process];
             if ((*itr)->step < floor(startStep) || (*itr)->step > boundStep(startStep + stepSpan)) // Out of span
@@ -240,6 +242,7 @@ void StepVis::qtPaint(QPainter *painter)
             }
 
         }
+    }
 
         // Messages
         // We need to do all of the message drawing after the event drawing

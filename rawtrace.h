@@ -11,11 +11,11 @@
 class RawTrace
 {
 public:
-    RawTrace();
+    RawTrace(int np);
     ~RawTrace();
 
     QMap<int, QString> * functions;
-    QVector<EventRecord *> * events;
+    QVector<QVector<EventRecord *> *> * events;
     QVector<CommRecord *> * messages;
     int num_processes;
 };

@@ -10,10 +10,9 @@ class Trace
 public:
     Trace(int np);
     ~Trace();
-    int addEvent(Event * e);
 
     QMap<int, QString> * functions;
-    QVector<Event *> * events;
+    QVector<QVector<Event *> *> * events;
     int num_processes;
 };
 

@@ -3,7 +3,7 @@
 #include <iostream>
 #include <cmath>
 
-OTFImporter::OTFImporter(const char* otf_file) : filename(otf_file)
+OTFImporter::OTFImporter()
 {
     num_processes = 0;
     unmatched_recvs = new QVector<CommRecord *>();
@@ -20,27 +20,28 @@ OTFImporter::~OTFImporter()
     delete unmatched_recvs;
 }
 
-RawTrace * OTFImporter::importOTF()
-{
-    rawtrace = new RawTrace();
-    readRawTrace();
-
-    return rawtrace;
-}
-
-void OTFImporter::readRawTrace()
+RawTrace * OTFImporter::importOTF(const char* otf_file)
 {
     fileManager = OTF_FileManager_open(1);
-    otfReader = OTF_Reader_open(filename, fileManager);
+    otfReader = OTF_Reader_open(otf_file, fileManager);
     handlerArray = OTF_HandlerArray_open();
 
     setHandlers();
+
+    functions = new QMap<int, QString>();
+
     OTF_Reader_readDefinitions(otfReader, handlerArray);
+
+    rawtrace = new RawTrace(num_processes);
+    delete rawtrace->functions;
+    rawtrace->functions = functions;
+
     OTF_Reader_readEvents(otfReader, handlerArray);
 
     OTF_HandlerArray_close(handlerArray);
     OTF_Reader_close(otfReader);
     OTF_FileManager_close(fileManager);
+    return rawtrace;
 }
 
 void OTFImporter::setHandlers()
@@ -122,7 +123,7 @@ int OTFImporter::handleDefFunction(void * userData, uint32_t stream, uint32_t fu
     Q_UNUSED(funcGroup);
     Q_UNUSED(source);
 
-    (*((((OTFImporter*) userData)->rawtrace)->functions))[func] = QString(name);
+    (*(((OTFImporter*) userData)->functions))[func] = QString(name);
     return 0;
 }
 
@@ -153,7 +154,7 @@ int OTFImporter::handleEnter(void * userData, uint64_t time, uint32_t function,
                        uint32_t process, uint32_t source)
 {
     Q_UNUSED(source);
-    ((((OTFImporter*) userData)->rawtrace)->events)->append(new EventRecord(process, convertTime(userData, time), function));
+    ((*((((OTFImporter*) userData)->rawtrace)->events))[process - 1])->append(new EventRecord(process, convertTime(userData, time), function));
     return 0;
 }
 
@@ -161,7 +162,7 @@ int OTFImporter::handleLeave(void * userData, uint64_t time, uint32_t function,
                        uint32_t process, uint32_t source)
 {
     Q_UNUSED(source);
-    ((((OTFImporter*) userData)->rawtrace)->events)->append(new EventRecord(process, convertTime(userData, time), function));
+    ((*((((OTFImporter*) userData)->rawtrace)->events))[process - 1])->append(new EventRecord(process, convertTime(userData, time), function));
     return 0;
 }
 

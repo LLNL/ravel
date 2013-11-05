@@ -9,9 +9,9 @@
 class OTFImporter
 {
 public:
-    OTFImporter(const char* otf_file);
+    OTFImporter();
     ~OTFImporter();
-    RawTrace * importOTF();
+    RawTrace * importOTF(const char* otf_file);
 
     static int handleDefTimerResolution(void * userData, uint32_t stream, uint64_t ticksPerSecond);
     static int handleDefFunction(void * userData, uint32_t stream, uint32_t func,
@@ -41,10 +41,8 @@ public:
     int num_processes;
 
 private:
-    void readRawTrace();
     void setHandlers();
 
-    const char * filename;
     OTF_FileManager * fileManager;
     OTF_Reader * otfReader;
     OTF_HandlerArray * handlerArray;
@@ -52,6 +50,7 @@ private:
     QVector<CommRecord *> * unmatched_recvs;
 
     RawTrace * rawtrace;
+    QMap<int, QString> * functions;
 
 };
 
