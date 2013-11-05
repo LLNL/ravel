@@ -9,6 +9,10 @@ Trace::Trace(int np) : num_processes(np)
 Trace::~Trace()
 {
     delete functions;
+    for (QVector<Event *>::Iterator itr = events->begin(); itr != events->end(); ++itr) {
+        delete *itr;
+        *itr = NULL;
+    }
     delete events;
 }
 

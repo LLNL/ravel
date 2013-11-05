@@ -5,26 +5,26 @@
 
 OTFImporter::OTFImporter(const char* otf_file) : filename(otf_file)
 {
-    rawtrace = new RawTrace();
     num_processes = 0;
-
     unmatched_recvs = new QVector<CommRecord *>();
 }
 
 OTFImporter::~OTFImporter()
 {
     //delete rawtrace;
-    //delete unmatched_recvs; <-- need to delete the records too
+
+    for (QVector<CommRecord *>::Iterator itr = unmatched_recvs->begin(); itr != unmatched_recvs->end(); ++itr) {
+        delete *itr;
+        *itr = NULL;
+    }
+    delete unmatched_recvs;
 }
 
 RawTrace * OTFImporter::importOTF()
 {
+    rawtrace = new RawTrace();
     readRawTrace();
 
-    // convertRawTrace() ? <-- should be different class to convert
-
-
-    // For now
     return rawtrace;
 }
 
