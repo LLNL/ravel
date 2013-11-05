@@ -56,6 +56,10 @@ void MainWindow::importOTF()
     QString dataFileName = QFileDialog::getOpenFileName(this, tr("Import OTF Data"),
                                                      "",
                                                      tr("Files (*.otf)"));
+    // Guard against Cancel
+    if (dataFileName == NULL || dataFileName.length() == 0)
+        return;
+
     OTFConverter importer = OTFConverter();
     importer.importOTF(dataFileName);
 
@@ -66,6 +70,11 @@ void MainWindow::importJSON()
     QString dataFileName = QFileDialog::getOpenFileName(this, tr("Import JSON Data"),
                                                      "",
                                                      tr("Files (*.json)"));
+
+    // Guard against Cancel
+    if (dataFileName == NULL || dataFileName.length() == 0)
+        return;
+
     QFile dataFile(dataFileName);
 
     QFile file(dataFileName);
