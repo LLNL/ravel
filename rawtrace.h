@@ -3,6 +3,7 @@
 
 #include "eventrecord.h"
 #include "commrecord.h"
+#include "function.h"
 #include <QMap>
 #include <QVector>
 
@@ -14,7 +15,8 @@ public:
     RawTrace(int np);
     ~RawTrace();
 
-    QMap<int, QString> * functions;
+    QMap<int, QString> * functionGroups;
+    QMap<int, Function *> * functions;
     QVector<QVector<EventRecord *> *> * events;
     QVector<CommRecord *> * messages;
     int num_processes;

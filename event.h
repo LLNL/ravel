@@ -5,6 +5,8 @@
 #include <QMap>
 #include "message.h"
 
+class Partition;
+
 class Event
 {
 public:
@@ -12,6 +14,12 @@ public:
           int _process, int _step);
     ~Event();
     void addMetric(QString name, long long event_value, long long aggregate_value = 0);
+
+    bool operator<(const Event &);
+    bool operator>(const Event &);
+    bool operator<=(const Event &);
+    bool operator>=(const Event &);
+    bool operator==(const Event &);
 
     class MetricPair {
     public:
@@ -27,11 +35,19 @@ public:
     QVector<Message *> * messages;
     QMap<QString, MetricPair *> * metrics; // Lateness or Counters etc
 
+    Event * caller;
+    QVector<Event *> * callees;
+
+    Partition * partition;
+
     unsigned long long enter;
     unsigned long long exit;
     int function;
     int process;
     int step;
+    int depth;
+
+    //enum mpi_class_t { WAITALL, COLLECTIVE, OTHER };
 
 };
 

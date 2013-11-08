@@ -2,6 +2,8 @@
 #define TRACE_H
 
 #include "event.h"
+#include "function.h"
+#include "partition.h"
 #include <QMap>
 #include <QVector>
 
@@ -11,8 +13,12 @@ public:
     Trace(int np);
     ~Trace();
 
-    QMap<int, QString> * functions;
+    QMap<int, QString> * functionGroups;
+    QMap<int, Function *> * functions;
     QVector<QVector<Event *> *> * events;
+    QVector<QVector<Event *> *> * roots;
+    QVector<QVector<Event *> *> * comm_events;
+    QVector<Partition *> * partitions;
     int num_processes;
 };
 

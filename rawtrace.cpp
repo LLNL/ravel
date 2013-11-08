@@ -2,7 +2,8 @@
 
 RawTrace::RawTrace(int np) : num_processes(np)
 {
-    functions = new QMap<int, QString>();
+    functionGroups = new QMap<int, QString>();
+    functions = new QMap<int, Function *>();
     events = new QVector<QVector<EventRecord *> *>(np);
     for (int i = 0; i < np; i++) {
         (*events)[i] = new QVector<EventRecord *>();
@@ -10,7 +11,7 @@ RawTrace::RawTrace(int np) : num_processes(np)
     messages = new QVector<CommRecord *>();
 }
 
-// Note we do not delete the function map because
+// Note we do not delete the function/functionGroup map because
 // we know that will get passed to the processed trace
 RawTrace::~RawTrace()
 {

@@ -14,6 +14,8 @@ public:
     RawTrace * importOTF(const char* otf_file);
 
     static int handleDefTimerResolution(void * userData, uint32_t stream, uint64_t ticksPerSecond);
+    static int handleDefFunctionGroup(void * userData, uint32_t stream, uint32_t funcGroup,
+                                      const char * name);
     static int handleDefFunction(void * userData, uint32_t stream, uint32_t func,
                                  const char* name, uint32_t funcGroup, uint32_t source);
     static int handleDefProcess(void * userData, uint32_t stream, uint32_t process,
@@ -50,7 +52,8 @@ private:
     QVector<CommRecord *> * unmatched_recvs;
 
     RawTrace * rawtrace;
-    QMap<int, QString> * functions;
+    QMap<int, QString> * functionGroups;
+    QMap<int, Function *> * functions;
 
 };
 

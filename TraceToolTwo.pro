@@ -21,7 +21,9 @@ SOURCES  += main.cpp \
     eventrecord.cpp \
     otfimporter.cpp \
     rawtrace.cpp \
-    otfconverter.cpp
+    otfconverter.cpp \
+    function.cpp \
+    partition.cpp
 
 
 HEADERS += \
@@ -38,7 +40,10 @@ HEADERS += \
     eventrecord.h \
     otfimporter.h \
     rawtrace.h \
-    otfconverter.h
+    otfconverter.h \
+    function.h \
+    partition.h \
+    general_util.h
 
 
 FORMS += \

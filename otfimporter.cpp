@@ -28,13 +28,16 @@ RawTrace * OTFImporter::importOTF(const char* otf_file)
 
     setHandlers();
 
-    functions = new QMap<int, QString>();
+    functionGroups = new QMap<int, QString>();
+    functions = new QMap<int, Function *>();
 
     OTF_Reader_readDefinitions(otfReader, handlerArray);
 
     rawtrace = new RawTrace(num_processes);
     delete rawtrace->functions;
     rawtrace->functions = functions;
+    delete rawtrace->functionGroups;
+    rawtrace->functionGroups = functionGroups;
 
     OTF_Reader_readEvents(otfReader, handlerArray);
 
@@ -51,6 +54,12 @@ void OTFImporter::setHandlers()
                                 (OTF_FunctionPointer*) &OTFImporter::handleDefTimerResolution,
                                 OTF_DEFTIMERRESOLUTION_RECORD);
     OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_DEFTIMERRESOLUTION_RECORD);
+
+    // Function Groups
+    OTF_HandlerArray_setHandler(handlerArray,
+                                (OTF_FunctionPointer*) &OTFImporter::handleDefFunctionGroup,
+                                OTF_DEFFUNCTIONGROUP_RECORD);
+    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_DEFFUNCTIONGROUP_RECORD);
 
     // Function Names
     OTF_HandlerArray_setHandler(handlerArray,
@@ -116,14 +125,22 @@ int OTFImporter::handleDefTimerResolution(void* userData, uint32_t stream, uint6
     return 0;
 }
 
+int OTFImporter::handleDefFunctionGroup(void * userData, uint32_t stream, uint32_t funcGroup,
+                                        const char * name)
+{
+    Q_UNUSED(stream);
+
+    (*(((OTFImporter *) userData)->functionGroups))[funcGroup] = QString(name);
+    return 0;
+}
+
 int OTFImporter::handleDefFunction(void * userData, uint32_t stream, uint32_t func,
                              const char* name, uint32_t funcGroup, uint32_t source)
 {
     Q_UNUSED(stream);
-    Q_UNUSED(funcGroup);
     Q_UNUSED(source);
 
-    (*(((OTFImporter*) userData)->functions))[func] = QString(name);
+    (*(((OTFImporter*) userData)->functions))[func] = new Function(QString(name), funcGroup);
     return 0;
 }
 
@@ -154,7 +171,7 @@ int OTFImporter::handleEnter(void * userData, uint64_t time, uint32_t function,
                        uint32_t process, uint32_t source)
 {
     Q_UNUSED(source);
-    ((*((((OTFImporter*) userData)->rawtrace)->events))[process - 1])->append(new EventRecord(process, convertTime(userData, time), function));
+    ((*((((OTFImporter*) userData)->rawtrace)->events))[process - 1])->append(new EventRecord(process - 1, convertTime(userData, time), function));
     return 0;
 }
 
@@ -162,7 +179,7 @@ int OTFImporter::handleLeave(void * userData, uint64_t time, uint32_t function,
                        uint32_t process, uint32_t source)
 {
     Q_UNUSED(source);
-    ((*((((OTFImporter*) userData)->rawtrace)->events))[process - 1])->append(new EventRecord(process, convertTime(userData, time), function));
+    ((*((((OTFImporter*) userData)->rawtrace)->events))[process - 1])->append(new EventRecord(process - 1, convertTime(userData, time), function));
     return 0;
 }
 
@@ -191,13 +208,13 @@ int OTFImporter::handleSend(void * userData, uint64_t time, uint32_t sender, uin
             (*itr)->matched = true;
             (*itr)->send_time = time;
             matchFound = true;
-            ((((OTFImporter*) userData)->rawtrace)->messages)->append((new CommRecord(sender, time, receiver, (*itr)->recv_time, length, type)));
+            ((((OTFImporter*) userData)->rawtrace)->messages)->append((new CommRecord(sender - 1, time, receiver - 1, (*itr)->recv_time, length, type)));
             break;
         }
     }
 
     if (!matchFound)
-        ((((OTFImporter*) userData)->rawtrace)->messages)->append(new CommRecord(sender, time, receiver, 0, length, type));
+        ((((OTFImporter*) userData)->rawtrace)->messages)->append(new CommRecord(sender - 1, time, receiver - 1, 0, length, type));
     return 0;
 }
 int OTFImporter::handleRecv(void * userData, uint64_t time, uint32_t receiver, uint32_t sender,
@@ -210,7 +227,7 @@ int OTFImporter::handleRecv(void * userData, uint64_t time, uint32_t receiver, u
     bool matchFound = false;
     QVector<CommRecord *> * unmatched = (((OTFImporter*) userData)->rawtrace)->messages;
     for (QVector<CommRecord *>::Iterator itr = unmatched->begin(); itr != unmatched->end(); ++itr) {
-        if (!(*itr)->matched && OTFImporter::compareComms((*itr), sender, receiver, type, length)) {
+        if (!(*itr)->matched && OTFImporter::compareComms((*itr), sender - 1, receiver - 1, type, length)) {
             (*itr)->recv_time = time;
             (*itr)->matched = true;
             matchFound = true;
@@ -219,7 +236,7 @@ int OTFImporter::handleRecv(void * userData, uint64_t time, uint32_t receiver, u
     }
 
     if (!matchFound)
-        (((OTFImporter*) userData)->unmatched_recvs)->append(new CommRecord(sender, 0, receiver, time, length, type));
+        (((OTFImporter*) userData)->unmatched_recvs)->append(new CommRecord(sender - 1, 0, receiver - 1, time, length, type));
 
     return 0;
 }
