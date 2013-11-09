@@ -36,6 +36,7 @@ Trace * OTFConverter::importOTF(QString filename)
     // Match comms to events
     send_events = new QList<Event *>();
     matchMessages();
+    chainCommEvents(); // Set comm_prev/comm_next
 
     partitions = new QList<Partition *>();
     // Partition - default
@@ -101,67 +102,6 @@ Partition * OTFConverter::mergePartitions(Partition * p1, Partition * p2)
 
     // Sort events
     p->sortEvents();
-
-    // Handle previous/next pointers
-    QList<int> p1processes = p1->prev->keys();
-    QList<int> p2processes = p2->prev->keys();
-    unsigned long long int p1time, p2time;
-    for (QList<int>::Iterator itr = p1processes.begin(); itr != p1processes.end(); ++itr)
-    {
-        if (p2processes.contains(*itr))
-        {
-            // Previous
-            p1time = ((*(((*(p1->prev))[*itr])->events))[*itr])->last()->exit;
-            p2time = ((*(((*(p2->prev))[*itr])->events))[*itr])->last()->exit;
-            if (p1time < p2time)
-            {
-                (*(p->prev))[*itr] = (*(p1->prev))[*itr];
-                (*((*(p1->prev))[*itr])->next)[*itr] = p;
-            }
-            else
-            {
-                (*(p->prev))[*itr] = (*(p2->prev))[*itr];
-                (*((*(p2->prev))[*itr])->next)[*itr] = p;
-            }
-
-            // Next
-            p1time = ((*(((*(p1->next))[*itr])->events))[*itr])->first()->enter;
-            p2time = ((*(((*(p2->next))[*itr])->events))[*itr])->first()->enter;
-            if (p1time > p2time)
-            {
-                (*(p->next))[*itr] = (*(p1->next))[*itr];
-                (*((*(p1->next))[*itr])->prev)[*itr] = p;
-            }
-            else
-            {
-                (*(p->next))[*itr] = (*(p2->next))[*itr];
-                (*((*(p2->next))[*itr])->prev)[*itr] = p;
-            }
-
-            p2processes.removeAll(*itr);
-        }
-        else
-        {   // Set prev to p1's and p1's prev next to p
-            (*(p->prev))[*itr] = (*(p1->prev))[*itr];
-            (*((*(p1->prev))[*itr])->next)[*itr] = p;
-
-            // Set next to p1's and p1's next prev to p
-            (*(p->next))[*itr] = (*(p1->next))[*itr];
-            (*((*(p1->next))[*itr])->prev)[*itr] = p;
-        }
-    }
-
-    // Handle whatever is leftover in p2's processes
-    for (QList<int>::Iterator itr = p2processes.begin(); itr != p2processes.end(); ++itr)
-    {
-        // Set prev to p1's and p1's prev next to p
-        (*(p->prev))[*itr] = (*(p2->prev))[*itr];
-        (*((*(p2->prev))[*itr])->next)[*itr] = p;
-
-        // Set next to p1's and p1's next prev to p
-        (*(p->next))[*itr] = (*(p2->next))[*itr];
-        (*((*(p2->next))[*itr])->prev)[*itr] = p;
-    }
 
     return p;
 }
@@ -335,6 +275,9 @@ void OTFConverter::mergeCycles()
         merged->append(p);
     }
 
+    // I wonder if this whole thing could be made easier if we just updated the events
+    // as we went along and then used the event pointers at the front and back
+
     // Now that we have all the updated partitions, figure out parents/children,
     // and sort the event lists and such
     for (QList<Partition *>::Iterator pitr = merged->begin(); pitr != merged->end(); ++pitr)
@@ -359,6 +302,13 @@ void OTFConverter::mergeCycles()
 
         // Sort Events
         (*pitr)->sortEvents();
+
+        // Set Event partition
+        for (QMap<int, QVector<Event *> *>::Iterator eitr = (*pitr)->events->begin(); eitr != (*pitr)->events->end(); ++eitr) {
+            for (QVector<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
+                (*itr)->partition = (*pitr);
+            }
+        }
     }
 
     delete partitions;
@@ -385,13 +335,11 @@ void OTFConverter::set_partition_dag()
 {
     for (QList<Partition *>::Iterator pitr = partitions->begin(); pitr != partitions->end(); ++pitr)
     {
-        QList<int> keys = (*pitr)->next->keys();
-        for (QList<int>::Iterator itr = keys.begin(); itr != keys.end(); ++itr)
-        {
-            if ((*((*pitr)->next))[(*itr)])
-                ((*pitr)->children)->insert((*((*pitr)->next))[(*itr)]);
-            if ((*((*pitr)->prev))[(*itr)])
-                ((*pitr)->parents)->insert((*((*pitr)->prev))[(*itr)]);
+        for (QMap<int, QVector<Event *> *>::Iterator eitr = (*pitr)->events->begin(); eitr != (*pitr)->events->end(); ++eitr) {
+            if ((*eitr)->first()->comm_prev->partition)
+                ((*pitr)->parents)->insert((*eitr)->first()->comm_prev->partition);
+            if ((*eitr)->last()->comm_next->partition)
+                ((*pitr)->children)->insert((*eitr)->last()->comm_next->partition);
         }
     }
 }
@@ -576,13 +524,30 @@ void OTFConverter::matchEvents()
                 depth++;
 
                 if ((((*trace)->functions)[e->process])->group == mpi_group)
+                {
                     ((*mpi_events)[e->process])->prepend(e);
+                }
 
                 stack->push(e);
                 (*(trace->events))[(*itr)->process]->append(e);
             }
         }
         delete stack;
+    }
+}
+
+void OTFConverter::chainCommEvents()
+{
+    for (QVector<QList<Event *> *>::Iterator pitr = mpi_events->begin(); pitr != mpi_events->end(); ++pitr) {
+        Event * next = NULL;
+        for (QList<Event *>::Iterator itr = (*pitr)->begin(); itr != (*pitr)->end(); ++itr) {
+            if ((*itr)->messages->size() > 0) {
+                (*itr)->comm_next = next;
+                if (next)
+                    next->comm_prev = (*itr);
+                next = (*itr);
+            }
+        }
     }
 }
 

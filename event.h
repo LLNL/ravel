@@ -39,6 +39,8 @@ public:
     QVector<Event *> * callees;
 
     Partition * partition;
+    Event * comm_next;
+    Event * comm_prev;
 
     unsigned long long enter;
     unsigned long long exit;
