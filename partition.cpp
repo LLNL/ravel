@@ -7,6 +7,10 @@ Partition::Partition()
 
     next = new QMap<int, Partition *>();
     prev = new QMap<int, Partition *>();
+    parents = new QSet<Partition *>();
+    children = new QSet<Partition *>();
+    old_parents = new QSet<Partition *>();
+    old_children = new QSet<Partition *>();
 }
 
 Partition::~Partition()
@@ -23,6 +27,10 @@ Partition::~Partition()
 
     delete next;
     delete prev;
+    delete parents;
+    delete children;
+    delete old_parents;
+    delete old_children;
 }
 
 // Call when we are sure we want to delete events

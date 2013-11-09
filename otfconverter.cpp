@@ -34,21 +34,28 @@ Trace * OTFConverter::importOTF(QString filename)
     matchEvents();
 
     // Match comms to events
+    send_events = new QList<Event *>();
     matchMessages();
 
-    partitions = new QVector<Partition *>();
+    partitions = new QList<Partition *>();
     // Partition - default
-      // Partition by Process w or w/o Waitall
     if (true)
-        initializePartitionsWaitall();
-    else
-        initializePartitions();
+    {
+          // Partition by Process w or w/o Waitall
+        if (true)
+            initializePartitionsWaitall();
+        else
+            initializePartitions();
 
-      // Merge communication
+          // Merge communication
+        mergeForMessages();
+          // Tarjan
+        mergeCycles();
 
-      // Tarjan
-      // Merge by rank level
-
+          // Merge by rank level
+        if (false)
+            mergeByRank();
+    }
     // Partition - given
       // Form partitions given in some way -- need to write options for this [ later ]
 
@@ -67,6 +74,7 @@ Trace * OTFConverter::importOTF(QString filename)
         *itr = NULL;
     }
     delete mpi_events;
+    delete send_events;
 
     return trace;
 }
@@ -93,7 +101,299 @@ Partition * OTFConverter::mergePartitions(Partition * p1, Partition * p2)
 
     // Sort events
     p->sortEvents();
+
+    // Handle previous/next pointers
+    QList<int> p1processes = p1->prev->keys();
+    QList<int> p2processes = p2->prev->keys();
+    unsigned long long int p1time, p2time;
+    for (QList<int>::Iterator itr = p1processes.begin(); itr != p1processes.end(); ++itr)
+    {
+        if (p2processes.contains(*itr))
+        {
+            // Previous
+            p1time = ((*(((*(p1->prev))[*itr])->events))[*itr])->last()->exit;
+            p2time = ((*(((*(p2->prev))[*itr])->events))[*itr])->last()->exit;
+            if (p1time < p2time)
+            {
+                (*(p->prev))[*itr] = (*(p1->prev))[*itr];
+                (*((*(p1->prev))[*itr])->next)[*itr] = p;
+            }
+            else
+            {
+                (*(p->prev))[*itr] = (*(p2->prev))[*itr];
+                (*((*(p2->prev))[*itr])->next)[*itr] = p;
+            }
+
+            // Next
+            p1time = ((*(((*(p1->next))[*itr])->events))[*itr])->first()->enter;
+            p2time = ((*(((*(p2->next))[*itr])->events))[*itr])->first()->enter;
+            if (p1time > p2time)
+            {
+                (*(p->next))[*itr] = (*(p1->next))[*itr];
+                (*((*(p1->next))[*itr])->prev)[*itr] = p;
+            }
+            else
+            {
+                (*(p->next))[*itr] = (*(p2->next))[*itr];
+                (*((*(p2->next))[*itr])->prev)[*itr] = p;
+            }
+
+            p2processes.removeAll(*itr);
+        }
+        else
+        {   // Set prev to p1's and p1's prev next to p
+            (*(p->prev))[*itr] = (*(p1->prev))[*itr];
+            (*((*(p1->prev))[*itr])->next)[*itr] = p;
+
+            // Set next to p1's and p1's next prev to p
+            (*(p->next))[*itr] = (*(p1->next))[*itr];
+            (*((*(p1->next))[*itr])->prev)[*itr] = p;
+        }
+    }
+
+    // Handle whatever is leftover in p2's processes
+    for (QList<int>::Iterator itr = p2processes.begin(); itr != p2processes.end(); ++itr)
+    {
+        // Set prev to p1's and p1's prev next to p
+        (*(p->prev))[*itr] = (*(p2->prev))[*itr];
+        (*((*(p2->prev))[*itr])->next)[*itr] = p;
+
+        // Set next to p1's and p1's next prev to p
+        (*(p->next))[*itr] = (*(p2->next))[*itr];
+        (*((*(p2->next))[*itr])->prev)[*itr] = p;
+    }
+
     return p;
+}
+
+void OTFConverter::mergeForMessages()
+{
+    Partition * p, p1, p2;
+    for (QList<Event *>::Iterator eitr = send_events->begin(); eitr != send_events->end(); ++eitr)
+    {
+        p1 = (*eitr)->partition;
+        for (QVector<Message *>::Iterator itr = (*eitr)->messages->begin(); itr != (*eitr)->messages->end(); ++itr)
+        {
+            p2 = (*itr)->receiver->partition;
+            if (p1 != p2)
+            {
+                p = mergePartitions(p1, p2);
+                partitions->removeAll(p1);
+                partitions->removeAll(p2);
+                partitions->append(p);
+                delete p1;
+                delete p2;
+            }
+        }
+    }
+}
+
+void OTFConverter::strong_connect_loop(Partition * part, QStack<Partition *> * stack,
+                                      QList<Partition *> * children, int cIndex,
+                                      QStack<RecurseInfo *> * recurse,
+                                      QList<QList<Partition *> *> * components)
+{
+    while (cIndex < children->size())
+    {
+        Partition * child = (*children)[cIndex];
+        if (child->tindex < 0)
+        {
+            // Push onto recursion stack, return so we can deal with it
+            recurse->push(new RecurseInfo(part, child, children, cIndex));
+            recurse->push(new RecurseInfo(child, NULL, NULL, -1));
+            return;
+        }
+        else if (stack->contains(child))
+        {
+            // Child already marked, set lowlink and proceed to next child
+            part->lowlink = std::min(part->lowlink, child->tindex);
+        }
+        ++cIndex;
+    }
+
+    // After all children have been handled, process component
+    if (part->lowlink == part->tindex)
+    {
+        component = new QList<Partition *>();
+        Partition * vert = stack->pop();
+        while (vert != part)
+        {
+            component->append(vert);
+            vert = stack->pop();
+        }
+        component->append(part);
+        components->append(component);
+    }
+}
+
+int OTFConverter::strong_connect_iter(Partition * partition, QStack<Partition *> * stack,
+                                      QList<QList<Partition *> > * components, int index)
+{
+    QStack<RecurseInfo *> * recurse = new QStack<RecurseInfo *>();
+    recurse->append(new RecurseInfo(partition, NULL, NULL, -1));
+    while (recurse->size() > 0)
+    {
+        RecurseInfo * ri = recurse->pop();
+
+        if (ri->cIndex >= 0)
+        {
+            ri->part->tindex = index;
+            ri->part->lowlink = index;
+            ++index;
+            stack->push(ri->part);
+            ri->children = new QList<Partition *>();
+            for (QSet<Partition *>::Iterator itr = ri->part->children->begin(); itr != ri->part->children->end(); ++itr)
+                ri->children->append(*itr);
+
+            strong_connect_loop(ri->part, stack, ri->part->children, 0, recurse, components);
+        }
+        else
+        {
+            ri->part->lowlink = std::min(ri->part->lowlink, ri->child->lowlink);
+            strong_connect_loop(ri->part, stack, ri->children, ++(ri->cIndex), recurse, components);
+        }
+
+        delete ri->children;
+        delete ri;
+    }
+
+    delete recurse;
+    return index;
+}
+
+QList<QList<Partition *> *> * OTFConverter::tarjan()
+{
+    // Initialize
+    for (QList<Partition *>::Iterator itr = partitions->begin(); itr != partitions->end(); ++itr)
+    {
+        (*itr)->tindex = -1;
+        (*itr)->lowlink = -1;
+    }
+
+    int index = 0;
+    QStack<Partition *> * stack = new QStack<Partition *>();
+    QList<QList<Partition *> *> * components = new QList<QList<Partition *> *>();
+    for (QList<Partition *>::Iterator itr = partitions->begin(); itr != partitions->end(); ++itr)
+        if ((*itr)->tindex < 0)
+            index = strong_connect_iter((*itr), stack, components, index);
+
+    delete stack;
+    return components;
+}
+
+void OTFConverter::mergeCycles()
+{
+    set_partition_dag();
+    QList<QList<Partition *> *> * components = tarjan();
+
+    QList<Partition *> * merged = QList<Partition *>();
+
+    for (QList<QList<Partition *> *>::Iterator citr = components->begin(); citr != components->end(); ++citr)
+    {
+        // Keep partition
+        if ((*citr)->size() == 1)
+        {
+            Partition * p = (*citr)[0];
+            p->old_parents = p->parents;
+            p->old_children = p->children;
+            p->new_partition = p;
+            p->parents = QSet<Partition *>();
+            p->children = QSet<Partition *>();
+            merged->append(p);
+            continue;
+        }
+
+        Partition * p = new Partition();
+        // Iterate through the list and merge into new partition
+        for (QList<Partition *>::Iterator itr = (*citr)->begin(); itr != (*citr)->end(); ++itr)
+        {
+            (*itr)->new_partition = p;
+
+            // Merge all the events
+            QList<int> keys = (*itr)->events->keys();
+            for (QList<int>::Iterator k = keys.begin(); k != keys.end(); ++k)
+            {
+                if (p->events->contains(*k))
+                {
+                    (*(p->events))[*k] += (*((*itr)->events))[*k];
+                }
+                else
+                {
+                    (*(p->events))[*k] = new QList<Event *>();
+                    (*(p->events))[*k] += (*((*itr)->events))[*k];
+                }
+            }
+
+            for (QSet<Partition *>::Iterator pitr = (*itr)->children->begin(); pitr != (*itr)->children->end(); ++pitr)
+                if (!((*citr)->contains(*itr)))
+                    p->old_children->insert(*itr);
+            for (QSet<Partition *>::Iterator pitr = (*itr)->parents->begin(); pitr != (*itr)->parents->end(); ++pitr)
+                if (!((*citr)->contains(*itr)))
+                    p->old_parents->insert(*itr);
+        }
+
+        merged->append(p);
+    }
+
+    // Now that we have all the updated partitions, figure out parents/children,
+    // and sort the event lists and such
+    for (QList<Partition *>::Iterator pitr = merged->begin(); pitr != merged->end(); ++pitr)
+    {
+        // Update parents/children
+        for (QSet<Partition *>::Iterator itr = (*pitr)->old_children->begin(); itr != (*pitr)->old_children->end(); ++itr)
+            if ((*itr)->new_partition)
+                (*pitr)->children->insert((*itr)->new_partition);
+            else
+                std::cout << "Error, no new partition set on child" << std::endl;
+        for (QSet<Partition *>::Iterator itr = (*pitr)->old_parents->begin(); itr != (*pitr)->old_parents->end(); ++itr)
+            if ((*itr)->new_partition)
+                (*pitr)->parents->insert((*itr)->new_partition);
+            else
+                std::cout << "Error, no new partition set on parent" << std::endl;
+
+        // Delete/reset unneeded old stuff
+        delete (*pitr)->old_children;
+        delete (*pitr)->old_parents;
+        (*pitr)->old_children = QSet<Partition *>();
+        (*pitr)->old_parents = QSet<Partition *>();
+
+        // Sort Events
+        (*pitr)->sortEvents();
+    }
+
+    delete partitions;
+    partitions = merged;
+
+    for (QList<QList<Partition *> *>::Iterator citr = components->begin(); citr != components->end(); ++citr)
+    {
+        for (QList<Partition *>::Iterator itr = (*citr)->begin(); itr != (*citr)->end(); ++itr)
+        {
+            if ((*itr)->new_partition != (*itr))
+            {
+                delete *itr;
+                *itr = NULL;
+            }
+        }
+        delete *citr;
+        *citr = NULL;
+    }
+    delete components;
+
+}
+
+void OTFConverter::set_partition_dag()
+{
+    for (QList<Partition *>::Iterator pitr = partitions->begin(); pitr != partitions->end(); ++pitr)
+    {
+        QList<int> keys = (*pitr)->next->keys();
+        for (QList<int>::Iterator itr = keys.begin(); itr != keys.end(); ++itr)
+        {
+            if ((*((*pitr)->next))[(*itr)])
+                ((*pitr)->children)->insert((*((*pitr)->next))[(*itr)]);
+            if ((*((*pitr)->prev))[(*itr)])
+                ((*pitr)->parents)->insert((*((*pitr)->prev))[(*itr)]);
+        }
+    }
 }
 
 void OTFConverter::initializePartitions()
@@ -309,6 +609,7 @@ void OTFConverter::matchMessages()
         if (send_evt) {
             send_evt->messages->append(m);
             m->sender = send_evt;
+            send_events->append(send_evt);
         } else {
             std::cout << "Error finding send event for " << (*itr)->sender << "->" << (*itr)->receiver
                       << " (" << (*itr)->send_time << ", " << (*itr)->recv_time << std::endl;

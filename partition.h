@@ -19,10 +19,16 @@ public:
     int max_step;
     int dag_level;
 
+    // Per event next/prev (e.g. process_partition info)
     QMap<int, Partition * > * next;
-    QMap<int, Partition * > *  prev;
+    QMap<int, Partition * > * prev;
 
     // For dag / Tarjan
+    QSet<Partition *> * parents;
+    QSet<Partition *> * children;
+    QSet<Partition *> * old_parents;
+    QSet<Partition *> * old_children;
+    Partition * new_partition;
     int tindex;
     int lowlink;
 
