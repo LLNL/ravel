@@ -43,6 +43,9 @@ Trace * OTFConverter::importOTF(QString filename)
     chainCommEvents(); // Set comm_prev/comm_next
 
     partitions = new QList<Partition *>();
+    dag_entries = new QList<Partition *>();
+    dag_step_dict = new QMap<int, QSet<Partition *> *>();
+
     // Partition - default
     if (true)
     {
@@ -59,7 +62,10 @@ Trace * OTFConverter::importOTF(QString filename)
 
           // Merge by rank level [ later ]
         if (false)
-            mergeByRank();
+        {
+            set_dag_steps();
+            mergeByLeap();
+        }
     }
     // Partition - given
       // Form partitions given in some way -- need to write options for this [ later ]
@@ -71,6 +77,13 @@ Trace * OTFConverter::importOTF(QString filename)
     delete importer;
     delete rawtrace;
     delete partitions; // Need not delete contained partitions
+    delete dag_entries;
+    for (QMap<int, QSet<Partition *> *>::Iterator itr = dag_step_dict->begin(); itr != dag_step_dict->end(); ++itr)
+    {
+        delete *itr;
+        *itr = NULL;
+    }
+    delete dag_step_dict;
 
     // Delete only container, not Events
     for (QVector<QList<Event * > * >::Iterator itr = mpi_events->begin(); itr != mpi_events->end(); ++itr)
@@ -110,6 +123,11 @@ Partition * OTFConverter::mergePartitions(Partition * p1, Partition * p2)
     p->sortEvents();
 
     return p;
+}
+
+void OTFConverter::mergeByLeap()
+{
+
 }
 
 // Merges partitions that are connected by a message
@@ -295,8 +313,12 @@ void OTFConverter::mergeCycles()
     // Now that we have all the merged partitions, figure out parents/children between them,
     // and sort the event lists and such
     // Note we could just set the event partition adn then use set_partition_dag... in theory
+    bool parent_flag;
+    dag_entries->removeAll();
     for (QList<Partition *>::Iterator pitr = merged->begin(); pitr != merged->end(); ++pitr)
     {
+        parent_flag = false;
+
         // Update parents/children by taking taking the old parents/children and the new partition they belong to
         for (QSet<Partition *>::Iterator itr = (*pitr)->old_children->begin(); itr != (*pitr)->old_children->end(); ++itr)
             if ((*itr)->new_partition)
@@ -304,10 +326,15 @@ void OTFConverter::mergeCycles()
             else
                 std::cout << "Error, no new partition set on child" << std::endl;
         for (QSet<Partition *>::Iterator itr = (*pitr)->old_parents->begin(); itr != (*pitr)->old_parents->end(); ++itr)
-            if ((*itr)->new_partition)
+            if ((*itr)->new_partition) {
                 (*pitr)->parents->insert((*itr)->new_partition);
+                parent_flag = true;
+            }
             else
                 std::cout << "Error, no new partition set on parent" << std::endl;
+
+        if (!parent_flag)
+            dag_entries->append(*pitr);
 
         // Delete/reset unneeded old stuff
         delete (*pitr)->old_children;
@@ -350,14 +377,72 @@ void OTFConverter::mergeCycles()
 // Set all the parents/children in the partition by looking at the partitions of the events in them.
 void OTFConverter::set_partition_dag()
 {
+    dag_entries->removeAll();
+    bool parent_flag;
     for (QList<Partition *>::Iterator pitr = partitions->begin(); pitr != partitions->end(); ++pitr)
     {
+        parent_flag = false;
         for (QMap<int, QVector<Event *> *>::Iterator eitr = (*pitr)->events->begin(); eitr != (*pitr)->events->end(); ++eitr) {
             if ((*eitr)->first()->comm_prev->partition)
+            {
                 ((*pitr)->parents)->insert((*eitr)->first()->comm_prev->partition);
+                parent_flag = true;
+            }
             if ((*eitr)->last()->comm_next->partition)
                 ((*pitr)->children)->insert((*eitr)->last()->comm_next->partition);
         }
+
+        if (!parent_flag)
+            dag_entries->append(*pitr);
+    }
+}
+
+void OTFConverter::set_dag_steps()
+{
+    // Clear current dag steps
+    for (QList<Partition *>::Iterator itr = partitions->begin(); itr != partitions->end(); ++itr)
+        (*itr)->dag_leap = -1;
+
+    dag_step_dict->clear();
+    QSet<Partition *> current_level = QSet::fromList(&(*dag_entries));
+    int accumulated_leap;
+    bool allParentsFlag;
+    while (!current_level.isEmpty())
+    {
+        QSet<Partition *> next_level();
+        for (QSet<Partition *>::Iterator itr = current_level.begin(); itr != current_level.end(); ++itr)
+        {
+            accumulated_leap = 0;
+            allParentsFlag = true;
+            if ((*itr)->dag_leap >= 0) // Already handled
+                continue;
+
+            // Deal with parents. If there are any unhandled, we set them to be
+            // dealt with next and mark allParentsFlag false so we can put off this one.
+            for (QSet<Partition *>::Iterator pitr = (*itr)->parents->begin(); pitr != (*itr)->parents->end(); ++pitr)
+            {
+                if ((*pitr)->dag_leap < 0)
+                {
+                    next_level.insert(*pitr);
+                    allParentsFlag = false;
+                }
+                accumulated_step = std::max(accumulated_leap, (*pitr)->dag_leap);
+            }
+
+            // Still need to handle parents
+            if (!allParentsFlag)
+                continue;
+
+            // All parents were handled, so we can set our steps
+            (*itr)->dag_leap = accumulated_leap;
+            if (!dag_step_dict->contains((*itr)->dag_leap))
+                (*dag_step_dict)[(*itr)->dag_leap] = new QSet<Partition *>();
+            ((*dag_step_dict)[(*itr)->dag_leap])->insert(*itr);
+
+            for (QSet<Partition *>::Iterator citr = (*itr)->children->begin(); citr != (*itr)->children->end(); ++citr)
+                next_level.insert(*citr);
+        }
+        current_level = next_level;
     }
 }
 
@@ -496,8 +581,8 @@ void OTFConverter::initializePartitionsWaitall()
 void OTFConverter::matchEvents()
 {
     // We can handle each set of events separately
+    QStack<Event *> * stack = new QStack<Event *>();
     for (QVector<QVector<EventRecord *> *>::Iterator pitr = rawtrace->events->begin(); pitr != rawtrace->events->end(); ++pitr) {
-        QStack<Event *> * stack = new QStack<Event *>();
         int depth = 0;
 
         for (QVector<EventRecord *>::Iterator itr = (*pitr)->begin(); itr != (*pitr)->end(); ++itr)
@@ -529,7 +614,7 @@ void OTFConverter::matchEvents()
                 (*(trace->events))[(*itr)->process]->append(e);
             }
         }
-        delete stack;
+        stack->clear();
     }
 }
 

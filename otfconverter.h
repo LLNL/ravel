@@ -6,6 +6,7 @@
 #include "trace.h"
 #include "general_util.h"
 #include <QStack>
+#include <QSet>
 #include <cmath>
 
 class OTFConverter
@@ -28,7 +29,7 @@ private:
     void initializePartitionsWaitall();
     void mergeByMessages();
     void mergeCycles();
-    void mergeByRank();
+    void mergeByLeap();
     class RecurseInfo {
     public:
         RecurseInfo(Partition * p, Partition * c, QList<QList<Partition *> *> * cc, int i)
@@ -39,6 +40,7 @@ private:
         int cIndex;
     };
     void set_partition_dag();
+    void set_dag_steps();
     Partition * mergePartitions(Partition * p1, Partition * p2);
     void strong_connect_loop(Partition * part, QStack<Partition *> * stack,
                             QList<QList<Partition *> *> * children, int cIndex,
@@ -53,8 +55,10 @@ private:
     int mpi_group;
 
     QList<Partition * > * partitions;
+    QList<Partition * > * dag_entries;
     QVector<QList<Event *> *> * mpi_events;
     QList<Event *> * send_events;
+    QMap<int, QSet<Partition *> *> * dag_step_dict;
 };
 
 #endif // OTFCONVERTER_H

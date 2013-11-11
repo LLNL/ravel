@@ -17,7 +17,7 @@ public:
     QMap<QVector<Event *> *> * events;
     int min_step;
     int max_step;
-    int dag_level;
+    int dag_leap;
 
     // For dag / Tarjan
     QSet<Partition *> * parents;
