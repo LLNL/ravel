@@ -5,8 +5,6 @@ Partition::Partition()
     events = new QMap<int, QVector<Event *> *>;
     tindex = -1;
 
-    next = new QMap<int, Partition *>();
-    prev = new QMap<int, Partition *>();
     parents = new QSet<Partition *>();
     children = new QSet<Partition *>();
     old_parents = new QSet<Partition *>();
@@ -25,8 +23,6 @@ Partition::~Partition()
     }
     delete events;
 
-    delete next;
-    delete prev;
     delete parents;
     delete children;
     delete old_parents;

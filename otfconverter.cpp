@@ -10,15 +10,19 @@ OTFConverter::~OTFConverter()
 
 Trace * OTFConverter::importOTF(QString filename)
 {
+    // Start with the rawtrace similar to what we got from PARAVER
     OTFImporter * importer = new OTFImporter();
     rawtrace = importer->importOTF(filename.toStdString().c_str());
     trace = new Trace(rawtrace->num_processes);
 
+    // Start setting up new Trace
     delete trace->functions;
     trace->functions = rawtrace->functions;
 
     delete trace->functionGroups;
     trace->functionGroups = rawtrace->functionGroups;
+
+    // Find the MPI Group key
     for (QMap<int, QString>::Iterator itr = trace->functionGroups->begin(); itr != trace->functionGroups->end(); ++itr)
     {
         if (itr.value().contains("MPI")) {
@@ -27,13 +31,13 @@ Trace * OTFConverter::importOTF(QString filename)
         }
     }
 
-    // Convert the events
+    // Convert the events into matching enter and exit
     mpi_events = new QVector<QList<Event *> * >(rawtrace->num_processes);
     for (int i = 0; i < rawtrace->num_processes; ++i)
         (*mpi_events)[i] = new QList<Event *>();
     matchEvents();
 
-    // Match comms to events
+    // Match messages to previously connected events
     send_events = new QList<Event *>();
     matchMessages();
     chainCommEvents(); // Set comm_prev/comm_next
@@ -53,7 +57,7 @@ Trace * OTFConverter::importOTF(QString filename)
           // Tarjan
         mergeCycles();
 
-          // Merge by rank level
+          // Merge by rank level [ later ]
         if (false)
             mergeByRank();
     }
@@ -80,6 +84,8 @@ Trace * OTFConverter::importOTF(QString filename)
     return trace;
 }
 
+// Merge the two given partitions to create a new partition
+// We need not handle prev/next of each Event because those should never change.
 Partition * OTFConverter::mergePartitions(Partition * p1, Partition * p2)
 {
     Partition * p = new Partition();
@@ -106,6 +112,9 @@ Partition * OTFConverter::mergePartitions(Partition * p1, Partition * p2)
     return p;
 }
 
+// Merges partitions that are connected by a message
+// We go through all send events and merge them with all recvs
+// connected to the event (there should only be 1)
 void OTFConverter::mergeForMessages()
 {
     Partition * p, p1, p2;
@@ -123,11 +132,13 @@ void OTFConverter::mergeForMessages()
                 partitions->append(p);
                 delete p1;
                 delete p2;
+                p1 = p; // For the rest of the messages connected to this send. [ Should only be one, shouldn't matter. ]
             }
         }
     }
 }
 
+// Looping section of Tarjan algorithm
 void OTFConverter::strong_connect_loop(Partition * part, QStack<Partition *> * stack,
                                       QList<Partition *> * children, int cIndex,
                                       QStack<RecurseInfo *> * recurse,
@@ -166,6 +177,7 @@ void OTFConverter::strong_connect_loop(Partition * part, QStack<Partition *> * s
     }
 }
 
+// Iteration portion of Tarjan algorithm
 int OTFConverter::strong_connect_iter(Partition * partition, QStack<Partition *> * stack,
                                       QList<QList<Partition *> > * components, int index)
 {
@@ -201,6 +213,7 @@ int OTFConverter::strong_connect_iter(Partition * partition, QStack<Partition *>
     return index;
 }
 
+// Main outer loop of Tarjan algorithm
 QList<QList<Partition *> *> * OTFConverter::tarjan()
 {
     // Initialize
@@ -221,16 +234,19 @@ QList<QList<Partition *> *> * OTFConverter::tarjan()
     return components;
 }
 
+// Goes through current partitions and merges cycles
 void OTFConverter::mergeCycles()
 {
+    // Determine partition parents/children through dag
+    // and then determine strongly connected components (SCCs) with tarjan.
     set_partition_dag();
     QList<QList<Partition *> *> * components = tarjan();
 
+    // Go through the SCCs and merge them into single partitions
     QList<Partition *> * merged = QList<Partition *>();
-
     for (QList<QList<Partition *> *>::Iterator citr = components->begin(); citr != components->end(); ++citr)
     {
-        // Keep partition
+        // If SCC is single partition, keep it
         if ((*citr)->size() == 1)
         {
             Partition * p = (*citr)[0];
@@ -243,13 +259,13 @@ void OTFConverter::mergeCycles()
             continue;
         }
 
+        // Otherwise, iterate through the SCC and merge into new partition
         Partition * p = new Partition();
-        // Iterate through the list and merge into new partition
         for (QList<Partition *>::Iterator itr = (*citr)->begin(); itr != (*citr)->end(); ++itr)
         {
             (*itr)->new_partition = p;
 
-            // Merge all the events
+            // Merge all the events into the new partition
             QList<int> keys = (*itr)->events->keys();
             for (QList<int>::Iterator k = keys.begin(); k != keys.end(); ++k)
             {
@@ -264,8 +280,9 @@ void OTFConverter::mergeCycles()
                 }
             }
 
+            // Set old_children and old_parents from the children and parents of the partition to merge
             for (QSet<Partition *>::Iterator pitr = (*itr)->children->begin(); pitr != (*itr)->children->end(); ++pitr)
-                if (!((*citr)->contains(*itr)))
+                if (!((*citr)->contains(*itr))) // but only if parent/child not already in SCC
                     p->old_children->insert(*itr);
             for (QSet<Partition *>::Iterator pitr = (*itr)->parents->begin(); pitr != (*itr)->parents->end(); ++pitr)
                 if (!((*citr)->contains(*itr)))
@@ -275,14 +292,12 @@ void OTFConverter::mergeCycles()
         merged->append(p);
     }
 
-    // I wonder if this whole thing could be made easier if we just updated the events
-    // as we went along and then used the event pointers at the front and back
-
-    // Now that we have all the updated partitions, figure out parents/children,
+    // Now that we have all the merged partitions, figure out parents/children between them,
     // and sort the event lists and such
+    // Note we could just set the event partition adn then use set_partition_dag... in theory
     for (QList<Partition *>::Iterator pitr = merged->begin(); pitr != merged->end(); ++pitr)
     {
-        // Update parents/children
+        // Update parents/children by taking taking the old parents/children and the new partition they belong to
         for (QSet<Partition *>::Iterator itr = (*pitr)->old_children->begin(); itr != (*pitr)->old_children->end(); ++itr)
             if ((*itr)->new_partition)
                 (*pitr)->children->insert((*itr)->new_partition);
@@ -303,7 +318,7 @@ void OTFConverter::mergeCycles()
         // Sort Events
         (*pitr)->sortEvents();
 
-        // Set Event partition
+        // Set Event partition for all of the events.
         for (QMap<int, QVector<Event *> *>::Iterator eitr = (*pitr)->events->begin(); eitr != (*pitr)->events->end(); ++eitr) {
             for (QVector<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
                 (*itr)->partition = (*pitr);
@@ -314,11 +329,12 @@ void OTFConverter::mergeCycles()
     delete partitions;
     partitions = merged;
 
+    // Clean up by deleting all of the old partitions through the components
     for (QList<QList<Partition *> *>::Iterator citr = components->begin(); citr != components->end(); ++citr)
     {
         for (QList<Partition *>::Iterator itr = (*citr)->begin(); itr != (*citr)->end(); ++itr)
         {
-            if ((*itr)->new_partition != (*itr))
+            if ((*itr)->new_partition != (*itr)) // Don't delete the singleton SCCs as we keep those
             {
                 delete *itr;
                 *itr = NULL;
@@ -331,6 +347,7 @@ void OTFConverter::mergeCycles()
 
 }
 
+// Set all the parents/children in the partition by looking at the partitions of the events in them.
 void OTFConverter::set_partition_dag()
 {
     for (QList<Partition *>::Iterator pitr = partitions->begin(); pitr != partitions->end(); ++pitr)
@@ -344,9 +361,9 @@ void OTFConverter::set_partition_dag()
     }
 }
 
+// Every send/recv event becomes its own partition
 void OTFConverter::initializePartitions()
 {
-    Partition * prev = NULL;
     for (QVector<QList<Event *> *>::Iterator pitr = mpi_events->begin(); pitr != mpi_events->end(); ++pitr) {
         for (QList<Event *>::Iterator itr = (*pitr)->begin(); itr != (*pitr)->end(); ++itr)
         {
@@ -356,16 +373,13 @@ void OTFConverter::initializePartitions()
                 Partition * p = new Partition();
                 p->addEvent(*itr);
                 (*itr)->partition = p;
-                (*(p->prev))[(*itr)->process] = prev;
-                if (prev)
-                    (*(prev->next))[(*itr->process)] = p;
-                prev = p;
                 (*partitions)->append(p);
             }
         }
     }
 }
 
+// Waitalls determien if send/recv events are grouped along a process
 void OTFConverter::initializePartitionsWaitall()
 {
     QList collective_ids(16);
@@ -389,7 +403,6 @@ void OTFConverter::initializePartitionsWaitall()
 
     bool aggregating;
     QList<Event *> aggregation;
-    Partition * prev = NULL;
     for (QVector<QList<Event *> *>::Iterator pitr = mpi_events->begin(); pitr != mpi_events->end(); ++pitr) {
         // We note these should be in reverse order because of the way they were added
         aggregating = false;
@@ -418,19 +431,12 @@ void OTFConverter::initializePartitionsWaitall()
                             p->addEvent(*eitr);
                             (*eitr)->partition = p;
                         }
-                        (*(p->prev))[(*itr)->process] = prev;
-                        if (prev)
-                            (*(prev->next))[(*itr->process)] = p;
-                        prev = p;
                         (*partitions)->append(p);
 
                         // Do partition for this recv
                         Partition * r = new Partition();
                         r->addEvent(*itr);
                         (*itr)->partition = r;
-                        (*(r->prev))[(*itr)->process] = prev;
-                        (*(prev->next))[(*itr->process)] = r;
-                        prev = r;
                         (*partitions)->append(r);
 
                         aggregating = false;
@@ -447,10 +453,6 @@ void OTFConverter::initializePartitionsWaitall()
                         p->addEvent(*eitr);
                         (*eitr)->partition = p;
                     }
-                    (*(p->prev))[(*itr)->process] = prev;
-                    if (prev)
-                        (*(prev->next))[(*itr->process)] = p;
-                    prev = p;
                     (*partitions)->append(p);
 
                     aggregating = false;
@@ -482,10 +484,6 @@ void OTFConverter::initializePartitionsWaitall()
                         Partition * p = new Partition();
                         p->addEvent(*itr);
                         (*itr)->partition = p;
-                        (*(p->prev))[(*itr)->process] = prev;
-                        if (prev)
-                            (*(prev->next))[(*itr->process)] = p;
-                        prev = p;
                         (*partitions)->append(p);
                     }
                 }
@@ -494,6 +492,7 @@ void OTFConverter::initializePartitionsWaitall()
     }
 }
 
+// Determine events as blocks of matching enter and exit
 void OTFConverter::matchEvents()
 {
     // We can handle each set of events separately
@@ -518,15 +517,13 @@ void OTFConverter::matchEvents()
                 Event * e = new  Event((*itr)->time, 0, (*itr)->value, (*itr)->process -1, -1);
 
                 e->depth = depth;
-                if (depth == 0) {
+                if (depth == 0)
                     (*(trace->roots))[(*itr)->process]->append(e);
-                }
                 depth++;
 
+                // Keep track of the mpi_events for partitioning
                 if ((((*trace)->functions)[e->process])->group == mpi_group)
-                {
                     ((*mpi_events)[e->process])->prepend(e);
-                }
 
                 stack->push(e);
                 (*(trace->events))[(*itr)->process]->append(e);
@@ -536,8 +533,11 @@ void OTFConverter::matchEvents()
     }
 }
 
+// Create connectors of prev/next between send/recv events.
 void OTFConverter::chainCommEvents()
 {
+    // Note that mpi_events go backwards in time, so as we iterate through, the event we just processed
+    // is the next event of the one we are processing.
     for (QVector<QList<Event *> *>::Iterator pitr = mpi_events->begin(); pitr != mpi_events->end(); ++pitr) {
         Event * next = NULL;
         for (QList<Event *>::Iterator itr = (*pitr)->begin(); itr != (*pitr)->end(); ++itr) {
@@ -551,8 +551,7 @@ void OTFConverter::chainCommEvents()
     }
 }
 
-// Let's determine which we need to step here rather than based on anything
-// in matchEvents (though note this doesn't do the WaitAll yet), hrm.
+// Match the messages to the events.
 void OTFConverter::matchMessages()
 {
     for (QVector<CommRecord *>::Iterator itr = rawtrace->messages->begin(); itr != rawtrace->messages->end(); ++itr)
@@ -574,7 +573,7 @@ void OTFConverter::matchMessages()
         if (send_evt) {
             send_evt->messages->append(m);
             m->sender = send_evt;
-            send_events->append(send_evt);
+            send_events->append(send_evt); // Keep track of the send events for merging later
         } else {
             std::cout << "Error finding send event for " << (*itr)->sender << "->" << (*itr)->receiver
                       << " (" << (*itr)->send_time << ", " << (*itr)->recv_time << std::endl;
