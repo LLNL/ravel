@@ -11,6 +11,12 @@ public:
     Event * receiver;
     unsigned long long sendtime;
     unsigned long long recvtime;
+
+    bool operator<(const Message &);
+    bool operator>(const Message &);
+    bool operator<=(const Message &);
+    bool operator>=(const Message &);
+    bool operator==(const Message &);
 };
 
 #endif // MESSAGE_H

@@ -41,6 +41,11 @@ public:
     Partition * partition;
     Event * comm_next;
     Event * comm_prev;
+    bool is_recv;
+
+    Event * last_send;
+    Event * next_send;
+    QList<Event *> * last_recvs;
 
     unsigned long long enter;
     unsigned long long exit;

@@ -11,6 +11,8 @@ Event::Event(unsigned long long _enter, unsigned long long _exit,
     metrics = new QMap<QString, MetricPair *>();
 
     callees = new QVector<Event *>();
+
+    is_recv = false;
 }
 
 Event::~Event()

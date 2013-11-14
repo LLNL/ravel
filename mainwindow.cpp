@@ -61,7 +61,7 @@ void MainWindow::importOTF()
         return;
 
     OTFConverter importer = OTFConverter();
-    importer.importOTF(dataFileName);
+    Trace* trace = importer.importOTF(dataFileName);
 
 }
 
