@@ -27,8 +27,7 @@ Event::~Event()
     delete messages;
 
     for (QMap<QString, MetricPair *>::Iterator itr = metrics->begin(); itr != metrics->end(); ++itr) {
-        delete *itr;
-        *itr = NULL;
+        delete itr.value();
     }
     delete metrics;
 

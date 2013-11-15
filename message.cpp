@@ -5,27 +5,27 @@ Message::Message(unsigned long long send, unsigned long long recv)
 {
 }
 
-bool Message::operator<(const Message &Message)
+bool Message::operator<(const Message &message)
 {
-    return sendtime < Message.sendtime;
+    return sendtime < message.sendtime;
 }
 
-bool Message::operator>(const Message &Message)
+bool Message::operator>(const Message &message)
 {
-    return sendtime > Message.sendtime;
+    return sendtime > message.sendtime;
 }
 
-bool Message::operator<=(const Message &Message)
+bool Message::operator<=(const Message &message)
 {
-    return sendtime <= Message.sendtime;
+    return sendtime <= message.sendtime;
 }
 
-bool Message::operator>=(const Message &Message)
+bool Message::operator>=(const Message &message)
 {
-    return sendtime >= Message.sendtime;
+    return sendtime >= message.sendtime;
 }
 
-bool Message::operator==(const Message &Message)
+bool Message::operator==(const Message &message)
 {
-    return sendtime == Message.sendtime;
+    return sendtime == message.sendtime;
 }

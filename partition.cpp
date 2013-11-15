@@ -18,8 +18,7 @@ Partition::~Partition()
             delete *itr;
             *itr = NULL;
         }*/ // Don't necessarily delete events due to merging
-        delete *eitr;
-        *eitr = NULL;
+        delete eitr.value();
     }
     delete events;
 
@@ -29,11 +28,11 @@ Partition::~Partition()
     delete old_children;
 }
 
-// Call when we are sure we want to delete events
+// Call when we are sure we want to delete events held in this partition
 void Partition::deleteEvents()
 {
     for (QMap<int, QList<Event *> *>::Iterator eitr = events->begin(); eitr != events->end(); ++eitr) {
-        for (QList<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
+        for (QList<Event *>::Iterator itr = (eitr.value())->begin(); itr != (eitr.value())->end(); ++itr) {
             delete *itr;
             *itr = NULL;
         }
@@ -54,26 +53,26 @@ void Partition::addEvent(Event * e)
 }
 
 void Partition::sortEvents(){
-    for (QMap<int, QList<Event *> *>::Iterator eitr = events->begin(); eitr != events->end(); ++eitr) {
-        qSort((*eitr)->begin(), (*eitr)->end(), dereferencedLessThan<Event>);
+    for (QMap<int, QList<Event *> *>::Iterator event_list = events->begin(); event_list != events->end(); ++event_list) {
+        qSort((event_list.value())->begin(), (event_list.value())->end(), dereferencedLessThan<Event>);
     }
 }
 
 unsigned long long int Partition::distance(Partition * other)
 {
     unsigned long long int dist = ULLONG_MAX;
-    for (QMap<int, QList<Event *> *>::Iterator eitr = events->begin(); eitr != events->end(); ++eitr)
+    for (QMap<int, QList<Event *> *>::Iterator event_list = events->begin(); event_list != events->end(); ++event_list)
     {
-        if (other->events->contains(eitr.key()))
+        if (other->events->contains(event_list.key()))
         {
-            Event * my_last = (*eitr)->last();
-            Event * other_first = ((*(other->events))[eitr.key()])->first();
+            Event * my_last = (event_list.value())->last();
+            Event * other_first = ((*(other->events))[event_list.key()])->first();
             if (other_first->enter > my_last->exit)
                 dist = std::min(dist, other_first->enter - my_last->exit);
             else
             {
-                Event * my_first = (*eitr)->first();
-                Event * other_last = ((*(other->events))[eitr.key()])->last();
+                Event * my_first = (event_list.value())->first();
+                Event * other_last = ((*(other->events))[event_list.key()])->last();
                 dist = std::min(dist, my_first->enter - other_last->exit);
             }
         }
@@ -89,33 +88,33 @@ void Partition::step()
     int stride, step;
     Event * last_send;
     QList<Event *> * last_recvs;
-    for (QMap<int, QList<Event *> *>::Iterator eitr = events->begin(); eitr != events->end(); ++eitr) {
+    for (QMap<int, QList<Event *> *>::Iterator event_list = events->begin(); event_list != events->end(); ++event_list) {
         last_recvs = new QList<Event *>();
         stride = 0;
         step = 0;
         last_send = NULL;
-        for (QList<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
+        for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt) {
             is_recv = false;
-            (*itr)->step = stride;
-            for (QVector<Message *>::Iterator mitr = (*itr)->messages->begin(); mitr != (*itr)->messages->end(); ++mitr)
-                if ((*itr) == (*mitr)->sender)
-                    message_list->append(*mitr);
+            (*evt)->step = stride;
+            for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
+                if ((*evt) == (*msg)->sender)
+                    message_list->append(*msg);
                 else
-                    (*itr)->is_recv = true;
+                    (*evt)->is_recv = true;
             ++step;
-            if ((*itr)->is_recv)
+            if ((*evt)->is_recv)
             {
-                (*itr)->last_send = last_send;
-                last_recvs.append(*itr);
+                (*evt)->last_send = last_send;
+                last_recvs.append(*evt);
             }
             else
             {
                 ++stride;
                 step = 0;
-                last_send = *itr;
-                (*itr)->last_recvs = last_recvs;
-                for (QList<Event *>::Iterator ritr = (*itr)->last_recvs->begin(); ritr != (*itr)->last_recvs->end(); ++ritr)
-                    (*ritr)->next_send = *itr;
+                last_send = *evt;
+                (*evt)->last_recvs = last_recvs;
+                for (QList<Event *>::Iterator recv = (*evt)->last_recvs->begin(); recv != (*evt)->last_recvs->end(); ++recv)
+                    (*recv)->next_send = *evt;
                 last_recvs = new QList<Event *>();
             }
         }
@@ -124,8 +123,8 @@ void Partition::step()
     }
 
     qSort(message_list->begin(), message_list->end(), dereferencedLessThan<Message>);
-    for (QList<Message *>::Iterator itr = message_list->begin(); itr != message_list->end(); ++itr)
-        step_receive(*itr);
+    for (QList<Message *>::Iterator msg = message_list->begin(); msg != message_list->end(); ++msg)
+        step_receive(*msg);
 
     finalize_steps();
 
@@ -162,15 +161,15 @@ void Partition::step_receive(Message * msg)
 
 void Partition::restep()
 {
-    // Set step dict
+    // Setup step dict
     QMap<int, QList<Event *> *> * step_dict = new QMap<int, QList<Event *> *>();
-    for (QMap<int, QList<Event *> *>::Iterator eitr = events->begin(); eitr != events->end(); ++eitr)
+    for (QMap<int, QList<Event *> *>::Iterator event_list = events->begin(); event_list != events->end(); ++event_list)
     {
-        for (QList<Event *>::Iterator itr = (eitr.value())->begin(); itr != (eitr.value())->end(); ++itr)
+        for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
         {
-            if (!(step_dict->contains((*itr)->step)))
-                (*step_dict)[(*itr)->step] = new QList<Event *>();
-            ((*step_dict)[(*itr)->step])->append(*itr);
+            if (!(step_dict->contains((*evt)->step)))
+                (*step_dict)[(*evt)->step] = new QList<Event *>();
+            ((*step_dict)[(*evt)->step])->append(*evt);
         }
     }
 
@@ -180,20 +179,20 @@ void Partition::restep()
     QMap<int, int> last_step();
     QList<int> processes = events->keys();
     QMap<int, QMap<int, Event *>> working_step();
-    for (QList<int>::Iterator itr = processes.begin(); itr != processes.end(); ++itr)
+    for (QList<int>::Iterator process = processes.begin(); process != processes.end(); ++process)
     {
-        last_step[*itr] = -1;
-        working_step[*itr] = QMap<int, Event *>();
+        last_step[*process] = -1;
+        working_step[*process] = QMap<int, Event *>();
     }
 
-    for (QMap<int, QList<Event *> *>::Iterator sitr = step_dict->begin(); sitr != step_dict->end(); ++sitr)
+    for (QMap<int, QList<Event *> *>::Iterator event_list = step_dict->begin(); event_list != step_dict->end(); ++event_list)
     {
-        for (QList<Event *>::Iterator itr = (sitr.value())->begin(); itr != (sitr.value())->end(); ++itr)
+        for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
         {
-            if (!((*itr)->is_recv))
+            if (!((*evt)->is_recv))
             {
-                (working_step[(*itr)->process])[sitr.key()] = *itr;
-                last_step[(*itr)->process] = sitr.key();
+                (working_step[(*evt)->process])[event_list.key()] = *evt;
+                last_step[(*evt)->process] = event_list.key();
             }
         }
     }
@@ -272,7 +271,7 @@ void Partition::restep()
 
     // delete step dict
     for (QMap<int, QList<Event *> *>::Iterator eitr = step_dict->begin(); eitr != step_dict->end(); ++eitr)
-        delete *eitr;
+        delete eitr.value();
     delete step_dict;
 }
 
@@ -286,8 +285,8 @@ void Partition::finalize_steps()
 
     restep();
 
-    // Find partition max_step
+    // Find partition max_step -- going to be the last one of every list
     max_step = 0;
-    for (QMap<int, QList<Event *> *>::Iterator eitr = events->begin(); eitr != events->end(); ++eitr)
-        max_step = std::max((*eitr)->last()->step, max_step);
+    for (QMap<int, QList<Event *> *>::Iterator event_list = events->begin(); event_list != events->end(); ++event_list)
+        max_step = std::max((event_list.value())->last()->step, max_step);
 }

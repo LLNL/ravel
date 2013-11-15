@@ -23,10 +23,10 @@ Trace * OTFConverter::importOTF(QString filename)
     trace->functionGroups = rawtrace->functionGroups;
 
     // Find the MPI Group key
-    for (QMap<int, QString>::Iterator itr = trace->functionGroups->begin(); itr != trace->functionGroups->end(); ++itr)
+    for (QMap<int, QString>::Iterator fxnGroup = trace->functionGroups->begin(); fxnGroup != trace->functionGroups->end(); ++fxnGroup)
     {
-        if (itr.value().contains("MPI")) {
-            trace->mpi_group = itr.key();
+        if (fxnGroup.value().contains("MPI")) {
+            trace->mpi_group = fxnGroup.key();
             break;
         }
     }
@@ -51,15 +51,15 @@ void OTFConverter::matchEvents()
 {
     // We can handle each set of events separately
     QStack<Event *> * stack = new QStack<Event *>();
-    for (QVector<QVector<EventRecord *> *>::Iterator pitr = rawtrace->events->begin(); pitr != rawtrace->events->end(); ++pitr) {
+    for (QVector<QVector<EventRecord *> *>::Iterator event_list = rawtrace->events->begin(); event_list != rawtrace->events->end(); ++event_list) {
         int depth = 0;
 
-        for (QVector<EventRecord *>::Iterator itr = (*pitr)->begin(); itr != (*pitr)->end(); ++itr)
+        for (QVector<EventRecord *>::Iterator evt = (*event_list)->begin(); evt != (*event_list)->end(); ++evt)
         {
-            if ((*itr)->value == 0) // End of a subroutine
+            if ((*evt)->value == 0) // End of a subroutine
             {
                 Event * e = stack->pop();
-                e->exit = (*itr)->time;
+                e->exit = (*evt)->time;
                 if (!stack->isEmpty()) {
                     e->caller = stack->top();
                     (*(stack->top))->callees->append(e);
@@ -68,11 +68,11 @@ void OTFConverter::matchEvents()
             }
             else // Begin a subroutine
             {
-                Event * e = new  Event((*itr)->time, 0, (*itr)->value, (*itr)->process -1, -1);
+                Event * e = new  Event((*evt)->time, 0, (*evt)->value, (*evt)->process -1, -1);
 
                 e->depth = depth;
                 if (depth == 0)
-                    (*(trace->roots))[(*itr)->process]->append(e);
+                    (*(trace->roots))[(*evt)->process]->append(e);
                 depth++;
 
                 // Keep track of the mpi_events for partitioning
@@ -80,7 +80,7 @@ void OTFConverter::matchEvents()
                     ((*(trace->mpi_events))[e->process])->prepend(e);
 
                 stack->push(e);
-                (*(trace->events))[(*itr)->process]->append(e);
+                (*(trace->events))[(*evt)->process]->append(e);
             }
         }
         stack->clear();
@@ -91,29 +91,29 @@ void OTFConverter::matchEvents()
 // Match the messages to the events.
 void OTFConverter::matchMessages()
 {
-    for (QVector<CommRecord *>::Iterator itr = rawtrace->messages->begin(); itr != rawtrace->messages->end(); ++itr)
+    for (QVector<CommRecord *>::Iterator comm = rawtrace->messages->begin(); comm != rawtrace->messages->end(); ++comm)
     {
-        Message * m = new Message((*itr)->send_time, (*itr)->recv_time);
+        Message * m = new Message((*comm)->send_time, (*comm)->recv_time);
 
-        Event * recv_evt = find_comm_event(search_child_ranges( (*((*(trace->roots))[(*itr)->receiver]))->children,
-                                           (*itr->recv_time)), (*itr->recv_time));
+        Event * recv_evt = find_comm_event(search_child_ranges( (*((*(trace->roots))[(*comm)->receiver]))->children,
+                                           (*comm->recv_time)), (*comm->recv_time));
         if (recv_evt) {
             recv_evt->messages->append(m);
             m->receiver = recv_evt;
         } else {
-            std::cout << "Error finding recv event for " << (*itr)->sender << "->" << (*itr)->receiver
-                      << " (" << (*itr)->send_time << ", " << (*itr)->recv_time << std::endl;
+            std::cout << "Error finding recv event for " << (*comm)->sender << "->" << (*comm)->receiver
+                      << " (" << (*comm)->send_time << ", " << (*comm)->recv_time << std::endl;
         }
 
-        Event * send_evt = find_comm_event(search_child_ranges( (*((*(trace->roots))[(*itr)->sender]))->children,
-                                           (*itr->send_time)), (*itr->send_time));
+        Event * send_evt = find_comm_event(search_child_ranges( (*((*(trace->roots))[(*comm)->sender]))->children,
+                                           (*comm->send_time)), (*comm->send_time));
         if (send_evt) {
             send_evt->messages->append(m);
             m->sender = send_evt;
             trace->send_events->append(send_evt); // Keep track of the send events for merging later
         } else {
-            std::cout << "Error finding send event for " << (*itr)->sender << "->" << (*itr)->receiver
-                      << " (" << (*itr)->send_time << ", " << (*itr)->recv_time << std::endl;
+            std::cout << "Error finding send event for " << (*comm)->sender << "->" << (*comm)->receiver
+                      << " (" << (*comm)->send_time << ", " << (*comm)->recv_time << std::endl;
         }
 
     }
