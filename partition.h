@@ -4,6 +4,7 @@
 #include "event.h"
 #include "general_util.h"
 #include <QList>
+#include <QSet>
 #include <QVector>
 #include <QMap>
 #include <climits>
@@ -12,6 +13,7 @@ class Partition
 {
 public:
     Partition();
+    ~Partition();
     void addEvent(Event * e);
     void deleteEvents();
     void sortEvents();

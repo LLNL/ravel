@@ -1,4 +1,5 @@
 #include "otfconverter.h"
+#include <iostream>
 
 OTFConverter::OTFConverter()
 {
@@ -62,7 +63,7 @@ void OTFConverter::matchEvents()
                 e->exit = (*evt)->time;
                 if (!stack->isEmpty()) {
                     e->caller = stack->top();
-                    (*(stack->top))->callees->append(e);
+                    stack->top()->callees->append(e);
                 }
                 depth--;
             }
@@ -76,7 +77,7 @@ void OTFConverter::matchEvents()
                 depth++;
 
                 // Keep track of the mpi_events for partitioning
-                if ((((*trace)->functions)[e->process])->group == trace->mpi_group)
+                if (((*(trace->functions))[e->process])->group == trace->mpi_group)
                     ((*(trace->mpi_events))[e->process])->prepend(e);
 
                 stack->push(e);
@@ -95,8 +96,9 @@ void OTFConverter::matchMessages()
     {
         Message * m = new Message((*comm)->send_time, (*comm)->recv_time);
 
-        Event * recv_evt = find_comm_event(search_child_ranges( (*((*(trace->roots))[(*comm)->receiver]))->children,
-                                           (*comm->recv_time)), (*comm->recv_time));
+        Event * recv_evt = find_comm_event(search_child_ranges( (*(trace->roots))[(*comm)->receiver],
+                                                                (*comm)->recv_time),
+                                           (*comm)->recv_time);
         if (recv_evt) {
             recv_evt->messages->append(m);
             m->receiver = recv_evt;
@@ -105,8 +107,9 @@ void OTFConverter::matchMessages()
                       << " (" << (*comm)->send_time << ", " << (*comm)->recv_time << std::endl;
         }
 
-        Event * send_evt = find_comm_event(search_child_ranges( (*((*(trace->roots))[(*comm)->sender]))->children,
-                                           (*comm->send_time)), (*comm->send_time));
+        Event * send_evt = find_comm_event(search_child_ranges( (*(trace->roots))[(*comm)->sender],
+                                                                (*comm)->send_time),
+                                          (*comm)->send_time);
         if (send_evt) {
             send_evt->messages->append(m);
             m->sender = send_evt;
@@ -122,9 +125,10 @@ void OTFConverter::matchMessages()
 // Binary search for event containing time
 Event * OTFConverter::search_child_ranges(QVector<Event *> * children, unsigned long long int time)
 {
-    int imin = 0;
+    int imid, imin = 0;
     int imax = children->size() - 1;
-    while (imax >= imin):
+    while (imax >= imin)
+    {
         imid = (imin + imax) / 2;
         if (((*(children))[imid])->exit < time)
             imin = imid + 1;
@@ -132,6 +136,7 @@ Event * OTFConverter::search_child_ranges(QVector<Event *> * children, unsigned 
             imax = imid - 1;
         else
             return (*children)[imid];
+    }
 
     return NULL;
 }

@@ -4,7 +4,6 @@
 #include "otfimporter.h"
 #include "rawtrace.h"
 #include "trace.h"
-#include "general_util.h"
 #include <QStack>
 #include <QSet>
 #include <cmath>

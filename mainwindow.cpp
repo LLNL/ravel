@@ -98,7 +98,7 @@ void MainWindow::importJSON()
     Json::Value fxns = root["fxns"];
     for (Json::ValueIterator itr = fxns.begin(); itr != fxns.end(); itr++) {
         int key = QString(itr.key().asString().c_str()).toInt();
-        (*(trace->functions))[key] = QString((*itr)["name"].asString().c_str());
+        (*(trace->functions))[key] = new Function(QString((*itr)["name"].asString().c_str()), 0);
     }
 
     QMap<int, Event*> eventmap;

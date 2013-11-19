@@ -6,6 +6,8 @@
 #include "partition.h"
 #include <QMap>
 #include <QVector>
+#include <QStack>
+#include <QSet>
 
 class Trace
 {
@@ -17,12 +19,13 @@ public:
     void partition();
     void assignSteps();
 
+    QList<Partition *> * partitions;
+
+    // Below set by OTFConverter
     QMap<int, QString> * functionGroups;
     QMap<int, Function *> * functions;
     QVector<QVector<Event *> *> * events;
-    QVector<QVector<Event *> *> * roots;
-    QVector<QVector<Event *> *> * comm_events;
-    QList<Partition *> * partitions;
+    QVector<QVector<Event *> *> * roots; // Roots of call trees per process
     int num_processes;
 
     QVector<QList<Event *> *> * mpi_events;
@@ -30,17 +33,20 @@ public:
 
     int mpi_group;
 
+
 private:
+    // Link the comm events together by order
     void chainCommEvents();
 
+    // Partitioning process
     void initializePartitions();
     void initializePartitionsWaitall();
-    void mergeByMessages();
+    void mergeForMessages();
     void mergeCycles();
     void mergeByLeap();
-    class RecurseInfo {
+    class RecurseInfo {  // For Tarjan
     public:
-        RecurseInfo(Partition * p, Partition * c, QList<QList<Partition *> *> * cc, int i)
+        RecurseInfo(Partition * p, Partition * c, QList<Partition *> * cc, int i)
             : part(p), child(c), children(cc), cIndex(i) {}
         Partition * part;
         Partition * child;
@@ -51,15 +57,15 @@ private:
     void set_dag_steps();
     Partition * mergePartitions(Partition * p1, Partition * p2);
     void strong_connect_loop(Partition * part, QStack<Partition *> * stack,
-                            QList<QList<Partition *> *> * children, int cIndex,
-                            QStack<RecurseInfo *> * recurse, QList<Partition *> * components);
+                            QList<Partition *> * children, int cIndex,
+                            QStack<RecurseInfo *> * recurse, QList<QList<Partition *> *> * components);
     int strong_connect_iter(Partition * partition, QStack<Partition *> * stack,
                             QList<QList<Partition *> *> * components, int index);
     QList<QList<Partition *> *> * tarjan();
 
-    bool isProcessed;
-    QList<Partition * > * dag_entries;
-    QMap<int, QSet<Partition *> *> * dag_step_dict;
+    bool isProcessed; // Partitions exist
+    QList<Partition * > * dag_entries; // Leap 0 in the dag
+    QMap<int, QSet<Partition *> *> * dag_step_dict; // Map from leap to partition
 };
 
 #endif // TRACE_H

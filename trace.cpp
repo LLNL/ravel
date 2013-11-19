@@ -1,18 +1,17 @@
 #include "trace.h"
+#include <iostream>
 
 Trace::Trace(int np) : num_processes(np)
 {
     functionGroups = new QMap<int, QString>();
     functions = new QMap<int, Function *>();
-    partitions = new QVector<Partition *>();
+    partitions = new QList<Partition *>();
 
     events = new QVector<QVector<Event *> *>(np);
     roots = new QVector<QVector<Event *> *>(np);
-    comm_events = new QVector<QVector<Event *> *>(np);
     for (int i = 0; i < np; i++) {
         (*events)[i] = new QVector<Event *>();
         (*roots)[i] = new QVector<Event *>();
-        (*comm_events)[i] = new QVector<Event *>();
     }
 
     send_events = new QList<Event *>();
@@ -22,7 +21,7 @@ Trace::Trace(int np) : num_processes(np)
 
 Trace::~Trace()
 {
-    delete functionsGroups;
+    delete functionGroups;
 
     for (QMap<int, Function *>::Iterator itr = functions->begin(); itr != functions->end(); ++itr)
     {
@@ -31,7 +30,7 @@ Trace::~Trace()
     }
     delete functions;
 
-    for (QVector<Partition *>::Iterator itr = partitions->begin(); itr != partitions->end(); ++itr) {
+    for (QList<Partition *>::Iterator itr = partitions->begin(); itr != partitions->end(); ++itr) {
         (*itr)->deleteEvents();
         delete *itr;
         *itr = NULL;
@@ -55,12 +54,6 @@ Trace::~Trace()
         *eitr = NULL;
     }
     delete roots;
-
-    for (QVector<QVector<Event *> *>::Iterator eitr = comm_events->begin(); eitr != comm_events->end(); ++eitr) {
-        delete *eitr;
-        *eitr = NULL;
-    }
-    delete comm_events;
 }
 
 void Trace::preprocess()
@@ -189,7 +182,7 @@ void Trace::mergeByLeap()
 // connected to the event (there should only be 1)
 void Trace::mergeForMessages()
 {
-    Partition * p, p1, p2;
+    Partition * p, * p1, * p2;
     for (QList<Event *>::Iterator send = send_events->begin(); send != send_events->end(); ++send)
     {
         p1 = (*send)->partition;
@@ -237,7 +230,7 @@ void Trace::strong_connect_loop(Partition * part, QStack<Partition *> * stack,
     // After all children have been handled, process component
     if (part->lowlink == part->tindex)
     {
-        component = new QList<Partition *>();
+        QList<Partition *> * component = new QList<Partition *>();
         Partition * vert = stack->pop();
         while (vert != part)
         {
@@ -251,10 +244,10 @@ void Trace::strong_connect_loop(Partition * part, QStack<Partition *> * stack,
 
 // Iteration portion of Tarjan algorithm
 int Trace::strong_connect_iter(Partition * partition, QStack<Partition *> * stack,
-                                      QList<QList<Partition *> > * components, int index)
+                                      QList<QList<Partition *> *> * components, int index)
 {
     QStack<RecurseInfo *> * recurse = new QStack<RecurseInfo *>();
-    recurse->append(new RecurseInfo(partition, NULL, NULL, -1));
+    recurse->push(new RecurseInfo(partition, NULL, NULL, -1));
     while (recurse->size() > 0)
     {
         RecurseInfo * ri = recurse->pop();
@@ -269,7 +262,7 @@ int Trace::strong_connect_iter(Partition * partition, QStack<Partition *> * stac
             for (QSet<Partition *>::Iterator child = ri->part->children->begin(); child != ri->part->children->end(); ++child)
                 ri->children->append(*child);
 
-            strong_connect_loop(ri->part, stack, ri->part->children, 0, recurse, components);
+            strong_connect_loop(ri->part, stack, ri->children, 0, recurse, components);
         }
         else
         {
@@ -315,18 +308,18 @@ void Trace::mergeCycles()
     QList<QList<Partition *> *> * components = tarjan();
 
     // Go through the SCCs and merge them into single partitions
-    QList<Partition *> * merged = QList<Partition *>();
+    QList<Partition *> * merged = new QList<Partition *>();
     for (QList<QList<Partition *> *>::Iterator component = components->begin(); component != components->end(); ++component)
     {
         // If SCC is single partition, keep it
         if ((*component)->size() == 1)
         {
-            Partition * p = (*component)[0];
+            Partition * p = (*component)->first();
             p->old_parents = p->parents;
             p->old_children = p->children;
             p->new_partition = p;
-            p->parents = QSet<Partition *>();
-            p->children = QSet<Partition *>();
+            p->parents = new QSet<Partition *>();
+            p->children = new QSet<Partition *>();
             merged->append(p);
             continue;
         }
@@ -343,12 +336,12 @@ void Trace::mergeCycles()
             {
                 if (p->events->contains(*k))
                 {
-                    (*(p->events))[*k] += (*((*partition)->events))[*k];
+                    *((*(p->events))[*k]) += *((*((*partition)->events))[*k]);
                 }
                 else
                 {
                     (*(p->events))[*k] = new QList<Event *>();
-                    (*(p->events))[*k] += (*((*partition)->events))[*k];
+                    *((*(p->events))[*k]) += *((*((*partition)->events))[*k]);
                 }
             }
 
@@ -368,7 +361,7 @@ void Trace::mergeCycles()
     // and sort the event lists and such
     // Note we could just set the event partition adn then use set_partition_dag... in theory
     bool parent_flag;
-    dag_entries->removeAll();
+    dag_entries->clear();
     for (QList<Partition *>::Iterator partition = merged->begin(); partition != merged->end(); ++partition)
     {
         parent_flag = false;
@@ -393,15 +386,15 @@ void Trace::mergeCycles()
         // Delete/reset unneeded old stuff
         delete (*partition)->old_children;
         delete (*partition)->old_parents;
-        (*partition)->old_children = QSet<Partition *>();
-        (*partition)->old_parents = QSet<Partition *>();
+        (*partition)->old_children = new QSet<Partition *>();
+        (*partition)->old_parents = new QSet<Partition *>();
 
         // Sort Events
         (*partition)->sortEvents();
 
         // Set Event partition for all of the events.
-        for (QMap<int, QVector<Event *> *>::Iterator event_list = (*partition)->events->begin(); event_list != (*partition)->events->end(); ++event_list) {
-            for (QVector<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt) {
+        for (QMap<int, QList<Event *> *>::Iterator event_list = (*partition)->events->begin(); event_list != (*partition)->events->end(); ++event_list) {
+            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt) {
                 (*evt)->partition = (*partition);
             }
         }
@@ -431,12 +424,12 @@ void Trace::mergeCycles()
 // Set all the parents/children in the partition by looking at the partitions of the events in them.
 void Trace::set_partition_dag()
 {
-    dag_entries->removeAll();
+    dag_entries->clear();
     bool parent_flag;
     for (QList<Partition *>::Iterator partition = partitions->begin(); partition != partitions->end(); ++partition)
     {
         parent_flag = false;
-        for (QMap<int, QVector<Event *> *>::Iterator event_list = (*partition)->events->begin(); event_list != (*partition)->events->end(); ++event_list) {
+        for (QMap<int, QList<Event *> *>::Iterator event_list = (*partition)->events->begin(); event_list != (*partition)->events->end(); ++event_list) {
             if ((event_list.value())->first()->comm_prev->partition)
             {
                 ((*partition)->parents)->insert((event_list.value())->first()->comm_prev->partition);
@@ -458,12 +451,12 @@ void Trace::set_dag_steps()
         (*partition)->dag_leap = -1;
 
     dag_step_dict->clear();
-    QSet<Partition *> current_level = QSet::fromList(&(*dag_entries));
+    QSet<Partition *> current_level = QSet<Partition *>::fromList(*dag_entries);
     int accumulated_leap;
     bool allParentsFlag;
     while (!current_level.isEmpty())
     {
-        QSet<Partition *> next_level();
+        QSet<Partition *> next_level = QSet<Partition *>();
         for (QSet<Partition *>::Iterator partition = current_level.begin(); partition != current_level.end(); ++partition)
         {
             accumulated_leap = 0;
@@ -480,7 +473,7 @@ void Trace::set_dag_steps()
                     next_level.insert(*parent);
                     allParentsFlag = false;
                 }
-                accumulated_step = std::max(accumulated_leap, (*parent)->dag_leap);
+                accumulated_leap = std::max(accumulated_leap, (*parent)->dag_leap);
             }
 
             // Still need to handle parents
@@ -512,7 +505,7 @@ void Trace::initializePartitions()
                 Partition * p = new Partition();
                 p->addEvent(*evt);
                 (*evt)->partition = p;
-                (*partitions)->append(p);
+                partitions->append(p);
             }
         }
     }
@@ -521,7 +514,7 @@ void Trace::initializePartitions()
 // Waitalls determien if send/recv events are grouped along a process
 void Trace::initializePartitionsWaitall()
 {
-    QList collective_ids(16);
+    QVector<int> collective_ids = QVector<int>(16);
     int collective_index = 0;
     int waitall_index = -1;
     QString collectives("MPI_BarrierMPI_BcastMPI_ReduceMPI_GatherMPI_ScatterMPI_AllgatherMPI_AllreduceMPI_AlltoallMPI_ScanMPI_Reduce_scatterMPI_Op_createMPI_Op_freeMPIMPI_AlltoallvMPI_AllgathervMPI_GathervMPI_Scatterv");
@@ -551,11 +544,11 @@ void Trace::initializePartitionsWaitall()
             {
                 // Is this an event that can stop aggregating?
                 // 1. Due to a recv (including waitall recv)
-                if ((*evt)->messages-size() > 0)
+                if ((*evt)->messages->size() > 0)
                 {
                     bool recv_found = false;
-                    for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->end(); ++msg)
-                        if ((*msg)->receiver == (*evt)->process) // Receive found
+                    for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
+                        if ((*msg)->receiver->process == (*evt)->process) // Receive found
                         {
                             recv_found = true;
                             break;
@@ -570,13 +563,13 @@ void Trace::initializePartitionsWaitall()
                             p->addEvent(*saved_evt);
                             (*saved_evt)->partition = p;
                         }
-                        (*partitions)->append(p);
+                        partitions->append(p);
 
                         // Do partition for this recv
                         Partition * r = new Partition();
                         r->addEvent(*evt);
                         (*evt)->partition = r;
-                        (*partitions)->append(r);
+                        partitions->append(r);
 
                         aggregating = false;
                     }
@@ -592,7 +585,7 @@ void Trace::initializePartitionsWaitall()
                         p->addEvent(*saved_evt);
                         (*saved_evt)->partition = p;
                     }
-                    (*partitions)->append(p);
+                    partitions->append(p);
 
                     aggregating = false;
                 }
@@ -600,7 +593,7 @@ void Trace::initializePartitionsWaitall()
                 // Is this an event that should be added?
                 else
                 {
-                    if ((*evt)->messages-size() > 0)
+                    if ((*evt)->messages->size() > 0)
                         aggregation.prepend(*evt); // prepend since we're walking backwarsd
                 }
             }
@@ -623,7 +616,7 @@ void Trace::initializePartitionsWaitall()
                         Partition * p = new Partition();
                         p->addEvent(*evt);
                         (*evt)->partition = p;
-                        (*partitions)->append(p);
+                        partitions->append(p);
                     }
                 }
             } // Not aggregating
