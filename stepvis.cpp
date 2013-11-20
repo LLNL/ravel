@@ -26,12 +26,15 @@ void StepVis::setTrace(Trace * t)
     maxStep = trace->global_max_step;
     maxLateness = 0;
     QString lateness("Lateness");
-    for (QVector<QVector<Event *> *>::Iterator eitr = trace->events->begin(); eitr != trace->events->end(); ++eitr) {
-        for (QVector<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
-            if ((*(*itr)->metrics)[lateness]->event > maxLateness)
-                maxLateness = (*(*itr)->metrics)[lateness]->event;
-            if ((*(*itr)->metrics)[lateness]->aggregate > maxLateness)
-                maxLateness = (*(*itr)->metrics)[lateness]->aggregate;
+    for (QList<Partition *>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
+    {
+        for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list) {
+            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt) {
+                if ((*(*evt)->metrics)[lateness]->event > maxLateness)
+                    maxLateness = (*(*evt)->metrics)[lateness]->event;
+                if ((*(*evt)->metrics)[lateness]->aggregate > maxLateness)
+                    maxLateness = (*(*evt)->metrics)[lateness]->aggregate;
+            }
         }
     }
     colormap->setRange(0, maxLateness);
@@ -258,9 +261,9 @@ void StepVis::qtPaint(QPainter *painter)
         QPointF p1, p2;
         w = barwidth;
         h = barheight;
-        for (QSet<Message *>::Iterator itr = drawMessages.begin(); itr != drawMessages.end(); ++itr) {
-            send_event = (*itr)->sender;
-            recv_event = (*itr)->receiver;
+        for (QSet<Message *>::Iterator msg = drawMessages.begin(); msg != drawMessages.end(); ++msg) {
+            send_event = (*msg)->sender;
+            recv_event = (*msg)->receiver;
             position = proc_to_order[send_event->process];
             y = floor((position - startProcess) * blockheight) + 1;
             if (showAggSteps)

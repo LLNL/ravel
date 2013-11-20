@@ -35,19 +35,20 @@ void TimeVis::setTrace(Trace * t)
     maxTime = 0;
     startTime = ULLONG_MAX;
     unsigned long long stopTime = 0;
-    maxStep = 0;
-    for (QVector<QVector<Event *> *>::Iterator eitr = trace->events->begin(); eitr != trace->events->end(); ++eitr) {
-        for (QVector<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
-            if ((*itr)->exit > maxTime)
-                maxTime = (*itr)->exit;
-            if ((*itr)->enter < minTime)
-                minTime = (*itr)->enter;
-            if ((*itr)->step >= boundStep(startStep) && (*itr)->enter < startTime)
-                startTime = (*itr)->enter;
-            if ((*itr)->step <= boundStep(stopStep) && (*itr)->exit > stopTime)
-                stopTime = (*itr)->exit;
-            if ((*itr)->step > maxStep)
-                maxStep = (*itr)->step;
+    maxStep = trace->global_max_step;
+    for (QList<Partition*>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
+    {
+        for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list) {
+            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt) {
+                if ((*evt)->exit > maxTime)
+                    maxTime = (*evt)->exit;
+                if ((*evt)->enter < minTime)
+                    minTime = (*evt)->enter;
+                if ((*evt)->step >= boundStep(startStep) && (*evt)->enter < startTime)
+                    startTime = (*evt)->enter;
+                if ((*evt)->step <= boundStep(stopStep) && (*evt)->exit > stopTime)
+                    stopTime = (*evt)->exit;
+            }
         }
     }
     std::cout << "Determined time " << startTime << ", " << stopTime << std::endl;
@@ -63,15 +64,18 @@ void TimeVis::setTrace(Trace * t)
     for (int i = 0; i < maxStep/2 + 1; i++)
         stepToTime->insert(i, new TimePair(ULLONG_MAX, 0));
     int step;
-    for (QVector<QVector<Event *> *>::Iterator eitr = trace->events->begin(); eitr != trace->events->end(); ++eitr) {
-        for (QVector<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
-            if ((*itr)->step < 0)
-                continue;
-            step = (*itr)->step / 2;
-            if ((*stepToTime)[step]->start > (*itr)->enter)
-                (*stepToTime)[step]->start = (*itr)->enter;
-            if ((*stepToTime)[step]->stop < (*itr)->exit)
-                (*stepToTime)[step]->stop = (*itr)->exit;
+    for (QList<Partition*>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
+    {
+        for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list) {
+            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt) {
+                if ((*evt)->step < 0)
+                    continue;
+                step = (*evt)->step / 2;
+                if ((*stepToTime)[step]->start > (*evt)->enter)
+                    (*stepToTime)[step]->start = (*evt)->enter;
+                if ((*stepToTime)[step]->stop < (*evt)->exit)
+                    (*stepToTime)[step]->stop = (*evt)->exit;
+            }
         }
     }
 
@@ -194,63 +198,65 @@ void TimeVis::qtPaint(QPainter *painter)
     QSet<Message *> drawMessages = QSet<Message *>();
     unsigned long long stopTime = startTime + timeSpan;
     painter->setPen(QPen(QColor(0, 0, 0)));
-
-    for (QVector<QVector<Event *> *>::Iterator eitr = trace->events->begin(); eitr != trace->events->end(); ++eitr)
+    for (QList<Partition*>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
     {
-        for (QVector<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr)
+        for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
         {
-            position = proc_to_order[(*itr)->process];
-            if ((*itr)->exit < startTime || (*itr)->enter > stopTime) // Out of time span
-                continue;
-            if (position < floor(startProcess) || position > ceil(startProcess + processSpan)) // Out of span
-                continue;
+            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
+            {
+                position = proc_to_order[(*evt)->process];
+                if ((*evt)->exit < startTime || (*evt)->enter > stopTime) // Out of time span
+                    continue;
+                if (position < floor(startProcess) || position > ceil(startProcess + processSpan)) // Out of span
+                    continue;
 
-            // save step information for emitting
-            step = (*itr)->step;
-            if (step >= 0 && step > stopStep)
-                stopStep = step;
-            if (step >= 0 && step < startStep) {
-                std::cout << "Setting start " << step << ", " << startStep << std::endl;
-                startStep = step;
+                // save step information for emitting
+                step = (*evt)->step;
+                if (step >= 0 && step > stopStep)
+                    stopStep = step;
+                if (step >= 0 && step < startStep) {
+                    std::cout << "Setting start " << step << ", " << startStep << std::endl;
+                    startStep = step;
+                }
+
+
+                w = ((*evt)->exit - (*evt)->enter) / 1.0 / timeSpan * rect().width();
+                if (w < 2)
+                    continue;
+
+                y = floor((position - startProcess) * blockheight) + 1;
+                x = floor(static_cast<long long>((*evt)->enter - startTime) / 1.0 / timeSpan * rect().width()) + 1;
+                h = barheight;
+
+
+                // Corrections for partially drawn
+                complete = true;
+                if (y < 0) {
+                    h = barheight - fabs(y);
+                    y = 0;
+                    complete = false;
+                } else if (y + barheight > rect().height()) {
+                    h = rect().height() - y;
+                    complete = false;
+                }
+                if (x < 0) {
+                    w -= fabs(x);
+                    x = 0;
+                    complete = false;
+                } else if (x + w > rect().width()) {
+                    w = rect().width() - x;
+                    complete = false;
+                }
+
+                painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(200, 200, 255)));
+                if (complete)
+                    painter->drawRect(QRectF(x,y,w,h));
+                else
+                    incompleteBox(painter, x, y, w, h);
+
+                for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
+                    drawMessages.insert((*msg));
             }
-
-
-            w = ((*itr)->exit - (*itr)->enter) / 1.0 / timeSpan * rect().width();
-            if (w < 2)
-                continue;
-
-            y = floor((position - startProcess) * blockheight) + 1;
-            x = floor(static_cast<long long>((*itr)->enter - startTime) / 1.0 / timeSpan * rect().width()) + 1;
-            h = barheight;
-
-
-            // Corrections for partially drawn
-            complete = true;
-            if (y < 0) {
-                h = barheight - fabs(y);
-                y = 0;
-                complete = false;
-            } else if (y + barheight > rect().height()) {
-                h = rect().height() - y;
-                complete = false;
-            }
-            if (x < 0) {
-                w -= fabs(x);
-                x = 0;
-                complete = false;
-            } else if (x + w > rect().width()) {
-                w = rect().width() - x;
-                complete = false;
-            }
-
-            painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(200, 200, 255)));
-            if (complete)
-                painter->drawRect(QRectF(x,y,w,h));
-            else
-                incompleteBox(painter, x, y, w, h);
-
-            for (QVector<Message *>::Iterator mitr = (*itr)->messages->begin(); mitr != (*itr)->messages->end(); ++mitr)
-                drawMessages.insert((*mitr));
         }
     }
 
@@ -261,9 +267,9 @@ void TimeVis::qtPaint(QPainter *painter)
         Event * send_event;
         Event * recv_event;
         QPointF p1, p2;
-        for (QSet<Message *>::Iterator itr = drawMessages.begin(); itr != drawMessages.end(); ++itr) {
-            send_event = (*itr)->sender;
-            recv_event = (*itr)->receiver;
+        for (QSet<Message *>::Iterator msg = drawMessages.begin(); msg != drawMessages.end(); ++msg) {
+            send_event = (*msg)->sender;
+            recv_event = (*msg)->receiver;
             position = proc_to_order[send_event->process];
             y = floor((position - startProcess + 0.5) * blockheight) + 1;
             x = floor(static_cast<long long>(send_event->enter - startTime) / 1.0 / timeSpan * rect().width()) + 1;
