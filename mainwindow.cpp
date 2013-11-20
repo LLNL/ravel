@@ -108,18 +108,28 @@ void MainWindow::importJSON()
         (*(trace->functionGroups))[key] = QString((*itr).asString().c_str());
     }
 
-    QMap<int, Event*> eventmap;
+    QMap<int, Event*> eventmap; // map ID to event
     Json::Value events = root["events"];
+    // Create a single partition since this is all the information we have
+    Partition * partition = new Partition();
+    trace->partitions->append(partition);
+
     // First pass to create events
     for (Json::ValueIterator itr = events.begin(); itr != events.end(); ++itr) {
         int key = QString(itr.key().asString().c_str()).toInt();
         Event* e = new Event(static_cast<unsigned long long>((*itr)["entertime"].asDouble()),
                 static_cast<unsigned long long>((*itr)["leavetime"].asDouble()),
-                (*itr)["fxn"].asInt(), (*itr)["process"].asInt(), (*itr)["step"].asInt());
+                (*itr)["fxn"].asInt(), (*itr)["process"].asInt() - 1, (*itr)["step"].asInt());
         e->addMetric("lateness", static_cast<long long>((*itr)["lateness"].asDouble()),
                 static_cast<long long>((*itr)["comp_lateness"].asDouble()));
         eventmap[key] = e;
-        (*(trace->events))[(e->process) - 1]->push_back(e);
+        if (e->step >= 0)
+        {
+            if (!(partition->events->contains(e->process)))
+                (*(partition->events))[e->process] = new QList<Event *>();
+            (*(partition->events))[e->process]->push_back(e);
+        }
+        (*(trace->events))[e->process]->push_back(e);
     }
     // Second pass to link parents and children
     for (Json::ValueIterator itr = events.begin(); itr != events.end(); itr++) {
