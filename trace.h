@@ -36,6 +36,9 @@ public:
 
     int mpi_group;
 
+    int global_max_step; // largest global step
+    QList<Partition * > * dag_entries; // Leap 0 in the dag
+    QMap<int, QSet<Partition *> *> * dag_step_dict; // Map from leap to partition
 
 private:
     // Link the comm events together by order
@@ -69,9 +72,6 @@ private:
     void calculate_lateness();
 
     bool isProcessed; // Partitions exist
-    int global_max_step; // largest global step
-    QList<Partition * > * dag_entries; // Leap 0 in the dag
-    QMap<int, QSet<Partition *> *> * dag_step_dict; // Map from leap to partition
 };
 
 #endif // TRACE_H

@@ -143,7 +143,7 @@ void Trace::calculate_lateness()
 
             // Set steps for partition events
             for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
-                for (QList<Event *>::Iterator evt = (*event_list)->begin(); evt != (*event_list)->end(); ++evt)
+                for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
                     (*evt)->step += accumulated_step;
 
             // Add children for handling
@@ -173,7 +173,7 @@ void Trace::set_global_steps()
         QList<Event *> i_list = QList<Event *>();
         for (QSet<Partition *>::Iterator part = active_partitions.begin(); part != active_partitions.end(); ++part)
             for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
-                for (QList<Event *>::Iterator evt = (*event_list)->begin(); evt != (*event_list)->end(); ++evt)
+                for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
                     if ((*evt)->step == i)
                         i_list.append(*evt);
 

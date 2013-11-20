@@ -112,7 +112,9 @@ void MainWindow::importJSON()
     Json::Value events = root["events"];
     // Create a single partition since this is all the information we have
     Partition * partition = new Partition();
+    partition->min_global_step = 0;
     trace->partitions->append(partition);
+    int max_step = 0;
 
     // First pass to create events
     for (Json::ValueIterator itr = events.begin(); itr != events.end(); ++itr) {
@@ -120,9 +122,11 @@ void MainWindow::importJSON()
         Event* e = new Event(static_cast<unsigned long long>((*itr)["entertime"].asDouble()),
                 static_cast<unsigned long long>((*itr)["leavetime"].asDouble()),
                 (*itr)["fxn"].asInt(), (*itr)["process"].asInt() - 1, (*itr)["step"].asInt());
-        e->addMetric("lateness", static_cast<long long>((*itr)["lateness"].asDouble()),
+        e->addMetric("Lateness", static_cast<long long>((*itr)["lateness"].asDouble()),
                 static_cast<long long>((*itr)["comp_lateness"].asDouble()));
         eventmap[key] = e;
+        if (e->step > max_step)
+            max_step = e->step;
         if (e->step >= 0)
         {
             if (!(partition->events->contains(e->process)))
@@ -131,6 +135,11 @@ void MainWindow::importJSON()
         }
         (*(trace->events))[e->process]->push_back(e);
     }
+    partition->max_global_step = max_step;
+    trace->global_max_step = max_step;
+    trace->dag_entries = new QList<Partition *>();
+    trace->dag_entries->append(partition);
+
     // Second pass to link parents and children
     for (Json::ValueIterator itr = events.begin(); itr != events.end(); itr++) {
         int key = QString(itr.key().asString().c_str()).toInt();
