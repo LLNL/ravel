@@ -23,13 +23,11 @@ StepVis::~StepVis()
 void StepVis::setTrace(Trace * t)
 {
     VisWidget::setTrace(t);
-    maxStep = 0;
+    maxStep = trace->global_max_step;
     maxLateness = 0;
-    QString lateness("lateness");
+    QString lateness("Lateness");
     for (QVector<QVector<Event *> *>::Iterator eitr = trace->events->begin(); eitr != trace->events->end(); ++eitr) {
         for (QVector<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
-            if ((*itr)->step > maxStep)
-                maxStep = (*itr)->step;
             if ((*(*itr)->metrics)[lateness]->event > maxLateness)
                 maxLateness = (*(*itr)->metrics)[lateness]->event;
             if ((*(*itr)->metrics)[lateness]->aggregate > maxLateness)
@@ -62,7 +60,7 @@ void StepVis::processVis()
 {
     proc_to_order = QMap<int, int>();
     order_to_proc = QMap<int, int>();
-    for (int i = 1; i <= trace->num_processes; i++) { //TODO: Change to zero at some point
+    for (int i = 0; i < trace->num_processes; i++) {
         proc_to_order[i] = i;
         order_to_proc[i] = i;
     }
@@ -172,75 +170,82 @@ void StepVis::qtPaint(QPainter *painter)
     bool complete, aggcomplete;
     QSet<Message *> drawMessages = QSet<Message *>();
     painter->setPen(QPen(QColor(0, 0, 0)));
-    for (QVector<QVector<Event *> *>::Iterator eitr = trace->events->begin(); eitr != trace->events->end(); ++eitr) {
-        for (QVector<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr)
-        {
-            position = proc_to_order[(*itr)->process];
-            if ((*itr)->step < floor(startStep) || (*itr)->step > boundStep(startStep + stepSpan)) // Out of span
-                continue;
-            if (position < floor(startProcess) || position > ceil(startProcess + processSpan)) // Out of span
-                continue;
-            // 0 = startProcess, rect().height() = stopProcess (startProcess + processSpan)
-            // 0 = startStep, rect().width() = stopStep (startStep + stepSpan)
-            y = floor((position - startProcess) * blockheight) + 1;
-            if (showAggSteps)
-                x = floor(((*itr)->step - startStep) * blockwidth) + 1;
-            else
-                x = floor(((*itr)->step - startStep) / 2 * blockwidth) + 1;
-            w = barwidth;
-            h = barheight;
-
-            // Corrections for partially drawn
-            complete = true;
-            if (y < 0) {
-                h = barheight - fabs(y);
-                y = 0;
-                complete = false;
-            } else if (y + barheight > rect().height()) {
-                h = rect().height() - y;
-                complete = false;
-            }
-            if (x < 0) {
-                w = barwidth - fabs(x);
-                x = 0;
-                complete = false;
-            } else if (x + barwidth > rect().width()) {
-                w = rect().width() - x;
-                complete = false;
-            }
-            painter->fillRect(QRectF(x, y, w, h), QBrush(colormap->color((*(*itr)->metrics)[metric]->event)));
-            if (complete)
-                painter->drawRect(QRectF(x,y,w,h));
-            else
-                incompleteBox(painter, x, y, w, h);
-
-            for (QVector<Message *>::Iterator mitr = (*itr)->messages->begin(); mitr != (*itr)->messages->end(); ++mitr)
-                drawMessages.insert((*mitr));
-
-            if (showAggSteps) {
-                xa = floor(((*itr)->step - startStep - 1) * blockwidth) + 1;
-                wa = barwidth;
-                if (xa + wa <= 0)
+    // TODO: Replace this part where we look through all partitions with a part where we look through
+    // our own active partition list that we determin whenever a setSteps happens.
+    for (QList<Partition *>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
+    {
+        if ((*part)->min_global_step > startStep + stepSpan || (*part)->max_global_step < startStep)
+            continue;
+        for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list) {
+            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
+            {
+                position = proc_to_order[(*evt)->process];
+                if ((*evt)->step < floor(startStep) || (*evt)->step > boundStep(startStep + stepSpan)) // Out of span
                     continue;
+                if (position < floor(startProcess) || position > ceil(startProcess + processSpan)) // Out of span
+                    continue;
+                // 0 = startProcess, rect().height() = stopProcess (startProcess + processSpan)
+                // 0 = startStep, rect().width() = stopStep (startStep + stepSpan)
+                y = floor((position - startProcess) * blockheight) + 1;
+                if (showAggSteps)
+                    x = floor(((*evt)->step - startStep) * blockwidth) + 1;
+                else
+                    x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1;
+                w = barwidth;
+                h = barheight;
 
-                aggcomplete = true;
-                if (xa < 0) {
-                    wa = barwidth - fabs(xa);
-                    xa = 0;
-                    aggcomplete = false;
-                } else if (xa + barwidth > rect().width()) {
-                    wa = rect().width() - xa;
-                    aggcomplete = false;
+                // Corrections for partially drawn
+                complete = true;
+                if (y < 0) {
+                    h = barheight - fabs(y);
+                    y = 0;
+                    complete = false;
+                } else if (y + barheight > rect().height()) {
+                    h = rect().height() - y;
+                    complete = false;
+                }
+                if (x < 0) {
+                    w = barwidth - fabs(x);
+                    x = 0;
+                    complete = false;
+                } else if (x + barwidth > rect().width()) {
+                    w = rect().width() - x;
+                    complete = false;
+                }
+                painter->fillRect(QRectF(x, y, w, h), QBrush(colormap->color((*(*evt)->metrics)[metric]->event)));
+                if (complete)
+                    painter->drawRect(QRectF(x,y,w,h));
+                else
+                    incompleteBox(painter, x, y, w, h);
+
+                for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
+                    drawMessages.insert((*msg));
+
+                if (showAggSteps) {
+                    xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1;
+                    wa = barwidth;
+                    if (xa + wa <= 0)
+                        continue;
+
+                    aggcomplete = true;
+                    if (xa < 0) {
+                        wa = barwidth - fabs(xa);
+                        xa = 0;
+                        aggcomplete = false;
+                    } else if (xa + barwidth > rect().width()) {
+                        wa = rect().width() - xa;
+                        aggcomplete = false;
+                    }
+
+                    aggcomplete = aggcomplete && complete;
+                    painter->fillRect(QRectF(xa, y, wa, h), QBrush(colormap->color((*(*evt)->metrics)[metric]->aggregate)));
+                    if (aggcomplete)
+                        painter->drawRect(QRectF(xa, y, wa, h));
+                    else
+                        incompleteBox(painter, xa, y, wa, h);
                 }
 
-                aggcomplete = aggcomplete && complete;
-                painter->fillRect(QRectF(xa, y, wa, h), QBrush(colormap->color((*(*itr)->metrics)[metric]->aggregate)));
-                if (aggcomplete)
-                    painter->drawRect(QRectF(xa, y, wa, h));
-                else
-                    incompleteBox(painter, xa, y, wa, h);
             }
-
         }
     }
 
