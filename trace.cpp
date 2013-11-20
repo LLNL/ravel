@@ -107,7 +107,7 @@ void Trace::partition()
 
 void Trace::calculate_lateness()
 {
-    QSet<Partition *> current_leap = QList<Partition *>::toSet(*dag_entries);
+    QSet<Partition *> current_leap = QSet<Partition *>::fromList(*dag_entries);
     int accumulated_step;
     global_max_step = 0;
 
@@ -124,7 +124,7 @@ void Trace::calculate_lateness()
             {   // Check all parents to make sure they have all been handled
                 if ((*parent)->max_global_step < 0)
                 {
-                    next_leap.insert(parent); // So next time we must handle parent first
+                    next_leap.insert(*parent); // So next time we must handle parent first
                     allParents = false;
                 }
                 // Find maximum step of all predecessors
@@ -148,7 +148,7 @@ void Trace::calculate_lateness()
 
             // Add children for handling
             for (QSet<Partition *>::Iterator child = (*part)->children->begin(); child != (*part)->children->end(); ++child)
-                next_leap.insert(child);
+                next_leap.insert(*child);
 
             // Keep track of global max step
             global_max_step = std::max(global_max_step, (*part)->max_global_step);
@@ -161,7 +161,7 @@ void Trace::calculate_lateness()
 void Trace::set_global_steps()
 {
     // Go through dag, generating steps
-    QSet<Partition *> active_partitions = QList<Partition *>::toSet(*dag_entries);
+    QSet<Partition *> active_partitions = QSet<Partition *>::fromList(*dag_entries);
     int active_step = 0;
     unsigned long long int mintime, aggmintime;
 
@@ -182,15 +182,15 @@ void Trace::set_global_steps()
         aggmintime = ULLONG_MAX;
         for (QList<Event *>::Iterator evt = i_list.begin(); evt != i_list.end(); ++evt)
         {
-            if ((*evt)->exit() < mintime)
-                mintime = (*evt)->exit();
-            if ((*evt)->enter() < aggmintime)
-                aggmintime = (*evt)->enter();
+            if ((*evt)->exit < mintime)
+                mintime = (*evt)->exit;
+            if ((*evt)->enter < aggmintime)
+                aggmintime = (*evt)->enter;
         }
 
         // Set lateness
         for (QList<Event *>::Iterator evt = i_list.begin(); evt != i_list.end(); ++evt)
-            (*evt)->addMetric("Lateness", (*evt)->exit() - mintime, (*evt)->enter() - aggmintime);
+            (*evt)->addMetric("Lateness", (*evt)->exit - mintime, (*evt)->enter - aggmintime);
 
         // Prepare active step for the next round
         for (QSet<Partition *>::Iterator part = active_partitions.begin(); part != active_partitions.end(); ++part)
@@ -199,7 +199,7 @@ void Trace::set_global_steps()
                 active_partitions.remove(*part);
                 for (QSet<Partition *>::Iterator child = (*part)->children->begin(); part != (*part)->children->end(); ++child)
                     if ((*child)->min_global_step == i + 1) // Only insert if we're the max parent, otherwise wait for max parent
-                        active_partitions.insert(child);
+                        active_partitions.insert(*child);
             }
     }
 

@@ -13,7 +13,7 @@ class Trace
 {
 public:
     Trace(int np);
-    Trace(int np, legacy = false);
+    Trace(int np, bool legacy = false);
     ~Trace();
 
     void preprocess();

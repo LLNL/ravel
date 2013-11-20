@@ -14,7 +14,7 @@ Trace * OTFConverter::importOTF(QString filename)
     // Start with the rawtrace similar to what we got from PARAVER
     OTFImporter * importer = new OTFImporter();
     rawtrace = importer->importOTF(filename.toStdString().c_str());
-    trace = new Trace(rawtrace->num_processes);
+    trace = new Trace(rawtrace->num_processes, false);
 
     // Start setting up new Trace
     delete trace->functions;

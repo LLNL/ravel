@@ -94,7 +94,7 @@ void MainWindow::importJSON()
         return;
     }
 
-    Trace* trace = new Trace(root["nodes"].asInt());
+    Trace* trace = new Trace(root["nodes"].asInt(), true);
     Json::Value fxns = root["fxns"];
     for (Json::ValueIterator itr = fxns.begin(); itr != fxns.end(); ++itr) {
         int key = QString(itr.key().asString().c_str()).toInt();
