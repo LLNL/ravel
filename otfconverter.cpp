@@ -69,7 +69,7 @@ void OTFConverter::matchEvents()
             }
             else // Begin a subroutine
             {
-                Event * e = new  Event((*evt)->time, 0, (*evt)->value, (*evt)->process -1, -1);
+                Event * e = new  Event((*evt)->time, 0, (*evt)->value, (*evt)->process, -1);
 
                 e->depth = depth;
                 if (depth == 0)
@@ -77,7 +77,7 @@ void OTFConverter::matchEvents()
                 depth++;
 
                 // Keep track of the mpi_events for partitioning
-                if (((*(trace->functions))[e->process])->group == trace->mpi_group)
+                if (((*(trace->functions))[e->function])->group == trace->mpi_group)
                     ((*(trace->mpi_events))[e->process])->prepend(e);
 
                 stack->push(e);

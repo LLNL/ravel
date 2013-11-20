@@ -168,7 +168,7 @@ void StepVis::qtPaint(QPainter *painter)
     processheight = blockheight;
     stepwidth = blockwidth;
 
-    QString metric("lateness");
+    QString metric("Lateness");
     int position;
     bool complete, aggcomplete;
     QSet<Message *> drawMessages = QSet<Message *>();

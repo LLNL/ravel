@@ -62,6 +62,7 @@ void MainWindow::importOTF()
 
     OTFConverter importer = OTFConverter();
     Trace* trace = importer.importOTF(dataFileName);
+    std::cout << "I finished. OMG" << std::endl;
 
 }
 
