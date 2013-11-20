@@ -13,6 +13,7 @@ class Trace
 {
 public:
     Trace(int np);
+    Trace(int np, legacy = false);
     ~Trace();
 
     void preprocess();
@@ -20,6 +21,8 @@ public:
     void assignSteps();
 
     QList<Partition *> * partitions;
+
+    bool isLegacy;
 
     // Below set by OTFConverter
     QMap<int, QString> * functionGroups;
@@ -62,8 +65,11 @@ private:
     int strong_connect_iter(Partition * partition, QStack<Partition *> * stack,
                             QList<QList<Partition *> *> * components, int index);
     QList<QList<Partition *> *> * tarjan();
+    void set_global_steps();
+    void calculate_lateness();
 
     bool isProcessed; // Partitions exist
+    int global_max_step; // largest global step
     QList<Partition * > * dag_entries; // Leap 0 in the dag
     QMap<int, QSet<Partition *> *> * dag_step_dict; // Map from leap to partition
 };

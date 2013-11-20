@@ -24,6 +24,7 @@ public:
     QMap<int, QList<Event *> *> * events;
     int max_step;
     int max_global_step;
+    int min_global_step;
     int dag_leap;
     //QMap<int, QList<Event *> *> * step_dict;
 

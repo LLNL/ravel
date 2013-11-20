@@ -96,15 +96,22 @@ void MainWindow::importJSON()
 
     Trace* trace = new Trace(root["nodes"].asInt());
     Json::Value fxns = root["fxns"];
-    for (Json::ValueIterator itr = fxns.begin(); itr != fxns.end(); itr++) {
+    for (Json::ValueIterator itr = fxns.begin(); itr != fxns.end(); ++itr) {
         int key = QString(itr.key().asString().c_str()).toInt();
-        (*(trace->functions))[key] = new Function(QString((*itr)["name"].asString().c_str()), 0);
+        (*(trace->functions))[key] = new Function(QString((*itr)["name"].asString().c_str()), (*itr)["type"].asInt());
+    }
+
+    Json::Value fxnGroups = root["types"];
+    for (Json::ValueIterator itr = fxnGroups.begin(); itr != fxnGroups.end(); ++itr)
+    {
+        int key = QString(itr.key().asString().c_str()).toInt();
+        (*(trace->functionGroups))[key] = QString((*itr).asString().c_str());
     }
 
     QMap<int, Event*> eventmap;
     Json::Value events = root["events"];
     // First pass to create events
-    for (Json::ValueIterator itr = events.begin(); itr != events.end(); itr++) {
+    for (Json::ValueIterator itr = events.begin(); itr != events.end(); ++itr) {
         int key = QString(itr.key().asString().c_str()).toInt();
         Event* e = new Event(static_cast<unsigned long long>((*itr)["entertime"].asDouble()),
                 static_cast<unsigned long long>((*itr)["leavetime"].asDouble()),

@@ -57,7 +57,7 @@
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionOpen_JSON">
    <property name="text">
-    <string>Open JSON</string>
+    <string>Open Legacy JSON</string>
    </property>
   </action>
   <action name="actionOpen_OTF">

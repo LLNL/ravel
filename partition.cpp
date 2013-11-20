@@ -4,6 +4,7 @@ Partition::Partition()
 {
     events = new QMap<int, QList<Event *> *>;
     tindex = -1;
+    max_global_step = -1;
 
     parents = new QSet<Partition *>();
     children = new QSet<Partition *>();
