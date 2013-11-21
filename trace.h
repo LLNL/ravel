@@ -73,6 +73,10 @@ private:
     void calculate_lateness();
 
     bool isProcessed; // Partitions exist
+
+    // TODO: Replace this terrible stuff with QSharedPointer
+    QSet<RecurseInfo *> * riTracker;
+    QSet<QList<Partition *> *> * riChildrenTracker;
 };
 
 #endif // TRACE_H

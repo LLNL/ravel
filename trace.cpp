@@ -15,7 +15,9 @@ Trace::Trace(int np, bool legacy)
       global_max_step(-1),
       dag_entries(NULL),
       dag_step_dict(NULL),
-      isProcessed(false)
+      isProcessed(false),
+      riTracker(NULL),
+      riChildrenTracker(NULL)
 {
     for (int i = 0; i < np; i++) {
         (*events)[i] = new QVector<Event *>();
@@ -342,7 +344,9 @@ void Trace::strong_connect_loop(Partition * part, QStack<Partition *> * stack,
         {
             // Push onto recursion stack, return so we can deal with it
             recurse->push(new RecurseInfo(part, child, children, cIndex));
+            riTracker->insert(recurse->top());
             recurse->push(new RecurseInfo(child, NULL, NULL, -1));
+            riTracker->insert(recurse->top());
             return;
         }
         else if (stack->contains(child))
@@ -373,7 +377,10 @@ int Trace::strong_connect_iter(Partition * partition, QStack<Partition *> * stac
                                       QList<QList<Partition *> *> * components, int index)
 {
     QStack<RecurseInfo *> * recurse = new QStack<RecurseInfo *>();
+    riTracker = new QSet<RecurseInfo *>();
+    riChildrenTracker = new QSet<QList<Partition *> *>();
     recurse->push(new RecurseInfo(partition, NULL, NULL, -1));
+    riTracker->insert(recurse->top());
     while (recurse->size() > 0)
     {
         RecurseInfo * ri = recurse->pop();
@@ -384,7 +391,9 @@ int Trace::strong_connect_iter(Partition * partition, QStack<Partition *> * stac
             ri->part->lowlink = index;
             ++index;
             stack->push(ri->part);
+            Q_ASSERT(ri->children == NULL);
             ri->children = new QList<Partition *>();
+            riChildrenTracker->insert(ri->children);
             std::cout << "ri part children " << ri->part->children << std::endl;
             std::cout << "          size: " << ri->part->children->size() << std::endl;
             for (QSet<Partition *>::Iterator child = ri->part->children->begin(); child != ri->part->children->end(); ++child)
@@ -400,10 +409,16 @@ int Trace::strong_connect_iter(Partition * partition, QStack<Partition *> * stac
             strong_connect_loop(ri->part, stack, ri->children, ++(ri->cIndex), recurse, components);
         }
 
-        delete ri->children;
-        delete ri;
+        //delete ri->children;
+        //delete ri;
     }
 
+    for (QSet<QList<Partition *> *>::Iterator riC = riChildrenTracker->begin(); riC != riChildrenTracker->end(); ++riC)
+        delete *riC;
+    for (QSet<RecurseInfo *>::Iterator ri = riTracker->begin(); ri != riTracker->end(); ++ri)
+        delete *ri;
+    delete riTracker;
+    riTracker = NULL;
     delete recurse;
     return index;
 }
