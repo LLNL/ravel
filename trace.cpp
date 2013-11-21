@@ -82,7 +82,7 @@ void Trace::partition()
     if (true)
     {
           // Partition by Process w or w/o Waitall
-        if (true)
+        if (false)
             initializePartitionsWaitall();
         else
             initializePartitions();
@@ -107,14 +107,17 @@ void Trace::partition()
 
 void Trace::calculate_lateness()
 {
-    QSet<Partition *> current_leap = QSet<Partition *>::fromList(*dag_entries);
+    QSet<Partition *> * current_leap = new QSet<Partition *>();
+    for (QList<Partition *>::Iterator part = dag_entries->begin(); part != dag_entries->end(); ++part)
+        current_leap->insert(*part);
+
     int accumulated_step;
     global_max_step = 0;
 
-    while (!current_leap.isEmpty())
+    while (!current_leap->isEmpty())
     {
-        QSet<Partition *> next_leap = QSet<Partition *>();
-        for (QSet<Partition *>::Iterator part = current_leap.begin(); part != current_leap.end(); ++part)
+        QSet<Partition *> * next_leap = new QSet<Partition *>();
+        for (QSet<Partition *>::Iterator part = current_leap->begin(); part != current_leap->end(); ++part)
         {
             accumulated_step = 0;
             bool allParents = true;
@@ -124,7 +127,7 @@ void Trace::calculate_lateness()
             {   // Check all parents to make sure they have all been handled
                 if ((*parent)->max_global_step < 0)
                 {
-                    next_leap.insert(*parent); // So next time we must handle parent first
+                    next_leap->insert(*parent); // So next time we must handle parent first
                     allParents = false;
                 }
                 // Find maximum step of all predecessors
@@ -148,20 +151,25 @@ void Trace::calculate_lateness()
 
             // Add children for handling
             for (QSet<Partition *>::Iterator child = (*part)->children->begin(); child != (*part)->children->end(); ++child)
-                next_leap.insert(*child);
+                next_leap->insert(*child);
 
             // Keep track of global max step
             global_max_step = std::max(global_max_step, (*part)->max_global_step);
         }
 
+        delete current_leap;
         current_leap = next_leap;
     }
+    delete current_leap;
 }
 
 void Trace::set_global_steps()
 {
     // Go through dag, generating steps
-    QSet<Partition *> active_partitions = QSet<Partition *>::fromList(*dag_entries);
+    QSet<Partition *> * active_partitions = new QSet<Partition *>();
+    for (QList<Partition *>::Iterator part = dag_entries->begin(); part != dag_entries->end(); ++part)
+        active_partitions->insert(*part);
+
     int active_step = 0;
     unsigned long long int mintime, aggmintime;
 
@@ -170,17 +178,17 @@ void Trace::set_global_steps()
     // Active partition group may change every time the step is changed.
     for (int i = 0; i <= global_max_step; ++i)
     {
-        QList<Event *> i_list = QList<Event *>();
-        for (QSet<Partition *>::Iterator part = active_partitions.begin(); part != active_partitions.end(); ++part)
+        QList<Event *> * i_list = new QList<Event *>();
+        for (QSet<Partition *>::Iterator part = active_partitions->begin(); part != active_partitions->end(); ++part)
             for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
                 for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
                     if ((*evt)->step == i)
-                        i_list.append(*evt);
+                        i_list->append(*evt);
 
         // Find min leave time
         mintime = ULLONG_MAX;
         aggmintime = ULLONG_MAX;
-        for (QList<Event *>::Iterator evt = i_list.begin(); evt != i_list.end(); ++evt)
+        for (QList<Event *>::Iterator evt = i_list->begin(); evt != i_list->end(); ++evt)
         {
             if ((*evt)->exit < mintime)
                 mintime = (*evt)->exit;
@@ -189,20 +197,21 @@ void Trace::set_global_steps()
         }
 
         // Set lateness
-        for (QList<Event *>::Iterator evt = i_list.begin(); evt != i_list.end(); ++evt)
+        for (QList<Event *>::Iterator evt = i_list->begin(); evt != i_list->end(); ++evt)
             (*evt)->addMetric("Lateness", (*evt)->exit - mintime, (*evt)->enter - aggmintime);
 
         // Prepare active step for the next round
-        for (QSet<Partition *>::Iterator part = active_partitions.begin(); part != active_partitions.end(); ++part)
+        for (QSet<Partition *>::Iterator part = active_partitions->begin(); part != active_partitions->end(); ++part)
             if ((*part)->max_global_step == i)
             {
-                active_partitions.remove(*part);
+                active_partitions->remove(*part);
                 for (QSet<Partition *>::Iterator child = (*part)->children->begin(); part != (*part)->children->end(); ++child)
                     if ((*child)->min_global_step == i + 1) // Only insert if we're the max parent, otherwise wait for max parent
-                        active_partitions.insert(*child);
+                        active_partitions->insert(*child);
             }
+        delete i_list;
     }
-
+    delete active_partitions;
 }
 
 void Trace::assignSteps()
@@ -361,13 +370,15 @@ int Trace::strong_connect_iter(Partition * partition, QStack<Partition *> * stac
     {
         RecurseInfo * ri = recurse->pop();
 
-        if (ri->cIndex >= 0)
+        if (ri->cIndex < 0)
         {
             ri->part->tindex = index;
             ri->part->lowlink = index;
             ++index;
             stack->push(ri->part);
             ri->children = new QList<Partition *>();
+            std::cout << "ri part children " << ri->part->children << std::endl;
+            std::cout << "          size: " << ri->part->children->size() << std::endl;
             for (QSet<Partition *>::Iterator child = ri->part->children->begin(); child != ri->part->children->end(); ++child)
                 ri->children->append(*child);
 
@@ -375,6 +386,8 @@ int Trace::strong_connect_iter(Partition * partition, QStack<Partition *> * stac
         }
         else
         {
+            std::cout << "ri low" << ri->part->lowlink << std::endl;
+            std::cout << "ri ch low" << ri->child->lowlink << std::endl;
             ri->part->lowlink = std::min(ri->part->lowlink, ri->child->lowlink);
             strong_connect_loop(ri->part, stack, ri->children, ++(ri->cIndex), recurse, components);
         }
@@ -539,13 +552,17 @@ void Trace::set_partition_dag()
     {
         parent_flag = false;
         for (QMap<int, QList<Event *> *>::Iterator event_list = (*partition)->events->begin(); event_list != (*partition)->events->end(); ++event_list) {
-            if ((event_list.value())->first()->comm_prev->partition)
+            std::cout << "Event list size: " << event_list.value()->size() << std::endl;
+            if ((event_list.value())->first()->comm_prev)
             {
-                ((*partition)->parents)->insert((event_list.value())->first()->comm_prev->partition);
+                std::cout << "comm prev " << event_list.value()->first()->comm_prev << std::endl;
+                std::cout << "parents " << (*partition)->parents << std::endl;
+                std::cout << "parents size " << (*partition)->parents->size() << std::endl;
+                (*partition)->parents->insert(event_list.value()->first()->comm_prev->partition);
                 parent_flag = true;
             }
-            if ((event_list.value())->last()->comm_next->partition)
-                ((*partition)->children)->insert((event_list.value())->last()->comm_next->partition);
+            if ((event_list.value())->last()->comm_next)
+                (*partition)->children->insert(event_list.value()->last()->comm_next->partition);
         }
 
         if (!parent_flag)
@@ -560,13 +577,15 @@ void Trace::set_dag_steps()
         (*partition)->dag_leap = -1;
 
     dag_step_dict->clear();
-    QSet<Partition *> current_level = QSet<Partition *>::fromList(*dag_entries);
+    QSet<Partition *> * current_level = new QSet<Partition *>();
+    for (QList<Partition *>::Iterator part = dag_entries->begin(); part != dag_entries->end(); ++part)
+        current_level->insert(*part);
     int accumulated_leap;
     bool allParentsFlag;
-    while (!current_level.isEmpty())
+    while (!current_level->isEmpty())
     {
-        QSet<Partition *> next_level = QSet<Partition *>();
-        for (QSet<Partition *>::Iterator partition = current_level.begin(); partition != current_level.end(); ++partition)
+        QSet<Partition *> * next_level = new QSet<Partition *>();
+        for (QSet<Partition *>::Iterator partition = current_level->begin(); partition != current_level->end(); ++partition)
         {
             accumulated_leap = 0;
             allParentsFlag = true;
@@ -579,7 +598,7 @@ void Trace::set_dag_steps()
             {
                 if ((*parent)->dag_leap < 0)
                 {
-                    next_level.insert(*parent);
+                    next_level->insert(*parent);
                     allParentsFlag = false;
                 }
                 accumulated_leap = std::max(accumulated_leap, (*parent)->dag_leap);
@@ -596,10 +615,12 @@ void Trace::set_dag_steps()
             ((*dag_step_dict)[(*partition)->dag_leap])->insert(*partition);
 
             for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++child)
-                next_level.insert(*child);
+                next_level->insert(*child);
         }
+        delete current_level;
         current_level = next_level;
     }
+    delete current_level;
 }
 
 // Every send/recv event becomes its own partition
@@ -623,7 +644,7 @@ void Trace::initializePartitions()
 // Waitalls determien if send/recv events are grouped along a process
 void Trace::initializePartitionsWaitall()
 {
-    QVector<int> collective_ids = QVector<int>(16);
+    QVector<int> * collective_ids = new QVector<int>(16);
     int collective_index = 0;
     int waitall_index = -1;
     QString collectives("MPI_BarrierMPI_BcastMPI_ReduceMPI_GatherMPI_ScatterMPI_AllgatherMPI_AllreduceMPI_AlltoallMPI_ScanMPI_Reduce_scatterMPI_Op_createMPI_Op_freeMPIMPI_AlltoallvMPI_AllgathervMPI_GathervMPI_Scatterv");
@@ -633,7 +654,7 @@ void Trace::initializePartitionsWaitall()
         {
             if ( collectives.contains(function.value()->name) )
             {
-                collective_ids[collective_index] = function.key();
+                (*collective_ids)[collective_index] = function.key();
                 ++collective_index;
             }
             if (function.value()->name == "MPI_Waitall")
@@ -643,7 +664,7 @@ void Trace::initializePartitionsWaitall()
 
 
     bool aggregating;
-    QList<Event *> aggregation;
+    QList<Event *> * aggregation;
     for (QVector<QList<Event *> *>::Iterator event_list = mpi_events->begin(); event_list != mpi_events->end(); ++event_list) {
         // We note these should be in reverse order because of the way they were added
         aggregating = false;
@@ -667,7 +688,7 @@ void Trace::initializePartitionsWaitall()
                     {
                         // Do partition for aggregated stuff
                         Partition * p = new Partition();
-                        for (QList<Event *>::Iterator saved_evt = aggregation.begin(); saved_evt != aggregation.end(); ++saved_evt)
+                        for (QList<Event *>::Iterator saved_evt = aggregation->begin(); saved_evt != aggregation->end(); ++saved_evt)
                         {
                             p->addEvent(*saved_evt);
                             (*saved_evt)->partition = p;
@@ -681,15 +702,16 @@ void Trace::initializePartitionsWaitall()
                         partitions->append(r);
 
                         aggregating = false;
+                        delete aggregation;
                     }
                 }
 
                 // 2. Due to non-recv waitall or collective
-                else if ((*evt)->function == waitall_index || collective_ids.contains((*evt)->function))
+                else if ((*evt)->function == waitall_index || collective_ids->contains((*evt)->function))
                 {
                     // Do partition for aggregated stuff
                     Partition * p = new Partition();
-                    for (QList<Event *>::Iterator saved_evt = aggregation.begin(); saved_evt != aggregation.end(); ++saved_evt)
+                    for (QList<Event *>::Iterator saved_evt = aggregation->begin(); saved_evt != aggregation->end(); ++saved_evt)
                     {
                         p->addEvent(*saved_evt);
                         (*saved_evt)->partition = p;
@@ -697,13 +719,14 @@ void Trace::initializePartitionsWaitall()
                     partitions->append(p);
 
                     aggregating = false;
+                    delete aggregation;
                 }
 
                 // Is this an event that should be added?
                 else
                 {
                     if ((*evt)->messages->size() > 0)
-                        aggregation.prepend(*evt); // prepend since we're walking backwarsd
+                        aggregation->prepend(*evt); // prepend since we're walking backwarsd
                 }
             }
             else
@@ -717,8 +740,8 @@ void Trace::initializePartitionsWaitall()
                 {
                     if (aggregating)
                     {
-                        aggregation = QList<Event *>();
-                        aggregation.prepend(*evt); // prepend since we're walking backwards
+                        aggregation = new QList<Event *>();
+                        aggregation->prepend(*evt); // prepend since we're walking backwards
                     }
                     else
                     {

@@ -21,11 +21,12 @@ public:
 
 public slots:
     void importJSON();
-    void importOTF();
+    void importOTFbyGUI();
     void pushSteps(float start, float stop);
     
 private:
     Ui::MainWindow *ui;
+    void importOTF(QString dataFileName);
 
     QVector<Trace *> traces;
     QVector<VisWidget *> viswidgets;

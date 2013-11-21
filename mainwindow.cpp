@@ -35,7 +35,10 @@ MainWindow::MainWindow(QWidget *parent) :
     viswidgets.push_back(timevis);
 
     connect(ui->actionOpen_JSON, SIGNAL(triggered()),this,SLOT(importJSON()));
-    connect(ui->actionOpen_OTF, SIGNAL(triggered()),this,SLOT(importOTF()));
+    connect(ui->actionOpen_OTF, SIGNAL(triggered()),this,SLOT(importOTFbyGUI()));
+
+    // for testing
+    importOTF("/Users/kate/Documents/trace_files/sdissbinom16/nbc-test.otf");
 }
 
 MainWindow::~MainWindow()
@@ -51,7 +54,7 @@ void MainWindow::pushSteps(float start, float stop)
     }
 }
 
-void MainWindow::importOTF()
+void MainWindow::importOTFbyGUI()
 {
     QString dataFileName = QFileDialog::getOpenFileName(this, tr("Import OTF Data"),
                                                      "",
@@ -60,9 +63,26 @@ void MainWindow::importOTF()
     if (dataFileName == NULL || dataFileName.length() == 0)
         return;
 
+    importOTF(dataFileName);
+}
+
+
+
+void MainWindow::importOTF(QString dataFileName){
+
     OTFConverter importer = OTFConverter();
     Trace* trace = importer.importOTF(dataFileName);
+    trace->preprocess();
     std::cout << "I finished. OMG" << std::endl;
+
+    this->traces.push_back(trace);
+
+    for(int i = 0; i < viswidgets.size(); i++)
+    {
+        viswidgets[i]->setTrace(trace);
+        viswidgets[i]->processVis();
+        viswidgets[i]->repaint();
+    }
 
 }
 
@@ -168,7 +188,6 @@ void MainWindow::importJSON()
 
     this->traces.push_back(trace);
     dataFile.close();
-    std::cout << "Num events: " << trace->events->size() << std::endl;
 
     for(int i = 0; i < viswidgets.size(); i++)
     {

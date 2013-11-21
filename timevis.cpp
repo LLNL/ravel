@@ -36,9 +36,12 @@ void TimeVis::setTrace(Trace * t)
     startTime = ULLONG_MAX;
     unsigned long long stopTime = 0;
     maxStep = trace->global_max_step;
+    std::cout << "Partitions size: " << trace->partitions->size() << std::endl;
     for (QList<Partition*>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
     {
+        std::cout << "We have a partition " << (*part)->min_global_step << ", " << (*part)->max_global_step << std::endl;
         for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list) {
+            std::cout << event_list.value() << std::endl;
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt) {
                 if ((*evt)->exit > maxTime)
                     maxTime = (*evt)->exit;
