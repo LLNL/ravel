@@ -394,8 +394,6 @@ int Trace::strong_connect_iter(Partition * partition, QStack<Partition *> * stac
             Q_ASSERT(ri->children == NULL);
             ri->children = new QList<Partition *>();
             riChildrenTracker->insert(ri->children);
-            std::cout << "ri part children " << ri->part->children << std::endl;
-            std::cout << "          size: " << ri->part->children->size() << std::endl;
             for (QSet<Partition *>::Iterator child = ri->part->children->begin(); child != ri->part->children->end(); ++child)
                 ri->children->append(*child);
 
@@ -403,8 +401,6 @@ int Trace::strong_connect_iter(Partition * partition, QStack<Partition *> * stac
         }
         else
         {
-            std::cout << "ri low" << ri->part->lowlink << std::endl;
-            std::cout << "ri ch low" << ri->child->lowlink << std::endl;
             ri->part->lowlink = std::min(ri->part->lowlink, ri->child->lowlink);
             strong_connect_loop(ri->part, stack, ri->children, ++(ri->cIndex), recurse, components);
         }
@@ -575,14 +571,10 @@ void Trace::set_partition_dag()
     {
         parent_flag = false;
         for (QMap<int, QList<Event *> *>::Iterator event_list = (*partition)->events->begin(); event_list != (*partition)->events->end(); ++event_list) {
-            std::cout << "Event list size: " << event_list.value()->size() << std::endl;
             Q_ASSERT(event_list.value());
             Q_ASSERT(event_list.value()->first());
             if ((event_list.value())->first()->comm_prev)
             {
-                std::cout << "comm prev " << event_list.value()->first()->comm_prev << std::endl;
-                std::cout << "parents " << (*partition)->parents << std::endl;
-                std::cout << "parents size " << (*partition)->parents->size() << std::endl;
                 (*partition)->parents->insert(event_list.value()->first()->comm_prev->partition);
                 parent_flag = true;
             }
