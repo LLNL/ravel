@@ -174,7 +174,6 @@ void Trace::set_global_steps()
     for (QList<Partition *>::Iterator part = dag_entries->begin(); part != dag_entries->end(); ++part)
         active_partitions->insert(*part);
 
-    int active_step = 0;
     unsigned long long int mintime, aggmintime;
 
     // For each step, find all the events in the active partitions with that step
@@ -320,6 +319,8 @@ void Trace::mergeForMessages()
                 delete p1;
                 delete p2;
                 p1 = p; // For the rest of the messages connected to this send. [ Should only be one, shouldn't matter. ]
+                (*send)->partition = p;
+                (*msg)->receiver->partition = p;
             }
         }
     }
@@ -331,9 +332,12 @@ void Trace::strong_connect_loop(Partition * part, QStack<Partition *> * stack,
                                       QStack<RecurseInfo *> * recurse,
                                       QList<QList<Partition *> *> * components)
 {
+    Q_ASSERT(cIndex >= 0);
+    Q_ASSERT(children);
     while (cIndex < children->size())
     {
         Partition * child = (*children)[cIndex];
+        Q_ASSERT(child);
         if (child->tindex < 0)
         {
             // Push onto recursion stack, return so we can deal with it
