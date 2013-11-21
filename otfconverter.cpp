@@ -69,7 +69,7 @@ void OTFConverter::matchEvents()
             }
             else // Begin a subroutine
             {
-                Event * e = new  Event((*evt)->time, 0, (*evt)->value, (*evt)->process, -1);
+                Event * e = new Event((*evt)->time, 0, (*evt)->value, (*evt)->process, -1);
 
                 e->depth = depth;
                 if (depth == 0)
@@ -86,6 +86,7 @@ void OTFConverter::matchEvents()
         }
         stack->clear();
     }
+    delete stack;
 }
 
 

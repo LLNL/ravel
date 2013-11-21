@@ -2,17 +2,27 @@
 
 Event::Event(unsigned long long _enter, unsigned long long _exit,
              int _function, int _process, int _step)
-    : enter(_enter), exit(_exit), function(_function), process(_process),
-    step(_step)
+    : parents(new QVector<Event *>()),
+      children(new QVector<Event *>()),
+      messages(new QVector<Message *>()),
+      metrics(new QMap<QString, MetricPair *>()),
+      caller(NULL),
+      callees(new QVector<Event *>()),
+      partition(NULL),
+      comm_next(NULL),
+      comm_prev(NULL),
+      is_recv(false),
+      last_send(NULL),
+      next_send(NULL),
+      last_recvs(NULL),
+      enter(_enter),
+      exit(_exit),
+      function(_function),
+      process(_process),
+      step(_step),
+      depth(-1)
 {
-    parents = new QVector<Event *>();
-    children = new QVector<Event *>();
-    messages = new QVector<Message* >();
-    metrics = new QMap<QString, MetricPair *>();
 
-    callees = new QVector<Event *>();
-
-    is_recv = false;
 }
 
 Event::~Event()

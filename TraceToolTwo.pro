@@ -54,6 +54,11 @@ unix:!macx: LIBS += -L$$PWD/../../../../../cpp/jsoncpp-src-0.5.0/libs/linux-gcc-
 INCLUDEPATH += $$PWD/../../../../../cpp/jsoncpp-src-0.5.0/include
 DEPENDPATH += $$PWD/../../../../../cpp/jsoncpp-src-0.5.0/include
 
+unix:!macx: LIBS += -L$$PWD/../../../../../../../usr/local/lib/ -lotf
+
+INCLUDEPATH += $$PWD/../../../../../../../usr/local/include
+DEPENDPATH += $$PWD/../../../../../../../usr/local/include
+
 macx: LIBS += -L$$PWD/../../Downloads/jsoncpp-src-0.5.0/buildscons/linux-gcc-4.2.1/src/lib_json/ -ljson_linux-gcc-4.2.1_libmt
 
 INCLUDEPATH += $$PWD/../../Downloads/jsoncpp-src-0.5.0/include

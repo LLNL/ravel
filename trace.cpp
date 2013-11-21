@@ -1,22 +1,26 @@
 #include "trace.h"
 #include <iostream>
 
-Trace::Trace(int np, bool legacy) : num_processes(np), isLegacy(legacy)
+Trace::Trace(int np, bool legacy)
+    : num_processes(np),
+      partitions(new QList<Partition *>()),
+      isLegacy(legacy),
+      functionGroups(new QMap<int, QString>()),
+      functions(new QMap<int, Function *>()),
+      events(new QVector<QVector<Event *> *>(np)),
+      roots(new QVector<QVector<Event *> *>(np)),
+      mpi_events(NULL),
+      send_events(new QList<Event *>()),
+      mpi_group(-1),
+      global_max_step(-1),
+      dag_entries(NULL),
+      dag_step_dict(NULL),
+      isProcessed(false)
 {
-    functionGroups = new QMap<int, QString>();
-    functions = new QMap<int, Function *>();
-    partitions = new QList<Partition *>();
-
-    events = new QVector<QVector<Event *> *>(np);
-    roots = new QVector<QVector<Event *> *>(np);
     for (int i = 0; i < np; i++) {
         (*events)[i] = new QVector<Event *>();
         (*roots)[i] = new QVector<Event *>();
     }
-
-    send_events = new QList<Event *>();
-
-    isProcessed = false;
 }
 
 Trace::Trace(int np)
@@ -553,6 +557,8 @@ void Trace::set_partition_dag()
         parent_flag = false;
         for (QMap<int, QList<Event *> *>::Iterator event_list = (*partition)->events->begin(); event_list != (*partition)->events->end(); ++event_list) {
             std::cout << "Event list size: " << event_list.value()->size() << std::endl;
+            Q_ASSERT(event_list.value());
+            Q_ASSERT(event_list.value()->first());
             if ((event_list.value())->first()->comm_prev)
             {
                 std::cout << "comm prev " << event_list.value()->first()->comm_prev << std::endl;

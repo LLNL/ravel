@@ -1,15 +1,21 @@
 #include "partition.h"
 
 Partition::Partition()
+    : events(new QMap<int, QList<Event *> *>),
+      max_step(-1),
+      max_global_step(-1),
+      min_global_step(-1),
+      dag_leap(-1),
+      parents(new QSet<Partition *>()),
+      children(new QSet<Partition *>()),
+      old_parents(new QSet<Partition *>()),
+      old_children(new QSet<Partition *>()),
+      new_partition(NULL),
+      tindex(-1),
+      lowlink(-1),
+      free_recvs(NULL)
 {
-    events = new QMap<int, QList<Event *> *>;
-    tindex = -1;
-    max_global_step = -1;
 
-    parents = new QSet<Partition *>();
-    children = new QSet<Partition *>();
-    old_parents = new QSet<Partition *>();
-    old_children = new QSet<Partition *>();
 }
 
 Partition::~Partition()

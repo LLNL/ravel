@@ -20,6 +20,8 @@ public:
     void partition();
     void assignSteps();
 
+    int num_processes;
+
     QList<Partition *> * partitions;
 
     bool isLegacy;
@@ -29,7 +31,6 @@ public:
     QMap<int, Function *> * functions;
     QVector<QVector<Event *> *> * events;
     QVector<QVector<Event *> *> * roots; // Roots of call trees per process
-    int num_processes;
 
     QVector<QList<Event *> *> * mpi_events;
     QList<Event *> * send_events;
