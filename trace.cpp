@@ -111,7 +111,7 @@ void Trace::partition()
 
 }
 
-void Trace::calculate_lateness()
+void Trace::set_global_steps()
 {
     QSet<Partition *> * current_leap = new QSet<Partition *>();
     for (QList<Partition *>::Iterator part = dag_entries->begin(); part != dag_entries->end(); ++part)
@@ -169,7 +169,7 @@ void Trace::calculate_lateness()
     delete current_leap;
 }
 
-void Trace::set_global_steps()
+void Trace::calculate_lateness()
 {
     // Go through dag, generating steps
     QSet<Partition *> * active_partitions = new QSet<Partition *>();
@@ -204,17 +204,22 @@ void Trace::set_global_steps()
         // Set lateness
         for (QList<Event *>::Iterator evt = i_list->begin(); evt != i_list->end(); ++evt)
             (*evt)->addMetric("Lateness", (*evt)->exit - mintime, (*evt)->enter - aggmintime);
+        delete i_list;
 
         // Prepare active step for the next round
+        QList<Partition *> * toRemove = new QList<Partition *>();
         for (QSet<Partition *>::Iterator part = active_partitions->begin(); part != active_partitions->end(); ++part)
             if ((*part)->max_global_step == i)
             {
-                active_partitions->remove(*part);
-                for (QSet<Partition *>::Iterator child = (*part)->children->begin(); part != (*part)->children->end(); ++child)
+                toRemove->append(*part); // Stage for removal
+                for (QSet<Partition *>::Iterator child = (*part)->children->begin(); child != (*part)->children->end(); ++child)
                     if ((*child)->min_global_step == i + 1) // Only insert if we're the max parent, otherwise wait for max parent
                         active_partitions->insert(*child);
             }
-        delete i_list;
+        // Remove those staged
+        for (QList<Partition *>::Iterator oldpart = toRemove->begin(); oldpart != toRemove->end(); ++oldpart)
+            active_partitions->remove(*oldpart);
+        delete toRemove;
     }
     delete active_partitions;
 }
@@ -226,10 +231,24 @@ void Trace::assignSteps()
         (*partition)->step();
 
     // Global steps
+    set_dag_steps();
     set_global_steps();
 
     // Calculate Step metrics
     calculate_lateness();
+
+    // Verify
+    for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
+    {
+        Q_ASSERT((*part)->min_global_step > 0);
+        for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
+        {
+            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
+            {
+            }
+        }
+    }
+
 
     /*delete dag_entries;
     for (QMap<int, QSet<Partition *> *>::Iterator itr = dag_step_dict->begin(); itr != dag_step_dict->end(); ++itr)
