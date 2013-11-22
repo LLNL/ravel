@@ -151,7 +151,7 @@ void OverviewVis::processVis()
 
     int width = size().width() - 2 * border;
     heights = QVector<float>(width, 0);
-    int timespan = maxTime - minTime;
+    unsigned long long int timespan = maxTime - minTime;
     int start_int, stop_int;
     QString lateness("Lateness");
     stepPositions = QVector<std::pair<int, int> >(maxStep+1, std::pair<int, int>(width + 1, -1));

@@ -231,6 +231,7 @@ void Trace::assignSteps()
         (*partition)->step();
 
     // Global steps
+    set_partition_dag();
     set_dag_steps();
     set_global_steps();
 
@@ -240,11 +241,14 @@ void Trace::assignSteps()
     // Verify
     for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
     {
-        Q_ASSERT((*part)->min_global_step > 0);
+        std::cout << (*part)->min_global_step << std::endl;
+        Q_ASSERT((*part)->min_global_step >= 0);
         for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
         {
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
+                std::cout << "Step " << (*evt)->step << std::endl;
+                Q_ASSERT((*evt)->metrics->contains("Lateness"));
             }
         }
     }
@@ -434,6 +438,8 @@ int Trace::strong_connect_iter(Partition * partition, QStack<Partition *> * stac
         delete *ri;
     delete riTracker;
     riTracker = NULL;
+    delete riChildrenTracker;
+    riChildrenTracker = NULL;
     delete recurse;
     return index;
 }
@@ -637,7 +643,7 @@ void Trace::set_dag_steps()
                     next_level->insert(*parent);
                     allParentsFlag = false;
                 }
-                accumulated_leap = std::max(accumulated_leap, (*parent)->dag_leap);
+                accumulated_leap = std::max(accumulated_leap, (*parent)->dag_leap + 1);
             }
 
             // Still need to handle parents
