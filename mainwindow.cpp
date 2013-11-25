@@ -73,6 +73,7 @@ void MainWindow::importOTF(QString dataFileName){
 
     OTFConverter importer = OTFConverter();
     Trace* trace = importer.importOTF(dataFileName);
+    trace->waitallMerge = true;
     trace->preprocess();
     std::cout << "I finished. OMG" << std::endl;
 

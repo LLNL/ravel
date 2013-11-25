@@ -24,7 +24,11 @@ public:
 
     QList<Partition *> * partitions;
 
-    bool isLegacy;
+    // Processing options
+    bool isLegacy; // from Python-build JSON
+    bool partitionGiven;
+    bool waitallMerge;
+    bool leapMerge;
 
     // Below set by OTFConverter
     QMap<int, QString> * functionGroups;

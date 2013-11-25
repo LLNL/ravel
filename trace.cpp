@@ -5,6 +5,9 @@ Trace::Trace(int np, bool legacy)
     : num_processes(np),
       partitions(new QList<Partition *>()),
       isLegacy(legacy),
+      partitionGiven(false),
+      waitallMerge(false),
+      leapMerge(false),
       functionGroups(new QMap<int, QString>()),
       functions(new QMap<int, Function *>()),
       events(new QVector<QVector<Event *> *>(np)),
@@ -85,10 +88,10 @@ void Trace::partition()
     dag_step_dict = new QMap<int, QSet<Partition *> *>();
 
     // Partition - default
-    if (true)
+    if (!partitionGiven)
     {
           // Partition by Process w or w/o Waitall
-        if (false)
+        if (waitallMerge)
             initializePartitionsWaitall();
         else
             initializePartitions();
@@ -99,7 +102,7 @@ void Trace::partition()
         mergeCycles();
 
           // Merge by rank level [ later ]
-        if (false)
+        if (leapMerge)
         {
             set_dag_steps();
             mergeByLeap();
@@ -684,7 +687,7 @@ void Trace::initializePartitions()
     }
 }
 
-// Waitalls determien if send/recv events are grouped along a process
+// Waitalls determine if send/recv events are grouped along a process
 void Trace::initializePartitionsWaitall()
 {
     QVector<int> * collective_ids = new QVector<int>(16);
@@ -713,7 +716,7 @@ void Trace::initializePartitionsWaitall()
         aggregating = false;
         for (QList<Event *>::Iterator evt = (*event_list)->begin(); evt != (*event_list)->end(); ++evt)
         {
-            if (!aggregating)
+            if (aggregating)
             {
                 // Is this an event that can stop aggregating?
                 // 1. Due to a recv (including waitall recv)
@@ -721,7 +724,7 @@ void Trace::initializePartitionsWaitall()
                 {
                     bool recv_found = false;
                     for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
-                        if ((*msg)->receiver->process == (*evt)->process) // Receive found
+                        if ((*msg)->receiver == *evt) // Receive found
                         {
                             recv_found = true;
                             break;
@@ -747,9 +750,13 @@ void Trace::initializePartitionsWaitall()
                         aggregating = false;
                         delete aggregation;
                     }
+                    else
+                    {   // Must be a send only, prepend and continue on
+                        aggregation->prepend(*evt);
+                    }
                 }
 
-                // 2. Due to non-recv waitall or collective
+                // 2. Due to non-recv/non-comm waitall or collective
                 else if ((*evt)->function == waitall_index || collective_ids->contains((*evt)->function))
                 {
                     // Do partition for aggregated stuff
@@ -764,28 +771,23 @@ void Trace::initializePartitionsWaitall()
                     aggregating = false;
                     delete aggregation;
                 }
+                // Neither a comm event or waitall/collective, skip this event.
 
-                // Is this an event that should be added?
-                else
-                {
-                    if ((*evt)->messages->size() > 0)
-                        aggregation->prepend(*evt); // prepend since we're walking backwarsd
-                }
             }
-            else
+            else // We are not aggregating
             {
                 // Is this an event that should cause aggregation?
                 if ((*evt)->function == waitall_index)
+                {
                     aggregating = true;
+                    aggregation = new QList<Event *>();
+                }
 
                 // Is this an event that should be added?
                 if ((*evt)->messages->size() > 0)
                 {
                     if (aggregating)
-                    {
-                        aggregation = new QList<Event *>();
                         aggregation->prepend(*evt); // prepend since we're walking backwards
-                    }
                     else
                     {
                         Partition * p = new Partition();
