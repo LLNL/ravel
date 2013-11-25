@@ -42,7 +42,7 @@ void StepVis::setTrace(Trace * t)
     // Initial conditions
     startStep = 0;
     stepSpan = initStepSpan;
-    startProcess = 1;
+    startProcess = 0;
     processSpan = trace->num_processes;
 }
 
@@ -97,8 +97,8 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
         if (startStep > maxStep)
             startStep = maxStep;
 
-        if (startProcess < 1)
-            startProcess = 1;
+        if (startProcess < 0)
+            startProcess = 0;
         if (startProcess + processSpan > trace->num_processes + 1)
             startProcess = trace->num_processes - processSpan + 1;
 

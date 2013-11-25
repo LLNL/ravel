@@ -27,7 +27,7 @@ void TimeVis::setTrace(Trace * t)
     // Initial conditions
     startStep = 0;
     stopStep = startStep + initStepSpan;
-    startProcess = 1;
+    startProcess = 0;
     processSpan = trace->num_processes;
 
     // Determine time information
@@ -88,7 +88,7 @@ void TimeVis::processVis()
 {
     proc_to_order = QMap<int, int>();
     order_to_proc = QMap<int, int>();
-    for (int i = 1; i <= trace->num_processes; i++) { //TODO: Change to zero at some point
+    for (int i = 0; i < trace->num_processes; i++) {
         proc_to_order[i] = i;
         order_to_proc[i] = i;
     }
@@ -169,8 +169,8 @@ void TimeVis::setSteps(float start, float stop)
         changeSource = false;
         return;
     }
-    startTime = (*stepToTime)[boundStep(start)/2]->start;
-    timeSpan = (*stepToTime)[boundStep(stop)/2]->stop - startTime;
+    startTime = (*stepToTime)[std::max(boundStep(start)/2, 0)]->start;
+    timeSpan = (*stepToTime)[std::min(boundStep(stop)/2,  maxStep/2 + 1)]->stop - startTime;
     repaint();
 }
 

@@ -251,7 +251,6 @@ void Trace::assignSteps()
         {
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
-                std::cout << "Step " << (*evt)->step << ", process" << (*evt)->process << std::endl;
                 Q_ASSERT((*evt)->metrics->contains("Lateness"));
             }
         }
