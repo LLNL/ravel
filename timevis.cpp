@@ -36,12 +36,9 @@ void TimeVis::setTrace(Trace * t)
     startTime = ULLONG_MAX;
     unsigned long long stopTime = 0;
     maxStep = trace->global_max_step;
-    std::cout << "Partitions size: " << trace->partitions->size() << std::endl;
     for (QList<Partition*>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
     {
-        std::cout << "We have a partition " << (*part)->min_global_step << ", " << (*part)->max_global_step << std::endl;
         for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list) {
-            std::cout << event_list.value() << std::endl;
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt) {
                 if ((*evt)->exit > maxTime)
                     maxTime = (*evt)->exit;
@@ -54,7 +51,6 @@ void TimeVis::setTrace(Trace * t)
             }
         }
     }
-    std::cout << "Determined time " << startTime << ", " << stopTime << std::endl;
     timeSpan = stopTime - startTime;
 
     for (QVector<TimePair *>::Iterator itr = stepToTime->begin(); itr != stepToTime->end(); itr++) {
@@ -142,24 +138,20 @@ void TimeVis::wheelEvent(QWheelEvent * event)
 {
     float scale = 1;
     int clicks = event->delta() / 8 / 15;
-    std::cout << "wheel clicks " << clicks << std::endl;
     scale = 1 + clicks * 0.05;
     if (Qt::MetaModifier && event->modifiers()) {
         // Vertical
         float avgProc = startProcess + processSpan / 2.0;
         processSpan *= scale;
         startProcess = avgProc - processSpan / 2.0;
-        std::cout << "Verti Scale " << startProcess << ", " << processSpan << std::endl;
     } else {
         // Horizontal
         float middleTime = startTime + timeSpan / 2.0;
         timeSpan *= scale;
         startTime = middleTime - timeSpan / 2.0;
-        std::cout << "Horiz Scale " << startTime << ", " << timeSpan << std::endl;
     }
     repaint();
     changeSource = true;
-    std::cout << "steps emitted: " << startStep << ", " << stopStep << std::endl;
     emit stepsChanged(startStep, stopStep); // Calculated during painting
 }
 
@@ -170,7 +162,7 @@ void TimeVis::setSteps(float start, float stop)
         return;
     }
     startTime = (*stepToTime)[std::max(boundStep(start)/2, 0)]->start;
-    timeSpan = (*stepToTime)[std::min(boundStep(stop)/2,  maxStep/2 + 1)]->stop - startTime;
+    timeSpan = (*stepToTime)[std::min(boundStep(stop)/2,  maxStep/2)]->stop - startTime;
     repaint();
 }
 
@@ -218,7 +210,6 @@ void TimeVis::qtPaint(QPainter *painter)
                 if (step >= 0 && step > stopStep)
                     stopStep = step;
                 if (step >= 0 && step < startStep) {
-                    std::cout << "Setting start " << step << ", " << startStep << std::endl;
                     startStep = step;
                 }
 

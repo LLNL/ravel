@@ -37,7 +37,6 @@ void OverviewVis::setSteps(float start, float stop)
     }
     int startStep = roundeven(start);
     int stopStep = roundeven(stop);
-    std::cout << "Overview setSteps: " << startStep << ", " << stopStep << std::endl;
     if (startStep < 0)
         startStep = 0;
     if (stopStep > maxStep)
@@ -98,7 +97,6 @@ void OverviewVis::mouseReleaseEvent(QMouseEvent * event) {
     stopTime = (stopCursor / 1.0 / width) * timespan + minTime;
     int startStep = -1;
     int stopStep = -1 ;
-    std::cout << startCursor << ", " << stopCursor << std::endl;
 
     // We know first is always greater than second
     // Each stepPosition is the range of cursor positions for that step
@@ -107,8 +105,6 @@ void OverviewVis::mouseReleaseEvent(QMouseEvent * event) {
     // and stopStep to be the last one where second > cursor or first > cursor
     // and we want to ignore invalid values (where second is -1)
     for (int i = 0; i < stepPositions.size(); i++) {
-        std::cout << i << " :  " << stepPositions[i].first << ", " << stepPositions[i].second << std::endl;
-        std::cout << startStep << ", " << stopStep << std::endl;
         if (stepPositions[i].second != -1) {
             if (stepPositions[i].second >= startCursor && startStep == -1)
                 startStep = i;
@@ -117,7 +113,6 @@ void OverviewVis::mouseReleaseEvent(QMouseEvent * event) {
         }
     }
     changeSource = true;
-    std::cout << startStep << ", " << stopStep << ", " << maxStep << std::endl;
     emit stepsChanged(startStep, stopStep);
 }
 

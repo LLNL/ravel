@@ -46,6 +46,7 @@ public:
     Event * last_send;
     Event * next_send;
     QList<Event *> * last_recvs;
+    int last_step;
 
     unsigned long long enter;
     unsigned long long exit;
@@ -53,6 +54,7 @@ public:
     int process;
     int step;
     int depth;
+    int debug_step;
 
     //enum mpi_class_t { WAITALL, COLLECTIVE, OTHER };
 

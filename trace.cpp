@@ -205,7 +205,6 @@ void Trace::calculate_lateness()
         }
 
         // Set lateness
-        std::cout << "Setting lateness for step " << i << " on " << i_list->size() << " events." << std::endl;
         for (QList<Event *>::Iterator evt = i_list->begin(); evt != i_list->end(); ++evt)
             (*evt)->addMetric("Lateness", (*evt)->exit - mintime, (*evt)->enter - aggmintime);
         delete i_list;
@@ -245,7 +244,6 @@ void Trace::assignSteps()
     // Verify
     for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
     {
-        std::cout << (*part)->min_global_step << std::endl;
         Q_ASSERT((*part)->min_global_step >= 0);
         for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
         {

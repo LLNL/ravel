@@ -48,14 +48,12 @@ void StepVis::setTrace(Trace * t)
 
 void StepVis::setSteps(float start, float stop)
 {
-    std::cout << "setSteps triggered" << std::endl;
     if (changeSource) {
         changeSource = false;
         return;
     }
     startStep = start;
     stepSpan = stop - start + 1;
-    std::cout << "steps obtained: " << startStep << ", " << stepSpan << std::endl;
     repaint();
 }
 
@@ -117,20 +115,17 @@ void StepVis::wheelEvent(QWheelEvent * event)
 {
     float scale = 1;
     int clicks = event->delta() / 8 / 15;
-    std::cout << "wheel clicks " << clicks << std::endl;
     scale = 1 + clicks * 0.05;
     if (Qt::MetaModifier && event->modifiers()) {
         // Vertical
         float avgProc = startProcess + processSpan / 2.0;
         processSpan *= scale;
         startProcess = avgProc - processSpan / 2.0;
-        std::cout << "Verti Scale " << startProcess << ", " << processSpan << std::endl;
     } else {
         // Horizontal
         float avgStep = startStep + stepSpan / 2.0;
         stepSpan *= scale;
         startStep = avgStep - stepSpan / 2.0;
-        std::cout << "Horiz Scale " << startStep << ", " << stepSpan << std::endl;
     }
     repaint();
     changeSource = true;

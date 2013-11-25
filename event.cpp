@@ -15,12 +15,14 @@ Event::Event(unsigned long long _enter, unsigned long long _exit,
       last_send(NULL),
       next_send(NULL),
       last_recvs(NULL),
+      last_step(-1),
       enter(_enter),
       exit(_exit),
       function(_function),
       process(_process),
       step(_step),
-      depth(-1)
+      depth(-1),
+      debug_step(-1)
 {
 
 }

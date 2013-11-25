@@ -1,4 +1,5 @@
 #include "partition.h"
+#include <iostream>
 
 Partition::Partition()
     : events(new QMap<int, QList<Event *> *>),
@@ -92,13 +93,12 @@ void Partition::step()
     free_recvs = new QList<Event *>();
     QList<Message *> * message_list = new QList<Message *>();
 
-    int stride, step;
+    int stride;
     Event * last_send;
     QList<Event *> * last_recvs;
     for (QMap<int, QList<Event *> *>::Iterator event_list = events->begin(); event_list != events->end(); ++event_list) {
         last_recvs = new QList<Event *>();
         stride = 0;
-        step = 0;
         last_send = NULL;
         for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt) {
             (*evt)->step = stride;
@@ -107,7 +107,6 @@ void Partition::step()
                     message_list->append(*msg);
                 else
                     (*evt)->is_recv = true;
-            ++step;
             if ((*evt)->is_recv)
             {
                 (*evt)->last_send = last_send;
@@ -116,7 +115,6 @@ void Partition::step()
             else
             {
                 ++stride;
-                step = 0;
                 last_send = *evt;
                 (*evt)->last_recvs = last_recvs;
                 for (QList<Event *>::Iterator recv = (*evt)->last_recvs->begin(); recv != (*evt)->last_recvs->end(); ++recv)
@@ -143,9 +141,10 @@ void Partition::step()
 
 void Partition::step_receive(Message * msg)
 {
+    std::cout << "Step receive called" << std::endl;
     int previous_step;
     Event * previous_event, * next_event;
-    if (msg->sender->step <= msg->receiver->step)
+    if (msg->receiver->step <= msg->sender->step)
     {
         msg->receiver->step = msg->sender->step + 1;
         previous_step = msg->receiver->step;
@@ -198,6 +197,7 @@ void Partition::restep()
             if (!((*evt)->is_recv))
             {
                 (working_step[(*evt)->process])[event_list.key()] = *evt;
+                (*evt)->last_step = last_step[(*evt)->process];
                 last_step[(*evt)->process] = event_list.key();
             }
         }
@@ -219,7 +219,7 @@ void Partition::restep()
             {
                 Event * evt = working_step[*process][*step];
                 sends.append(evt); // Collect sends at this step
-                current_step = send_step[last_step[*process]] + 1; // Where we were at this step for this process
+                current_step = send_step[evt->last_step] + 1; // Where we were at this step for this process
 
                 // For all the recvs before the send, set the step, shifting forward if need be
                 for (QList<Event *>::Iterator recv = evt->last_recvs->begin(); recv != evt->last_recvs->end(); ++recv)
@@ -268,7 +268,7 @@ void Partition::restep()
             step = prev_step;
             for (QVector<Message *>::Iterator msg = next_recv->messages->begin(); msg != next_recv->messages->end(); ++msg)
                 if ((*msg)->sender != next_recv)
-                    step = std::max(step, (*msg)->sender->step + 1);
+                    step = std::max(step, (*msg)->sender->step);
             next_recv->step = step + 1;
             prev_step = next_recv->step;
             next_recv = next_recv->comm_next;
@@ -294,5 +294,9 @@ void Partition::finalize_steps()
     // Find partition max_step -- going to be the last one of every list
     max_step = 0;
     for (QMap<int, QList<Event *> *>::Iterator event_list = events->begin(); event_list != events->end(); ++event_list)
+    {
         max_step = std::max((event_list.value())->last()->step, max_step);
+        for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
+            (*evt)->debug_step = (*evt)->step;
+    }
 }
