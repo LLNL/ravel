@@ -551,7 +551,7 @@ void Trace::mergeByLeap()
         // Update event's reference just in case
         for (QMap<int, QList<Event *> *>::Iterator event_list = (*partition)->events->begin(); event_list != (*partition)->events->end(); ++event_list) {
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt) {
-                (*evt)->partition = partition;
+                (*evt)->partition = *partition;
             }
         }
     }
