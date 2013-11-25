@@ -39,7 +39,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // for testing
     //importOTF("/Users/kate/Documents/trace_files/sdissbinom16/nbc-test.otf");
-    importOTF("/home/kate/llnl/traces/trace_files/data/sdissbinom16/nbc-test.otf");
+    //importOTF("/home/kate/llnl/traces/trace_files/data/sdissbinom16/nbc-test.otf");
 }
 
 MainWindow::~MainWindow()
