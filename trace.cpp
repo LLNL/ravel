@@ -139,7 +139,7 @@ void Trace::set_global_steps()
                 // Find maximum step of all predecessors
                 // We +1 because individual steps start at 0, so when we add 0, we want
                 // it to be offset from teh parent
-                accumulated_step = std::max(accumulated_step, (*parent)->max_global_step + 1);
+                accumulated_step = std::max(accumulated_step, (*parent)->max_global_step + 2);
             }
 
             // Skip since all parents haven't been handled
@@ -147,13 +147,16 @@ void Trace::set_global_steps()
                 continue;
 
             // Set steps for the partition
-            (*part)->max_global_step = (*part)->max_step + accumulated_step;
+            (*part)->max_global_step = 2 * ((*part)->max_step) + accumulated_step;
             (*part)->min_global_step = accumulated_step;
 
             // Set steps for partition events
             for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
                 for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
+                {
+                    (*evt)->step *= 2;
                     (*evt)->step += accumulated_step;
+                }
 
             // Add children for handling
             for (QSet<Partition *>::Iterator child = (*part)->children->begin(); child != (*part)->children->end(); ++child)
@@ -202,6 +205,7 @@ void Trace::calculate_lateness()
         }
 
         // Set lateness
+        std::cout << "Setting lateness for step " << i << " on " << i_list->size() << " events." << std::endl;
         for (QList<Event *>::Iterator evt = i_list->begin(); evt != i_list->end(); ++evt)
             (*evt)->addMetric("Lateness", (*evt)->exit - mintime, (*evt)->enter - aggmintime);
         delete i_list;
@@ -213,7 +217,7 @@ void Trace::calculate_lateness()
             {
                 toRemove->append(*part); // Stage for removal
                 for (QSet<Partition *>::Iterator child = (*part)->children->begin(); child != (*part)->children->end(); ++child)
-                    if ((*child)->min_global_step == i + 1) // Only insert if we're the max parent, otherwise wait for max parent
+                    if ((*child)->min_global_step == i + 2) // Only insert if we're the max parent, otherwise wait for max parent
                         active_partitions->insert(*child);
             }
         // Remove those staged
@@ -247,7 +251,7 @@ void Trace::assignSteps()
         {
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
-                std::cout << "Step " << (*evt)->step << std::endl;
+                std::cout << "Step " << (*evt)->step << ", process" << (*evt)->process << std::endl;
                 Q_ASSERT((*evt)->metrics->contains("Lateness"));
             }
         }
