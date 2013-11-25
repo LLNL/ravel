@@ -128,7 +128,8 @@ void OverviewVis::setTrace(Trace * t)
     maxStep = trace->global_max_step;
     minTime = ULLONG_MAX;
     maxTime = 0;
-    // Maybe we should have this be by step instead? We'll see.
+    // Maybe we should have this be by step instead? We'll see. Right now it uses the full events list which seems
+    // unnecessary
     for (QVector<QVector<Event *> *>::Iterator eitr = trace->events->begin(); eitr != trace->events->end(); ++eitr) {
         for (QVector<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
             if ((*itr)->enter > maxTime && ((*(trace->functions))[(*itr)->function])->name == "MPI_Finalize")
