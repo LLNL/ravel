@@ -8,6 +8,7 @@ Trace::Trace(int np, bool legacy)
       partitionGiven(false),
       waitallMerge(false),
       leapMerge(false),
+      leapSkip(false),
       functionGroups(new QMap<int, QString>()),
       functions(new QMap<int, Function *>()),
       events(new QVector<QVector<Event *> *>(np)),
@@ -324,7 +325,232 @@ Partition * Trace::mergePartitions(Partition * p1, Partition * p2)
 
 void Trace::mergeByLeap()
 {
+    int leap = 0;
+    QSet<Partition *> * new_partitions = new QSet<Partition *>();
+    QSet<Partition *> * current_leap = new QSet<Partition *>();
+    for (QList<Partition *>::Iterator part = dag_entries->begin(); part != dag_entries->end(); ++part)
+        current_leap->insert(*part);
+    while (!current_leap->isEmpty())
+    {
+        QSet<int> processes = QSet<int>();
+        QSet<Partition *> * next_leap = new QSet<Partition *>();
+        for (QSet<Partition *>::Iterator partition = current_leap->begin(); partition != current_leap->end(); ++partition)
+            processes += QSet<int>::fromList((*partition)->events->keys());
 
+        if (processes.size() < num_processes)
+        {
+            QSet<Partition *> * new_leap_parts = new QSet<Partition *>();
+            QSet<int> added_processes = QSet<int>();
+            bool back_merge = false;
+            for (QSet<Partition *>::Iterator partition = current_leap->begin(); partition != current_leap->end(); ++partition)
+            {
+                unsigned long long int parent_distance = ULLONG_MAX;
+                unsigned long long int child_distance = ULLONG_MAX;
+                for (QSet<Partition *>::Iterator parent = (*partition)->parents->begin(); parent != (*partition)->parents->end(); ++parent)
+                    if ((*parent)->dag_leap == (*partition)->dag_leap - 1)
+                        parent_distance = std::min(parent_distance, (*partition)->distance(*parent));
+                for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++child)
+                    if ((*child)->dag_leap == (*partition)->dag_leap + 1)
+                    {
+                        (*child)->calculate_dag_leap();
+                        child_distance = std::min(child_distance, (*partition)->distance(*child));
+                    }
+
+                if (child_distance > 10 * parent_distance)
+                {
+                    for (QSet<Partition *>::Iterator parent = (*partition)->parents->begin(); parent != (*partition)->parents->end(); ++parent)
+                        if ((*parent)->dag_leap == (*partition)->dag_leap - 1)
+                        {
+                            (*partition)->group->unite(*((*parent)->group));
+                            for (QSet<Partition *>::Iterator group_member = (*partition)->group->begin(); group_member != (*partition)->group->end(); ++group_member)
+                            {
+                                if (*group_member != *partition)
+                                {
+                                    delete (*group_member)->group;
+                                    (*group_member)->group = (*partition)->group;
+                                }
+                            }
+                            back_merge = true;
+                        }
+                }
+                else
+                {
+                    for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++child)
+                        if ((*child)->dag_leap == (*partition)->dag_leap + 1
+                                && ((QSet<int>::fromList((*child)->events->keys()) - processes)).size() > 0)
+                        {
+                            added_processes += (QSet<int>::fromList((*child)->events->keys()) - processes);
+                            (*partition)->group->unite(*((*child)->group));
+                            for (QSet<Partition *>::Iterator group_member = (*partition)->group->begin(); group_member != (*partition)->group->end(); ++group_member)
+                            {
+                                if (*group_member != *partition)
+                                {
+                                    delete (*group_member)->group;
+                                    (*group_member)->group = (*partition)->group;
+                                }
+                            }
+                        }
+                }
+                // Groups created now
+            }
+
+            if (!back_merge && added_processes.size() <= 0)
+                if (leapSkip) // Skip leap if we didn't add anything
+                {
+                    for (QSet<Partition *>::Iterator partition = current_leap->begin(); partition != current_leap->end(); ++partition)
+                    {
+                        new_partitions->insert(*partition);
+                        for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++child)
+                        {
+                            (*child)->calculate_dag_leap();
+                            if ((*child)->dag_leap == leap + 1)
+                                next_leap->insert(*child);
+                        }
+                    }
+                    ++leap;
+                    delete current_leap;
+                    current_leap = next_leap;
+                    continue;
+                }
+                else // Merge everything if we didn't add anything
+                {
+                    for (QSet<Partition *>::Iterator partition = current_leap->begin(); partition != current_leap->end(); ++partition)
+                        for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++child)
+                            if ((*child)->dag_leap == leap + 1)
+                            {
+                                (*partition)->group->unite(*((*child)->group));
+                                for (QSet<Partition *>::Iterator group_member = (*partition)->group->begin(); group_member != (*partition)->group->end(); ++group_member)
+                                {
+                                    if (*group_member != *partition)
+                                    {
+                                        delete (*group_member)->group;
+                                        (*group_member)->group = (*partition)->group;
+                                    }
+                                }
+                            }
+                }
+            // Handled no merger case
+
+            // Now do the merger
+            for (QSet<Partition *>::Iterator group = current_leap->begin(); group != current_leap->end(); ++group)
+            {
+                if ((*group)->leapmark) // We've already merged this
+                    continue;
+
+                Partition * p = new Partition();
+                int min_leap = leap;
+
+                for (QSet<Partition *>::Iterator partition = (*group)->group->begin(); partition != (*group)->group->end(); ++partition)
+                {
+                    min_leap = std::min((*partition)->dag_leap, min_leap);
+
+                    // Merge all the events into the new partition
+                    QList<int> keys = (*partition)->events->keys();
+                    for (QList<int>::Iterator k = keys.begin(); k != keys.end(); ++k)
+                    {
+                        if (p->events->contains(*k))
+                        {
+                            *((*(p->events))[*k]) += *((*((*partition)->events))[*k]);
+                        }
+                        else
+                        {
+                            (*(p->events))[*k] = new QList<Event *>();
+                            *((*(p->events))[*k]) += *((*((*partition)->events))[*k]);
+                        }
+                    }
+
+                    p->dag_leap = min_leap;
+
+
+                    // Update parents/children links
+                    for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++child)
+                        if (!((*group)->group->contains(*child)))
+                        {
+                            p->children->insert(*child);
+                            for (QSet<Partition *>::Iterator group_member = (*group)->group->begin(); group_member != (*group)->group->end(); ++group_member)
+                                if ((*child)->parents->contains(*group_member))
+                                    (*child)->parents->remove(*group_member);
+                            (*child)->parents->insert(p);
+                        }
+
+                    for (QSet<Partition *>::Iterator parent = (*partition)->parents->begin(); parent != (*partition)->parents->end(); ++parent)
+                        if (!((*group)->group->contains(*parent)))
+                        {
+                            p->parents->insert(*parent);
+                            for (QSet<Partition *>::Iterator group_member = (*group)->group->begin(); group_member != (*group)->group->end(); ++group_member)
+                                if ((*parent)->children->contains(*group_member))
+                                    (*parent)->children->remove(*group_member);
+                            (*parent)->children->insert(p);
+                        }
+
+                    // Update new partitions
+                    if (new_partitions->contains(*partition))
+                        new_partitions->remove(*partition);
+                    if (new_leap_parts->contains(*partition))
+                        new_leap_parts->remove(*partition);
+                }
+
+                for (QSet<Partition *>::Iterator group_member = (*group)->group->begin(); group_member != (*group)->group->end(); ++group_member)
+                    (*group_member)->leapmark = true;
+
+                p->sortEvents();
+                new_partitions->insert(p);
+                new_leap_parts->insert(p);
+            }
+
+            if (next_leap->size() < 1)
+                for (QSet<Partition *>::Iterator partition = new_leap_parts->begin(); partition != new_leap_parts->end(); ++partition)
+                    for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++ child)
+                    {
+                        (*child)->calculate_dag_leap();
+                        if ((*child)->dag_leap == leap + 1)
+                            next_leap->insert(*child);
+                    }
+                ++leap;
+
+            delete current_leap;
+            current_leap = next_leap;
+
+            delete new_leap_parts;
+        } // End If Processes Incomplete
+        else
+        {
+            for (QSet<Partition *>::Iterator partition = current_leap->begin(); partition != current_leap->end(); ++partition)
+            {
+                new_partitions->insert(*partition);
+                for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++child)
+                {
+                    (*child)->calculate_dag_leap();
+                    if ((*child)->dag_leap == leap + 1)
+                        next_leap->insert(*child);
+                }
+            }
+            ++leap;
+            delete current_leap;
+            current_leap = next_leap;
+        }
+    } // End Leap While
+    delete current_leap;
+
+    // Delete all old partitions
+    for (QList<Partition *>::Iterator partition = partitions->begin(); partition != partitions->end(); ++partition)
+        if (!(new_partitions->contains(*partition)))
+            delete *partition;
+    delete partitions;
+    partitions = new QList<Partition *>();
+
+    // Need to calculate new dag_entries
+    delete dag_entries;
+    dag_entries = new QList<Partition *>();
+    for (QSet<Partition *>::Iterator partition = new_partitions->begin(); partition != new_partitions->end(); ++partition)
+    {
+        partitions->append(*partition);
+        if ((*partition)->parents->size() <= 0)
+            dag_entries->append(*partition);
+    }
+    set_dag_steps();
+
+    delete new_partitions;
 }
 
 // Merges partitions that are connected by a message

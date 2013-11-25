@@ -20,6 +20,7 @@ public:
     void step();
 
     unsigned long long int distance(Partition * other);
+    void calculate_dag_leap();
 
     QMap<int, QList<Event *> *> * events;
     int max_step;
@@ -36,6 +37,10 @@ public:
     Partition * new_partition;
     int tindex;
     int lowlink;
+
+    // For leap merge
+    bool leapmark;
+    QSet<Partition *> * group;
 
 private:
     void step_receive(Message * msg);

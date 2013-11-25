@@ -14,9 +14,11 @@ Partition::Partition()
       new_partition(NULL),
       tindex(-1),
       lowlink(-1),
+      leapmark(false),
+      group(new QSet<Partition *>()),
       free_recvs(NULL)
 {
-
+    group->insert(this);
 }
 
 Partition::~Partition()
@@ -86,6 +88,14 @@ unsigned long long int Partition::distance(Partition * other)
         }
     }
     return dist;
+}
+
+void Partition::calculate_dag_leap()
+{
+    dag_leap = 0;
+    for (QSet<Partition *>::Iterator parent = parents->begin(); parent != parents->end(); ++parent)
+        dag_leap = std::max(dag_leap, (*parent)->dag_leap + 1);
+
 }
 
 void Partition::step()

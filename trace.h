@@ -29,6 +29,7 @@ public:
     bool partitionGiven;
     bool waitallMerge;
     bool leapMerge;
+    bool leapSkip; // What to do when no merge possible
 
     // Below set by OTFConverter
     QMap<int, QString> * functionGroups;
