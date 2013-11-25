@@ -16,20 +16,23 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     OverviewVis* overview = new OverviewVis(this);
-    ui->overviewLayout->addWidget(overview);
-    ui->overviewLayout->setStretchFactor(overview, 1);
+    //ui->overviewLayout->addWidget(overview);
+    //ui->overviewLayout->setStretchFactor(overview, 1);
+    ui->overviewContainer->layout()->addWidget(overview);
 
     connect(overview, SIGNAL(stepsChanged(float, float)), this, SLOT(pushSteps(float, float)));
     viswidgets.push_back(overview);
 
     StepVis* stepvis = new StepVis(this);
-    ui->stepLayout->addWidget(stepvis);
+    //ui->stepLayout->addWidget(stepvis);
+    ui->stepContainer->layout()->addWidget(stepvis);
 
     connect((stepvis), SIGNAL(stepsChanged(float, float)), this, SLOT(pushSteps(float, float)));
     viswidgets.push_back(stepvis);
 
     TimeVis* timevis = new TimeVis(this);
-    ui->traditionalLayout->addWidget(timevis);
+    //ui->traditionalLayout->addWidget(timevis);
+    ui->traditionalContainer->layout()->addWidget(timevis);
 
     connect((timevis), SIGNAL(stepsChanged(float, float)), this, SLOT(pushSteps(float, float)));
     viswidgets.push_back(timevis);

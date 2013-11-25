@@ -31,6 +31,9 @@ int OverviewVis::roundeven(float step)
 // We use the set steps to find out where the cursor goes in the overview.
 void OverviewVis::setSteps(float start, float stop)
 {
+    if (!visProcessed)
+        return;
+
     if (changeSource) {
         changeSource = false;
         return;

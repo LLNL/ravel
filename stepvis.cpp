@@ -48,6 +48,9 @@ void StepVis::setTrace(Trace * t)
 
 void StepVis::setSteps(float start, float stop)
 {
+    if (!visProcessed)
+        return;
+
     if (changeSource) {
         changeSource = false;
         return;
@@ -84,6 +87,9 @@ void StepVis::mouseReleaseEvent(QMouseEvent * event)
 
 void StepVis::mouseMoveEvent(QMouseEvent * event)
 {
+    if (!visProcessed)
+        return;
+
     if (mousePressed) {
         int diffx = mousex - event->x();
         int diffy = mousey - event->y();
@@ -113,6 +119,9 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
 // zooms, but which zoom?
 void StepVis::wheelEvent(QWheelEvent * event)
 {
+    if (!visProcessed)
+        return;
+
     float scale = 1;
     int clicks = event->delta() / 8 / 15;
     scale = 1 + clicks * 0.05;

@@ -106,6 +106,9 @@ void TimeVis::mouseReleaseEvent(QMouseEvent * event)
 
 void TimeVis::mouseMoveEvent(QMouseEvent * event)
 {
+    if (!visProcessed)
+        return;
+
     if (mousePressed) {
         int diffx = mousex - event->x();
         int diffy = mousey - event->y();
@@ -136,6 +139,9 @@ void TimeVis::mouseMoveEvent(QMouseEvent * event)
 
 void TimeVis::wheelEvent(QWheelEvent * event)
 {
+    if (!visProcessed)
+        return;
+
     float scale = 1;
     int clicks = event->delta() / 8 / 15;
     scale = 1 + clicks * 0.05;
@@ -157,6 +163,9 @@ void TimeVis::wheelEvent(QWheelEvent * event)
 
 void TimeVis::setSteps(float start, float stop)
 {
+    if (!visProcessed)
+        return;
+
     if (changeSource) {
         changeSource = false;
         return;
