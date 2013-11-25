@@ -112,6 +112,9 @@ void OverviewVis::mouseReleaseEvent(QMouseEvent * event) {
                 stopStep = i;
         }
     }
+    if (stopStep < 0)
+        stopStep = maxStep;
+    std::cout << startStep << ", " << stopStep << " : " << startCursor << ", " << stopCursor << std::endl;
     changeSource = true;
     emit stepsChanged(startStep, stopStep);
 }
@@ -125,12 +128,13 @@ void OverviewVis::setTrace(Trace * t)
     maxStep = trace->global_max_step;
     minTime = ULLONG_MAX;
     maxTime = 0;
+    // Maybe we should have this be by step instead? We'll see.
     for (QVector<QVector<Event *> *>::Iterator eitr = trace->events->begin(); eitr != trace->events->end(); ++eitr) {
         for (QVector<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
-            if ((*itr)->exit > maxTime)
-                maxTime = (*itr)->exit;
-            if ((*itr)->enter < minTime)
-                minTime = (*itr)->enter;
+            if ((*itr)->enter > maxTime && ((*(trace->functions))[(*itr)->function])->name == "MPI_Finalize")
+                maxTime = (*itr)->enter; // Last MPI_Finalize enter
+            if ((*itr)->exit < minTime && ((*(trace->functions))[(*itr)->function])->name == "MPI_Init")
+                minTime = (*itr)->exit; // Earliest MPI_Init exit
         }
     }
 
