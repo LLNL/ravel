@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include "viswidget.h"
 #include "trace.h"
+#include "otfimportoptions.h"
 
 #include "json/json.h"
 
@@ -30,6 +31,9 @@ private:
 
     QVector<Trace *> traces;
     QVector<VisWidget *> viswidgets;
+
+    // Import Trace options
+    OTFImportOptions * otfoptions;
 };
 
 #endif // MAINWINDOW_H

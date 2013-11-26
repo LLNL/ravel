@@ -23,7 +23,9 @@ SOURCES  += main.cpp \
     rawtrace.cpp \
     otfconverter.cpp \
     function.cpp \
-    partition.cpp
+    partition.cpp \
+    importoptionsdialog.cpp \
+    otfimportoptions.cpp
 
 
 HEADERS += \
@@ -43,11 +45,14 @@ HEADERS += \
     otfconverter.h \
     function.h \
     partition.h \
-    general_util.h
+    general_util.h \
+    importoptionsdialog.h \
+    otfimportoptions.h
 
 
 FORMS += \
-    mainwindow.ui
+    mainwindow.ui \
+    importoptionsdialog.ui
 
 unix:!macx: LIBS += -L$$PWD/../../../../../cpp/jsoncpp-src-0.5.0/libs/linux-gcc-4.7/ -ljson_linux-gcc-4.7_libmt
 

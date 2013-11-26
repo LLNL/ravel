@@ -11,7 +11,10 @@
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWindow)
+    ui(new Ui::MainWindow),
+    traces(QVector<Trace *>()),
+    viswidgets(QVector<VisWidget *>()),
+    otfoptions(new OTFImportOptions())
 {
     ui->setupUi(this);
 
@@ -78,7 +81,6 @@ void MainWindow::importOTF(QString dataFileName){
     Trace* trace = importer.importOTF(dataFileName);
     trace->waitallMerge = true;
     trace->preprocess();
-    std::cout << "I finished. OMG" << std::endl;
 
     this->traces.push_back(trace);
 
@@ -171,11 +173,11 @@ void MainWindow::importJSON()
         int key = QString(itr.key().asString().c_str()).toInt();
         Event* e = eventmap[key];
         Json::Value parents = (*itr)["parents"];
-        for (int i = 0; i < parents.size(); ++i) {
+        for (unsigned int i = 0; i < parents.size(); ++i) {
             e->parents->push_back(eventmap[parents[i].asInt()]);
         }
         Json::Value children = (*itr)["children"];
-        for (int i = 0; i < children.size(); ++i) {
+        for (unsigned int i = 0; i < children.size(); ++i) {
             e->children->push_back(eventmap[children[i].asInt()]);
         }
     }
