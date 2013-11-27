@@ -49,6 +49,7 @@ private:
     void chainCommEvents();
 
     // Partitioning process
+    void partitionByPhase();
     void initializePartitions();
     void initializePartitionsWaitall();
     void mergeForMessages();

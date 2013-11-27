@@ -110,6 +110,11 @@ void Trace::partition()
 
     // Partition - given
       // Form partitions given in some way -- need to write options for this [ later ]
+    else
+    {
+        partitionByPhase();
+    }
+
 
 }
 
@@ -898,6 +903,28 @@ void Trace::set_dag_steps()
         current_level = next_level;
     }
     delete current_level;
+}
+
+void Trace::partitionByPhase()
+{
+    QMap<int, Partition *> * partition_dict = new QMap<int, Partition *>();
+    for (QVector<QList<Event *> *>::Iterator event_list = mpi_events->begin(); event_list != mpi_events->end(); ++event_list)
+        for (QList<Event *>::Iterator evt = (*event_list)->begin(); evt != (*event_list)->end(); ++evt)
+            if ((*evt)->messages->size() > 0)
+            {
+                if (!partition_dict->contains((*evt)->phase))
+                    (*partition_dict)[(*evt)->phase] = new Partition();
+                ((*partition_dict)[(*evt)->phase])->addEvent(*evt);
+                (*evt)->partition = (*partition_dict)[(*evt)->phase];
+            }
+
+    for (QMap<int, Partition *>::Iterator partition = partition_dict->begin(); partition != partition_dict->end(); ++partition)
+    {
+        (*partition)->sortEvents();
+        partitions->append(*partition);
+    }
+
+    delete partition_dict;
 }
 
 // Every send/recv event becomes its own partition
