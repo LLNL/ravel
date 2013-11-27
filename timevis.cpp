@@ -1,5 +1,6 @@
 #include "timevis.h"
 #include <iostream>
+#include <QFontMetrics>
 
 TimeVis::TimeVis(QWidget * parent) : VisWidget(parent = parent)
 {
@@ -123,8 +124,8 @@ void TimeVis::mouseMoveEvent(QMouseEvent * event)
 
         if (startProcess + processSpan > trace->num_processes + 1)
             startProcess = trace->num_processes - processSpan + 1;
-        if (startProcess < 1)
-            startProcess = 1;
+        if (startProcess < 0)
+            startProcess = 0;
 
 
         mousex = event->x();
@@ -197,6 +198,9 @@ void TimeVis::qtPaint(QPainter *painter)
     startStep = maxStep;
     stopStep = 0;
 
+    painter->setFont(QFont("Helvetica", 10));
+    QFontMetrics font_metrics = this->fontMetrics();
+
     int position, step;
     bool complete;
     QSet<Message *> drawMessages = QSet<Message *>();
@@ -256,6 +260,12 @@ void TimeVis::qtPaint(QPainter *painter)
                     painter->drawRect(QRectF(x,y,w,h));
                 else
                     incompleteBox(painter, x, y, w, h);
+
+                QString fxnName = ((*(trace->functions))[(*evt)->function])->name;
+                QRect fxnRect = font_metrics.boundingRect(fxnName);
+                std::cout << fxnRect.width() << ", " << fxnRect.height() << std::endl;
+                if (fxnRect.width() < w && fxnRect.height() < h)
+                    painter->drawText(x + 2, y + fxnRect.height(), fxnName);
 
                 for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
                     drawMessages.insert((*msg));
