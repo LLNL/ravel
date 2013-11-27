@@ -142,7 +142,14 @@
     <addaction name="actionOpen_OTF"/>
     <addaction name="actionOpen_JSON"/>
    </widget>
+   <widget class="QMenu" name="menuOptions">
+    <property name="title">
+     <string>Options</string>
+    </property>
+    <addaction name="actionOTF_Importing"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuOptions"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionOpen_JSON">
@@ -153,6 +160,11 @@
   <action name="actionOpen_OTF">
    <property name="text">
     <string>Open OTF</string>
+   </property>
+  </action>
+  <action name="actionOTF_Importing">
+   <property name="text">
+    <string>OTF Importing</string>
    </property>
   </action>
  </widget>

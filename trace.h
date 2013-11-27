@@ -4,6 +4,7 @@
 #include "event.h"
 #include "function.h"
 #include "partition.h"
+#include "otfimportoptions.h"
 #include <QMap>
 #include <QVector>
 #include <QStack>
@@ -16,7 +17,7 @@ public:
     Trace(int np, bool legacy = false);
     ~Trace();
 
-    void preprocess();
+    void preprocess(OTFImportOptions * _options);
     void partition();
     void assignSteps();
 
@@ -26,10 +27,7 @@ public:
 
     // Processing options
     bool isLegacy; // from Python-build JSON
-    bool partitionGiven;
-    bool waitallMerge;
-    bool leapMerge;
-    bool leapSkip; // What to do when no merge possible
+    OTFImportOptions options;
 
     // Below set by OTFConverter
     QMap<int, QString> * functionGroups;
@@ -76,6 +74,7 @@ private:
     QList<QList<Partition *> *> * tarjan();
     void set_global_steps();
     void calculate_lateness();
+
 
     bool isProcessed; // Partitions exist
 

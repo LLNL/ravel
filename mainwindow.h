@@ -5,6 +5,7 @@
 #include "viswidget.h"
 #include "trace.h"
 #include "otfimportoptions.h"
+#include "importoptionsdialog.h"
 
 #include "json/json.h"
 
@@ -21,6 +22,7 @@ public:
     ~MainWindow();
 
 public slots:
+    void launchOTFOptions();
     void importJSON();
     void importOTFbyGUI();
     void pushSteps(float start, float stop);
@@ -34,6 +36,7 @@ private:
 
     // Import Trace options
     OTFImportOptions * otfoptions;
+    ImportOptionsDialog * otfdialog;
 };
 
 #endif // MAINWINDOW_H

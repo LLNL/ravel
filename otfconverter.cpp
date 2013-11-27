@@ -1,7 +1,9 @@
 #include "otfconverter.h"
+#include <climits>
 #include <iostream>
 
 OTFConverter::OTFConverter()
+    : trace(NULL), rawtrace(NULL), options(NULL), phaseFunction(-1)
 {
 }
 
@@ -9,8 +11,11 @@ OTFConverter::~OTFConverter()
 {
 }
 
-Trace * OTFConverter::importOTF(QString filename)
+Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
 {
+    // Keep track of options
+    options = _options;
+
     // Start with the rawtrace similar to what we got from PARAVER
     OTFImporter * importer = new OTFImporter();
     rawtrace = importer->importOTF(filename.toStdString().c_str());
@@ -19,6 +24,19 @@ Trace * OTFConverter::importOTF(QString filename)
     // Start setting up new Trace
     delete trace->functions;
     trace->functions = rawtrace->functions;
+
+    if (options->partitionByFunction && options->partitionFunction.length() > 0)
+    {
+        int char_count = INT_MAX; // Want the smallest containing function in case name is part of some bigger name
+        // TODO in future: wildcard set
+        for (QMap<int, Function *>::Iterator fxn = trace->functions->begin(); fxn != trace->functions->end(); ++fxn)
+            if ((fxn.value())->name.contains(options->partitionFunction)
+                    && (fxn.value())->name.length() < char_count)
+            {
+                phaseFunction = fxn.key();
+                char_count = (fxn.value())->name.length();
+            }
+    }
 
     delete trace->functionGroups;
     trace->functionGroups = rawtrace->functionGroups;
@@ -54,6 +72,7 @@ void OTFConverter::matchEvents()
     QStack<Event *> * stack = new QStack<Event *>();
     for (QVector<QVector<EventRecord *> *>::Iterator event_list = rawtrace->events->begin(); event_list != rawtrace->events->end(); ++event_list) {
         int depth = 0;
+        int phase = 0;
 
         for (QVector<EventRecord *>::Iterator evt = (*event_list)->begin(); evt != (*event_list)->end(); ++evt)
         {
@@ -70,6 +89,10 @@ void OTFConverter::matchEvents()
             else // Begin a subroutine
             {
                 Event * e = new Event((*evt)->time, 0, (*evt)->value, (*evt)->process, -1);
+
+                if (options->partitionByFunction && (*evt)->value == phaseFunction)
+                    ++phase;
+                e->phase = phase;
 
                 e->depth = depth;
                 if (depth == 0)

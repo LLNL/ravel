@@ -54,7 +54,7 @@ public:
     int process;
     int step;
     int depth;
-    int debug_step;
+    int phase;
 
     //enum mpi_class_t { WAITALL, COLLECTIVE, OTHER };
 

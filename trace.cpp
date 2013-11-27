@@ -5,10 +5,7 @@ Trace::Trace(int np, bool legacy)
     : num_processes(np),
       partitions(new QList<Partition *>()),
       isLegacy(legacy),
-      partitionGiven(false),
-      waitallMerge(false),
-      leapMerge(false),
-      leapSkip(false),
+      options(NULL),
       functionGroups(new QMap<int, QString>()),
       functions(new QMap<int, Function *>()),
       events(new QVector<QVector<Event *> *>(np)),
@@ -71,8 +68,9 @@ Trace::~Trace()
     delete roots;
 }
 
-void Trace::preprocess()
+void Trace::preprocess(OTFImportOptions * _options)
 {
+    options = *_options;
     partition();
     assignSteps();
 
@@ -89,10 +87,10 @@ void Trace::partition()
     dag_step_dict = new QMap<int, QSet<Partition *> *>();
 
     // Partition - default
-    if (!partitionGiven)
+    if (!options.partitionByFunction)
     {
           // Partition by Process w or w/o Waitall
-        if (waitallMerge)
+        if (options.waitallMerge)
             initializePartitionsWaitall();
         else
             initializePartitions();
@@ -103,7 +101,7 @@ void Trace::partition()
         mergeCycles();
 
           // Merge by rank level [ later ]
-        if (leapMerge)
+        if (options.leapMerge)
         {
             set_dag_steps();
             mergeByLeap();
@@ -395,7 +393,7 @@ void Trace::mergeByLeap()
             }
 
             if (!back_merge && added_processes.size() <= 0)
-                if (leapSkip) // Skip leap if we didn't add anything
+                if (options.leapSkip) // Skip leap if we didn't add anything
                 {
                     for (QSet<Partition *>::Iterator partition = current_leap->begin(); partition != current_leap->end(); ++partition)
                     {

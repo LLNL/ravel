@@ -2,6 +2,7 @@
 #define OTFCONVERTER_H
 
 #include "otfimporter.h"
+#include "otfimportoptions.h"
 #include "rawtrace.h"
 #include "trace.h"
 #include <QStack>
@@ -13,7 +14,7 @@ class OTFConverter
 public:
     OTFConverter();
     ~OTFConverter();
-    Trace * importOTF(QString filename);
+    Trace * importOTF(QString filename, OTFImportOptions * _options);
 
 private:
     void matchEvents();
@@ -24,6 +25,9 @@ private:
 
     RawTrace * rawtrace;
     Trace * trace;
+    OTFImportOptions * options;
+    int phaseFunction;
+
 };
 
 #endif // OTFCONVERTER_H

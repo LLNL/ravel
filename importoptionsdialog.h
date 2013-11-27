@@ -19,11 +19,12 @@ public:
 public slots:
     void onCancel();
     void onOK();
- /*    void onPartitionByFunction();
-    void onPartitionByHeuristic();
+    void onPartitionByFunction(bool value);
+    void onPartitionByHeuristic(bool value);
     void onWaitallMerge(bool merge);
     void onLeapMerge(bool merge);
-    void onLeapSkip(bool skip);*/
+    void onLeapSkip(bool skip);
+    void onFunctionEdit(const QString& text);
 
 
 private:

@@ -306,7 +306,7 @@ void Partition::finalize_steps()
     for (QMap<int, QList<Event *> *>::Iterator event_list = events->begin(); event_list != events->end(); ++event_list)
     {
         max_step = std::max((event_list.value())->last()->step, max_step);
-        for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
-            (*evt)->debug_step = (*evt)->step;
+        //for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
+        //    (*evt)->debug_step = (*evt)->step;
     }
 }

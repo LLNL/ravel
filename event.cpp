@@ -22,7 +22,7 @@ Event::Event(unsigned long long _enter, unsigned long long _exit,
       process(_process),
       step(_step),
       depth(-1),
-      debug_step(-1)
+      phase(-1)
 {
 
 }

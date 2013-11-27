@@ -10,6 +10,12 @@ ImportOptionsDialog::ImportOptionsDialog(QWidget *parent, OTFImportOptions * _op
     ui->setupUi(this);
     connect(ui->buttonBox, SIGNAL(accepted()), this, SLOT(onOK()));
     connect(ui->buttonBox, SIGNAL(rejected()), this, SLOT(onCancel()));
+    connect(ui->functionRadioButton, SIGNAL(clicked(bool)), this, SLOT(onPartitionByFunction(bool)));
+    connect(ui->heuristicRadioButton, SIGNAL(clicked(bool)), this, SLOT(onPartitionByHeuristic(bool)));
+    connect(ui->waitallCheckbox, SIGNAL(clicked(bool)), this, SLOT(onWaitallMerge(bool)));
+    connect(ui->leapCheckbox, SIGNAL(clicked(bool)), this, SLOT(onLeapMerge(bool)));
+    connect(ui->skipCheckbox, SIGNAL(clicked(bool)), this, SLOT(onLeapSkip(bool)));
+    connect(ui->functionEdit, SIGNAL(textChanged(QString)), this, SLOT(onFunctionEdit(QString)));
 
     setUIState();
 }
@@ -30,6 +36,40 @@ void ImportOptionsDialog::onCancel()
     setUIState();
 }
 
+void ImportOptionsDialog::onPartitionByFunction(bool value)
+{
+    options->partitionByFunction = value;
+    setUIState();
+}
+
+void ImportOptionsDialog::onPartitionByHeuristic(bool value)
+{
+    options->partitionByFunction = !value;
+    setUIState();
+}
+
+void ImportOptionsDialog::onWaitallMerge(bool merge)
+{
+    options->waitallMerge = merge;
+}
+
+void ImportOptionsDialog::onLeapMerge(bool merge)
+{
+    options->leapMerge = merge;
+    setUIState();
+}
+
+void ImportOptionsDialog::onLeapSkip(bool skip)
+{
+    options->leapSkip = skip;
+}
+
+void ImportOptionsDialog::onFunctionEdit(const QString& text)
+{
+    options->partitionFunction = text;
+}
+
+
 void ImportOptionsDialog::setUIState()
 {
     if (options->waitallMerge)
@@ -37,15 +77,22 @@ void ImportOptionsDialog::setUIState()
     else
         ui->waitallCheckbox->setChecked(false);
 
-    if (options->leapMerge)
-        ui->leapCheckbox->setChecked(true);
-    else
-        ui->leapCheckbox->setChecked(false);
-
     if (options->leapSkip)
         ui->skipCheckbox->setChecked(true);
     else
         ui->skipCheckbox->setChecked(false);
+
+    if (options->leapMerge)
+    {
+        ui->leapCheckbox->setChecked(true);
+        ui->skipCheckbox->setEnabled(true);
+    }
+    else
+    {
+        ui->leapCheckbox->setChecked(false);
+        ui->skipCheckbox->setEnabled(false);
+    }
+
 
     ui->functionEdit->setText(options->partitionFunction);
 
@@ -64,7 +111,6 @@ void ImportOptionsDialog::setUIState()
         ui->functionRadioButton->setChecked(false);
         ui->waitallCheckbox->setEnabled(true);
         ui->leapCheckbox->setEnabled(true);
-        ui->skipCheckbox->setEnabled(true);
         ui->functionEdit->setEnabled(false);
     }
 }

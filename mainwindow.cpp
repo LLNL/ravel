@@ -4,6 +4,7 @@
 #include "stepvis.h"
 #include "timevis.h"
 #include "otfconverter.h"
+#include "importoptionsdialog.h"
 
 #include <QFileDialog>
 #include <iostream>
@@ -14,7 +15,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow),
     traces(QVector<Trace *>()),
     viswidgets(QVector<VisWidget *>()),
-    otfoptions(new OTFImportOptions())
+    otfoptions(new OTFImportOptions()),
+    otfdialog(NULL)
 {
     ui->setupUi(this);
 
@@ -43,6 +45,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionOpen_JSON, SIGNAL(triggered()),this,SLOT(importJSON()));
     connect(ui->actionOpen_OTF, SIGNAL(triggered()),this,SLOT(importOTFbyGUI()));
 
+    connect(ui->actionOTF_Importing, SIGNAL(triggered()), this, SLOT(launchOTFOptions()));
+
     // for testing
     //importOTF("/Users/kate/Documents/trace_files/sdissbinom16/nbc-test.otf");
     //importOTF("/home/kate/llnl/traces/trace_files/data/sdissbinom16/nbc-test.otf");
@@ -50,6 +54,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
+    delete otfdialog;
     delete ui;
 }
 
@@ -61,8 +66,16 @@ void MainWindow::pushSteps(float start, float stop)
     }
 }
 
+void MainWindow::launchOTFOptions()
+{
+    delete otfdialog;
+    otfdialog = new ImportOptionsDialog(this, otfoptions);
+    otfdialog->show();
+}
+
 void MainWindow::importOTFbyGUI()
 {
+    // Now get the OTF File
     QString dataFileName = QFileDialog::getOpenFileName(this, tr("Import OTF Data"),
                                                      "",
                                                      tr("Files (*.otf)"));
@@ -78,9 +91,8 @@ void MainWindow::importOTFbyGUI()
 void MainWindow::importOTF(QString dataFileName){
 
     OTFConverter importer = OTFConverter();
-    Trace* trace = importer.importOTF(dataFileName);
-    trace->waitallMerge = true;
-    trace->preprocess();
+    Trace* trace = importer.importOTF(dataFileName, otfoptions);
+    trace->preprocess(otfoptions);
 
     this->traces.push_back(trace);
 
