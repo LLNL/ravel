@@ -166,8 +166,9 @@ void TimeVis::mouseMoveEvent(QMouseEvent * event)
 
         mousex = event->x();
         mousey = event->y();
+        repaint();
     }
-    repaint();
+
     if (mousePressed) {
         changeSource = true;
         emit stepsChanged(startStep, stopStep); // Calculated during painting

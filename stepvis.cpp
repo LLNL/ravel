@@ -145,11 +145,12 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
         mousex = event->x();
         mousey = event->y();
 
+        repaint();
         changeSource = true;
         //std::cout << "Emitting " << startStep << ", " << (startStep + stepSpan) << std::endl;
         emit stepsChanged(startStep, startStep + stepSpan);
     }
-    repaint();
+
 }
 
 // zooms, but which zoom?
