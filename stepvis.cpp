@@ -60,6 +60,16 @@ void StepVis::setSteps(float start, float stop)
     repaint();
 }
 
+void StepVis::selectEvent(Event * event)
+{
+    if (changeSource) {
+        changeSource = false;
+        return;
+    }
+    selected_event = event;
+    repaint();
+}
+
 void StepVis::processVis()
 {
     proc_to_order = QMap<int, int>();
@@ -71,18 +81,44 @@ void StepVis::processVis()
     visProcessed = true;
 }
 
+void StepVis::mouseDoubleClickEvent(QMouseEvent * event)
+{
+    if (!visProcessed)
+        return;
+
+    int x = event->x();
+    int y = event->y();
+    for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin(); evt != drawnEvents.end(); ++evt)
+        if (evt.value().contains(x,y))
+        {
+            if (evt.key() == selected_event)
+                selected_event = NULL;
+            else
+                selected_event = evt.key();
+            break;
+        }
+
+    changeSource = true;
+    emit eventClicked(selected_event);
+    repaint();
+}
 
 void StepVis::mousePressEvent(QMouseEvent * event)
 {
     mousePressed = true;
     mousex = event->x();
     mousey = event->y();
+    pressx = mousex;
+    pressy = mousey;
 }
 
 void StepVis::mouseReleaseEvent(QMouseEvent * event)
 {
-    Q_UNUSED(event);
     mousePressed = false;
+
+    // Treat single click as double click for now
+    if (event->x() == pressx && event->y() == pressy)
+        mouseDoubleClickEvent(event);
 }
 
 void StepVis::mouseMoveEvent(QMouseEvent * event)
@@ -177,6 +213,7 @@ void StepVis::qtPaint(QPainter *painter)
     bool complete, aggcomplete;
     QSet<Message *> drawMessages = QSet<Message *>();
     painter->setPen(QPen(QColor(0, 0, 0)));
+    drawnEvents.clear();
     // TODO: Replace this part where we look through all partitions with a part where we look through
     // our own active partition list that we determin whenever a setSteps happens.
     for (QList<Partition *>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
@@ -219,11 +256,23 @@ void StepVis::qtPaint(QPainter *painter)
                     w = rect().width() - x;
                     complete = false;
                 }
+
+                // Draw the event
                 painter->fillRect(QRectF(x, y, w, h), QBrush(colormap->color((*(*evt)->metrics)[metric]->event)));
+                // Change pen color if selected
+                if (*evt == selected_event)
+                    painter->setPen(QPen(Qt::yellow));
+                // Draw border
                 if (complete)
                     painter->drawRect(QRectF(x,y,w,h));
                 else
                     incompleteBox(painter, x, y, w, h);
+                // Revert pen color
+                if (*evt == selected_event)
+                    painter->setPen(QPen(QColor(0, 0, 0)));
+
+                // For selection
+                drawnEvents[*evt] = QRect(x, y, w, h);
 
                 for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
                     drawMessages.insert((*msg));

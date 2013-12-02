@@ -21,6 +21,9 @@ public:
     bool operator>=(const Event &);
     bool operator==(const Event &);
 
+    void setDrawParameters(int _x, int _y, int _w, int _h);
+    bool containsPoint(int px, int py);
+
     class MetricPair {
     public:
         MetricPair(long long _e, long long _a)

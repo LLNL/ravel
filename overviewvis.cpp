@@ -117,7 +117,7 @@ void OverviewVis::mouseReleaseEvent(QMouseEvent * event) {
     }
     if (stopStep < 0)
         stopStep = maxStep;
-    std::cout << startStep << ", " << stopStep << " : " << startCursor << ", " << stopCursor << std::endl;
+    //std::cout << startStep << ", " << stopStep << " : " << startCursor << ", " << stopCursor << std::endl;
     changeSource = true;
     emit stepsChanged(startStep, stopStep);
 }

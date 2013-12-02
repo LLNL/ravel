@@ -3,6 +3,7 @@
 
 #include <QGLWidget>
 #include <QVector>
+#include <QList>
 #include <QPaintEvent>
 #include <climits>
 #include <cmath>
@@ -14,6 +15,7 @@ class VisWidget : public QGLWidget
     Q_OBJECT
 public:
     explicit VisWidget(QWidget *parent = 0);
+    ~VisWidget();
     virtual void setTrace(Trace *t);
     virtual void processVis();
     QSize sizeHint() const;
@@ -21,10 +23,12 @@ public:
 signals:
     void repaintAll();
     void stepsChanged(float start, float stop);
+    void eventClicked(Event * evt);
 
 
 public slots:
     virtual void setSteps(float start, float stop);
+    virtual void selectEvent(Event *);
 
 protected:
     void initializeGL();
@@ -46,6 +50,8 @@ protected:
     QBrush selectColor;
     bool changeSource;
     int border;
+    QMap<Event *, QRect> drawnEvents;
+    Event * selected_event;
 
     static const int initStepSpan = 15;
 };

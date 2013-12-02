@@ -19,9 +19,11 @@ public:
     void mouseReleaseEvent(QMouseEvent * event);
     void mouseMoveEvent(QMouseEvent * event);
     void wheelEvent(QWheelEvent * event);
+    void mouseDoubleClickEvent(QMouseEvent * event);
 
 public slots:
     void setSteps(float start, float stop);
+    void selectEvent(Event * event);
 
 protected:
     void qtPaint(QPainter *painter);
@@ -30,6 +32,8 @@ private:
     bool mousePressed;
     int mousex;
     int mousey;
+    int pressx;
+    int pressy;
     int stepwidth;
     int processheight;
     bool showAggSteps;

@@ -26,6 +26,7 @@ public slots:
     void importJSON();
     void importOTFbyGUI();
     void pushSteps(float start, float stop);
+    void selectEvent(Event * event);
     
 private:
     Ui::MainWindow *ui;

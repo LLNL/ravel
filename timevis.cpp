@@ -81,6 +81,16 @@ void TimeVis::setTrace(Trace * t)
 
 }
 
+void TimeVis::selectEvent(Event * event)
+{
+    if (changeSource) {
+        changeSource = false;
+        return;
+    }
+    selected_event = event;
+    repaint();
+}
+
 void TimeVis::processVis()
 {
     proc_to_order = QMap<int, int>();
@@ -92,17 +102,43 @@ void TimeVis::processVis()
     visProcessed = true;
 }
 
+void TimeVis::mouseDoubleClickEvent(QMouseEvent * event)
+{
+    if (!visProcessed)
+        return;
+
+    int x = event->x();
+    int y = event->y();
+    for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin(); evt != drawnEvents.end(); ++evt)
+        if (evt.value().contains(x,y))
+        {
+            if (evt.key() == selected_event)
+                selected_event = NULL;
+            else
+                selected_event = evt.key();
+            break;
+        }
+
+    changeSource = true;
+    emit eventClicked(selected_event);
+    repaint();
+}
+
+
 void TimeVis::mousePressEvent(QMouseEvent * event)
 {
     mousePressed = true;
     mousex = event->x();
     mousey = event->y();
+    pressx = mousex;
+    pressy = mousey;
 }
 
 void TimeVis::mouseReleaseEvent(QMouseEvent * event)
 {
-    Q_UNUSED(event);
     mousePressed = false;
+    if (event->x() == pressx && event->y() == pressy)
+        mouseDoubleClickEvent(event);
 }
 
 void TimeVis::mouseMoveEvent(QMouseEvent * event)
@@ -206,6 +242,7 @@ void TimeVis::qtPaint(QPainter *painter)
     QSet<Message *> drawMessages = QSet<Message *>();
     unsigned long long stopTime = startTime + timeSpan;
     painter->setPen(QPen(QColor(0, 0, 0)));
+    drawnEvents.clear();
     for (QList<Partition*>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
     {
         for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
@@ -255,15 +292,31 @@ void TimeVis::qtPaint(QPainter *painter)
                     complete = false;
                 }
 
-                painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(200, 200, 255)));
+
+                // Change pen color if selected
+                if (*evt == selected_event)
+                {
+                    // Draw event
+                    painter->fillRect(QRectF(x, y, w, h), QBrush(Qt::yellow));
+                    painter->setPen(QPen(Qt::yellow));
+                }
+                else
+                    // Draw event
+                    painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(200, 200, 255)));
+                // Draw border
                 if (complete)
                     painter->drawRect(QRectF(x,y,w,h));
                 else
                     incompleteBox(painter, x, y, w, h);
+                // Revert pen color
+                if (*evt == selected_event)
+                    painter->setPen(QPen(QColor(0, 0, 0)));
+
+                drawnEvents[*evt] = QRect(x, y, w, h);
 
                 QString fxnName = ((*(trace->functions))[(*evt)->function])->name;
                 QRect fxnRect = font_metrics.boundingRect(fxnName);
-                std::cout << fxnRect.width() << ", " << fxnRect.height() << std::endl;
+                //std::cout << fxnRect.width() << ", " << fxnRect.height() << std::endl;
                 if (fxnRect.width() < w && fxnRect.height() < h)
                     painter->drawText(x + 2, y + fxnRect.height(), fxnName);
 

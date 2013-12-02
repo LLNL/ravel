@@ -151,7 +151,7 @@ void Partition::step()
 
 void Partition::step_receive(Message * msg)
 {
-    std::cout << "Step receive called" << std::endl;
+    //std::cout << "Step receive called" << std::endl;
     int previous_step;
     Event * previous_event, * next_event;
     if (msg->receiver->step <= msg->sender->step)
