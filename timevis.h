@@ -17,6 +17,7 @@ public:
     void mouseMoveEvent(QMouseEvent * event);
     void wheelEvent(QWheelEvent * event);
     void mouseDoubleClickEvent(QMouseEvent * event);
+    void leaveEvent(QEvent * event);
 
 public slots:
     void setSteps(float start, float stop);
@@ -26,6 +27,8 @@ protected:
     void qtPaint(QPainter *painter);
 
 private:
+    void drawHover(QPainter * painter);
+
     class TimePair {
     public:
         TimePair(unsigned long long _s1, unsigned long long _s2)

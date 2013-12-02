@@ -9,6 +9,8 @@ TimeVis::TimeVis(QWidget * parent) : VisWidget(parent = parent)
     mousePressed = false;
     trace = NULL;
     stepToTime = new QVector<TimePair *>();
+
+    setMouseTracking(true);
 }
 
 TimeVis::~TimeVis()
@@ -168,6 +170,20 @@ void TimeVis::mouseMoveEvent(QMouseEvent * event)
         mousey = event->y();
         repaint();
     }
+    else // potential hover
+    {
+        mousex = event->x();
+        mousey = event->y();
+        if (hover_event == NULL || !drawnEvents[hover_event].contains(mousex, mousey))
+        {
+            hover_event = NULL;
+            for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin(); evt != drawnEvents.end(); ++evt)
+                if (evt.value().contains(mousex, mousey))
+                    hover_event = evt.key();
+
+            repaint();
+        }
+    }
 
     if (mousePressed) {
         changeSource = true;
@@ -198,6 +214,14 @@ void TimeVis::wheelEvent(QWheelEvent * event)
     changeSource = true;
     emit stepsChanged(startStep, stopStep); // Calculated during painting
 }
+
+
+void TimeVis::leaveEvent(QEvent * event)
+{
+    Q_UNUSED(event);
+    hover_event = NULL;
+}
+
 
 void TimeVis::setSteps(float start, float stop)
 {
@@ -347,4 +371,25 @@ void TimeVis::qtPaint(QPainter *painter)
             p2 = QPointF(x, y);
             painter->drawLine(p1, p2);
         }
+
+    drawHover(painter);
+}
+
+void TimeVis::drawHover(QPainter * painter)
+{
+    if (hover_event == NULL)
+        return;
+    painter->setFont(QFont("Helvetica", 10));
+    QFontMetrics font_metrics = this->fontMetrics();
+    QString text = ((*(trace->functions))[hover_event->function])->name;
+
+    // Determine bounding box of FontMetrics
+    QRect textRect = font_metrics.boundingRect(text);
+
+    // Draw bounding box
+    std::cout << "Drawing bounding box" << std::endl;
+    painter->fillRect(QRectF(mousex, mousey, textRect.width(), textRect.height()), QBrush(QColor(255, 255, 0, 150)));
+
+    // Draw text
+    painter->drawText(mousex + 2, mousey + textRect.height() - 2, text);
 }
