@@ -9,6 +9,8 @@ StepVis::StepVis(QWidget* parent) : VisWidget(parent = parent)
     showAggSteps = true;
     trace = NULL;
 
+    setMouseTracking(true);
+
     // Create color map
     colormap = new ColorMap(QColor(173, 216, 230), 0);
     colormap->addColor(QColor(240, 230, 140), 0.5);
@@ -126,7 +128,8 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
     if (!visProcessed)
         return;
 
-    if (mousePressed) {
+    if (mousePressed)
+    {
         int diffx = mousex - event->x();
         int diffy = mousey - event->y();
         startStep += diffx / 1.0 / stepwidth;
@@ -150,7 +153,27 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
         //std::cout << "Emitting " << startStep << ", " << (startStep + stepSpan) << std::endl;
         emit stepsChanged(startStep, startStep + stepSpan);
     }
+    else // potential hover
+    {
+        mousex = event->x();
+        mousey = event->y();
+        if (hover_event == NULL || !drawnEvents[hover_event].contains(mousex, mousey))
+        {
+            hover_event = NULL;
+            for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin(); evt != drawnEvents.end(); ++evt)
+                if (evt.value().contains(mousex, mousey))
+                    hover_event = evt.key();
 
+            repaint();
+        }
+    }
+
+}
+
+void StepVis::leaveEvent(QEvent * event)
+{
+    Q_UNUSED(event);
+    hover_event = NULL;
 }
 
 // zooms, but which zoom?
@@ -334,4 +357,25 @@ void StepVis::qtPaint(QPainter *painter)
             p2 = QPointF(x + w/2.0, y + h/2.0);
             painter->drawLine(p1, p2);
         }
+
+    drawHover(painter);
+}
+
+void StepVis::drawHover(QPainter * painter)
+{
+    if (hover_event == NULL)
+        return;
+    painter->setFont(QFont("Helvetica", 10));
+    QFontMetrics font_metrics = this->fontMetrics();
+    QString text = ((*(trace->functions))[hover_event->function])->name;
+
+    // Determine bounding box of FontMetrics
+    QRect textRect = font_metrics.boundingRect(text);
+
+    // Draw bounding box
+    std::cout << "Drawing bounding box" << std::endl;
+    painter->fillRect(QRectF(mousex, mousey, textRect.width(), textRect.height()), QBrush(QColor(255, 255, 0, 150)));
+
+    // Draw text
+    painter->drawText(mousex + 2, mousey + textRect.height() - 2, text);
 }

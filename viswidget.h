@@ -52,6 +52,7 @@ protected:
     int border;
     QMap<Event *, QRect> drawnEvents;
     Event * selected_event;
+    Event * hover_event;
 
     static const int initStepSpan = 15;
 };

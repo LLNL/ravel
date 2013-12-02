@@ -9,7 +9,8 @@ VisWidget::VisWidget(QWidget *parent) :
     changeSource(false),
     border(20),
     drawnEvents(QMap<Event *, QRect>()),
-    selected_event(NULL)
+    selected_event(NULL),
+    hover_event(NULL)
 {
     // GLWidget options
     setMinimumSize(200, 200);

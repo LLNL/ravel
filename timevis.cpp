@@ -319,7 +319,7 @@ void TimeVis::qtPaint(QPainter *painter)
                 QRect fxnRect = font_metrics.boundingRect(fxnName);
                 //std::cout << fxnRect.width() << ", " << fxnRect.height() << std::endl;
                 if (fxnRect.width() < w && fxnRect.height() < h)
-                    painter->drawText(x + 2, y + fxnRect.height(), fxnName);
+                    painter->drawText(x + 2, y + fxnRect.height() - 2, fxnName);
 
                 for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
                     drawMessages.insert((*msg));
