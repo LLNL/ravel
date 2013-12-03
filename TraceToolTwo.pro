@@ -16,7 +16,6 @@ SOURCES  += main.cpp \
     overviewvis.cpp \
     stepvis.cpp \
     colormap.cpp \
-    timevis.cpp \
     commrecord.cpp \
     eventrecord.cpp \
     otfimporter.cpp \
@@ -25,7 +24,9 @@ SOURCES  += main.cpp \
     function.cpp \
     partition.cpp \
     importoptionsdialog.cpp \
-    otfimportoptions.cpp
+    otfimportoptions.cpp \
+    timelinevis.cpp \
+    traditionalvis.cpp
 
 
 HEADERS += \
@@ -37,7 +38,6 @@ HEADERS += \
     overviewvis.h \
     stepvis.h \
     colormap.h \
-    timevis.h \
     commrecord.h \
     eventrecord.h \
     otfimporter.h \
@@ -47,7 +47,9 @@ HEADERS += \
     partition.h \
     general_util.h \
     importoptionsdialog.h \
-    otfimportoptions.h
+    otfimportoptions.h \
+    timelinevis.h \
+    traditionalvis.h
 
 
 FORMS += \

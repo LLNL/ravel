@@ -2,7 +2,7 @@
 #include "ui_mainwindow.h"
 #include "overviewvis.h"
 #include "stepvis.h"
-#include "timevis.h"
+#include "traditionalvis.h"
 #include "otfconverter.h"
 #include "importoptionsdialog.h"
 
@@ -37,7 +37,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect((stepvis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
     viswidgets.push_back(stepvis);
 
-    TimeVis* timevis = new TimeVis(this);
+    TraditionalVis* timevis = new TraditionalVis(this);
     //ui->traditionalLayout->addWidget(timevis);
     ui->traditionalContainer->layout()->addWidget(timevis);
 

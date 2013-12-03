@@ -1,19 +1,14 @@
-#include "timevis.h"
+#include "traditionalvis.h"
 #include <iostream>
 #include <QFontMetrics>
 
-TimeVis::TimeVis(QWidget * parent) : VisWidget(parent = parent)
+TraditionalVis::TraditionalVis(QWidget * parent) : TimelineVis(parent = parent)
 {
     // Set painting variables
-    backgroundColor = QColor(255, 255, 255);
-    mousePressed = false;
-    trace = NULL;
     stepToTime = new QVector<TimePair *>();
-
-    setMouseTracking(true);
 }
 
-TimeVis::~TimeVis()
+TraditionalVis::~TraditionalVis()
 {
     for (QVector<TimePair *>::Iterator itr = stepToTime->begin(); itr != stepToTime->end(); itr++) {
         delete *itr;
@@ -23,13 +18,13 @@ TimeVis::~TimeVis()
 }
 
 
-void TimeVis::setTrace(Trace * t)
+void TraditionalVis::setTrace(Trace * t)
 {
     VisWidget::setTrace(t);
 
     // Initial conditions
     startStep = 0;
-    stopStep = startStep + initStepSpan;
+    int stopStep = startStep + initStepSpan;
     startProcess = 0;
     processSpan = trace->num_processes;
 
@@ -55,6 +50,7 @@ void TimeVis::setTrace(Trace * t)
         }
     }
     timeSpan = stopTime - startTime;
+    stepSpan = stopStep - startStep;
 
     for (QVector<TimePair *>::Iterator itr = stepToTime->begin(); itr != stepToTime->end(); itr++) {
         delete *itr;
@@ -83,67 +79,7 @@ void TimeVis::setTrace(Trace * t)
 
 }
 
-void TimeVis::selectEvent(Event * event)
-{
-    if (changeSource) {
-        changeSource = false;
-        return;
-    }
-    selected_event = event;
-    repaint();
-}
-
-void TimeVis::processVis()
-{
-    proc_to_order = QMap<int, int>();
-    order_to_proc = QMap<int, int>();
-    for (int i = 0; i < trace->num_processes; i++) {
-        proc_to_order[i] = i;
-        order_to_proc[i] = i;
-    }
-    visProcessed = true;
-}
-
-void TimeVis::mouseDoubleClickEvent(QMouseEvent * event)
-{
-    if (!visProcessed)
-        return;
-
-    int x = event->x();
-    int y = event->y();
-    for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin(); evt != drawnEvents.end(); ++evt)
-        if (evt.value().contains(x,y))
-        {
-            if (evt.key() == selected_event)
-                selected_event = NULL;
-            else
-                selected_event = evt.key();
-            break;
-        }
-
-    changeSource = true;
-    emit eventClicked(selected_event);
-    repaint();
-}
-
-
-void TimeVis::mousePressEvent(QMouseEvent * event)
-{
-    mousePressed = true;
-    mousex = event->x();
-    mousey = event->y();
-    pressx = mousex;
-    pressy = mousey;
-}
-
-void TimeVis::mouseReleaseEvent(QMouseEvent * event)
-{
-    mousePressed = false;
-    if (event->x() == pressx && event->y() == pressy)
-        mouseDoubleClickEvent(event);
-}
-
-void TimeVis::mouseMoveEvent(QMouseEvent * event)
+void TraditionalVis::mouseMoveEvent(QMouseEvent * event)
 {
     if (!visProcessed)
         return;
@@ -187,11 +123,11 @@ void TimeVis::mouseMoveEvent(QMouseEvent * event)
 
     if (mousePressed) {
         changeSource = true;
-        emit stepsChanged(startStep, stopStep); // Calculated during painting
+        emit stepsChanged(startStep, startStep + stepSpan); // Calculated during painting
     }
 }
 
-void TimeVis::wheelEvent(QWheelEvent * event)
+void TraditionalVis::wheelEvent(QWheelEvent * event)
 {
     if (!visProcessed)
         return;
@@ -212,18 +148,10 @@ void TimeVis::wheelEvent(QWheelEvent * event)
     }
     repaint();
     changeSource = true;
-    emit stepsChanged(startStep, stopStep); // Calculated during painting
+    emit stepsChanged(startStep, startStep + stepSpan); // Calculated during painting
 }
 
-
-void TimeVis::leaveEvent(QEvent * event)
-{
-    Q_UNUSED(event);
-    hover_event = NULL;
-}
-
-
-void TimeVis::setSteps(float start, float stop)
+void TraditionalVis::setSteps(float start, float stop)
 {
     if (!visProcessed)
         return;
@@ -237,7 +165,7 @@ void TimeVis::setSteps(float start, float stop)
     repaint();
 }
 
-void TimeVis::qtPaint(QPainter *painter)
+void TraditionalVis::qtPaint(QPainter *painter)
 {
     painter->fillRect(rect(), backgroundColor);
 
@@ -257,7 +185,7 @@ void TimeVis::qtPaint(QPainter *painter)
     float barheight = blockheight - process_spacing;
     processheight = blockheight;
     startStep = maxStep;
-    stopStep = 0;
+    int stopStep = 0;
 
     painter->setFont(QFont("Helvetica", 10));
     QFontMetrics font_metrics = this->fontMetrics();
@@ -372,24 +300,6 @@ void TimeVis::qtPaint(QPainter *painter)
             painter->drawLine(p1, p2);
         }
 
+    stepSpan = stopStep - startStep;
     drawHover(painter);
-}
-
-void TimeVis::drawHover(QPainter * painter)
-{
-    if (hover_event == NULL)
-        return;
-    painter->setFont(QFont("Helvetica", 10));
-    QFontMetrics font_metrics = this->fontMetrics();
-    QString text = ((*(trace->functions))[hover_event->function])->name;
-
-    // Determine bounding box of FontMetrics
-    QRect textRect = font_metrics.boundingRect(text);
-
-    // Draw bounding box
-    std::cout << "Drawing bounding box" << std::endl;
-    painter->fillRect(QRectF(mousex, mousey, textRect.width(), textRect.height()), QBrush(QColor(255, 255, 0, 150)));
-
-    // Draw text
-    painter->drawText(mousex + 2, mousey + textRect.height() - 2, text);
 }

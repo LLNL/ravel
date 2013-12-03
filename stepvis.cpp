@@ -1,15 +1,10 @@
 #include "stepvis.h"
 #include <iostream>
 
-StepVis::StepVis(QWidget* parent) : VisWidget(parent = parent)
+StepVis::StepVis(QWidget* parent) : TimelineVis(parent = parent)
 {
     // Set painting variables
-    backgroundColor = QColor(255, 255, 255);
-    mousePressed = false;
     showAggSteps = true;
-    trace = NULL;
-
-    setMouseTracking(true);
 
     // Create color map
     colormap = new ColorMap(QColor(173, 216, 230), 0);
@@ -62,67 +57,6 @@ void StepVis::setSteps(float start, float stop)
     repaint();
 }
 
-void StepVis::selectEvent(Event * event)
-{
-    if (changeSource) {
-        changeSource = false;
-        return;
-    }
-    selected_event = event;
-    repaint();
-}
-
-void StepVis::processVis()
-{
-    proc_to_order = QMap<int, int>();
-    order_to_proc = QMap<int, int>();
-    for (int i = 0; i < trace->num_processes; i++) {
-        proc_to_order[i] = i;
-        order_to_proc[i] = i;
-    }
-    visProcessed = true;
-}
-
-void StepVis::mouseDoubleClickEvent(QMouseEvent * event)
-{
-    if (!visProcessed)
-        return;
-
-    int x = event->x();
-    int y = event->y();
-    for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin(); evt != drawnEvents.end(); ++evt)
-        if (evt.value().contains(x,y))
-        {
-            if (evt.key() == selected_event)
-                selected_event = NULL;
-            else
-                selected_event = evt.key();
-            break;
-        }
-
-    changeSource = true;
-    emit eventClicked(selected_event);
-    repaint();
-}
-
-void StepVis::mousePressEvent(QMouseEvent * event)
-{
-    mousePressed = true;
-    mousex = event->x();
-    mousey = event->y();
-    pressx = mousex;
-    pressy = mousey;
-}
-
-void StepVis::mouseReleaseEvent(QMouseEvent * event)
-{
-    mousePressed = false;
-
-    // Treat single click as double click for now
-    if (event->x() == pressx && event->y() == pressy)
-        mouseDoubleClickEvent(event);
-}
-
 void StepVis::mouseMoveEvent(QMouseEvent * event)
 {
     if (!visProcessed)
@@ -168,12 +102,6 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
         }
     }
 
-}
-
-void StepVis::leaveEvent(QEvent * event)
-{
-    Q_UNUSED(event);
-    hover_event = NULL;
 }
 
 // zooms, but which zoom?
@@ -359,23 +287,4 @@ void StepVis::qtPaint(QPainter *painter)
         }
 
     drawHover(painter);
-}
-
-void StepVis::drawHover(QPainter * painter)
-{
-    if (hover_event == NULL)
-        return;
-    painter->setFont(QFont("Helvetica", 10));
-    QFontMetrics font_metrics = this->fontMetrics();
-    QString text = ((*(trace->functions))[hover_event->function])->name;
-
-    // Determine bounding box of FontMetrics
-    QRect textRect = font_metrics.boundingRect(text);
-
-    // Draw bounding box
-    std::cout << "Drawing bounding box" << std::endl;
-    painter->fillRect(QRectF(mousex, mousey, textRect.width(), textRect.height()), QBrush(QColor(255, 255, 0, 150)));
-
-    // Draw text
-    painter->drawText(mousex + 2, mousey + textRect.height() - 2, text);
 }
