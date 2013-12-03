@@ -20,7 +20,7 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    OverviewVis* overview = new OverviewVis(this);
+    OverviewVis* overview = new OverviewVis(ui->overviewContainer);
     //ui->overviewLayout->addWidget(overview);
     //ui->overviewLayout->setStretchFactor(overview, 1);
     ui->overviewContainer->layout()->addWidget(overview);
@@ -29,7 +29,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(overview, SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
     viswidgets.push_back(overview);
 
-    StepVis* stepvis = new StepVis(this);
+    StepVis* stepvis = new StepVis(ui->stepContainer);
     //ui->stepLayout->addWidget(stepvis);
     ui->stepContainer->layout()->addWidget(stepvis);
 
@@ -37,7 +37,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect((stepvis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
     viswidgets.push_back(stepvis);
 
-    TraditionalVis* timevis = new TraditionalVis(this);
+    TraditionalVis* timevis = new TraditionalVis(ui->traditionalContainer);
     //ui->traditionalLayout->addWidget(timevis);
     ui->traditionalContainer->layout()->addWidget(timevis);
 
