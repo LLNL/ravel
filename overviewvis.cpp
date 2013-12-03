@@ -59,7 +59,9 @@ void OverviewVis::setSteps(float start, float stop)
     startTime = (startCursor / 1.0  / (size().width() - 2 * border)) * (maxTime - minTime) + minTime;
     stopTime = (stopCursor / 1.0  / (size().width() - 2 * border)) * (maxTime - minTime) + minTime;
     //std::cout << startCursor << ", " << stopCursor << std::endl;
-    repaint();
+
+    if (!closed)
+        repaint();
 }
 
 void OverviewVis::resizeEvent(QResizeEvent * event) {

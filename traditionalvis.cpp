@@ -162,7 +162,9 @@ void TraditionalVis::setSteps(float start, float stop)
     }
     startTime = (*stepToTime)[std::max(boundStep(start)/2, 0)]->start;
     timeSpan = (*stepToTime)[std::min(boundStep(stop)/2,  maxStep/2)]->stop - startTime;
-    repaint();
+
+    if (!closed)
+        repaint();
 }
 
 void TraditionalVis::qtPaint(QPainter *painter)

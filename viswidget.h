@@ -20,6 +20,9 @@ public:
     virtual void processVis();
     QSize sizeHint() const;
 
+    void setClosed(bool _closed);
+    QWidget * container;
+
 signals:
     void repaintAll();
     void stepsChanged(float start, float stop);
@@ -53,6 +56,7 @@ protected:
     QMap<Event *, QRect> drawnEvents;
     Event * selected_event;
     Event * hover_event;
+    bool closed;
 
     static const int initStepSpan = 15;
 };

@@ -80,7 +80,8 @@ void TimelineVis::selectEvent(Event * event)
         return;
     }
     selected_event = event;
-    repaint();
+    if (!closed)
+        repaint();
 }
 
 void TimelineVis::drawHover(QPainter * painter)

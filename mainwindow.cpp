@@ -50,6 +50,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(ui->actionOTF_Importing, SIGNAL(triggered()), this, SLOT(launchOTFOptions()));
 
+
+    connect(ui->splitter, SIGNAL(splitterMoved(int, int)), this, SLOT(handleSplitter(int, int)));
     // for testing
     //importOTF("/Users/kate/Documents/trace_files/sdissbinom16/nbc-test.otf");
     //importOTF("/home/kate/llnl/traces/trace_files/data/sdissbinom16/nbc-test.otf");
@@ -224,5 +226,18 @@ void MainWindow::importJSON()
         viswidgets[i]->setTrace(trace);
         viswidgets[i]->processVis();
         viswidgets[i]->repaint();
+    }
+}
+
+void MainWindow::handleSplitter(int pos, int index)
+{
+    Q_UNUSED(pos);
+    Q_UNUSED(index);
+    for (int i = 0; i < viswidgets.size(); i++)
+    {
+        if (viswidgets[i]->container->height() == 0)
+            viswidgets[i]->setClosed(true);
+        else
+            viswidgets[i]->setClosed(false);
     }
 }

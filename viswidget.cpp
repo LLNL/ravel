@@ -2,6 +2,7 @@
 
 VisWidget::VisWidget(QWidget *parent) :
     QGLWidget(QGLFormat(QGL::SampleBuffers), parent),
+    container(parent),
     trace(NULL),
     visProcessed(false),
     backgroundColor(QColor(204, 229, 255)),
@@ -10,7 +11,8 @@ VisWidget::VisWidget(QWidget *parent) :
     border(20),
     drawnEvents(QMap<Event *, QRect>()),
     selected_event(NULL),
-    hover_event(NULL)
+    hover_event(NULL),
+    closed(false)
 {
     // GLWidget options
     setMinimumSize(200, 200);
@@ -157,4 +159,13 @@ int VisWidget::boundStep(float step) {
     if (bstep % 2)
         bstep++;
     return bstep;
+}
+
+void VisWidget::setClosed(bool _closed)
+{
+    if (closed && !_closed)
+    {
+        repaint();
+    }
+    closed = _closed;
 }

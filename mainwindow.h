@@ -27,6 +27,7 @@ public slots:
     void importOTFbyGUI();
     void pushSteps(float start, float stop);
     void selectEvent(Event * event);
+    void handleSplitter(int pos, int index);
     
 private:
     Ui::MainWindow *ui;

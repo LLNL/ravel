@@ -54,7 +54,9 @@ void StepVis::setSteps(float start, float stop)
     }
     startStep = start;
     stepSpan = stop - start + 1;
-    repaint();
+
+    if (!closed)
+        repaint();
 }
 
 void StepVis::mouseMoveEvent(QMouseEvent * event)
