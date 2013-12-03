@@ -5,7 +5,7 @@ VisWidget::VisWidget(QWidget *parent) :
     container(parent),
     trace(NULL),
     visProcessed(false),
-    backgroundColor(QColor(204, 229, 255)),
+    backgroundColor(QColor(255, 255, 255, 255)),
     selectColor(QBrush(Qt::yellow)),
     changeSource(false),
     border(20),
@@ -17,13 +17,6 @@ VisWidget::VisWidget(QWidget *parent) :
     // GLWidget options
     setMinimumSize(200, 200);
     setAutoFillBackground(true);
-
-    // Set painting variables
-    //backgroundColor = QColor(204, 229, 255);
-    //selectColor = QBrush(Qt::yellow);
-    //visProcessed = false;
-    //changeSource = false;
-    //border = 20;
 }
 
 VisWidget::~VisWidget()
@@ -43,12 +36,13 @@ void VisWidget::initializeGL()
 
 void VisWidget::setSteps(float start, float stop)
 {
-
+    Q_UNUSED(start);
+    Q_UNUSED(stop);
 }
 
 void VisWidget::selectEvent(Event * evt)
 {
-
+    Q_UNUSED(evt);
 }
 
 
@@ -57,9 +51,15 @@ void VisWidget::setTrace(Trace * t)
     trace = t;
 }
 
+void VisWidget::prepaint()
+{
+
+}
+
 void VisWidget::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event);
+    prepaint();
 
     // Clear
     qglClearColor(backgroundColor);
@@ -120,7 +120,7 @@ void VisWidget::processVis()
 
 void VisWidget::qtPaint(QPainter *painter)
 {
-
+    Q_UNUSED(painter);
 }
 
 void VisWidget::incompleteBox(QPainter *painter, float x, float y, float w, float h)

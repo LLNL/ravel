@@ -3,7 +3,7 @@
 
 TimelineVis::TimelineVis(QWidget* parent) : VisWidget(parent = parent)
 {
-    backgroundColor = QColor(255, 255, 255);
+    backgroundColor = QColor(255, 255, 255, 255);
     mousePressed = false;
     trace = NULL;
 
@@ -90,7 +90,7 @@ void TimelineVis::drawHover(QPainter * painter)
         return;
     painter->setFont(QFont("Helvetica", 10));
     QFontMetrics font_metrics = this->fontMetrics();
-    QString text = ((*(trace->functions))[hover_event->function])->name;
+    QString text = ((*(trace->functions))[hover_event->function])->name + ", " + QString::number(hover_event->step);
 
     // Determine bounding box of FontMetrics
     QRect textRect = font_metrics.boundingRect(text);

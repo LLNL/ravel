@@ -131,16 +131,31 @@ void StepVis::wheelEvent(QWheelEvent * event)
     emit stepsChanged(startStep, startStep + stepSpan);
 }
 
+void StepVis::prepaint()
+{
+    drawnEvents.clear();
+}
+
 void StepVis::qtPaint(QPainter *painter)
 {
-    painter->fillRect(rect(), backgroundColor);
-
     if(!visProcessed)
         return;
 
-    // We don't know how to draw this small yet -- will go to gl, probably
-    if (rect().height() / processSpan < 3 || rect().width() / stepSpan < 3)
-        return;
+    // In this case we haven't already drawn stuff with GL, so we paint it here.
+    if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
+        paintEvents(painter);
+
+    // Hover is independent of how we drew things
+    drawHover(painter);
+}
+
+void StepVis::drawNativeGL()
+{
+
+}
+
+void StepVis::paintEvents(QPainter * painter)
+{
 
     int process_spacing = 0;
     if (rect().height() / processSpan > 12)
@@ -167,19 +182,24 @@ void StepVis::qtPaint(QPainter *painter)
     bool complete, aggcomplete;
     QSet<Message *> drawMessages = QSet<Message *>();
     painter->setPen(QPen(QColor(0, 0, 0)));
-    drawnEvents.clear();
     // TODO: Replace this part where we look through all partitions with a part where we look through
     // our own active partition list that we determin whenever a setSteps happens.
     for (QList<Partition *>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
     {
-        if ((*part)->min_global_step > startStep + stepSpan || (*part)->max_global_step < startStep)
+        if ((*part)->min_global_step > boundStep(startStep + stepSpan) || (*part)->max_global_step < floor(startStep))
+        {
+            //std::cout << (*part)->min_global_step << ", " << (*part)->max_global_step << " : " << startStep << ", " << stepSpan << std::endl;
             continue;
+        }
         for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list) {
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
                 position = proc_to_order[(*evt)->process];
                 if ((*evt)->step < floor(startStep) || (*evt)->step > boundStep(startStep + stepSpan)) // Out of span
+                {
+                    //std::cout << (*evt)->step << ", " << startStep << ", " << boundStep(startStep + stepSpan) << std::endl;
                     continue;
+                }
                 if (position < floor(startProcess) || position > ceil(startProcess + processSpan)) // Out of span
                     continue;
                 // 0 = startProcess, rect().height() = stopProcess (startProcess + processSpan)
@@ -287,6 +307,4 @@ void StepVis::qtPaint(QPainter *painter)
             p2 = QPointF(x + w/2.0, y + h/2.0);
             painter->drawLine(p1, p2);
         }
-
-    drawHover(painter);
 }

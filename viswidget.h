@@ -41,6 +41,7 @@ protected:
 
     virtual void drawNativeGL();
     virtual void qtPaint(QPainter *painter);
+    virtual void prepaint();
 
 private:
     void beginNativeGL();

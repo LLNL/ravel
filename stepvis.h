@@ -21,6 +21,9 @@ public slots:
 
 protected:
     void qtPaint(QPainter *painter);
+    void drawNativeGL();
+    void paintEvents(QPainter *painter);
+    void prepaint();
 
 private:
     bool showAggSteps;
