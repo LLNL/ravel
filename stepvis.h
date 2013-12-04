@@ -29,6 +29,8 @@ private:
     bool showAggSteps;
     long long maxLateness;
     ColorMap * colormap;
+
+    static const int spacingMinimum = 12;
 };
 
 #endif // STEPVIS_H

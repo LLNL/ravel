@@ -151,18 +151,216 @@ void StepVis::qtPaint(QPainter *painter)
 
 void StepVis::drawNativeGL()
 {
+    if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
+        return;
+
+    QString metric("Lateness");
+
+    // Setup viewport
+    int width = rect().width();
+    int height = rect().height();
+
+    glViewport(0,
+               0,
+               width,
+               height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0, width, 0, height, 0, 1);
+
+    // Figure out if either height/process or width/step is bigger than 1
+    float barwidth = 1;
+    int effectiveStepSpan = stepSpan;
+    if (!showAggSteps)
+        effectiveStepSpan = ceil(stepSpan / 2.0);
+    if (width / float(effectiveStepSpan) > 1)
+    {
+        barwidth = width / float(effectiveStepSpan);
+    }
+
+    float barheight = 1;
+    if (height / float(processSpan) > 1)
+    {
+        barheight = height / float(processSpan);
+    }
+
+    // Generate buffers to hold/accumulate information for anti-aliasing
+    // We do this by pixel, each needs x,y
+    QVector<GLfloat> bars = QVector<GLfloat>(2 * width * height);
+    // Each "bar" has 4 vertices and each vertex has a color which is 3 floats
+    // So our color vector must be 3 * height * width
+    // Initialized with 1.0s (white)
+    QVector<GLfloat> colors = QVector<GLfloat>(3 * width * height, 1.0);
+    // Per bar metrics saved and # affecting that slot, both initialized to zero
+    QVector<GLfloat> metrics = QVector<GLfloat>(width * height, 0.0);
+    QVector<GLfloat> contributors = QVector<GLfloat>(width * height, 0.0);
+
+    // Set the points
+    int base_index, index;
+    for (int y = 0; y < height; y++)
+    {
+        base_index = 2*y*width;
+        for (int x = 0; x < width; y++)
+        {
+            index = base_index + 2*x;
+            bars[index] = x;
+            bars[index + 1] = y;
+        }
+    }
+
+    // Process events for values
+    float x, y; // true position
+    float fx, fy; // fractions
+    int sx, tx, sy, ty; // max extents
+    float position; // placement of process
+    for (QList<Partition *>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
+    {
+        if ((*part)->min_global_step > boundStep(startStep + stepSpan) || (*part)->max_global_step < floor(startStep))
+            continue;
+        for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list) {
+            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
+            {
+                position = proc_to_order[(*evt)->process];
+                if ((*evt)->step < floor(startStep) || (*evt)->step > boundStep(startStep + stepSpan)) // Out of span
+                    continue;
+                if (position < floor(startProcess) || position > ceil(startProcess + processSpan)) // Out of span
+                    continue;
+
+                // Calculate position of this bar in float space
+                y = (position - startProcess) * barheight + 1;
+                if (showAggSteps)
+                    x = ((*evt)->step - startStep) * barwidth + 1;
+                else
+                    x = ((*evt)->step - startStep) / 2 * barwidth + 1;
+
+                // Find actually drawn extents and/or skip
+                sx = floor(x);
+                if (sx < 0)
+                    sx = 0;
+                if (sx > width - 1)
+                    continue;
+                tx = ceil(x + barwidth);
+                if (tx < 0)
+                    continue;
+                if (tx > width - 1)
+                    tx = width - 1;
+                sy = floor(y);
+                if (sy < 0)
+                    sy = 0;
+                if (sy > height - 1)
+                    continue;
+                ty = ceil(y + barheight);
+                if (ty < 0)
+                    continue;
+                if (ty > height - 1)
+                    ty = height - 1;
+
+                // Make contributions to each pixel space
+                for (int j = sy; j <= ty; j++)
+                {
+                    fy = 1.0;
+                    if (j < y && j + 1 > y + barheight)
+                        fy = barheight;
+                    else if (j < y)
+                        fy = j + 1 - y;
+                    else if (y + barheight < j + 1)
+                        fy = j + 1 - y - barheight;
+                    for (int i = sx; i <= tx; i++)
+                    {
+                        fx = 1.0;
+                        if (i < x && i + 1 > x + barwidth )
+                            fx = barwidth;
+                        else if (i < x)
+                            fx = i + 1 - x;
+                        else if (x + barwidth < i + 1)
+                            fx = i + 1 - x - barwidth;
+
+                        metrics[width*j + i] += (*(*evt)->metrics)[metric]->event * fx * fy;
+
+                        ++contributors[width*j + i];
+                    }
+                }
+
+                if (showAggSteps) // repeat!
+                {
+                    x = ((*evt)->step - startStep - 1) * barwidth + 1;
+                    if (x + barheight <= 0)
+                        continue;
+
+                    // Not as many checks since we know this comes before the preivous event
+                    sx = floor(x);
+                    if (sx < 0)
+                        sx = 0;
+
+                    for (int j = sy; j <= ty; j++)
+                    {
+                        fy = 1.0;
+                        if (j < y && j + 1 > y + barheight)
+                            fy = barheight;
+                        else if (j < y)
+                            fy = j + 1 - y;
+                        else if (y + barheight < j + 1)
+                            fy = j + 1 - y - barheight;
+                        for (int i = sx; i <= tx; i++)
+                        {
+                            fx = 1.0;
+                            if (i < x && i + 1 > x + barwidth )
+                                fx = barwidth;
+                            else if (i < x)
+                                fx = i + 1 - x;
+                            else if (x + barwidth < i + 1)
+                                fx = i + 1 - x - barwidth;
+
+                            metrics[width*j + i] += (*(*evt)->metrics)[metric]->aggregate * fx * fy;
+
+                            ++contributors[width*j + i];
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+
+    // Convert colors
+    QColor color;
+    int metric_index;
+    for (int y = 0; y < height; y++)
+    {
+        base_index = 3*y*width;
+        metric_index = y*width;
+        for (int x = 0; x < width; y++)
+        {
+            index = base_index + 3*x;
+            color = colormap->color(metrics[metric_index + x] / contributors[metric_index + x]);
+            colors[index] = color.red() / 255.0;
+            colors[index + 1] = color.green() / 255.0;
+            colors[index + 2] = color.blue() / 255.0;
+        }
+    }
+
+    // Draw
+    glPointSize(1.0f);
+
+    // Points
+    glEnableClientState(GL_COLOR_ARRAY);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glColorPointer(3,GL_FLOAT,0,colors.constData());
+    glVertexPointer(2,GL_FLOAT,0,bars.constData());
+    glDrawArrays(GL_POINTS,0,bars.size()/2);
 
 }
 
 void StepVis::paintEvents(QPainter * painter)
 {
+    painter->fillRect(rect(), backgroundColor);
 
     int process_spacing = 0;
-    if (rect().height() / processSpan > 12)
+    if (rect().height() / processSpan > spacingMinimum)
         process_spacing = 3;
 
     int step_spacing = 0;
-    if (rect().width() / stepSpan > 12)
+    if (rect().width() / stepSpan > spacingMinimum)
         step_spacing = 3;
 
 
@@ -236,11 +434,12 @@ void StepVis::paintEvents(QPainter * painter)
                 // Change pen color if selected
                 if (*evt == selected_event)
                     painter->setPen(QPen(Qt::yellow));
-                // Draw border
-                if (complete)
-                    painter->drawRect(QRectF(x,y,w,h));
-                else
-                    incompleteBox(painter, x, y, w, h);
+                // Draw border but only if we're doing spacing, otherwise too messy
+                if (step_spacing > 0 && process_spacing > 0)
+                    if (complete)
+                        painter->drawRect(QRectF(x,y,w,h));
+                    else
+                        incompleteBox(painter, x, y, w, h);
                 // Revert pen color
                 if (*evt == selected_event)
                     painter->setPen(QPen(QColor(0, 0, 0)));
