@@ -142,8 +142,8 @@ void StepVis::qtPaint(QPainter *painter)
         return;
 
     // In this case we haven't already drawn stuff with GL, so we paint it here.
-    if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
-        paintEvents(painter);
+    //if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
+    //    paintEvents(painter);
 
     // Hover is independent of how we drew things
     drawHover(painter);
@@ -151,8 +151,10 @@ void StepVis::qtPaint(QPainter *painter)
 
 void StepVis::drawNativeGL()
 {
-    if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
+    if (!visProcessed)
         return;
+    //if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
+    //    return;
 
     QString metric("Lateness");
 
@@ -160,6 +162,7 @@ void StepVis::drawNativeGL()
     int width = rect().width();
     int height = rect().height();
 
+    std::cout << "Setup viewport" << std::endl;
     glViewport(0,
                0,
                width,
@@ -195,18 +198,22 @@ void StepVis::drawNativeGL()
     QVector<GLfloat> metrics = QVector<GLfloat>(width * height, 0.0);
     QVector<GLfloat> contributors = QVector<GLfloat>(width * height, 0.0);
 
+    std::cout << "Setup points" << std::endl;
+
     // Set the points
     int base_index, index;
     for (int y = 0; y < height; y++)
     {
         base_index = 2*y*width;
-        for (int x = 0; x < width; y++)
+        for (int x = 0; x < width; x++)
         {
             index = base_index + 2*x;
             bars[index] = x;
             bars[index + 1] = y;
         }
     }
+
+    std::cout << "Begin pixel calculations" << std::endl;
 
     // Process events for values
     float x, y; // true position
@@ -322,6 +329,8 @@ void StepVis::drawNativeGL()
         }
     }
 
+    std::cout << "Finished metrics" << std::endl;
+
     // Convert colors
     QColor color;
     int metric_index;
@@ -329,7 +338,7 @@ void StepVis::drawNativeGL()
     {
         base_index = 3*y*width;
         metric_index = y*width;
-        for (int x = 0; x < width; y++)
+        for (int x = 0; x < width; x++)
         {
             index = base_index + 3*x;
             color = colormap->color(metrics[metric_index + x] / contributors[metric_index + x]);
@@ -338,6 +347,8 @@ void StepVis::drawNativeGL()
             colors[index + 2] = color.blue() / 255.0;
         }
     }
+
+    std::cout << "Finished colors" << std::endl;
 
     // Draw
     glPointSize(1.0f);
@@ -348,6 +359,8 @@ void StepVis::drawNativeGL()
     glColorPointer(3,GL_FLOAT,0,colors.constData());
     glVertexPointer(2,GL_FLOAT,0,bars.constData());
     glDrawArrays(GL_POINTS,0,bars.size()/2);
+
+    std::cout << "Finish draw" << std::endl;
 
 }
 
