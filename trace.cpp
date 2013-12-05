@@ -261,23 +261,6 @@ void Trace::assignSteps()
             }
         }
     }
-
-
-    /*delete dag_entries;
-    for (QMap<int, QSet<Partition *> *>::Iterator itr = dag_step_dict->begin(); itr != dag_step_dict->end(); ++itr)
-    {
-        delete itr.value();
-    }
-    delete dag_step_dict;
-
-    // Delete only container, not Events
-    for (QVector<QList<Event * > * >::Iterator itr = mpi_events->begin(); itr != mpi_events->end(); ++itr)
-    {
-        delete *itr;
-        *itr = NULL;
-    }
-    delete mpi_events;
-    delete send_events; */
 }
 
 
@@ -322,6 +305,9 @@ Partition * Trace::mergePartitions(Partition * p1, Partition * p2)
             p->addEvent(*evt);
         }
     }
+    p1->new_partition = p;
+    p2->new_partition = p;
+    p->new_partition = p;
 
     // Sort events
     p->sortEvents();
@@ -572,30 +558,45 @@ void Trace::mergeByLeap()
 void Trace::mergeForMessages()
 {
     Partition * p, * p1, * p2;
-    int counter;
+    QSet<Partition *> old_partitions = QSet<Partition *>();
     for (QList<Event *>::Iterator send = send_events->begin(); send != send_events->end(); ++send)
     {
-        p1 = (*send)->partition;
-        counter = 0;
+        p1 = (*send)->partition->new_partition; // Use new partition in case this has changed
         for (QVector<Message *>::Iterator msg = (*send)->messages->begin(); msg != (*send)->messages->end(); ++msg)
         {
-            std::cout << "Counter " << counter << std::endl;
-            p2 = (*msg)->receiver->partition;
+            p2 = (*msg)->receiver->partition->new_partition;
             if (p1 != p2)
             {
                 p = mergePartitions(p1, p2);
                 partitions->removeAll(p1);
                 partitions->removeAll(p2);
                 partitions->append(p);
-                delete p1;
-                delete p2;
+                old_partitions.insert(p1);
+                old_partitions.insert(p2);
                 p1 = p; // For the rest of the messages connected to this send. [ Should only be one, shouldn't matter. ]
                 (*send)->partition = p;
                 (*msg)->receiver->partition = p;
             }
-            ++counter;
         }
     }
+
+    // Update all partitions references
+    for (QList<Event *>::Iterator send = send_events->begin(); send != send_events->end(); ++send)
+    {
+        for (QVector<Message *>::Iterator msg = (*send)->messages->begin(); msg != (*send)->messages->end(); ++msg)
+        {
+            (*msg)->receiver->partition = (*msg)->receiver->partition->new_partition;
+        }
+        (*send)->partition = (*send)->partition->new_partition;
+    }
+
+    // Delete the old partitions
+    for (QSet<Partition *>::Iterator old = old_partitions.begin(); old != old_partitions.end(); ++old)
+        delete *old;
+
+    // Reset new_partition state for the SCC merge
+    for (QList<Partition*>::Iterator partition = partitions->begin(); partition != partitions->end(); ++partition)
+        (*partition)->new_partition = NULL;
 }
 
 // Looping section of Tarjan algorithm
@@ -946,6 +947,7 @@ void Trace::initializePartitions()
                 Partition * p = new Partition();
                 p->addEvent(*evt);
                 (*evt)->partition = p;
+                p->new_partition = p;
                 partitions->append(p);
             }
         }
@@ -976,7 +978,8 @@ void Trace::initializePartitionsWaitall()
 
     bool aggregating;
     QList<Event *> * aggregation;
-    for (QVector<QList<Event *> *>::Iterator event_list = mpi_events->begin(); event_list != mpi_events->end(); ++event_list) {
+    for (QVector<QList<Event *> *>::Iterator event_list = mpi_events->begin(); event_list != mpi_events->end(); ++event_list)
+    {
         // We note these should be in reverse order because of the way they were added
         aggregating = false;
         for (QList<Event *>::Iterator evt = (*event_list)->begin(); evt != (*event_list)->end(); ++evt)
@@ -1006,6 +1009,7 @@ void Trace::initializePartitionsWaitall()
                                 p->addEvent(*saved_evt);
                                 (*saved_evt)->partition = p;
                             }
+                            p->new_partition = p;
                             partitions->append(p);
                         }
 
@@ -1013,6 +1017,7 @@ void Trace::initializePartitionsWaitall()
                         Partition * r = new Partition();
                         r->addEvent(*evt);
                         (*evt)->partition = r;
+                        r->new_partition = r;
                         partitions->append(r);
 
                         aggregating = false;
@@ -1036,6 +1041,7 @@ void Trace::initializePartitionsWaitall()
                             p->addEvent(*saved_evt);
                             (*saved_evt)->partition = p;
                         }
+                        p->new_partition = p;
                         partitions->append(p);
                     }
 
@@ -1064,11 +1070,12 @@ void Trace::initializePartitionsWaitall()
                         Partition * p = new Partition();
                         p->addEvent(*evt);
                         (*evt)->partition = p;
+                        p->new_partition = p;
                         partitions->append(p);
                     }
                 }
             } // Not aggregating
-        }
+        } // End this event
 
         // Check if we have any left over and aggregate them
         if (aggregating)
@@ -1081,12 +1088,13 @@ void Trace::initializePartitionsWaitall()
                     p->addEvent(*saved_evt);
                     (*saved_evt)->partition = p;
                 }
+                p->new_partition = p;
                 partitions->append(p);
             }
             delete aggregation;
             aggregating = false;
         }
-    }
+    } // End event loop for one process
 }
 
 

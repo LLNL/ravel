@@ -200,7 +200,7 @@ void VisWidget::drawTimescale(QPainter * painter, unsigned long long start, unsi
     // Now we must find the first number after startTime divisible by
     // the tick_span. We don't want to just find the same roundness
     // because then panning doesn't work.
-    unsigned long long tick = start + tick_span - start % tick_span;
+    unsigned long long tick = (tick_span - start % tick_span) + start;
 
     // And now we draw
     while (tick < start + span)
