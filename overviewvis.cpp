@@ -13,7 +13,7 @@ OverviewVis::OverviewVis(QWidget *parent) : VisWidget(parent = parent)
     setMaximumHeight(height);
 
     // Set painting variables
-    backgroundColor = QColor(204, 229, 255);
+    //backgroundColor = QColor(204, 229, 255);
     mousePressed = false;
 }
 
@@ -218,7 +218,7 @@ void OverviewVis::processVis()
 
 void OverviewVis::qtPaint(QPainter *painter)
 {
-    painter->fillRect(rect(), backgroundColor);
+    painter->fillRect(rect(), QWidget::palette().color(QWidget::backgroundRole()));
 
     if(!visProcessed)
         return;

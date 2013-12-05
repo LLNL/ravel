@@ -377,7 +377,7 @@ void StepVis::drawNativeGL()
 
 void StepVis::paintEvents(QPainter * painter)
 {
-    painter->fillRect(rect(), backgroundColor);
+    //painter->fillRect(rect(), backgroundColor);
 
     int process_spacing = 0;
     if (rect().height() / processSpan > spacingMinimum)

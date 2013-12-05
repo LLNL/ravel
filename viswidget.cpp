@@ -16,7 +16,7 @@ VisWidget::VisWidget(QWidget *parent) :
 {
     // GLWidget options
     setMinimumSize(200, 200);
-    setAutoFillBackground(true);
+    setAutoFillBackground(false);
     setWindowTitle("");
 }
 

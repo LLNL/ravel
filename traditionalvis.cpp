@@ -181,7 +181,7 @@ void TraditionalVis::qtPaint(QPainter *painter)
 
 void TraditionalVis::paintEvents(QPainter *painter)
 {
-    painter->fillRect(rect(), backgroundColor);
+    //painter->fillRect(rect(), backgroundColor);
 
     int canvasHeight = rect().height() - timescaleHeight;
 
