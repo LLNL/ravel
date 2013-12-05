@@ -22,6 +22,7 @@ public:
     void assignSteps();
 
     int num_processes;
+    int units;
 
     QList<Partition *> * partitions;
 

@@ -169,21 +169,28 @@ void TraditionalVis::setSteps(float start, float stop)
 
 void TraditionalVis::qtPaint(QPainter *painter)
 {
-    painter->fillRect(rect(), backgroundColor);
-
     if(!visProcessed)
         return;
 
-    // We don't know how to draw this small yet -- will go to gl, probably
-    if (rect().height() / processSpan < 3)
-        return;
+    if ((rect().height() - timescaleHeight) / processSpan >= 3)
+        paintEvents(painter);
+
+    drawTimescale(painter);
+    drawHover(painter);
+}
+
+void TraditionalVis::paintEvents(QPainter *painter)
+{
+    painter->fillRect(rect(), backgroundColor);
+
+    int canvasHeight = rect().height() - timescaleHeight;
 
     int process_spacing = 0;
-    if (rect().height() / processSpan > 12)
+    if (canvasHeight / processSpan > 12)
         process_spacing = 3;
 
     float x, y, w, h;
-    float blockheight = floor(rect().height() / processSpan);
+    float blockheight = floor(canvasHeight / processSpan);
     float barheight = blockheight - process_spacing;
     processheight = blockheight;
     startStep = maxStep;
@@ -234,8 +241,8 @@ void TraditionalVis::qtPaint(QPainter *painter)
                     h = barheight - fabs(y);
                     y = 0;
                     complete = false;
-                } else if (y + barheight > rect().height()) {
-                    h = rect().height() - y;
+                } else if (y + barheight > canvasHeight) {
+                    h = canvasHeight - y;
                     complete = false;
                 }
                 if (x < 0) {
@@ -259,10 +266,11 @@ void TraditionalVis::qtPaint(QPainter *painter)
                     // Draw event
                     painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(200, 200, 255)));
                 // Draw border
-                if (complete)
-                    painter->drawRect(QRectF(x,y,w,h));
-                else
-                    incompleteBox(painter, x, y, w, h);
+                if (process_spacing > 0)
+                    if (complete)
+                        painter->drawRect(QRectF(x,y,w,h));
+                    else
+                        incompleteBox(painter, x, y, w, h);
                 // Revert pen color
                 if (*evt == selected_event)
                     painter->setPen(QPen(QColor(0, 0, 0)));
@@ -303,5 +311,50 @@ void TraditionalVis::qtPaint(QPainter *painter)
         }
 
     stepSpan = stopStep - startStep;
-    drawHover(painter);
+}
+
+void TraditionalVis::drawTimescale(QPainter * painter)
+{
+    // Draw the scale bar
+    int lineHeight = rect().height() - (timescaleHeight - 1);
+    painter->setPen(QPen(Qt::black, 1, Qt::SolidLine));
+    painter->drawLine(0, lineHeight, rect().width(), lineHeight);
+
+    if (!visProcessed)
+        return;
+
+    painter->setFont(QFont("Helvetica", 10));
+    QFontMetrics font_metrics = this->fontMetrics();
+
+    // Figure out the units and number of ticks ( may handle units later )
+    QLocale systemlocale = QLocale::system();
+    QString text = systemlocale.toString(startTime);
+    int textWidth = font_metrics.width(text) * 1.4;
+    int max_ticks = floor(rect().width() / 1.0 / textWidth); // We can't have more than this and fit text
+    int y = lineHeight + timescaleTickHeight + font_metrics.xHeight();
+    std::cout << textWidth << ", " << rect().width() << ", " << max_ticks << std::endl;
+
+    // We want a round number
+    unsigned long long tick_span = timeSpan / max_ticks; // Not round
+    int power = floor(log10(timeSpan / max_ticks)); // How many zeros
+    int roundfactor = pow(10, power);
+    tick_span = (tick_span / roundfactor) * roundfactor; // Now round
+    std::cout << tick_span << ", " << power << std::endl;
+
+    // Now we must find the first number after startTime divisible by
+    // the tick_span. We don't want to just find the same roundness
+    // because then panning doesn't work.
+    unsigned long long tick = startTime + tick_span - startTime % tick_span;
+
+    // And now we draw
+    while (tick < startTime + timeSpan)
+    {
+        int x = round((tick - startTime) / 1.0 / timeSpan * rect().width());
+        painter->drawLine(x, lineHeight, x, lineHeight + timescaleTickHeight);
+        text = systemlocale.toString(tick);
+        textWidth = font_metrics.width(text);
+        painter->drawText(x - textWidth/2, y, text);
+
+        tick += tick_span;
+    }
 }

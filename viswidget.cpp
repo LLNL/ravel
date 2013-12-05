@@ -5,7 +5,7 @@ VisWidget::VisWidget(QWidget *parent) :
     container(parent),
     trace(NULL),
     visProcessed(false),
-    backgroundColor(QColor(255, 255, 255, 255)),
+    backgroundColor(Qt::white),
     selectColor(QBrush(Qt::yellow)),
     changeSource(false),
     border(20),
@@ -17,6 +17,7 @@ VisWidget::VisWidget(QWidget *parent) :
     // GLWidget options
     setMinimumSize(200, 200);
     setAutoFillBackground(true);
+    setWindowTitle("");
 }
 
 VisWidget::~VisWidget()
@@ -71,8 +72,8 @@ void VisWidget::paintEvent(QPaintEvent *event)
     }
     endNativeGL();
 
-    QPainter painter;
-    painter.begin(this);
+    QPainter painter(this);
+    //painter.begin(this);
     painter.setRenderHint(QPainter::Antialiasing);
     qtPaint(&painter);
     painter.end();
@@ -80,7 +81,6 @@ void VisWidget::paintEvent(QPaintEvent *event)
 
 void VisWidget::drawNativeGL()
 {
-
 }
 
 void VisWidget::beginNativeGL()

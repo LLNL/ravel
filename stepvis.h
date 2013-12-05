@@ -2,8 +2,6 @@
 #define STEPVIS_H
 
 #include "timelinevis.h"
-#include "colormap.h"
-#include "event.h"
 
 class StepVis : public TimelineVis
 {

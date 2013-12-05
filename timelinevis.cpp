@@ -1,12 +1,10 @@
 #include "timelinevis.h"
 #include <iostream>
 
-TimelineVis::TimelineVis(QWidget* parent) : VisWidget(parent = parent)
+TimelineVis::TimelineVis(QWidget* parent)
+    : VisWidget(parent = parent),
+      mousePressed(false)
 {
-    backgroundColor = QColor(255, 255, 255, 255);
-    mousePressed = false;
-    trace = NULL;
-
     setMouseTracking(true);
 }
 

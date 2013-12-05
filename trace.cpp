@@ -3,6 +3,7 @@
 
 Trace::Trace(int np, bool legacy)
     : num_processes(np),
+      units(-9),
       partitions(new QList<Partition *>()),
       isLegacy(legacy),
       options(NULL),

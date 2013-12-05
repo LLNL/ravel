@@ -14,7 +14,7 @@ class VisWidget : public QGLWidget
 {
     Q_OBJECT
 public:
-    explicit VisWidget(QWidget *parent = 0);
+    VisWidget(QWidget *parent = 0);
     ~VisWidget();
     virtual void setTrace(Trace *t);
     virtual void processVis();

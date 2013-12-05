@@ -142,8 +142,8 @@ void StepVis::qtPaint(QPainter *painter)
         return;
 
     // In this case we haven't already drawn stuff with GL, so we paint it here.
-    //if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
-    //    paintEvents(painter);
+    if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
+        paintEvents(painter);
 
     // Hover is independent of how we drew things
     drawHover(painter);
@@ -153,8 +153,8 @@ void StepVis::drawNativeGL()
 {
     if (!visProcessed)
         return;
-    //if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
-    //    return;
+    if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
+        return;
 
     QString metric("Lateness");
 
@@ -163,13 +163,22 @@ void StepVis::drawNativeGL()
     int height = rect().height();
 
     std::cout << "Setup viewport" << std::endl;
-    glViewport(0,
+    /*glViewport(0,
                0,
-               width,
-               height);
+               2*width,
+               2*height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho(0, width, 0, height, 0, 1);
+    glOrtho(0, width, 0, height, 0, 1);*/
+
+    glPointSize(50.0);
+    glBegin(GL_POINTS);
+    {
+        glColor4f(1,0,0,1);
+        glVertex2i(width/2,height/2);
+    }
+    glEnd();
+    return;
 
     // Figure out if either height/process or width/step is bigger than 1
     float barwidth = 1;
@@ -220,6 +229,7 @@ void StepVis::drawNativeGL()
     float fx, fy; // fractions
     int sx, tx, sy, ty; // max extents
     float position; // placement of process
+    int event_counter = 0;
     for (QList<Partition *>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
     {
         if ((*part)->min_global_step > boundStep(startStep + stepSpan) || (*part)->max_global_step < floor(startStep))
@@ -287,6 +297,7 @@ void StepVis::drawNativeGL()
                         ++contributors[width*j + i];
                     }
                 }
+                ++event_counter;
 
                 if (showAggSteps) // repeat!
                 {
@@ -329,7 +340,7 @@ void StepVis::drawNativeGL()
         }
     }
 
-    std::cout << "Finished metrics" << std::endl;
+    std::cout << "Finished metrics of " << event_counter << " events" << std::endl;
 
     // Convert colors
     QColor color;
