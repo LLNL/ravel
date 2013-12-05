@@ -14,7 +14,6 @@ OverviewVis::OverviewVis(QWidget *parent) : VisWidget(parent = parent)
 
     // Set painting variables
     backgroundColor = QColor(204, 229, 255);
-    trace = NULL;
     mousePressed = false;
 }
 
@@ -226,11 +225,13 @@ void OverviewVis::qtPaint(QPainter *painter)
 
     QRectF plotBBox(border, 0,
                       rect().width()-2*border,
-                      rect().height()-border);
+                      rect().height()-timescaleHeight);
+
 
     // Draw axes
-    painter->setBrush(QBrush(QColor(0,0,0)));
-    painter->drawLine(plotBBox.bottomLeft(),plotBBox.bottomRight());
+    drawTimescale(painter, minTime, maxTime - minTime, border);
+    //painter->setBrush(QBrush(QColor(0,0,0)));
+    //painter->drawLine(plotBBox.bottomLeft(),plotBBox.bottomRight());
 
     // Draw axis labels
     /*painter->drawText(plotBBox.bottomLeft()+QPointF(0,10),data->meta[xdim]);

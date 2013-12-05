@@ -5,6 +5,7 @@
 #include <QVector>
 #include <QList>
 #include <QPaintEvent>
+#include <QLocale>
 #include <climits>
 #include <cmath>
 
@@ -42,6 +43,8 @@ protected:
     virtual void drawNativeGL();
     virtual void qtPaint(QPainter *painter);
     virtual void prepaint();
+    void drawTimescale(QPainter * painter, unsigned long long start,
+                       unsigned long long span, int margin = 0);
 
 private:
     void beginNativeGL();
@@ -60,6 +63,8 @@ protected:
     bool closed;
 
     static const int initStepSpan = 15;
+    static const int timescaleHeight = 20;
+    static const int timescaleTickHeight = 5;
 };
 
 #endif // VISWIDGET_H

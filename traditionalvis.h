@@ -2,7 +2,6 @@
 #define TRADITIONALVIS_H
 
 #include "timelinevis.h"
-#include <QLocale>
 
 class TraditionalVis : public TimelineVis
 {
@@ -21,7 +20,6 @@ public slots:
 protected:
     void qtPaint(QPainter *painter);
     void paintEvents(QPainter *painter);
-    void drawTimescale(QPainter *painter);
 
 private:
     class TimePair {
@@ -38,10 +36,6 @@ private:
     unsigned long long startTime;
     unsigned long long timeSpan;
     QVector<TimePair* > * stepToTime;
-
-    static const int timescaleHeight = 20;
-    static const int timescaleTickHeight = 5;
-
 };
 
 #endif // TRADITIONALVIS_H

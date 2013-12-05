@@ -175,7 +175,7 @@ void TraditionalVis::qtPaint(QPainter *painter)
     if ((rect().height() - timescaleHeight) / processSpan >= 3)
         paintEvents(painter);
 
-    drawTimescale(painter);
+    drawTimescale(painter, startTime, timeSpan);
     drawHover(painter);
 }
 
@@ -311,50 +311,4 @@ void TraditionalVis::paintEvents(QPainter *painter)
         }
 
     stepSpan = stopStep - startStep;
-}
-
-void TraditionalVis::drawTimescale(QPainter * painter)
-{
-    // Draw the scale bar
-    int lineHeight = rect().height() - (timescaleHeight - 1);
-    painter->setPen(QPen(Qt::black, 1, Qt::SolidLine));
-    painter->drawLine(0, lineHeight, rect().width(), lineHeight);
-
-    if (!visProcessed)
-        return;
-
-    painter->setFont(QFont("Helvetica", 10));
-    QFontMetrics font_metrics = this->fontMetrics();
-
-    // Figure out the units and number of ticks ( may handle units later )
-    QLocale systemlocale = QLocale::system();
-    QString text = systemlocale.toString(startTime);
-    int textWidth = font_metrics.width(text) * 1.4;
-    int max_ticks = floor(rect().width() / 1.0 / textWidth); // We can't have more than this and fit text
-    int y = lineHeight + timescaleTickHeight + font_metrics.xHeight();
-    std::cout << textWidth << ", " << rect().width() << ", " << max_ticks << std::endl;
-
-    // We want a round number
-    unsigned long long tick_span = timeSpan / max_ticks; // Not round
-    int power = floor(log10(timeSpan / max_ticks)); // How many zeros
-    int roundfactor = pow(10, power);
-    tick_span = (tick_span / roundfactor) * roundfactor; // Now round
-    std::cout << tick_span << ", " << power << std::endl;
-
-    // Now we must find the first number after startTime divisible by
-    // the tick_span. We don't want to just find the same roundness
-    // because then panning doesn't work.
-    unsigned long long tick = startTime + tick_span - startTime % tick_span;
-
-    // And now we draw
-    while (tick < startTime + timeSpan)
-    {
-        int x = round((tick - startTime) / 1.0 / timeSpan * rect().width());
-        painter->drawLine(x, lineHeight, x, lineHeight + timescaleTickHeight);
-        text = systemlocale.toString(tick);
-        textWidth = font_metrics.width(text);
-        painter->drawText(x - textWidth/2, y, text);
-
-        tick += tick_span;
-    }
 }
