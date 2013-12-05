@@ -230,17 +230,6 @@ void OverviewVis::qtPaint(QPainter *painter)
 
     // Draw axes
     drawTimescale(painter, minTime, maxTime - minTime, border);
-    //painter->setBrush(QBrush(QColor(0,0,0)));
-    //painter->drawLine(plotBBox.bottomLeft(),plotBBox.bottomRight());
-
-    // Draw axis labels
-    /*painter->drawText(plotBBox.bottomLeft()+QPointF(0,10),data->meta[xdim]);
-    painter->save();
-    painter->translate(plotBBox.bottomLeft()-QPointF(5,0));
-    painter->rotate(270);
-    painter->drawText(QPointF(0,0),data->meta[ydim]);
-    painter->restore();
-    */
 
     QPointF o = plotBBox.bottomLeft();
     QPointF p1, p2;

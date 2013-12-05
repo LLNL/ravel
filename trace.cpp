@@ -306,6 +306,8 @@ Partition * Trace::mergePartitions(Partition * p1, Partition * p2)
     Partition * p = new Partition();
 
     // Copy events
+    Q_ASSERT(p1 != NULL);
+    Q_ASSERT(p2 != NULL);
     for (QMap<int, QList<Event *> *>::Iterator event_list = p1->events->begin(); event_list != p1->events->end(); ++event_list)
     {
         for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
@@ -570,11 +572,14 @@ void Trace::mergeByLeap()
 void Trace::mergeForMessages()
 {
     Partition * p, * p1, * p2;
+    int counter;
     for (QList<Event *>::Iterator send = send_events->begin(); send != send_events->end(); ++send)
     {
         p1 = (*send)->partition;
+        counter = 0;
         for (QVector<Message *>::Iterator msg = (*send)->messages->begin(); msg != (*send)->messages->end(); ++msg)
         {
+            std::cout << "Counter " << counter << std::endl;
             p2 = (*msg)->receiver->partition;
             if (p1 != p2)
             {
@@ -588,6 +593,7 @@ void Trace::mergeForMessages()
                 (*send)->partition = p;
                 (*msg)->receiver->partition = p;
             }
+            ++counter;
         }
     }
 }
@@ -992,13 +998,16 @@ void Trace::initializePartitionsWaitall()
                     if (recv_found)
                     {
                         // Do partition for aggregated stuff
-                        Partition * p = new Partition();
-                        for (QList<Event *>::Iterator saved_evt = aggregation->begin(); saved_evt != aggregation->end(); ++saved_evt)
+                        if (aggregation->size() > 0)
                         {
-                            p->addEvent(*saved_evt);
-                            (*saved_evt)->partition = p;
+                            Partition * p = new Partition();
+                            for (QList<Event *>::Iterator saved_evt = aggregation->begin(); saved_evt != aggregation->end(); ++saved_evt)
+                            {
+                                p->addEvent(*saved_evt);
+                                (*saved_evt)->partition = p;
+                            }
+                            partitions->append(p);
                         }
-                        partitions->append(p);
 
                         // Do partition for this recv
                         Partition * r = new Partition();
@@ -1019,13 +1028,16 @@ void Trace::initializePartitionsWaitall()
                 else if ((*evt)->function == waitall_index || collective_ids->contains((*evt)->function))
                 {
                     // Do partition for aggregated stuff
-                    Partition * p = new Partition();
-                    for (QList<Event *>::Iterator saved_evt = aggregation->begin(); saved_evt != aggregation->end(); ++saved_evt)
+                    if (aggregation->size() > 0)
                     {
-                        p->addEvent(*saved_evt);
-                        (*saved_evt)->partition = p;
+                        Partition * p = new Partition();
+                        for (QList<Event *>::Iterator saved_evt = aggregation->begin(); saved_evt != aggregation->end(); ++saved_evt)
+                        {
+                            p->addEvent(*saved_evt);
+                            (*saved_evt)->partition = p;
+                        }
+                        partitions->append(p);
                     }
-                    partitions->append(p);
 
                     aggregating = false;
                     delete aggregation;
@@ -1056,6 +1068,23 @@ void Trace::initializePartitionsWaitall()
                     }
                 }
             } // Not aggregating
+        }
+
+        // Check if we have any left over and aggregate them
+        if (aggregating)
+        {
+            if (aggregation->size() > 0)
+            {
+                Partition * p = new Partition();
+                for (QList<Event *>::Iterator saved_evt = aggregation->begin(); saved_evt != aggregation->end(); ++saved_evt)
+                {
+                    p->addEvent(*saved_evt);
+                    (*saved_evt)->partition = p;
+                }
+                partitions->append(p);
+            }
+            delete aggregation;
+            aggregating = false;
         }
     }
 }
