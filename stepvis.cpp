@@ -142,8 +142,8 @@ void StepVis::qtPaint(QPainter *painter)
         return;
 
     // In this case we haven't already drawn stuff with GL, so we paint it here.
-    if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
-        paintEvents(painter);
+    //if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
+    //    paintEvents(painter);
 
     // Hover is independent of how we drew things
     drawHover(painter);
@@ -158,8 +158,8 @@ void StepVis::drawNativeGL()
     //drawColorBarGL();
 
     int effectiveHeight = rect().height() - colorBarHeight;
-    if (effectiveHeight / processSpan >= 3 && rect().width() / stepSpan >= 3)
-        return;
+    //if (effectiveHeight / processSpan >= 3 && rect().width() / stepSpan >= 3)
+    //    return;
 
     QString metric("Lateness");
 
@@ -174,6 +174,7 @@ void StepVis::drawNativeGL()
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glOrtho(0, width, 0, height, 0, 1);
+    //glTranslatef(0, -colorBarHeight, 0);
 
     // Figure out if either height/process or width/step is bigger than 1
     float barwidth = 1;
@@ -225,7 +226,7 @@ void StepVis::drawNativeGL()
     float position; // placement of process
     for (QList<Partition *>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
     {
-        if ((*part)->min_global_step > boundStep(startStep + stepSpan) || (*part)->max_global_step < floor(startStep))
+        if ((*part)->min_global_step > boundStep(startStep + stepSpan)|| (*part)->max_global_step < floor(startStep))
             continue;
         for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list) {
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
@@ -244,11 +245,15 @@ void StepVis::drawNativeGL()
                     x = ((*evt)->step - startStep) / 2 * barwidth + 1;
 
                 // Find actually drawn extents and/or skip
+                bool draw = true;
                 sx = floor(x);
                 if (sx < 0)
                     sx = 0;
                 if (sx > width - 1)
-                    continue;
+                    if (showAggSteps)
+                        draw = false;
+                    else
+                        continue;
                 tx = ceil(x + barwidth);
                 if (tx < 0)
                     continue;
@@ -266,35 +271,36 @@ void StepVis::drawNativeGL()
                     ty = height - 1;
 
                 // Make contributions to each pixel space
-                for (int j = sy; j <= ty; j++)
-                {
-                    fy = 1.0;
-                    if (j < y && j + 1 > y + barheight)
-                        fy = barheight;
-                    else if (j < y)
-                        fy = j + 1 - y;
-                    else if (y + barheight < j + 1)
-                        fy = j + 1 - y - barheight;
-                    for (int i = sx; i <= tx; i++)
+                if (draw)
+                    for (int j = sy; j <= ty; j++)
                     {
-                        fx = 1.0;
-                        if (i < x && i + 1 > x + barwidth )
-                            fx = barwidth;
-                        else if (i < x)
-                            fx = i + 1 - x;
-                        else if (x + barwidth < i + 1)
-                            fx = i + 1 - x - barwidth;
+                        fy = 1.0;
+                        if (j < y && j + 1 > y + barheight)
+                            fy = barheight;
+                        else if (j < y)
+                            fy = j + 1 - y;
+                        else if (y + barheight < j + 1)
+                            fy = j + 1 - y - barheight;
+                        for (int i = sx; i <= tx; i++)
+                        {
+                            fx = 1.0;
+                            if (i < x && i + 1 > x + barwidth )
+                                fx = barwidth;
+                            else if (i < x)
+                                fx = i + 1 - x;
+                            else if (x + barwidth < i + 1)
+                                fx = i + 1 - x - barwidth;
 
-                        metrics[width*j + i] += (*(*evt)->metrics)[metric]->event * fx * fy;
+                            metrics[width*j + i] += (*(*evt)->metrics)[metric]->event * fx * fy;
 
-                        contributors[width*j + i] += fx * fy;
+                            contributors[width*j + i] += fx * fy;
+                        }
                     }
-                }
 
                 if (showAggSteps) // repeat!
                 {
                     x = ((*evt)->step - startStep - 1) * barwidth + 1;
-                    if (x + barheight <= 0)
+                    if (x + barwidth <= 0)
                         continue;
 
                     // Not as many checks since we know this comes before the preivous event
@@ -367,6 +373,7 @@ void StepVis::drawNativeGL()
     glColorPointer(3,GL_FLOAT,0,colors.constData());
     glVertexPointer(2,GL_FLOAT,0,bars.constData());
     glDrawArrays(GL_POINTS,0,bars.size()/2);
+    //glDrawPixels(width, height, GL_RGB, GL_FLOAT, colors.constData());
 }
 
 void StepVis::paintEvents(QPainter * painter)

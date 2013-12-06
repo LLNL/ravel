@@ -132,16 +132,29 @@ void OverviewVis::setTrace(Trace * t)
     maxStep = trace->global_max_step;
     minTime = ULLONG_MAX;
     maxTime = 0;
+    unsigned long long init_time = ULLONG_MAX;
+    unsigned long long finalize_time = 0;
     // Maybe we should have this be by step instead? We'll see. Right now it uses the full events list which seems
     // unnecessary
-    for (QVector<QVector<Event *> *>::Iterator eitr = trace->events->begin(); eitr != trace->events->end(); ++eitr) {
-        for (QVector<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
-            if ((*itr)->enter > maxTime && ((*(trace->functions))[(*itr)->function])->name == "MPI_Finalize")
-                maxTime = (*itr)->enter; // Last MPI_Finalize enter
-            if ((*itr)->exit < minTime && ((*(trace->functions))[(*itr)->function])->name == "MPI_Init")
-                minTime = (*itr)->exit; // Earliest MPI_Init exit
+    for (QVector<QVector<Event *> *>::Iterator eitr = trace->events->begin(); eitr != trace->events->end(); ++eitr)
+    {
+        for (QVector<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr)
+        {
+            if ((*itr)->enter > maxTime)
+                maxTime = (*itr)->enter;
+            if ((*itr)->exit < minTime)
+                minTime = (*itr)->exit;
+            if ((*itr)->enter > finalize_time && ((*(trace->functions))[(*itr)->function])->name == "MPI_Finalize")
+                finalize_time = (*itr)->enter; // Last MPI_Finalize enter
+            if ((*itr)->exit < init_time && ((*(trace->functions))[(*itr)->function])->name == "MPI_Init")
+                init_time = (*itr)->exit; // Earliest MPI_Init exit
         }
     }
+
+    if (finalize_time > 0)
+        maxTime = std::min(maxTime, finalize_time);
+    if (init_time < ULLONG_MAX)
+        minTime = std::max(minTime, init_time);
 
     startTime = minTime;
     stopTime = minTime;
@@ -172,6 +185,8 @@ void OverviewVis::processVis()
                 float stop = (width - 1) * (((*evt)->exit - minTime) / 1.0 / timespan);
                 start_int = static_cast<int>(start);
                 stop_int = static_cast<int>(stop);
+                std::cout << start_int << " from " << start << " from enter " << (*evt)->enter;
+                std::cout << " and mintime " << minTime <<  " over " << width << " and timespan " << timespan << std::endl;
                 Q_ASSERT((*evt)->metrics->contains(lateness));
                 if ((*(*evt)->metrics)[lateness]->event > 0) {
                     heights[start_int] += (*(*evt)->metrics)[lateness]->event * (start - start_int);
