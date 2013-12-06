@@ -142,8 +142,8 @@ void StepVis::qtPaint(QPainter *painter)
         return;
 
     // In this case we haven't already drawn stuff with GL, so we paint it here.
-    //if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
-    //    paintEvents(painter);
+    if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
+        paintEvents(painter);
 
     // Hover is independent of how we drew things
     drawHover(painter);
@@ -155,11 +155,11 @@ void StepVis::drawNativeGL()
     if (!visProcessed)
         return;
 
-    //drawColorBarGL();
+    drawColorBarGL();
 
     int effectiveHeight = rect().height() - colorBarHeight;
-    //if (effectiveHeight / processSpan >= 3 && rect().width() / stepSpan >= 3)
-    //    return;
+    if (effectiveHeight / processSpan >= 3 && rect().width() / stepSpan >= 3)
+        return;
 
     QString metric("Lateness");
 
@@ -541,12 +541,40 @@ void StepVis::drawColorBarGL()
     glEnable(GL_SCISSOR_TEST);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glScissor(0, rect().height() - colorBarHeight, rect().width(), colorBarHeight);
-    glViewport(0, rect().height() - colorBarHeight, rect().width(), colorBarHeight);
-    glOrtho(0, rect().width(), rect().height() - colorBarHeight, rect().height(), 0, 1);
+    glScissor(0, 0, rect().width(), colorBarHeight);
+    glViewport(0, 0, rect().width(), colorBarHeight);
+    glOrtho(0, rect().width(), 0, colorBarHeight, 0, 1);
     glMatrixMode(GL_MODELVIEW);
 
     // Drawing goes here
+    QColor startColor, finishColor;
+    glPushMatrix();
+    {
+        glLoadIdentity();
+        int barWidth = (rect().width() - 400 > 0) ? rect().width() - 400 : rect().width() - 200;
+        int offset = (rect().width() - barWidth) / 2;
+        int barHeight = colorBarHeight - 4;
+        int barMargin = 4;
+        int segment_size = int(float(barWidth) / 100.0);
+        for (int i = 0; i < 100; i++)
+        {
+            glPushMatrix();
+
+            glTranslatef(offset + i*segment_size, barMargin, 0);
+            glBegin(GL_QUADS);
+            startColor = colormap->color(i / 100.0 * maxLateness);
+            glColor3f(startColor.red() / 255.0, startColor.green() / 255.0, startColor.blue() / 255.0);
+            glVertex3f(0, 0, 0);
+            glVertex3f(0, barHeight, 0);
+            finishColor = colormap->color((i + 1) / 100.0 * maxLateness);
+            glColor3f(finishColor.red() / 255.0, finishColor.green() / 255.0, finishColor.blue() / 255.0);
+            glVertex3f(segment_size, barHeight, 0);
+            glVertex3f(segment_size, 0, 0);
+            glEnd();
+            glPopMatrix();
+        }
+    }
+    glPopMatrix();
 
     glDisable(GL_SCISSOR_TEST);
 }

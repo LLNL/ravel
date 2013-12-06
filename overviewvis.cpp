@@ -185,8 +185,8 @@ void OverviewVis::processVis()
                 float stop = (width - 1) * (((*evt)->exit - minTime) / 1.0 / timespan);
                 start_int = static_cast<int>(start);
                 stop_int = static_cast<int>(stop);
-                std::cout << start_int << " from " << start << " from enter " << (*evt)->enter;
-                std::cout << " and mintime " << minTime <<  " over " << width << " and timespan " << timespan << std::endl;
+                //std::cout << start_int << " from " << start << " from enter " << (*evt)->enter;
+                //std::cout << " and mintime " << minTime <<  " over " << width << " and timespan " << timespan << std::endl;
                 Q_ASSERT((*evt)->metrics->contains(lateness));
                 if ((*(*evt)->metrics)[lateness]->event > 0) {
                     heights[start_int] += (*(*evt)->metrics)[lateness]->event * (start - start_int);
