@@ -191,6 +191,9 @@ void StepVis::drawNativeGL()
         barheight = height / float(processSpan);
     }
 
+    processheight = barheight;
+    stepwidth = barwidth;
+
     // Generate buffers to hold/accumulate information for anti-aliasing
     // We do this by pixel, each needs x,y
     QVector<GLfloat> bars = QVector<GLfloat>(2 * width * height);
@@ -288,7 +291,7 @@ void StepVis::drawNativeGL()
                     }
                 }
 
-                /*if (showAggSteps) // repeat!
+                if (showAggSteps) // repeat!
                 {
                     x = ((*evt)->step - startStep - 1) * barwidth + 1;
                     if (x + barheight <= 0)
@@ -320,10 +323,10 @@ void StepVis::drawNativeGL()
 
                             metrics[width*j + i] += (*(*evt)->metrics)[metric]->aggregate * fx * fy;
 
-                            ++contributors[width*j + i];
+                            contributors[width*j + i] += fx * fy;
                         }
                     }
-                }*/
+                }
 
             }
         }
