@@ -960,6 +960,7 @@ void Trace::set_dag_steps()
     delete current_level;
 }
 
+// Note, phases were set on importing from OTF
 void Trace::partitionByPhase()
 {
     QMap<int, Partition *> * partition_dict = new QMap<int, Partition *>();

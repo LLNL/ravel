@@ -96,8 +96,8 @@ void TraditionalVis::mouseMoveEvent(QMouseEvent * event)
         if (startTime > maxTime)
             startTime = maxTime;
 
-        if (startProcess + processSpan > trace->num_processes + 1)
-            startProcess = trace->num_processes - processSpan + 1;
+        if (startProcess + processSpan > trace->num_processes)
+            startProcess = trace->num_processes - processSpan;
         if (startProcess < 0)
             startProcess = 0;
 

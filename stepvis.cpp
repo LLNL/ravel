@@ -78,8 +78,8 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
 
         if (startProcess < 0)
             startProcess = 0;
-        if (startProcess + processSpan > trace->num_processes + 1)
-            startProcess = trace->num_processes - processSpan + 1;
+        if (startProcess + processSpan > trace->num_processes)
+            startProcess = trace->num_processes - processSpan;
 
         mousex = event->x();
         mousey = event->y();
@@ -142,8 +142,8 @@ void StepVis::qtPaint(QPainter *painter)
         return;
 
     // In this case we haven't already drawn stuff with GL, so we paint it here.
-    //if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
-    //    paintEvents(painter);
+    if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
+        paintEvents(painter);
 
     // Hover is independent of how we drew things
     drawHover(painter);
@@ -158,8 +158,8 @@ void StepVis::drawNativeGL()
     //drawColorBarGL();
 
     int effectiveHeight = rect().height() - colorBarHeight;
-    //if (effectiveHeight / processSpan >= 3 && rect().width() / stepSpan >= 3)
-    //    return;
+    if (effectiveHeight / processSpan >= 3 && rect().width() / stepSpan >= 3)
+        return;
 
     QString metric("Lateness");
 
