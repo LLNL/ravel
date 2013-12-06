@@ -22,13 +22,18 @@ protected:
     void drawNativeGL();
     void paintEvents(QPainter *painter);
     void prepaint();
+    void drawColorBarGL();
+    void drawColorBarText(QPainter * painter);
 
 private:
     bool showAggSteps;
     long long maxLateness;
     ColorMap * colormap;
+    QString maxLatenessText;
+    int maxLatenessTextWidth;
 
     static const int spacingMinimum = 12;
+    static const int colorBarHeight = 20;
 };
 
 #endif // STEPVIS_H
