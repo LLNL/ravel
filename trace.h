@@ -76,6 +76,7 @@ private:
     QList<QList<Partition *> *> * tarjan();
     void set_global_steps();
     void calculate_lateness();
+    void output_graph(QString filename);
 
 
     bool isProcessed; // Partitions exist

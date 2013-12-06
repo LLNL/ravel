@@ -16,6 +16,7 @@ Partition::Partition()
       lowlink(-1),
       leapmark(false),
       group(new QSet<Partition *>()),
+      gvid(""),
       free_recvs(NULL)
 {
     group->insert(this);
@@ -309,4 +310,19 @@ void Partition::finalize_steps()
         //for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
         //    (*evt)->debug_step = (*evt)->step;
     }
+}
+
+QString Partition::generate_process_string()
+{
+    QString ps = "";
+    bool first = true;
+    for (QMap<int, QList<Event *> *>::Iterator itr = events->begin(); itr != events->end(); ++itr)
+    {
+        if (!first)
+            ps += ", ";
+        else
+            first = false;
+        ps += QString::number(itr.key());
+    }
+    return ps;
 }

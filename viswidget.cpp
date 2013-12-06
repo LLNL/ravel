@@ -1,4 +1,5 @@
 #include "viswidget.h"
+#include <iostream>
 
 VisWidget::VisWidget(QWidget *parent) :
     QGLWidget(QGLFormat(QGL::SampleBuffers), parent),
@@ -200,6 +201,9 @@ void VisWidget::drawTimescale(QPainter * painter, unsigned long long start, unsi
     // Now we must find the first number after startTime divisible by
     // the tick_span. We don't want to just find the same roundness
     // because then panning doesn't work.
+    std::cout << "tick_span " << tick_span << "  start " << start << std::endl;
+    std::cout << "start % tick_span " << (start % tick_span) << std::endl;
+    std::cout << "ts - s%ts " << (tick_span - start % tick_span) << std::endl;
     unsigned long long tick = (tick_span - start % tick_span) + start;
 
     // And now we draw

@@ -1,5 +1,6 @@
 #include "trace.h"
 #include <iostream>
+#include <fstream>
 
 Trace::Trace(int np, bool legacy)
     : num_processes(np),
@@ -116,7 +117,8 @@ void Trace::partition()
         partitionByPhase();
     }
 
-
+    set_partition_dag();
+    output_graph("/Users/kate/post_partition.dot");
 }
 
 void Trace::set_global_steps()
@@ -1097,4 +1099,36 @@ void Trace::initializePartitionsWaitall()
     } // End event loop for one process
 }
 
+void Trace::output_graph(QString filename)
+{
+    std::ofstream graph;
+    graph.open(filename.toStdString().c_str());
 
+    QString indent = "     ";
+
+    graph << "digraph {\n";
+    graph << indent.toStdString().c_str() << "graph [bgcolor=transparent];\n";
+    graph << indent.toStdString().c_str() << "node [label=\"\\N\"];\n";
+
+    int id = 0;
+    for (QList<Partition *>::Iterator partition = partitions->begin(); partition != partitions->end(); ++partition)
+    {
+        (*partition)->gvid = QString::number(id);
+        graph << indent.toStdString().c_str() << (*partition)->gvid.toStdString().c_str();
+        graph << " [label=\"" << (*partition)->generate_process_string().toStdString().c_str() << "\"];\n";
+        ++id;
+    }
+
+    for (QList<Partition *>::Iterator partition = partitions->begin(); partition != partitions->end(); ++partition)
+    {
+        for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++ child)
+        {
+            graph << indent.toStdString().c_str() << (*partition)->gvid.toStdString().c_str();
+            graph << " -> " << (*child)->gvid.toStdString().c_str() << ";\n";
+        }
+    }
+    graph << "}";
+
+    graph.close();
+    std::cout << "Finished graph" << std::endl;
+}

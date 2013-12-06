@@ -21,6 +21,7 @@ public:
 
     unsigned long long int distance(Partition * other);
     void calculate_dag_leap();
+    QString generate_process_string();
 
     QMap<int, QList<Event *> *> * events;
     int max_step;
@@ -41,6 +42,9 @@ public:
     // For leap merge
     bool leapmark;
     QSet<Partition *> * group;
+
+    // For graph drawing
+    QString gvid;
 
 private:
     void step_receive(Message * msg);
