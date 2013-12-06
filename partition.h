@@ -22,6 +22,7 @@ public:
     unsigned long long int distance(Partition * other);
     void calculate_dag_leap();
     QString generate_process_string();
+    Partition * newest_partition();
 
     QMap<int, QList<Event *> *> * events;
     int max_step;

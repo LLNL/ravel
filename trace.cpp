@@ -99,6 +99,20 @@ void Trace::partition()
 
           // Merge communication
         mergeForMessages();
+
+        for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
+        {
+            std::cout << "New Partition:" << std::endl;
+            for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
+            {
+                std::cout << "  evt process:" << event_list.key() << std::endl;
+                for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
+                {
+                    std::cout << "    evt time: " << (*evt)->enter << " - " << (*evt)->exit << std::endl;
+                }
+            }
+        }
+
           // Tarjan
         mergeCycles();
 
@@ -196,12 +210,16 @@ void Trace::calculate_lateness()
     // Active partition group may change every time the step is changed.
     for (int i = 0; i <= global_max_step; ++i)
     {
+        //std::cout << "Handling step " << i << std::endl;
         QList<Event *> * i_list = new QList<Event *>();
         for (QSet<Partition *>::Iterator part = active_partitions->begin(); part != active_partitions->end(); ++part)
+        {
+            //std::cout << "     Active partition: " << (*part)->gvid.toStdString().c_str() << std::endl;
             for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
                 for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
                     if ((*evt)->step == i)
                         i_list->append(*evt);
+        }
 
         // Find min leave time
         mintime = ULLONG_MAX;
@@ -243,15 +261,31 @@ void Trace::assignSteps()
     for (QList<Partition *>::Iterator partition = partitions->begin(); partition != partitions->end(); ++partition)
         (*partition)->step();
 
+    for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
+    {
+        for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
+        {
+            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
+            {
+                std::cout << "partition: " << (*evt)->partition->gvid.toStdString().c_str();
+                std::cout << ", event step: " << (*evt)->step << " in process " << (*evt)->process;
+                std::cout << ", time: " << (*evt)->enter << " - " << (*evt)->exit << std::endl;
+            }
+        }
+    }
+
     // Global steps
     set_partition_dag();
     set_dag_steps();
     set_global_steps();
 
+    output_graph("/Users/kate/post_global.dot");
+
     // Calculate Step metrics
     calculate_lateness();
 
     // Verify
+    bool flag = true;
     for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
     {
         Q_ASSERT((*part)->min_global_step >= 0);
@@ -259,10 +293,17 @@ void Trace::assignSteps()
         {
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
-                Q_ASSERT((*evt)->metrics->contains("Lateness"));
+                if (!(*evt)->metrics->contains("Lateness"))
+                {
+                    //std::cout << "Bad partition: " << (*evt)->partition->gvid.toStdString().c_str();
+                    //std::cout << ", event step: " << (*evt)->step << " in process " << (*evt)->process << std::endl;
+                    flag = false;
+                }
+                //Q_ASSERT((*evt)->metrics->contains("Lateness"));
             }
         }
     }
+    Q_ASSERT(flag);
 }
 
 
@@ -563,10 +604,10 @@ void Trace::mergeForMessages()
     QSet<Partition *> old_partitions = QSet<Partition *>();
     for (QList<Event *>::Iterator send = send_events->begin(); send != send_events->end(); ++send)
     {
-        p1 = (*send)->partition->new_partition; // Use new partition in case this has changed
+        p1 = (*send)->partition->newest_partition(); // Use new partition in case this has changed
         for (QVector<Message *>::Iterator msg = (*send)->messages->begin(); msg != (*send)->messages->end(); ++msg)
         {
-            p2 = (*msg)->receiver->partition->new_partition;
+            p2 = (*msg)->receiver->partition->newest_partition();
             if (p1 != p2)
             {
                 p = mergePartitions(p1, p2);
@@ -587,9 +628,9 @@ void Trace::mergeForMessages()
     {
         for (QVector<Message *>::Iterator msg = (*send)->messages->begin(); msg != (*send)->messages->end(); ++msg)
         {
-            (*msg)->receiver->partition = (*msg)->receiver->partition->new_partition;
+            (*msg)->receiver->partition = (*msg)->receiver->partition->newest_partition();
         }
-        (*send)->partition = (*send)->partition->new_partition;
+        (*send)->partition = (*send)->partition->newest_partition();
     }
 
     // Delete the old partitions
@@ -598,7 +639,10 @@ void Trace::mergeForMessages()
 
     // Reset new_partition state for the SCC merge
     for (QList<Partition*>::Iterator partition = partitions->begin(); partition != partitions->end(); ++partition)
+    {
+        (*partition)->sortEvents();
         (*partition)->new_partition = NULL;
+    }
 }
 
 // Looping section of Tarjan algorithm
@@ -721,6 +765,7 @@ void Trace::mergeCycles()
     // Determine partition parents/children through dag
     // and then determine strongly connected components (SCCs) with tarjan.
     set_partition_dag();
+    output_graph("/Users/kate/pre_merge_cycles.dot");
     QList<QList<Partition *> *> * components = tarjan();
 
     // Go through the SCCs and merge them into single partitions
@@ -1115,7 +1160,10 @@ void Trace::output_graph(QString filename)
     {
         (*partition)->gvid = QString::number(id);
         graph << indent.toStdString().c_str() << (*partition)->gvid.toStdString().c_str();
-        graph << " [label=\"" << (*partition)->generate_process_string().toStdString().c_str() << "\"];\n";
+        graph << " [label=\"" << (*partition)->generate_process_string().toStdString().c_str();
+        graph << " :  " << QString::number((*partition)->min_global_step).toStdString().c_str();
+        graph << " - " << QString::number((*partition)->max_global_step).toStdString().c_str();
+        graph << "\"];\n";
         ++id;
     }
 

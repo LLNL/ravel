@@ -326,3 +326,11 @@ QString Partition::generate_process_string()
     }
     return ps;
 }
+
+Partition * Partition::newest_partition()
+{
+    Partition * p = this;
+    while (p != p->new_partition)
+        p = p->new_partition;
+    return p;
+}
