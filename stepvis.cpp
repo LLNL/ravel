@@ -41,6 +41,10 @@ void StepVis::setTrace(Trace * t)
     stepSpan = initStepSpan;
     startProcess = 0;
     processSpan = trace->num_processes;
+
+    // For colorbar
+    QLocale systemlocale = QLocale::system();
+    maxLatenessText = systemlocale.toString(maxLateness);
 }
 
 void StepVis::setSteps(float start, float stop)
@@ -143,7 +147,9 @@ void StepVis::qtPaint(QPainter *painter)
 
     // In this case we haven't already drawn stuff with GL, so we paint it here.
     if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
-        paintEvents(painter);
+      paintEvents(painter);
+
+    drawColorBarText(painter);
 
     // Hover is independent of how we drew things
     drawHover(painter);
@@ -197,7 +203,7 @@ void StepVis::drawNativeGL()
 
     // Generate buffers to hold/accumulate information for anti-aliasing
     // We do this by pixel, each needs x,y
-    QVector<GLfloat> bars = QVector<GLfloat>(2 * width * height);
+    //QVector<GLfloat> bars = QVector<GLfloat>(2 * width * height);
     // Each "bar" has 4 vertices and each vertex has a color which is 3 floats
     // So our color vector must be 3 * height * width
     // Initialized with 1.0s (white)
@@ -208,7 +214,7 @@ void StepVis::drawNativeGL()
 
     // Set the points
     int base_index, index;
-    for (int y = 0; y < height; y++)
+    /*for (int y = 0; y < height; y++)
     {
         base_index = 2*y*width;
         for (int x = 0; x < width; x++)
@@ -217,7 +223,7 @@ void StepVis::drawNativeGL()
             bars[index] = x;
             bars[index + 1] = y;
         }
-    }
+    }*/
 
     // Process events for values
     float x, y; // true position
@@ -368,12 +374,14 @@ void StepVis::drawNativeGL()
     glPointSize(1.0f);
 
     // Points
-    glEnableClientState(GL_COLOR_ARRAY);
+    /*glEnableClientState(GL_COLOR_ARRAY);
     glEnableClientState(GL_VERTEX_ARRAY);
     glColorPointer(3,GL_FLOAT,0,colors.constData());
     glVertexPointer(2,GL_FLOAT,0,bars.constData());
-    glDrawArrays(GL_POINTS,0,bars.size()/2);
-    //glDrawPixels(width, height, GL_RGB, GL_FLOAT, colors.constData());
+    glDrawArrays(GL_POINTS,0,bars.size()/2);*/
+    //glRasterPos2i(0, colorBarHeight);
+    glDrawPixels(width, height, GL_RGB, GL_FLOAT, colors.constData());
+    glRasterPos2i(0,0);
 }
 
 void StepVis::paintEvents(QPainter * painter)
@@ -552,15 +560,15 @@ void StepVis::drawColorBarGL()
     {
         glLoadIdentity();
         int barWidth = (rect().width() - 400 > 0) ? rect().width() - 400 : rect().width() - 200;
-        int offset = (rect().width() - barWidth) / 2;
-        int barHeight = colorBarHeight - 4;
-        int barMargin = 4;
-        int segment_size = int(float(barWidth) / 100.0);
+        int barMargin = 5;
+        int barHeight = colorBarHeight - 2*barMargin;
+        float segment_size = float(barWidth) / 101.0;
+        colorbar_offset = (rect().width() - segment_size * 101.0) / 2;
         for (int i = 0; i < 100; i++)
         {
             glPushMatrix();
 
-            glTranslatef(offset + i*segment_size, barMargin, 0);
+            glTranslatef(colorbar_offset + i*segment_size, barMargin, 0);
             glBegin(GL_QUADS);
             startColor = colormap->color(i / 100.0 * maxLateness);
             glColor3f(startColor.red() / 255.0, startColor.green() / 255.0, startColor.blue() / 255.0);
@@ -582,9 +590,11 @@ void StepVis::drawColorBarGL()
 void StepVis::drawColorBarText(QPainter * painter)
 {
     // Based on Lateness
-    QLocale systemlocale = QLocale::system();
+    painter->setPen(Qt::black);
     painter->setFont(QFont("Helvetica", 10));
     QFontMetrics font_metrics = this->fontMetrics();
-    maxLatenessText = systemlocale.toString(maxLateness);
     maxLatenessTextWidth = font_metrics.width(maxLatenessText);
+    painter->drawText(rect().width() - colorbar_offset + 3,
+                      rect().height() - colorBarHeight/2 + font_metrics.xHeight()/2,
+                      maxLatenessText);
 }

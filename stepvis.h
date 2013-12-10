@@ -31,9 +31,10 @@ private:
     ColorMap * colormap;
     QString maxLatenessText;
     int maxLatenessTextWidth;
+    float colorbar_offset;
 
     static const int spacingMinimum = 12;
-    static const int colorBarHeight = 20;
+    static const int colorBarHeight = 24;
 };
 
 #endif // STEPVIS_H
