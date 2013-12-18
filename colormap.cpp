@@ -2,11 +2,11 @@
 #include <iostream>
 
 ColorMap::ColorMap(QColor color, float value)
+    : minValue(0),
+      maxValue(1),
+      colors(new QVector<ColorValue *>())
 {
-    colors = new QVector<ColorValue *>();
     colors->push_back(new ColorValue(color, value));
-    minValue = 0;
-    maxValue = 1;
 }
 
 ColorMap::~ColorMap()

@@ -1,20 +1,19 @@
 #include "stepvis.h"
 #include <iostream>
 
-StepVis::StepVis(QWidget* parent) : TimelineVis(parent = parent)
+StepVis::StepVis(QWidget* parent) : TimelineVis(parent = parent),
+    showAggSteps(true),
+    maxLateness(0),
+    maxLatenessText(""),
+    maxLatenessTextWidth(0),
+    colorbar_offset(0)
 {
-    // Set painting variables
-    showAggSteps = true;
 
-    // Create color map
-    colormap = new ColorMap(QColor(173, 216, 230), 0);
-    colormap->addColor(QColor(240, 230, 140), 0.5);
-    colormap->addColor(QColor(178, 34, 34), 1);
 }
 
 StepVis::~StepVis()
 {
-    delete colormap;
+
 }
 
 void StepVis::setTrace(Trace * t)

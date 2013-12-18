@@ -3,7 +3,21 @@
 
 TimelineVis::TimelineVis(QWidget* parent)
     : VisWidget(parent = parent),
-      mousePressed(false)
+      mousePressed(false),
+      mousex(0),
+      mousey(0),
+      pressx(0),
+      pressy(0),
+      stepwidth(0),
+      processheight(0),
+      maxStep(0),
+      startStep(0),
+      startProcess(0),
+      stepSpan(0),
+      processSpan(0),
+      proc_to_order(QMap<int, int>()),
+      order_to_proc(QMap<int, int>()),
+      colormap(NULL)
 {
     setMouseTracking(true);
 }
@@ -11,6 +25,11 @@ TimelineVis::TimelineVis(QWidget* parent)
 TimelineVis::~TimelineVis()
 {
 
+}
+
+void TimelineVis::setColorMap(ColorMap * cm)
+{
+    colormap = cm;
 }
 
 void TimelineVis::processVis()

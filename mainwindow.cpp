@@ -16,9 +16,13 @@ MainWindow::MainWindow(QWidget *parent) :
     traces(QVector<Trace *>()),
     viswidgets(QVector<VisWidget *>()),
     otfoptions(new OTFImportOptions()),
-    otfdialog(NULL)
+    otfdialog(NULL),
+    metriccolormap(new ColorMap(QColor(173, 216, 230), 0))
 {
     ui->setupUi(this);
+
+    metriccolormap->addColor(QColor(240, 230, 140), 0.5);
+    metriccolormap->addColor(QColor(178, 34, 34), 1);
 
     OverviewVis* overview = new OverviewVis(ui->overviewContainer);
     //ui->overviewLayout->addWidget(overview);
@@ -35,6 +39,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect((stepvis), SIGNAL(stepsChanged(float, float)), this, SLOT(pushSteps(float, float)));
     connect((stepvis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
+    stepvis->setColorMap(metriccolormap);
     viswidgets.push_back(stepvis);
 
     TraditionalVis* timevis = new TraditionalVis(ui->traditionalContainer);
@@ -43,6 +48,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect((timevis), SIGNAL(stepsChanged(float, float)), this, SLOT(pushSteps(float, float)));
     connect((timevis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
+    timevis->setColorMap(metriccolormap);
     viswidgets.push_back(timevis);
 
     connect(ui->actionOpen_JSON, SIGNAL(triggered()),this,SLOT(importJSON()));
@@ -59,6 +65,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
+    delete metriccolormap;
     delete otfdialog;
     delete ui;
 }

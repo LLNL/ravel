@@ -28,7 +28,6 @@ protected:
 private:
     bool showAggSteps;
     long long maxLateness;
-    ColorMap * colormap;
     QString maxLatenessText;
     int maxLatenessTextWidth;
     float colorbar_offset;

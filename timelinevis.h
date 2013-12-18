@@ -18,6 +18,7 @@ public:
     void mouseReleaseEvent(QMouseEvent * event);
     void mouseDoubleClickEvent(QMouseEvent * event);
     void leaveEvent(QEvent * event);
+    void setColorMap(ColorMap * cm);
 
 public slots:
     void selectEvent(Event * event);
@@ -40,6 +41,7 @@ protected:
     float processSpan;
     QMap<int, int> proc_to_order;
     QMap<int, int> order_to_proc;
+    ColorMap * colormap;
 
 };
 #endif // TIMELINEVIS_H

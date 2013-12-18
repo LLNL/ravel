@@ -6,6 +6,7 @@
 #include "trace.h"
 #include "otfimportoptions.h"
 #include "importoptionsdialog.h"
+#include "colormap.h"
 
 #include "json/json.h"
 
@@ -39,6 +40,9 @@ private:
     // Import Trace options
     OTFImportOptions * otfoptions;
     ImportOptionsDialog * otfdialog;
+
+    // Color stuff
+    ColorMap * metriccolormap;
 };
 
 #endif // MAINWINDOW_H

@@ -2,10 +2,14 @@
 #include <iostream>
 #include <QFontMetrics>
 
-TraditionalVis::TraditionalVis(QWidget * parent) : TimelineVis(parent = parent)
+TraditionalVis::TraditionalVis(QWidget * parent) : TimelineVis(parent = parent),
+    minTime(0),
+    maxTime(0),
+    startTime(0),
+    timeSpan(0),
+    stepToTime(new QVector<TimePair *>())
 {
-    // Set painting variables
-    stepToTime = new QVector<TimePair *>();
+
 }
 
 TraditionalVis::~TraditionalVis()

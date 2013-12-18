@@ -372,6 +372,7 @@ void Trace::mergeByLeap()
         for (QSet<Partition *>::Iterator partition = current_leap->begin(); partition != current_leap->end(); ++partition)
             processes += QSet<int>::fromList((*partition)->events->keys());
 
+        // If this leap doesn't have all the processes we have to do something
         if (processes.size() < num_processes)
         {
             QSet<Partition *> * new_leap_parts = new QSet<Partition *>();
@@ -379,6 +380,7 @@ void Trace::mergeByLeap()
             bool back_merge = false;
             for (QSet<Partition *>::Iterator partition = current_leap->begin(); partition != current_leap->end(); ++partition)
             {
+                // Determine distances from parent and child partitions 1 leap away
                 unsigned long long int parent_distance = ULLONG_MAX;
                 unsigned long long int child_distance = ULLONG_MAX;
                 for (QSet<Partition *>::Iterator parent = (*partition)->parents->begin(); parent != (*partition)->parents->end(); ++parent)
@@ -391,6 +393,7 @@ void Trace::mergeByLeap()
                         child_distance = std::min(child_distance, (*partition)->distance(*child));
                     }
 
+                // If we are sufficiently close to the parent, back merge
                 if (child_distance > 10 * parent_distance)
                 {
                     for (QSet<Partition *>::Iterator parent = (*partition)->parents->begin(); parent != (*partition)->parents->end(); ++parent)
@@ -408,7 +411,7 @@ void Trace::mergeByLeap()
                             back_merge = true;
                         }
                 }
-                else
+                else // merge children in
                 {
                     for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++child)
                         if ((*child)->dag_leap == (*partition)->dag_leap + 1
