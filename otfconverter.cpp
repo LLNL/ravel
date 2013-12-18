@@ -128,34 +128,44 @@ void OTFConverter::matchEvents()
 // Match the messages to the events.
 void OTFConverter::matchMessages()
 {
-    for (QVector<CommRecord *>::Iterator comm = rawtrace->messages->begin(); comm != rawtrace->messages->end(); ++comm)
+    int messages = 0;
+    int unmatched_recvs = 0;
+    int unmatched_sends = 0;
+    for (QVector<QVector<CommRecord *> *>::Iterator commlist = rawtrace->messages->begin(); commlist != rawtrace->messages->end(); ++commlist)
     {
-        Message * m = new Message((*comm)->send_time, (*comm)->recv_time);
+        for (QVector<CommRecord *>::Iterator comm = (*commlist)->begin(); comm != (*commlist)->end(); ++comm)
+        {
+            messages++;
+            Message * m = new Message((*comm)->send_time, (*comm)->recv_time);
 
-        Event * recv_evt = find_comm_event(search_child_ranges( (*(trace->roots))[(*comm)->receiver],
-                                                                (*comm)->recv_time),
-                                           (*comm)->recv_time);
-        if (recv_evt) {
-            recv_evt->messages->append(m);
-            m->receiver = recv_evt;
-        } else {
-            std::cout << "Error finding recv event for " << (*comm)->sender << "->" << (*comm)->receiver
-                      << " (" << (*comm)->send_time << ", " << (*comm)->recv_time << std::endl;
+            Event * recv_evt = find_comm_event(search_child_ranges( (*(trace->roots))[(*comm)->receiver],
+                                                                    (*comm)->recv_time),
+                                               (*comm)->recv_time);
+            if (recv_evt) {
+                recv_evt->messages->append(m);
+                m->receiver = recv_evt;
+            } else {
+                std::cout << "Error finding recv event for " << (*comm)->sender << "->" << (*comm)->receiver
+                         << " (" << (*comm)->send_time << ", " << (*comm)->recv_time << ")" << std::endl;
+                unmatched_recvs++;
+            }
+
+            Event * send_evt = find_comm_event(search_child_ranges( (*(trace->roots))[(*comm)->sender],
+                                                                    (*comm)->send_time),
+                                              (*comm)->send_time);
+            if (send_evt) {
+                send_evt->messages->append(m);
+                m->sender = send_evt;
+                trace->send_events->append(send_evt); // Keep track of the send events for merging later
+            } else {
+                std::cout << "Error finding send event for " << (*comm)->sender << "->" << (*comm)->receiver
+                          << " (" << (*comm)->send_time << ", " << (*comm)->recv_time << ")" << std::endl;
+                unmatched_sends++;
+            }
+
         }
-
-        Event * send_evt = find_comm_event(search_child_ranges( (*(trace->roots))[(*comm)->sender],
-                                                                (*comm)->send_time),
-                                          (*comm)->send_time);
-        if (send_evt) {
-            send_evt->messages->append(m);
-            m->sender = send_evt;
-            trace->send_events->append(send_evt); // Keep track of the send events for merging later
-        } else {
-            std::cout << "Error finding send event for " << (*comm)->sender << "->" << (*comm)->receiver
-                      << " (" << (*comm)->send_time << ", " << (*comm)->recv_time << std::endl;
-        }
-
     }
+    std::cout << "Total messages: " << messages << " with " << unmatched_sends << " unmatched sends and " << unmatched_recvs << " unmatched_recvs." << std::endl;
 }
 
 // Binary search for event containing time

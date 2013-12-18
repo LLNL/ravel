@@ -42,6 +42,11 @@ public:
     double time_conversion_factor;
     int num_processes;
 
+    int entercount;
+    int exitcount;
+    int sendcount;
+    int recvcount;
+
 private:
     void setHandlers();
 
@@ -49,7 +54,7 @@ private:
     OTF_Reader * otfReader;
     OTF_HandlerArray * handlerArray;
 
-    QVector<CommRecord *> * unmatched_recvs;
+    QVector<QVector<CommRecord *> *> * unmatched_recvs;
 
     RawTrace * rawtrace;
     QMap<int, QString> * functionGroups;

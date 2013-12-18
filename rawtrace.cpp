@@ -8,7 +8,10 @@ RawTrace::RawTrace(int np) : num_processes(np)
     for (int i = 0; i < np; i++) {
         (*events)[i] = new QVector<EventRecord *>();
     }
-    messages = new QVector<CommRecord *>();
+    messages = new QVector<QVector<CommRecord *> *>(np);
+    for (int i = 0; i < np; i++) {
+        (*messages)[i] = new QVector<CommRecord *>();
+    }
 }
 
 // Note we do not delete the function/functionGroup map because
@@ -24,9 +27,13 @@ RawTrace::~RawTrace()
         *eitr = NULL;
     }
     delete events;
-    for (QVector<CommRecord *>::Iterator itr = messages->begin(); itr != messages->end(); ++itr) {
-        delete *itr;
-        *itr = NULL;
+    for (QVector<QVector<CommRecord *> *>::Iterator eitr = messages->begin(); eitr != messages->end(); ++eitr) {
+        for (QVector<CommRecord *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
+            delete *itr;
+            *itr = NULL;
+        }
+        delete *eitr;
+        *eitr = NULL;
     }
     delete messages;
 }

@@ -18,7 +18,7 @@ public:
     QMap<int, QString> * functionGroups;
     QMap<int, Function *> * functions;
     QVector<QVector<EventRecord *> *> * events;
-    QVector<CommRecord *> * messages;
+    QVector<QVector<CommRecord *> *> * messages;
     int num_processes;
 };
 

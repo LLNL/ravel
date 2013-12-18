@@ -112,6 +112,7 @@ void MainWindow::importOTFbyGUI()
 
 void MainWindow::importOTF(QString dataFileName){
 
+    std::cout << "Processing " << dataFileName.toStdString().c_str() << std::endl;
     QElapsedTimer traceTimer;
     qint64 traceElapsed;
 
