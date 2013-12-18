@@ -20,6 +20,7 @@ public:
     void preprocess(OTFImportOptions * _options);
     void partition();
     void assignSteps();
+    void printStats();
 
     int num_processes;
     int units;

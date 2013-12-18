@@ -1,6 +1,8 @@
 #include "trace.h"
 #include <iostream>
 #include <fstream>
+#include <QElapsedTimer>
+#include "general_util.h"
 
 Trace::Trace(int np, bool legacy)
     : num_processes(np),
@@ -70,13 +72,41 @@ Trace::~Trace()
     delete roots;
 }
 
+void Trace::printStats()
+{
+    if (!isProcessed)
+    {
+        std::cout << "Not yet processed, incomplete stats" << std::endl;
+        return;
+    }
+
+    std::cout << "# Messages: " << send_events->length() << std::endl;
+
+    int num_mpi = 0;
+    for (QVector<QList<Event *> *>::Iterator itr = mpi_events->begin(); itr != mpi_events->end(); ++itr)
+        num_mpi += (*itr)->length();
+
+    std::cout << "# MPI Events: " << num_mpi << std::endl;
+
+}
+
 void Trace::preprocess(OTFImportOptions * _options)
 {
+    QElapsedTimer traceTimer;
+    qint64 traceElapsed;
+
+    traceTimer.start();
+
     options = *_options;
     partition();
     assignSteps();
 
     isProcessed = true;
+
+    traceElapsed = traceTimer.nsecsElapsed();
+    std::cout << "Structure Extraction: ";
+    gu_printTime(traceElapsed);
+    std::cout << std::endl;
 }
 
 void Trace::partition()
@@ -100,6 +130,7 @@ void Trace::partition()
           // Merge communication
         mergeForMessages();
 
+        /*
         for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
         {
             std::cout << "New Partition:" << std::endl;
@@ -111,7 +142,7 @@ void Trace::partition()
                     std::cout << "    evt time: " << (*evt)->enter << " - " << (*evt)->exit << std::endl;
                 }
             }
-        }
+        }*/
 
           // Tarjan
         mergeCycles();
@@ -132,7 +163,7 @@ void Trace::partition()
     }
 
     set_partition_dag();
-    output_graph("/Users/kate/post_partition.dot");
+    //output_graph("/Users/kate/post_partition.dot");
 }
 
 void Trace::set_global_steps()
@@ -261,6 +292,7 @@ void Trace::assignSteps()
     for (QList<Partition *>::Iterator partition = partitions->begin(); partition != partitions->end(); ++partition)
         (*partition)->step();
 
+    /*
     for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
     {
         for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
@@ -272,14 +304,14 @@ void Trace::assignSteps()
                 std::cout << ", time: " << (*evt)->enter << " - " << (*evt)->exit << std::endl;
             }
         }
-    }
+    }*/
 
     // Global steps
     set_partition_dag();
     set_dag_steps();
     set_global_steps();
 
-    output_graph("/Users/kate/post_global.dot");
+    //output_graph("/Users/kate/post_global.dot");
 
     // Calculate Step metrics
     calculate_lateness();
@@ -768,7 +800,7 @@ void Trace::mergeCycles()
     // Determine partition parents/children through dag
     // and then determine strongly connected components (SCCs) with tarjan.
     set_partition_dag();
-    output_graph("/Users/kate/pre_merge_cycles.dot");
+    //output_graph("/Users/kate/pre_merge_cycles.dot");
     QList<QList<Partition *> *> * components = tarjan();
 
     // Go through the SCCs and merge them into single partitions
@@ -1182,5 +1214,5 @@ void Trace::output_graph(QString filename)
     graph << "}";
 
     graph.close();
-    std::cout << "Finished graph" << std::endl;
+    //std::cout << "Finished graph" << std::endl;
 }

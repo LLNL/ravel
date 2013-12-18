@@ -1,7 +1,9 @@
 #include "otfimporter.h"
 #include <QString>
+#include <QElapsedTimer>
 #include <iostream>
 #include <cmath>
+#include "general_util.h"
 
 OTFImporter::OTFImporter()
 {
@@ -22,6 +24,11 @@ OTFImporter::~OTFImporter()
 
 RawTrace * OTFImporter::importOTF(const char* otf_file)
 {
+    QElapsedTimer traceTimer;
+    qint64 traceElapsed;
+
+    traceTimer.start();
+
     fileManager = OTF_FileManager_open(1);
     otfReader = OTF_Reader_open(otf_file, fileManager);
     handlerArray = OTF_HandlerArray_open();
@@ -44,6 +51,12 @@ RawTrace * OTFImporter::importOTF(const char* otf_file)
     OTF_HandlerArray_close(handlerArray);
     OTF_Reader_close(otfReader);
     OTF_FileManager_close(fileManager);
+
+    traceElapsed = traceTimer.nsecsElapsed();
+    std::cout << "OTF Reading: ";
+    gu_printTime(traceElapsed);
+    std::cout << std::endl;
+
     return rawtrace;
 }
 

@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QElapsedTimer>
 #include "viswidget.h"
 #include "trace.h"
 #include "otfimportoptions.h"

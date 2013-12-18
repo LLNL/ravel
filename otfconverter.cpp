@@ -1,9 +1,11 @@
+#include <QElapsedTimer>
 #include "otfconverter.h"
 #include <climits>
 #include <iostream>
+#include "general_util.h"
 
 OTFConverter::OTFConverter()
-    : trace(NULL), rawtrace(NULL), options(NULL), phaseFunction(-1)
+    : rawtrace(NULL), trace(NULL), options(NULL), phaseFunction(-1)
 {
 }
 
@@ -19,6 +21,11 @@ Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
     // Start with the rawtrace similar to what we got from PARAVER
     OTFImporter * importer = new OTFImporter();
     rawtrace = importer->importOTF(filename.toStdString().c_str());
+
+    // Time the rest of this
+    QElapsedTimer traceTimer;
+    qint64 traceElapsed;
+    traceTimer.start();
     trace = new Trace(rawtrace->num_processes, false);
 
     // Start setting up new Trace
@@ -61,6 +68,11 @@ Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
 
     delete importer;
     delete rawtrace;
+
+    traceElapsed = traceTimer.nsecsElapsed();
+    std::cout << "Event & Message Matching: ";
+    gu_printTime(traceElapsed);
+    std::cout << std::endl;
 
     return trace;
 }

@@ -5,6 +5,7 @@
 #include "traditionalvis.h"
 #include "otfconverter.h"
 #include "importoptionsdialog.h"
+#include "general_util.h"
 
 #include <QFileDialog>
 #include <iostream>
@@ -111,9 +112,20 @@ void MainWindow::importOTFbyGUI()
 
 void MainWindow::importOTF(QString dataFileName){
 
+    QElapsedTimer traceTimer;
+    qint64 traceElapsed;
+
+    traceTimer.start();
+
     OTFConverter importer = OTFConverter();
     Trace* trace = importer.importOTF(dataFileName, otfoptions);
     trace->preprocess(otfoptions);
+
+    traceElapsed = traceTimer.nsecsElapsed();
+    std::cout << "Total trace: ";
+    gu_printTime(traceElapsed);
+    std::cout << std::endl;
+    trace->printStats();
 
     this->traces.push_back(trace);
 
