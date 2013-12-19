@@ -208,6 +208,7 @@ void Trace::set_global_steps()
             // Set steps for the partition
             (*part)->max_global_step = 2 * ((*part)->max_step) + accumulated_step;
             (*part)->min_global_step = accumulated_step;
+            (*part)->mark = false; // Using this to debug again
 
             // Set steps for partition events
             for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
@@ -330,7 +331,7 @@ void Trace::assignSteps()
     calculate_lateness();
 
     // Verify
-    bool flag = true;
+    /*bool flag = true;
     for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
     {
         Q_ASSERT((*part)->min_global_step >= 0);
@@ -348,7 +349,7 @@ void Trace::assignSteps()
             }
         }
     }
-    Q_ASSERT(flag);
+    Q_ASSERT(flag);*/
 }
 
 
@@ -674,7 +675,6 @@ void Trace::mergeForMessagesHelper(Partition * part, QSet<Partition *> * to_merg
 void Trace::mergeForMessages()
 {
     Partition * p;
-    int count = 0;
 
     // Loop through partitions to determine which to merge based on messages
     QSet<Partition *> * to_merge = new QSet<Partition *>();
@@ -705,60 +705,6 @@ void Trace::mergeForMessages()
     delete to_merge;
     delete to_process;
 }
-
-/*void Trace::mergeForMessagesOld()
-{
-    Partition * p, * p1, * p2;
-    QSet<Partition *> old_partitions = QSet<Partition *>();
-    int count = 0;
-    for (QList<Event *>::Iterator send = send_events->begin(); send != send_events->end(); ++send)
-    {
-        if ((*send)->mark)
-            continue;
-        p1 = (*send)->partition->newest_partition(); // Use new partition in case this has changed
-        for (QVector<Message *>::Iterator msg = (*send)->messages->begin(); msg != (*send)->messages->end(); ++msg)
-        {
-            p2 = (*msg)->receiver->partition->newest_partition();
-            if (p1 != p2)
-            {
-                p = mergePartitions(p1, p2);
-                partitions->removeAll(p1);
-                partitions->removeAll(p2);
-                partitions->append(p);
-                old_partitions.insert(p1);
-                old_partitions.insert(p2);
-                p1 = p; // For the rest of the messages connected to this send. [ Should only be one, shouldn't matter. ]
-                (*send)->partition = p;
-                (*msg)->receiver->partition = p;
-            }
-            count++;
-            if (count % 100 == 0)
-                std::cout << "Handled " << count << " messages." << std::endl;
-        }
-    }
-
-    std::cout << "Updating partition references..." << std::endl;
-    // Update all partitions references
-    for (QList<Event *>::Iterator send = send_events->begin(); send != send_events->end(); ++send)
-    {
-        for (QVector<Message *>::Iterator msg = (*send)->messages->begin(); msg != (*send)->messages->end(); ++msg)
-        {
-            (*msg)->receiver->partition = (*msg)->receiver->partition->newest_partition();
-        }
-        (*send)->partition = (*send)->partition->newest_partition();
-    }
-
-    // Delete the old partitions
-    for (QSet<Partition *>::Iterator old = old_partitions.begin(); old != old_partitions.end(); ++old)
-        delete *old;
-
-    // Reset new_partition state for the SCC merge
-    for (QList<Partition*>::Iterator partition = partitions->begin(); partition != partitions->end(); ++partition)
-    {
-        (*partition)->sortEvents();
-        (*partition)->new_partition = NULL;
-    }
-}*/
 
 // Looping section of Tarjan algorithm
 void Trace::strong_connect_loop(Partition * part, QStack<Partition *> * stack,
@@ -805,6 +751,7 @@ void Trace::strong_connect_loop(Partition * part, QStack<Partition *> * stack,
 }
 
 // Iteration portion of Tarjan algorithm
+// Please redo with shared pointers
 int Trace::strong_connect_iter(Partition * partition, QStack<Partition *> * stack,
                                       QList<QList<Partition *> *> * components, int index)
 {
@@ -999,6 +946,9 @@ void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
     }
     delete components;
 
+    // Reset new_partition
+    for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
+        (*part)->new_partition = NULL;
 }
 
 // Set all the parents/children in the partition by looking at the partitions of the events in them.

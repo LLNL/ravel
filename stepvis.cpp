@@ -26,10 +26,13 @@ void StepVis::setTrace(Trace * t)
     {
         for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list) {
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt) {
-                if ((*(*evt)->metrics)[lateness]->event > maxLateness)
-                    maxLateness = (*(*evt)->metrics)[lateness]->event;
-                if ((*(*evt)->metrics)[lateness]->aggregate > maxLateness)
-                    maxLateness = (*(*evt)->metrics)[lateness]->aggregate;
+                if ((*evt)->hasMetric(lateness))
+                {
+                    if ((*evt)->getMetric(lateness) > maxLateness)
+                        maxLateness = (*evt)->getMetric(lateness);
+                    if ((*evt)->getMetric(lateness, true) > maxLateness)
+                        maxLateness = (*evt)->getMetric(lateness, true);
+                }
             }
         }
     }
@@ -464,7 +467,10 @@ void StepVis::paintEvents(QPainter * painter)
                 }
 
                 // Draw the event
-                painter->fillRect(QRectF(x, y, w, h), QBrush(colormap->color((*(*evt)->metrics)[metric]->event)));
+                if ((*evt)->hasMetric(metric))
+                    painter->fillRect(QRectF(x, y, w, h), QBrush(colormap->color((*evt)->getMetric(metric))));
+                else
+                    painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(180, 180, 180)));
                 // Change pen color if selected
                 if (*evt == selected_event)
                     painter->setPen(QPen(Qt::yellow));
@@ -501,8 +507,11 @@ void StepVis::paintEvents(QPainter * painter)
                     }
 
                     aggcomplete = aggcomplete && complete;
-                    painter->fillRect(QRectF(xa, y, wa, h), QBrush(colormap->color((*(*evt)->metrics)[metric]->aggregate)));
-                    if (aggcomplete)
+                    if ((*evt)->hasMetric(metric))
+                        painter->fillRect(QRectF(xa, y, wa, h), QBrush(colormap->color((*evt)->getMetric(metric, true))));
+                    else
+                        painter->fillRect(QRectF(xa, y, wa, h), QBrush(QColor(180, 180, 180)));
+                    if (aggcomplete && step_spacing > 0 && process_spacing > 0)
                         painter->drawRect(QRectF(xa, y, wa, h));
                     else
                         incompleteBox(painter, xa, y, wa, h);

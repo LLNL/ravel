@@ -187,14 +187,14 @@ void OverviewVis::processVis()
                 stop_int = static_cast<int>(stop);
                 //std::cout << start_int << " from " << start << " from enter " << (*evt)->enter;
                 //std::cout << " and mintime " << minTime <<  " over " << width << " and timespan " << timespan << std::endl;
-                Q_ASSERT((*evt)->metrics->contains(lateness));
-                if ((*(*evt)->metrics)[lateness]->event > 0) {
-                    heights[start_int] += (*(*evt)->metrics)[lateness]->event * (start - start_int);
+                //Q_ASSERT((*evt)->metrics->contains(lateness));
+                if ((*evt)->hasMetric(lateness) && (*evt)->getMetric(lateness)> 0) {
+                    heights[start_int] += (*evt)->getMetric(lateness) * (start - start_int);
                     if (stop_int != start_int) {
-                        heights[stop_int] += (*(*evt)->metrics)[lateness]->event * (stop - stop_int);
+                        heights[stop_int] += (*evt)->getMetric(lateness) * (stop - stop_int);
                     }
                     for (int i = start_int + 1; i < stop_int; i++) {
-                        heights[i] += (*(*evt)->metrics)[lateness]->event;
+                        heights[i] += (*evt)->getMetric(lateness);
                     }
 
                 }

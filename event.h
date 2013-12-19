@@ -14,6 +14,8 @@ public:
           int _process, int _step);
     ~Event();
     void addMetric(QString name, long long event_value, long long aggregate_value = 0);
+    bool hasMetric(QString name);
+    long long getMetric(QString name, bool aggregate = false);
 
     bool operator<(const Event &);
     bool operator>(const Event &);

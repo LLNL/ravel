@@ -78,3 +78,16 @@ void Event::addMetric(QString name, long long event_value, long long aggregate_v
 {
     (*metrics)[name] = new MetricPair(event_value, aggregate_value);
 }
+
+bool Event::hasMetric(QString name)
+{
+    return metrics->contains(name);
+}
+
+long long Event::getMetric(QString name, bool aggregate)
+{
+    if (aggregate)
+        return ((*metrics)[name])->aggregate;
+
+    return ((*metrics)[name])->event;
+}
