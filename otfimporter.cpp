@@ -71,7 +71,7 @@ RawTrace * OTFImporter::importOTF(const char* otf_file)
     OTF_FileManager_close(fileManager);
     std::cout << "Finish reading" << std::endl;
 
-    int unmatched_recv_count = 0;
+    /*int unmatched_recv_count = 0;
     for (QVector<QVector<CommRecord *> *>::Iterator eitr = unmatched_recvs->begin(); eitr != unmatched_recvs->end(); ++eitr) {
         for (QVector<CommRecord *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
             if (!((*itr)->matched))
@@ -86,6 +86,7 @@ RawTrace * OTFImporter::importOTF(const char* otf_file)
         }
     }
     std::cout << unmatched_send_count << " unmatched sends and " << unmatched_recv_count << " unmatched recvs." << std::endl;
+    */
 
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "OTF Reading: ";
@@ -231,7 +232,7 @@ int OTFImporter::handleLeave(void * userData, uint64_t time, uint32_t function,
     Q_UNUSED(source);
     ((*((((OTFImporter*) userData)->rawtrace)->events))[process - 1])->append(new EventRecord(process - 1, convertTime(userData, time), function));
     //((OTFImporter*) userData)->exitcount++;
-    //std::cout << "Exit " << ((OTFImporter*) userData)->exitcount << std::endl;
+    //std::cout << "Exit " << ((OTFImporter*) userData)->exitcount << " with time " <<  convertTime(userData, time) << std::endl;
     return 0;
 }
 

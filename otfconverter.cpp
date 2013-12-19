@@ -85,6 +85,7 @@ void OTFConverter::matchEvents()
     for (QVector<QVector<EventRecord *> *>::Iterator event_list = rawtrace->events->begin(); event_list != rawtrace->events->end(); ++event_list) {
         int depth = 0;
         int phase = 0;
+        unsigned long long endtime = 0;
 
         for (QVector<EventRecord *>::Iterator evt = (*event_list)->begin(); evt != (*event_list)->end(); ++evt)
         {
@@ -92,6 +93,8 @@ void OTFConverter::matchEvents()
             {
                 Event * e = stack->pop();
                 e->exit = (*evt)->time;
+                if (e->exit > endtime)
+                    endtime = e->exit;
                 if (!stack->isEmpty()) {
                     e->caller = stack->top();
                     stack->top()->callees->append(e);
@@ -119,6 +122,27 @@ void OTFConverter::matchEvents()
                 (*(trace->events))[(*evt)->process]->append(e);
             }
         }
+
+        // Deal with unclosed trace issues
+
+        while (!stack->isEmpty())
+        {
+            Event * e = stack->pop();
+            endtime = std::max(endtime, e->enter);
+            e->exit = endtime;
+            if (!stack->isEmpty()) {
+                e->caller = stack->top();
+                stack->top()->callees->append(e);
+            }
+            depth--;
+        }
+
+        /*std::cout << "Process " << process << " has " << stack->size() << " left on the stack out of ";
+        std::cout << ((*event_list)->size()/2) << " total functions." << std::endl;
+        for (QStack<Event *>::Iterator itr = stack->begin(); itr != stack->end(); ++itr)
+        {
+            std::cout << "   Left function " << (((*(trace->functions))[(*itr)->function])->name).toStdString().c_str() << " at " << (*itr)->enter << std::endl;
+        }*/
         stack->clear();
     }
     delete stack;
@@ -176,14 +200,22 @@ Event * OTFConverter::search_child_ranges(QVector<Event *> * children, unsigned 
     while (imax >= imin)
     {
         imid = (imin + imax) / 2;
+        //std::cout << "child loop for " << time << " looking at " << ((*(children))[imid])->enter << " to " << ((*(children))[imid])->exit << std::endl;
         if (((*(children))[imid])->exit < time)
+        {
             imin = imid + 1;
+            //std::cout << "      increase min " << std::endl;
+        }
         else if (((*(children))[imid])->enter > time)
+        {
             imax = imid - 1;
+            //std::cout << "      decrease max " << std::endl;
+        }
         else
             return (*children)[imid];
     }
 
+    //std::cout << "Returning null in child ranges" << std::endl;
     return NULL;
 }
 
@@ -193,6 +225,7 @@ Event * OTFConverter::find_comm_event(Event * evt, unsigned long long int time)
     // Pass back up null if something went wrong
     if (!evt)
         return evt;
+
 
     // No children, this must be it
     if (evt->callees->size() == 0)

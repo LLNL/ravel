@@ -122,12 +122,14 @@ void Trace::partition()
     if (!options.partitionByFunction)
     {
           // Partition by Process w or w/o Waitall
+        std::cout << "Initializing partitios..." << std::endl;
         if (options.waitallMerge)
             initializePartitionsWaitall();
         else
             initializePartitions();
 
           // Merge communication
+        std::cout << "Merging for messages..." << std::endl;
         mergeForMessages();
 
         /*
@@ -145,6 +147,7 @@ void Trace::partition()
         }*/
 
           // Tarjan
+        std::cout << "Merging cycles..." << std::endl;
         mergeCycles();
 
           // Merge by rank level [ later ]
@@ -162,6 +165,7 @@ void Trace::partition()
         partitionByPhase();
     }
 
+    std::cout << "Setting partition dag for the first time..." << std::endl;
     set_partition_dag();
     //output_graph("/Users/kate/post_partition.dot");
 }
@@ -289,8 +293,13 @@ void Trace::calculate_lateness()
 void Trace::assignSteps()
 {
     // Step
+    int count = 0;
     for (QList<Partition *>::Iterator partition = partitions->begin(); partition != partitions->end(); ++partition)
+    {
+        std::cout << "Stepping partition " << count << std::endl;
         (*partition)->step();
+        count++;
+    }
 
     /*
     for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
@@ -307,13 +316,17 @@ void Trace::assignSteps()
     }*/
 
     // Global steps
+    std::cout << "Resetting partition dag..." << std::endl;
     set_partition_dag();
+    std::cout << "Setting dag steps..." << std::endl;
     set_dag_steps();
+    std::cout << "Setting global steps..." << std::endl;
     set_global_steps();
 
     //output_graph("/Users/kate/post_global.dot");
 
     // Calculate Step metrics
+    std::cout << "Calculating lateness..." << std::endl;
     calculate_lateness();
 
     // Verify
@@ -637,6 +650,7 @@ void Trace::mergeForMessages()
 {
     Partition * p, * p1, * p2;
     QSet<Partition *> old_partitions = QSet<Partition *>();
+    int count = 0;
     for (QList<Event *>::Iterator send = send_events->begin(); send != send_events->end(); ++send)
     {
         p1 = (*send)->partition->newest_partition(); // Use new partition in case this has changed
@@ -655,9 +669,13 @@ void Trace::mergeForMessages()
                 (*send)->partition = p;
                 (*msg)->receiver->partition = p;
             }
+            count++;
+            if (count % 100 == 0)
+                std::cout << "Handled " << count << " messages." << std::endl;
         }
     }
 
+    std::cout << "Updating partition references..." << std::endl;
     // Update all partitions references
     for (QList<Event *>::Iterator send = send_events->begin(); send != send_events->end(); ++send)
     {
