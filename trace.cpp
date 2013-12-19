@@ -234,7 +234,7 @@ void Trace::set_global_steps()
 
 void Trace::calculate_lateness()
 {
-    // Go through dag, generating steps
+    // Go through dag, starting at the beginning
     QSet<Partition *> * active_partitions = new QSet<Partition *>();
     for (QList<Partition *>::Iterator part = dag_entries->begin(); part != dag_entries->end(); ++part)
         active_partitions->insert(*part);
@@ -244,17 +244,24 @@ void Trace::calculate_lateness()
     // For each step, find all the events in the active partitions with that step
     // and calculate lateness
     // Active partition group may change every time the step is changed.
-    for (int i = 0; i <= global_max_step; ++i)
+    for (int i = 0; i <= global_max_step; i+= 2)
     {
         //std::cout << "Handling step " << i << std::endl;
         QList<Event *> * i_list = new QList<Event *>();
         for (QSet<Partition *>::Iterator part = active_partitions->begin(); part != active_partitions->end(); ++part)
         {
-            //std::cout << "     Active partition: " << (*part)->gvid.toStdString().c_str() << std::endl;
+            //std::cout << "     Active partition: " << (*part)->generate_process_string().toStdString().c_str() << " : ";
+            //std::cout << (*part)->min_global_step << " - " << (*part)->max_global_step << std::endl;
             for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
+            {
+                //std::cout << "       p = " << event_list.key() << std::endl;
                 for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
+                {
                     if ((*evt)->step == i)
                         i_list->append(*evt);
+                    //std::cout << "          Event p = " << (*evt)->process << ", s = " << (*evt)->step << std::endl;
+                }
+            }
         }
 
         // Find min leave time
@@ -269,24 +276,52 @@ void Trace::calculate_lateness()
         }
 
         // Set lateness
+        //std::cout << "*****STEP***** " << i << std::endl;
         for (QList<Event *>::Iterator evt = i_list->begin(); evt != i_list->end(); ++evt)
+        {
             (*evt)->addMetric("Lateness", (*evt)->exit - mintime, (*evt)->enter - aggmintime);
+            //std::cout << "Adding lateness to process " << (*evt)->process << std::endl;
+        }
         delete i_list;
+        //std::cout << "*****END*****" << std::endl;
 
         // Prepare active step for the next round
         QList<Partition *> * toRemove = new QList<Partition *>();
+        QSet<Partition *> * toAdd = new QSet<Partition *>();
         for (QSet<Partition *>::Iterator part = active_partitions->begin(); part != active_partitions->end(); ++part)
+        {
+            //std::cout << "Considering " << (*part)->generate_process_string().toStdString().c_str() << " : ";
+            //std::cout << (*part)->min_global_step << " - " << (*part)->max_global_step << std::endl;
             if ((*part)->max_global_step == i)
             {
+                //std::cout << "Remove!" << std::endl;
                 toRemove->append(*part); // Stage for removal
                 for (QSet<Partition *>::Iterator child = (*part)->children->begin(); child != (*part)->children->end(); ++child)
-                    if ((*child)->min_global_step == i + 2) // Only insert if we're the max parent, otherwise wait for max parent
-                        active_partitions->insert(*child);
+                {
+                    if ((*child)->min_global_step == i + 2) {// Only insert if we're the max parent, otherwise wait for max parent
+                        toAdd->insert(*child);
+                    /*    std::cout << " Partition " << (*part)->generate_process_string().toStdString().c_str() << " : ";
+                        std::cout << (*part)->min_global_step << " - " << (*part)->max_global_step;
+                        std::cout << " Adds " << (*child)->generate_process_string().toStdString().c_str() << " : ";
+                        std::cout << (*child)->min_global_step << " - " << (*child)->max_global_step << std::endl;
+                    } else {
+                        std::cout << " Partition " << (*part)->generate_process_string().toStdString().c_str() << " : ";
+                        std::cout << (*part)->min_global_step << " - " << (*part)->max_global_step;
+                        std::cout << " ***SKIPS*** " << (*child)->generate_process_string().toStdString().c_str() << " : ";
+                        std::cout << (*child)->min_global_step << " - " << (*child)->max_global_step << std::endl;
+                    */}
+                }
             }
+        }
         // Remove those staged
         for (QList<Partition *>::Iterator oldpart = toRemove->begin(); oldpart != toRemove->end(); ++oldpart)
             active_partitions->remove(*oldpart);
         delete toRemove;
+
+        // Add those staged
+        for (QSet<Partition *>::Iterator newpart = toAdd->begin(); newpart != toAdd->end(); ++newpart)
+            active_partitions->insert(*newpart);
+        delete toAdd;
     }
     delete active_partitions;
 }
@@ -294,12 +329,12 @@ void Trace::calculate_lateness()
 void Trace::assignSteps()
 {
     // Step
-    int count = 0;
+    //int count = 0;
     for (QList<Partition *>::Iterator partition = partitions->begin(); partition != partitions->end(); ++partition)
     {
-        std::cout << "Stepping partition " << count << std::endl;
+        //std::cout << "Stepping partition " << count << std::endl;
         (*partition)->step();
-        count++;
+        //count++;
     }
 
     /*
@@ -324,7 +359,7 @@ void Trace::assignSteps()
     std::cout << "Setting global steps..." << std::endl;
     set_global_steps();
 
-    //output_graph("/Users/kate/post_global.dot");
+    output_graph("/home/kate/post_global.dot");
 
     // Calculate Step metrics
     std::cout << "Calculating lateness..." << std::endl;

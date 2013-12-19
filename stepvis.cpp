@@ -511,10 +511,11 @@ void StepVis::paintEvents(QPainter * painter)
                         painter->fillRect(QRectF(xa, y, wa, h), QBrush(colormap->color((*evt)->getMetric(metric, true))));
                     else
                         painter->fillRect(QRectF(xa, y, wa, h), QBrush(QColor(180, 180, 180)));
-                    if (aggcomplete && step_spacing > 0 && process_spacing > 0)
-                        painter->drawRect(QRectF(xa, y, wa, h));
-                    else
-                        incompleteBox(painter, xa, y, wa, h);
+                    if (step_spacing > 0 && process_spacing > 0)
+                        if (aggcomplete)
+                            painter->drawRect(QRectF(xa, y, wa, h));
+                        else
+                            incompleteBox(painter, xa, y, wa, h);
                 }
 
             }
