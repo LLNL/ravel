@@ -31,6 +31,9 @@ public:
     int dag_leap;
     //QMap<int, QList<Event *> *> * step_dict;
 
+    // For message merge
+    bool mark;
+
     // For dag / Tarjan / merging
     QSet<Partition *> * parents;
     QSet<Partition *> * children;

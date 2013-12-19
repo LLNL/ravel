@@ -58,6 +58,7 @@ public:
     int step;
     int depth;
     int phase;
+    bool mark;
 
     //enum mpi_class_t { WAITALL, COLLECTIVE, OTHER };
 

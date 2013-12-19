@@ -9,6 +9,7 @@
 #include <QVector>
 #include <QStack>
 #include <QSet>
+#include <QQueue>
 
 class Trace
 {
@@ -55,6 +56,7 @@ private:
     void initializePartitions();
     void initializePartitionsWaitall();
     void mergeForMessages();
+    void mergeForMessagesHelper(Partition * part, QSet<Partition *> * to_merge, QQueue<Partition *> * to_process);
     void mergeCycles();
     void mergeByLeap();
     class RecurseInfo {  // For Tarjan
@@ -68,7 +70,7 @@ private:
     };
     void set_partition_dag();
     void set_dag_steps();
-    Partition * mergePartitions(Partition * p1, Partition * p2);
+    void mergePartitions(QList<QList<Partition *> *> * components);
     void strong_connect_loop(Partition * part, QStack<Partition *> * stack,
                             QList<Partition *> * children, int cIndex,
                             QStack<RecurseInfo *> * recurse, QList<QList<Partition *> *> * components);

@@ -7,6 +7,7 @@ Partition::Partition()
       max_global_step(-1),
       min_global_step(-1),
       dag_leap(-1),
+      mark(false),
       parents(new QSet<Partition *>()),
       children(new QSet<Partition *>()),
       old_parents(new QSet<Partition *>()),
