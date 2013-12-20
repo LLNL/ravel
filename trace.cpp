@@ -154,6 +154,7 @@ void Trace::partition()
           // Merge by rank level [ later ]
         if (options.leapMerge)
         {
+            std::cout << "Merging to complete leaps..." << std::endl;
             set_dag_steps();
             mergeByLeap();
         }
