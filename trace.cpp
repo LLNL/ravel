@@ -150,7 +150,7 @@ void Trace::partition()
 
           // Tarjan
         std::cout << "Merging cycles..." << std::endl;
-        set_partition_dag();
+        //set_partition_dag();
         //output_graph("/home/kate/pre_cyclepartition.dot");
         //output_graph("/home/kate/pre_cyclepartitionparent.dot", true);
         mergeCycles();
@@ -158,7 +158,7 @@ void Trace::partition()
           // Merge by rank level [ later ]
         if (options.leapMerge)
         {
-            set_dag_steps();
+            //set_dag_steps();
             mergeByLeap();
         }
     }
