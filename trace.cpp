@@ -165,8 +165,8 @@ void Trace::partition()
         partitionByPhase();
     }
 
-    std::cout << "Setting partition dag for the first time..." << std::endl;
-    set_partition_dag();
+    //std::cout << "Setting partition dag for the first time..." << std::endl;
+    //set_partition_dag();
     //output_graph("/Users/kate/post_partition.dot");
 }
 
@@ -360,8 +360,8 @@ void Trace::assignSteps()
     }*/
 
     // Global steps
-    std::cout << "Resetting partition dag..." << std::endl;
-    set_partition_dag();
+    //std::cout << "Resetting partition dag..." << std::endl;
+    //set_partition_dag();
     output_graph("/home/kate/post_global.dot");
     // Don't really need to set dag steps here though it shouldn't take forever I don't get it
     //std::cout << "Setting dag steps..." << std::endl;
