@@ -418,41 +418,6 @@ void Trace::chainCommEvents()
     }
 }
 
-// Merge the two given partitions to create a new partition
-// We need not handle prev/next of each Event because those should never change.
-/*
-Partition * Trace::mergePartitions(Partition * p1, Partition * p2)
-{
-    Partition * p = new Partition();
-
-    // Copy events
-    Q_ASSERT(p1 != NULL);
-    Q_ASSERT(p2 != NULL);
-    for (QMap<int, QList<Event *> *>::Iterator event_list = p1->events->begin(); event_list != p1->events->end(); ++event_list)
-    {
-        for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
-        {
-            p->addEvent(*evt);
-        }
-    }
-    for (QMap<int, QList<Event *> *>::Iterator event_list = p2->events->begin(); event_list != p2->events->end(); ++event_list)
-    {
-        for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
-        {
-            p->addEvent(*evt);
-        }
-    }
-    p1->new_partition = p;
-    p2->new_partition = p;
-    p->new_partition = p;
-
-    // Sort events
-    p->sortEvents();
-
-    return p;
-}
-*/
-
 void Trace::mergeByLeap()
 {
     int leap = 0;
@@ -693,6 +658,7 @@ void Trace::mergeByLeap()
     delete new_partitions;
 }
 
+
 // Merges partitions that are connected by a message
 // We go through all send events and merge them with all recvs
 // connected to the event (there should only be 1)
@@ -719,6 +685,8 @@ void Trace::mergeForMessagesHelper(Partition * part, QSet<Partition *> * to_merg
     part->mark = true;
 }
 
+
+// Loop through the partitions and merge all connected by messages.
 void Trace::mergeForMessages()
 {
     Partition * p;
@@ -747,7 +715,7 @@ void Trace::mergeForMessages()
         components->append(component);
     }
 
-    std::cout << "Now merging components..." << std::endl;
+    // Merge the partition groups discovered
     mergePartitions(components);
     delete to_merge;
     delete to_process;
@@ -797,6 +765,7 @@ void Trace::strong_connect_loop(Partition * part, QStack<Partition *> * stack,
     }
 }
 
+
 // Iteration portion of Tarjan algorithm
 // Please redo with shared pointers
 int Trace::strong_connect_iter(Partition * partition, QStack<Partition *> * stack,
@@ -830,9 +799,6 @@ int Trace::strong_connect_iter(Partition * partition, QStack<Partition *> * stac
             ri->part->lowlink = std::min(ri->part->lowlink, ri->child->lowlink);
             strong_connect_loop(ri->part, stack, ri->children, ++(ri->cIndex), recurse, components);
         }
-
-        //delete ri->children;
-        //delete ri;
     }
 
     for (QSet<QList<Partition *> *>::Iterator riC = riChildrenTracker->begin(); riC != riChildrenTracker->end(); ++riC)
@@ -846,6 +812,7 @@ int Trace::strong_connect_iter(Partition * partition, QStack<Partition *> * stac
     delete recurse;
     return index;
 }
+
 
 // Main outer loop of Tarjan algorithm
 QList<QList<Partition *> *> * Trace::tarjan()
@@ -868,6 +835,7 @@ QList<QList<Partition *> *> * Trace::tarjan()
     return components;
 }
 
+
 // Goes through current partitions and merges cycles
 void Trace::mergeCycles()
 {
@@ -880,6 +848,10 @@ void Trace::mergeCycles()
     mergePartitions(components);
 }
 
+
+// Input: A list of partition lists. Each partition list should be merged
+// into a single partition. This updates parent/child relationships so
+// there is no need to reset the dag.
 void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
     // Go through the SCCs and merge them into single partitions
     QList<Partition *> * merged = new QList<Partition *>();
@@ -1000,7 +972,9 @@ void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
         (*part)->new_partition = NULL;
 }
 
-// Set all the parents/children in the partition by looking at the partitions of the events in them.
+
+// Set all the parents/children in the partition by checking where first and last events
+// in each process pointer.
 void Trace::set_partition_dag()
 {
     dag_entries->clear();
@@ -1011,6 +985,11 @@ void Trace::set_partition_dag()
         for (QMap<int, QList<Event *> *>::Iterator event_list = (*partition)->events->begin(); event_list != (*partition)->events->end(); ++event_list) {
             Q_ASSERT(event_list.value());
             Q_ASSERT(event_list.value()->first());
+            // Note we insert parents and a children to ourselves and insert ourselves to
+            // our parents and children. In many cases this will duplicate the insert, but
+            // merging by Waitall can create situations where our first event is preceded
+            // by a partition but its last event points elsewhere. By connecting here,
+            // these cycles will be found later on in merge cycles.
             if ((event_list.value())->first()->comm_prev)
             {
                 (*partition)->parents->insert(event_list.value()->first()->comm_prev->partition);
