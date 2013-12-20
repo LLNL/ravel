@@ -181,19 +181,24 @@ void Trace::set_global_steps()
 
     while (!current_leap->isEmpty())
     {
+        std::cout << " **** NEW LEAP **** " << std::endl;
         QSet<Partition *> * next_leap = new QSet<Partition *>();
         for (QSet<Partition *>::Iterator part = current_leap->begin(); part != current_leap->end(); ++part)
         {
+            std::cout << "Active partition: " << (*part)->generate_process_string().toStdString().c_str() << ", " << (*part)->gvid.toStdString().c_str() << std::endl;
             accumulated_step = 0;
             bool allParents = true;
             if ((*part)->max_global_step >= 0) // We already handled this parent
                 continue;
             for (QSet<Partition *>::Iterator parent = (*part)->parents->begin(); parent != (*part)->parents->end(); ++parent)
-            {   // Check all parents to make sure they have all been handled
+            {
+
+                // Check all parents to make sure they have all been handled
                 if ((*parent)->max_global_step < 0)
                 {
                     next_leap->insert(*parent); // So next time we must handle parent first
                     allParents = false;
+                    std::cout << "     All parents not finished..."  << (*parent)->generate_process_string().toStdString().c_str() << ", " << (*parent)->gvid.toStdString().c_str() << std::endl;
                 }
                 // Find maximum step of all predecessors
                 // We +1 because individual steps start at 0, so when we add 0, we want
@@ -220,7 +225,10 @@ void Trace::set_global_steps()
 
             // Add children for handling
             for (QSet<Partition *>::Iterator child = (*part)->children->begin(); child != (*part)->children->end(); ++child)
+            {
                 next_leap->insert(*child);
+                std::cout << "     Adding..."  << (*child)->generate_process_string().toStdString().c_str() << std::endl;
+            }
 
             // Keep track of global max step
             global_max_step = std::max(global_max_step, (*part)->max_global_step);
@@ -354,12 +362,14 @@ void Trace::assignSteps()
     // Global steps
     std::cout << "Resetting partition dag..." << std::endl;
     set_partition_dag();
-    std::cout << "Setting dag steps..." << std::endl;
-    set_dag_steps();
+    output_graph("/home/kate/post_global.dot");
+    // Don't really need to set dag steps here though it shouldn't take forever I don't get it
+    //std::cout << "Setting dag steps..." << std::endl;
+    //set_dag_steps();
     std::cout << "Setting global steps..." << std::endl;
     set_global_steps();
 
-    output_graph("/home/kate/post_global.dot");
+    //output_graph("/home/kate/post_global.dot");
 
     // Calculate Step metrics
     std::cout << "Calculating lateness..." << std::endl;
@@ -909,11 +919,11 @@ void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
 
             // Set old_children and old_parents from the children and parents of the partition to merge
             for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++child)
-                if (!((*component)->contains(*partition))) // but only if parent/child not already in SCC
-                    p->old_children->insert(*partition);
+                if (!((*component)->contains(*child))) // but only if parent/child not already in SCC
+                    p->old_children->insert(*child);
             for (QSet<Partition *>::Iterator parent = (*partition)->parents->begin(); parent != (*partition)->parents->end(); ++parent)
-                if (!((*component)->contains(*partition)))
-                    p->old_parents->insert(*partition);
+                if (!((*component)->contains(*parent)))
+                    p->old_parents->insert(*parent);
         }
 
         merged->append(p);
@@ -1268,6 +1278,7 @@ void Trace::output_graph(QString filename)
         graph << " [label=\"" << (*partition)->generate_process_string().toStdString().c_str();
         graph << " :  " << QString::number((*partition)->min_global_step).toStdString().c_str();
         graph << " - " << QString::number((*partition)->max_global_step).toStdString().c_str();
+        graph << ", gv: " << (*partition)->gvid.toStdString().c_str();
         graph << "\"];\n";
         ++id;
     }
