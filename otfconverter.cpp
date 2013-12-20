@@ -165,26 +165,26 @@ void OTFConverter::matchMessages()
             Event * recv_evt = find_comm_event(search_child_ranges( (*(trace->roots))[(*comm)->receiver],
                                                                     (*comm)->recv_time),
                                                (*comm)->recv_time);
-            if (recv_evt) {
-                recv_evt->messages->append(m);
-                m->receiver = recv_evt;
-            } else {
-                std::cout << "Error finding recv event for " << (*comm)->sender << "->" << (*comm)->receiver
-                         << " (" << (*comm)->send_time << ", " << (*comm)->recv_time << ")" << std::endl;
-                unmatched_recvs++;
-            }
 
             Event * send_evt = find_comm_event(search_child_ranges( (*(trace->roots))[(*comm)->sender],
                                                                     (*comm)->send_time),
                                               (*comm)->send_time);
-            if (send_evt) {
+            if (recv_evt && send_evt) {
+                recv_evt->messages->append(m);
+                m->receiver = recv_evt;
                 send_evt->messages->append(m);
                 m->sender = send_evt;
-                trace->send_events->append(send_evt); // Keep track of the send events for merging later
             } else {
-                std::cout << "Error finding send event for " << (*comm)->sender << "->" << (*comm)->receiver
-                          << " (" << (*comm)->send_time << ", " << (*comm)->recv_time << ")" << std::endl;
-                unmatched_sends++;
+                if (!recv_evt)
+                {
+                    std::cout << "Error finding recv event for " << (*comm)->sender << "->" << (*comm)->receiver
+                              << " (" << (*comm)->send_time << ", " << (*comm)->recv_time << ")" << " -- dropping message." <<  std::endl;
+                    unmatched_recvs++;
+                } else {
+                    std::cout << "Error finding send event for " << (*comm)->sender << "->" << (*comm)->receiver
+                          << " (" << (*comm)->send_time << ", " << (*comm)->recv_time << ")" << " -- dropping message." << std::endl;
+                    unmatched_sends++;
+                }
             }
 
         }

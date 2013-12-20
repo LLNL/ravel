@@ -15,7 +15,6 @@ Trace::Trace(int np, bool legacy)
       events(new QVector<QVector<Event *> *>(np)),
       roots(new QVector<QVector<Event *> *>(np)),
       mpi_events(NULL),
-      send_events(new QList<Event *>()),
       mpi_group(-1),
       global_max_step(-1),
       dag_entries(NULL),
@@ -62,7 +61,6 @@ Trace::~Trace()
         *eitr = NULL;
     }
     delete events;
-    delete send_events;
 
     // Don't need to delete Events, they were deleted above
     for (QVector<QVector<Event *> *>::Iterator eitr = roots->begin(); eitr != roots->end(); ++eitr) {
@@ -79,8 +77,6 @@ void Trace::printStats()
         std::cout << "Not yet processed, incomplete stats" << std::endl;
         return;
     }
-
-    std::cout << "# Messages: " << send_events->length() << std::endl;
 
     int num_mpi = 0;
     for (QVector<QList<Event *> *>::Iterator itr = mpi_events->begin(); itr != mpi_events->end(); ++itr)

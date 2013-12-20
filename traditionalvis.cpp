@@ -55,6 +55,7 @@ void TraditionalVis::setTrace(Trace * t)
     }
     timeSpan = stopTime - startTime;
     stepSpan = stopStep - startStep;
+    std::cout << "Stop time is " << stopTime << std::endl;
 
     for (QVector<TimePair *>::Iterator itr = stepToTime->begin(); itr != stepToTime->end(); itr++) {
         delete *itr;

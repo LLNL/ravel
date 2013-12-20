@@ -39,7 +39,6 @@ public:
     QVector<QVector<Event *> *> * roots; // Roots of call trees per process
 
     QVector<QList<Event *> *> * mpi_events;
-    QList<Event *> * send_events;
 
     int mpi_group;
 
