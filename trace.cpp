@@ -447,11 +447,11 @@ void Trace::mergeByLeap()
                     if ((*parent)->dag_leap == (*partition)->dag_leap - 1)
                         parent_distance = std::min(parent_distance, (*partition)->distance(*parent));
                 for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++child)
+                {
+                    (*child)->calculate_dag_leap(); // Recalculate, maybe have changed in previous iteration
                     if ((*child)->dag_leap == (*partition)->dag_leap + 1)
-                    {
-                        (*child)->calculate_dag_leap();
                         child_distance = std::min(child_distance, (*partition)->distance(*child));
-                    }
+                }
 
                 // If we are sufficiently close to the parent, back merge
                 if (child_distance > 10 * parent_distance)
