@@ -23,6 +23,7 @@ public:
     void calculate_dag_leap();
     QString generate_process_string();
     Partition * newest_partition();
+    int num_events();
 
     QMap<int, QList<Event *> *> * events;
     int max_step;

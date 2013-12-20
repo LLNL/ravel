@@ -328,6 +328,14 @@ QString Partition::generate_process_string()
     return ps;
 }
 
+int Partition::num_events()
+{
+    int count = 0;
+    for (QMap<int, QList<Event *> *>::Iterator itr = events->begin(); itr != events->end(); ++itr)
+        count += (*itr)->length();
+    return count;
+}
+
 Partition * Partition::newest_partition()
 {
     Partition * p = this;

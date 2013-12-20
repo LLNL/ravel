@@ -129,6 +129,8 @@ void Trace::partition()
             initializePartitions();
 
           // Merge communication
+        //set_partition_dag();
+        //output_graph("/home/kate/pre_msgpartition.dot");
         std::cout << "Merging for messages..." << std::endl;
         mergeForMessages();
 
@@ -148,6 +150,9 @@ void Trace::partition()
 
           // Tarjan
         std::cout << "Merging cycles..." << std::endl;
+        set_partition_dag();
+        //output_graph("/home/kate/pre_cyclepartition.dot");
+        //output_graph("/home/kate/pre_cyclepartitionparent.dot", true);
         mergeCycles();
 
           // Merge by rank level [ later ]
@@ -181,11 +186,11 @@ void Trace::set_global_steps()
 
     while (!current_leap->isEmpty())
     {
-        std::cout << " **** NEW LEAP **** " << std::endl;
+        //std::cout << " **** NEW LEAP **** " << std::endl;
         QSet<Partition *> * next_leap = new QSet<Partition *>();
         for (QSet<Partition *>::Iterator part = current_leap->begin(); part != current_leap->end(); ++part)
         {
-            std::cout << "Active partition: " << (*part)->generate_process_string().toStdString().c_str() << ", " << (*part)->gvid.toStdString().c_str() << std::endl;
+            //std::cout << "Active partition: " << (*part)->generate_process_string().toStdString().c_str() << ", " << (*part)->gvid.toStdString().c_str() << std::endl;
             accumulated_step = 0;
             bool allParents = true;
             if ((*part)->max_global_step >= 0) // We already handled this parent
@@ -198,7 +203,7 @@ void Trace::set_global_steps()
                 {
                     next_leap->insert(*parent); // So next time we must handle parent first
                     allParents = false;
-                    std::cout << "     All parents not finished..."  << (*parent)->generate_process_string().toStdString().c_str() << ", " << (*parent)->gvid.toStdString().c_str() << std::endl;
+                    //std::cout << "     All parents not finished..."  << (*parent)->generate_process_string().toStdString().c_str() << ", " << (*parent)->gvid.toStdString().c_str() << std::endl;
                 }
                 // Find maximum step of all predecessors
                 // We +1 because individual steps start at 0, so when we add 0, we want
@@ -227,7 +232,7 @@ void Trace::set_global_steps()
             for (QSet<Partition *>::Iterator child = (*part)->children->begin(); child != (*part)->children->end(); ++child)
             {
                 next_leap->insert(*child);
-                std::cout << "     Adding..."  << (*child)->generate_process_string().toStdString().c_str() << std::endl;
+                //std::cout << "     Adding..."  << (*child)->generate_process_string().toStdString().c_str() << std::endl;
             }
 
             // Keep track of global max step
@@ -362,7 +367,8 @@ void Trace::assignSteps()
     // Global steps
     //std::cout << "Resetting partition dag..." << std::endl;
     //set_partition_dag();
-    output_graph("/home/kate/post_global.dot");
+    //output_graph("/home/kate/post_global.dot");
+    //output_graph("/home/kate/post_globalparent.dot",true);
     // Don't really need to set dag steps here though it shouldn't take forever I don't get it
     //std::cout << "Setting dag steps..." << std::endl;
     //set_dag_steps();
@@ -937,6 +943,8 @@ void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
     for (QList<Partition *>::Iterator partition = merged->begin(); partition != merged->end(); ++partition)
     {
         parent_flag = false;
+        if ((*partition)->parents->size() > 0)
+            std::cout << "Partition has parent already??" << std::endl;
 
         // Update parents/children by taking taking the old parents/children and the new partition they belong to
         for (QSet<Partition *>::Iterator child = (*partition)->old_children->begin(); child != (*partition)->old_children->end(); ++child)
@@ -1010,10 +1018,15 @@ void Trace::set_partition_dag()
             if ((event_list.value())->first()->comm_prev)
             {
                 (*partition)->parents->insert(event_list.value()->first()->comm_prev->partition);
+                event_list.value()->first()->comm_prev->partition->children->insert(*partition);
                 parent_flag = true;
             }
             if ((event_list.value())->last()->comm_next)
+            {
                 (*partition)->children->insert(event_list.value()->last()->comm_next->partition);
+                event_list.value()->last()->comm_next->partition->parents->insert(*partition);
+            }
+
         }
 
         if (!parent_flag)
@@ -1259,7 +1272,7 @@ void Trace::initializePartitionsWaitall()
     } // End event loop for one process
 }
 
-void Trace::output_graph(QString filename)
+void Trace::output_graph(QString filename, bool byparent)
 {
     std::ofstream graph;
     graph.open(filename.toStdString().c_str());
@@ -1279,18 +1292,29 @@ void Trace::output_graph(QString filename)
         graph << " :  " << QString::number((*partition)->min_global_step).toStdString().c_str();
         graph << " - " << QString::number((*partition)->max_global_step).toStdString().c_str();
         graph << ", gv: " << (*partition)->gvid.toStdString().c_str();
+        graph << ", ne: " << (*partition)->num_events();
         graph << "\"];\n";
         ++id;
     }
 
-    for (QList<Partition *>::Iterator partition = partitions->begin(); partition != partitions->end(); ++partition)
-    {
-        for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++ child)
+    if (byparent)
+        for (QList<Partition *>::Iterator partition = partitions->begin(); partition != partitions->end(); ++partition)
         {
-            graph << indent.toStdString().c_str() << (*partition)->gvid.toStdString().c_str();
-            graph << " -> " << (*child)->gvid.toStdString().c_str() << ";\n";
+            for (QSet<Partition *>::Iterator parent = (*partition)->parents->begin(); parent != (*partition)->parents->end(); ++parent)
+            {
+                graph << indent.toStdString().c_str() << (*parent)->gvid.toStdString().c_str();
+                graph << " -> " << (*partition)->gvid.toStdString().c_str() << ";\n";
+            }
         }
-    }
+    else
+        for (QList<Partition *>::Iterator partition = partitions->begin(); partition != partitions->end(); ++partition)
+        {
+            for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++child)
+            {
+                graph << indent.toStdString().c_str() << (*partition)->gvid.toStdString().c_str();
+                graph << " -> " << (*child)->gvid.toStdString().c_str() << ";\n";
+            }
+        }
     graph << "}";
 
     graph.close();
