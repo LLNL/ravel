@@ -154,7 +154,7 @@ void Trace::partition()
           // Merge by rank level [ later ]
         if (options.leapMerge)
         {
-            //set_dag_steps();
+            set_dag_steps();
             mergeByLeap();
         }
     }
