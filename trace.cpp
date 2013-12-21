@@ -433,9 +433,12 @@ void Trace::mergeByLeap()
         for (QSet<Partition *>::Iterator partition = current_leap->begin(); partition != current_leap->end(); ++partition)
             processes += QSet<int>::fromList((*partition)->events->keys());
 
+        //std::cout << " *** At Leap " << leap << " ***" << std::endl;
+
         // If this leap doesn't have all the processes we have to do something
         if (processes.size() < num_processes)
         {
+            //std::cout << "   Merge required!" << std::endl;
             QSet<Partition *> * new_leap_parts = new QSet<Partition *>();
             QSet<int> added_processes = QSet<int>();
             bool back_merge = false;
@@ -530,7 +533,8 @@ void Trace::mergeByLeap()
                 }
             // Handled no merger case
 
-            // Now do the merger
+            // Now do the merger - we go through the leap and look at each partition's group
+            // and mark anything we've already merged.
             for (QSet<Partition *>::Iterator group = current_leap->begin(); group != current_leap->end(); ++group)
             {
                 if ((*group)->leapmark) // We've already merged this
@@ -597,15 +601,40 @@ void Trace::mergeByLeap()
                 new_leap_parts->insert(p);
             }
 
-            if (next_leap->size() < 1)
-                for (QSet<Partition *>::Iterator partition = new_leap_parts->begin(); partition != new_leap_parts->end(); ++partition)
-                    for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++ child)
+            // Don't advance leap until if there are new_leap_parts
+            // that are at this leap (that therefore must be considered again)
+            for (QSet<Partition *>::Iterator partition = new_leap_parts->begin(); partition != new_leap_parts->end(); ++partition)
+            {
+                //std::cout << "      New Part with leap " << (*partition)->dag_leap << std::endl;
+                if ((*partition)->dag_leap == leap)
+                    next_leap->insert(*partition);
+                else if ((*partition)->dag_leap < leap)
+                {
+                    //std::cout << "      Adding children of new_leap_parts" << std::endl;
+                    for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++child)
                     {
                         (*child)->calculate_dag_leap();
+                        //std::cout << "          Child with leap " << (*child)->dag_leap << std::endl;
+                        if ((*child)->dag_leap == leap)
+                            next_leap->insert(*child);
+                    }
+                }
+            }
+
+            // If we've added nothing, move forward to children
+            if (next_leap->size() < 1)
+            {
+                //std::cout << "      Nothing in the next leap, just look at children" << std::endl;
+                for (QSet<Partition *>::Iterator partition = new_leap_parts->begin(); partition != new_leap_parts->end(); ++partition)
+                    for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++child)
+                    {
+                        (*child)->calculate_dag_leap();
+                        //std::cout << "          Child with leap " << (*child)->dag_leap << std::endl;
                         if ((*child)->dag_leap == leap + 1)
                             next_leap->insert(*child);
                     }
                 ++leap;
+            }
 
             delete current_leap;
             current_leap = next_leap;
@@ -614,12 +643,15 @@ void Trace::mergeByLeap()
         } // End If Processes Incomplete
         else
         {
+            //std::cout << "   All processes! Setting up next leap..." << std::endl;
             for (QSet<Partition *>::Iterator partition = current_leap->begin(); partition != current_leap->end(); ++partition)
             {
                 new_partitions->insert(*partition);
+                //std::cout << "   My leap: " << (*partition)->dag_leap << std::endl;
                 for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++child)
                 {
                     (*child)->calculate_dag_leap();
+                    //std::cout << "      child with leap " << (*child)->dag_leap << std::endl;
                     if ((*child)->dag_leap == leap + 1)
                         next_leap->insert(*child);
                 }
