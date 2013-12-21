@@ -97,6 +97,8 @@ void Trace::preprocess(OTFImportOptions * _options)
     partition();
     assignSteps();
 
+    qSort(partitions->begin(), partitions->end(), dereferencedLessThan<Partition>);
+
     isProcessed = true;
 
     traceElapsed = traceTimer.nsecsElapsed();

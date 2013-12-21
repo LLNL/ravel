@@ -51,6 +51,32 @@ void Partition::deleteEvents()
     }
 }
 
+bool Partition::operator<(const Partition &partition)
+{
+    return min_global_step < partition.min_global_step;
+}
+
+bool Partition::operator>(const Partition &partition)
+{
+    return min_global_step > partition.min_global_step;
+}
+
+bool Partition::operator<=(const Partition &partition)
+{
+    return min_global_step <= partition.min_global_step;
+}
+
+bool Partition::operator>=(const Partition &partition)
+{
+    return min_global_step >= partition.min_global_step;
+}
+
+bool Partition::operator==(const Partition &partition)
+{
+    return min_global_step == partition.min_global_step;
+}
+
+
 void Partition::addEvent(Event * e)
 {
     if (events->contains(e->process))

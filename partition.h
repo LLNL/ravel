@@ -19,6 +19,12 @@ public:
     void sortEvents();
     void step();
 
+    bool operator<(const Partition &);
+    bool operator>(const Partition &);
+    bool operator<=(const Partition &);
+    bool operator>=(const Partition &);
+    bool operator==(const Partition &);
+
     unsigned long long int distance(Partition * other);
     void calculate_dag_leap();
     QString generate_process_string();
