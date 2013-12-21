@@ -153,6 +153,7 @@
      <string>Options</string>
     </property>
     <addaction name="actionOTF_Importing"/>
+    <addaction name="actionVisualization"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuOptions"/>
@@ -171,6 +172,11 @@
   <action name="actionOTF_Importing">
    <property name="text">
     <string>OTF Importing</string>
+   </property>
+  </action>
+  <action name="actionVisualization">
+   <property name="text">
+    <string>Visualization</string>
    </property>
   </action>
  </widget>

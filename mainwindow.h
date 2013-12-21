@@ -25,6 +25,7 @@ public:
 
 public slots:
     void launchOTFOptions();
+    void launchVisOptions();
     void importJSON();
     void importOTFbyGUI();
     void pushSteps(float start, float stop);

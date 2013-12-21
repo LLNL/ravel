@@ -26,7 +26,9 @@ SOURCES  += main.cpp \
     importoptionsdialog.cpp \
     otfimportoptions.cpp \
     timelinevis.cpp \
-    traditionalvis.cpp
+    traditionalvis.cpp \
+    visoptionsdialog.cpp \
+    visoptions.cpp
 
 
 HEADERS += \
@@ -49,12 +51,15 @@ HEADERS += \
     importoptionsdialog.h \
     otfimportoptions.h \
     timelinevis.h \
-    traditionalvis.h
+    traditionalvis.h \
+    visoptionsdialog.h \
+    visoptions.h
 
 
 FORMS += \
     mainwindow.ui \
-    importoptionsdialog.ui
+    importoptionsdialog.ui \
+    visoptionsdialog.ui
 
 unix:!macx: LIBS += -L$$PWD/../../../../../cpp/jsoncpp-src-0.5.0/libs/linux-gcc-4.7/ -ljson_linux-gcc-4.7_libmt
 

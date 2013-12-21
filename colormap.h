@@ -9,6 +9,7 @@ class ColorMap
 public:
     ColorMap(QColor color, float value);
     ~ColorMap();
+    ColorMap(const ColorMap& copy);
     void addColor(QColor color, float stop);
     QColor color(double value);
     void setRange(double low, double high);

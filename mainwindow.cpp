@@ -56,6 +56,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionOpen_OTF, SIGNAL(triggered()),this,SLOT(importOTFbyGUI()));
 
     connect(ui->actionOTF_Importing, SIGNAL(triggered()), this, SLOT(launchOTFOptions()));
+    connect(ui->actionVisualization, SIGNAL(triggered()), this, SLOT(launchVisOptions()));
 
 
     connect(ui->splitter, SIGNAL(splitterMoved(int, int)), this, SLOT(handleSplitter(int, int)));
@@ -93,6 +94,11 @@ void MainWindow::launchOTFOptions()
     delete otfdialog;
     otfdialog = new ImportOptionsDialog(this, otfoptions);
     otfdialog->show();
+}
+
+void MainWindow::launchVisOptions()
+{
+
 }
 
 void MainWindow::importOTFbyGUI()

@@ -18,6 +18,17 @@ ColorMap::~ColorMap()
     delete colors;
 }
 
+ColorMap::ColorMap(const ColorMap & copy)
+{
+    minValue = copy.minValue;
+    maxValue = copy.maxValue;
+    colors = new QVector<ColorValue *>();
+    for (QVector<ColorValue *>::Iterator itr = copy.colors->begin(); itr != copy.colors->end(); ++itr)
+    {
+        colors->push_back(new ColorValue((*itr)->color, (*itr)->value));
+    }
+}
+
 void ColorMap::setRange(double low, double high)
 {
     minValue = low;
