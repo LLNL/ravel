@@ -5,6 +5,7 @@
 #include "commrecord.h"
 #include "eventrecord.h"
 #include "otf.h"
+#include <QLinkedList>
 
 class OTFImporter
 {
@@ -54,7 +55,8 @@ private:
     OTF_Reader * otfReader;
     OTF_HandlerArray * handlerArray;
 
-    QVector<QVector<CommRecord *> *> * unmatched_recvs;
+    QVector<QLinkedList<CommRecord *> *> * unmatched_recvs;
+    QVector<QLinkedList<CommRecord *> *> * unmatched_sends;
 
     RawTrace * rawtrace;
     QMap<int, QString> * functionGroups;

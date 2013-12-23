@@ -8,15 +8,16 @@
 OTFImporter::OTFImporter()
 {
     num_processes = 0;
-    unmatched_recvs = new QVector<QVector<CommRecord *> *>();
+    unmatched_recvs = new QVector<QLinkedList<CommRecord *> *>();
+    unmatched_sends = new QVector<QLinkedList<CommRecord *> *>();
 }
 
 OTFImporter::~OTFImporter()
 {
     //delete rawtrace;
 
-    for (QVector<QVector<CommRecord *> *>::Iterator eitr = unmatched_recvs->begin(); eitr != unmatched_recvs->end(); ++eitr) {
-        for (QVector<CommRecord *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
+    for (QVector<QLinkedList<CommRecord *> *>::Iterator eitr = unmatched_recvs->begin(); eitr != unmatched_recvs->end(); ++eitr) {
+        for (QLinkedList<CommRecord *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
             delete *itr;
             *itr = NULL;
         }
@@ -24,6 +25,13 @@ OTFImporter::~OTFImporter()
         *eitr = NULL;
     }
     delete unmatched_recvs;
+
+    // Don't delete the CommRecords as they are now part of messages in the raw trace
+    for (QVector<QLinkedList<CommRecord *> *>::Iterator eitr = unmatched_sends->begin(); eitr != unmatched_sends->end(); ++eitr) {
+        delete *eitr;
+        *eitr = NULL;
+    }
+    delete unmatched_sends;
 }
 
 RawTrace * OTFImporter::importOTF(const char* otf_file)
@@ -58,9 +66,12 @@ RawTrace * OTFImporter::importOTF(const char* otf_file)
     rawtrace->functionGroups = functionGroups;
 
     delete unmatched_recvs;
-    unmatched_recvs = new QVector<QVector<CommRecord *> *>(num_processes);
+    unmatched_recvs = new QVector<QLinkedList<CommRecord *> *>(num_processes);
+    delete unmatched_sends;
+    unmatched_sends = new QVector<QLinkedList<CommRecord *> *>(num_processes);
     for (int i = 0; i < num_processes; i++) {
-        (*unmatched_recvs)[i] = new QVector<CommRecord *>();
+        (*unmatched_recvs)[i] = new QLinkedList<CommRecord *>();
+        (*unmatched_sends)[i] = new QLinkedList<CommRecord *>();
     }
 
     std::cout << "Reading events" << std::endl;
@@ -71,22 +82,22 @@ RawTrace * OTFImporter::importOTF(const char* otf_file)
     OTF_FileManager_close(fileManager);
     std::cout << "Finish reading" << std::endl;
 
-    /*int unmatched_recv_count = 0;
-    for (QVector<QVector<CommRecord *> *>::Iterator eitr = unmatched_recvs->begin(); eitr != unmatched_recvs->end(); ++eitr) {
-        for (QVector<CommRecord *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
-            if (!((*itr)->matched))
-                unmatched_recv_count++;
+    int unmatched_recv_count = 0;
+    for (QVector<QLinkedList<CommRecord *> *>::Iterator eitr = unmatched_recvs->begin(); eitr != unmatched_recvs->end(); ++eitr) {
+        for (QLinkedList<CommRecord *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
+            unmatched_recv_count++;
+            std::cout << "Unmatched recv " << (*itr)->sender << "->" << (*itr)->receiver << " (" << (*itr)->send_time << ", " << (*itr)->recv_time << ")" << std::endl;
         }
     }
     int unmatched_send_count = 0;
-    for (QVector<QVector<CommRecord *> *>::Iterator eitr = rawtrace->messages->begin(); eitr != rawtrace->messages->end(); ++eitr) {
-        for (QVector<CommRecord *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
-            if (!((*itr)->matched))
-                unmatched_send_count++;
+    for (QVector<QLinkedList<CommRecord *> *>::Iterator eitr = unmatched_sends->begin(); eitr != unmatched_sends->end(); ++eitr) {
+        for (QLinkedList<CommRecord *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
+            unmatched_recv_count++;
+            std::cout << "Unmatched SEND " << (*itr)->sender << "->" << (*itr)->receiver << " (" << (*itr)->send_time << ", " << (*itr)->recv_time << ")" << std::endl;
         }
     }
     std::cout << unmatched_send_count << " unmatched sends and " << unmatched_recv_count << " unmatched recvs." << std::endl;
-    */
+
 
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "OTF Reading: ";
@@ -254,14 +265,15 @@ int OTFImporter::handleSend(void * userData, uint64_t time, uint32_t sender, uin
 
 
     time = convertTime(userData, time);
-    bool matchFound = false;
-    QVector<CommRecord *> * unmatched = (*(((OTFImporter *) userData)->unmatched_recvs))[sender - 1];
-    for (QVector<CommRecord *>::Iterator itr = unmatched->begin(); itr != unmatched->end(); ++itr) {
-        if (!(*itr)->matched && OTFImporter::compareComms((*itr), sender, receiver, type, length)) {
-            (*itr)->matched = true;
-            (*itr)->send_time = time;
-            matchFound = true;
-            ((*((((OTFImporter*) userData)->rawtrace)->messages))[sender - 1])->append((new CommRecord(sender - 1, time, receiver - 1, (*itr)->recv_time, length, type)));
+    CommRecord * cr = NULL;
+    QLinkedList<CommRecord *> * unmatched = (*(((OTFImporter *) userData)->unmatched_recvs))[sender - 1];
+    for (QLinkedList<CommRecord *>::Iterator itr = unmatched->begin(); itr != unmatched->end(); ++itr)
+    {
+        if (OTFImporter::compareComms((*itr), sender, receiver, type, length))
+        {
+            cr = *itr;
+            cr->send_time = time;
+            ((*((((OTFImporter*) userData)->rawtrace)->messages))[sender - 1])->append((cr));
             break;
         }
     }
@@ -269,10 +281,20 @@ int OTFImporter::handleSend(void * userData, uint64_t time, uint32_t sender, uin
     //((OTFImporter*) userData)->sendcount++;
     //std::cout << "Send " << ((OTFImporter*) userData)->sendcount << std::endl;
 
-    if (!matchFound)
-        (*((((OTFImporter*) userData)->rawtrace)->messages))[sender - 1]->append(new CommRecord(sender - 1, time, receiver - 1, 0, length, type));
+    if (cr)
+    {
+        (*(((OTFImporter *) userData)->unmatched_recvs))[sender - 1]->removeOne(cr);
+    }
+    else
+    {
+        cr = new CommRecord(sender - 1, time, receiver - 1, 0, length, type);
+        (*((((OTFImporter*) userData)->rawtrace)->messages))[sender - 1]->append(cr);
+        (*(((OTFImporter *) userData)->unmatched_sends))[sender - 1]->append(cr);
+    }
     return 0;
 }
+
+
 int OTFImporter::handleRecv(void * userData, uint64_t time, uint32_t receiver, uint32_t sender,
                       uint32_t group, uint32_t type, uint32_t length, uint32_t source)
 {
@@ -280,19 +302,24 @@ int OTFImporter::handleRecv(void * userData, uint64_t time, uint32_t receiver, u
     Q_UNUSED(group);
 
     time = convertTime(userData, time);
-    bool matchFound = false;
-    QVector<CommRecord *> * unmatched = (*((((OTFImporter*) userData)->rawtrace)->messages))[sender - 1];
-    for (QVector<CommRecord *>::Iterator itr = unmatched->begin(); itr != unmatched->end(); ++itr) {
-        if (!(*itr)->matched && OTFImporter::compareComms((*itr), sender - 1, receiver - 1, type, length)) {
-            (*itr)->recv_time = time;
-            (*itr)->matched = true;
-            matchFound = true;
+    CommRecord * cr = NULL;
+    QLinkedList<CommRecord *> * unmatched = (*(((OTFImporter*) userData)->unmatched_sends))[sender - 1];
+    for (QLinkedList<CommRecord *>::Iterator itr = unmatched->begin(); itr != unmatched->end(); ++itr) {
+        if (OTFImporter::compareComms((*itr), sender - 1, receiver - 1, type, length)) {
+            cr = *itr;
+            cr->recv_time = time;
             break;
         }
     }
 
-    if (!matchFound)
+    if (cr)
+    {
+        (*(((OTFImporter *) userData)->unmatched_sends))[sender - 1]->removeOne(cr);
+    }
+    else
+    {
         ((*(((OTFImporter*) userData)->unmatched_recvs))[sender - 1])->append(new CommRecord(sender - 1, 0, receiver - 1, time, length, type));
+    }
 
     //((OTFImporter*) userData)->recvcount++;
     //std::cout << "Recv " << ((OTFImporter*) userData)->recvcount << std::endl;
