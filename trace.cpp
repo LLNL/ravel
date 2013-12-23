@@ -111,6 +111,10 @@ void Trace::preprocess(OTFImportOptions * _options)
 
 void Trace::partition()
 {
+    QElapsedTimer traceTimer;
+    qint64 traceElapsed;
+
+
 
     chainCommEvents(); // Set comm_prev/comm_next
 
@@ -121,6 +125,7 @@ void Trace::partition()
     // Partition - default
     if (!options.partitionByFunction)
     {
+        traceTimer.start();
           // Partition by Process w or w/o Waitall
         std::cout << "Initializing partitios..." << std::endl;
         if (options.waitallMerge)
@@ -128,11 +133,21 @@ void Trace::partition()
         else
             initializePartitions();
 
+        traceElapsed = traceTimer.nsecsElapsed();
+        std::cout << "Partition initialization: ";
+        gu_printTime(traceElapsed);
+        std::cout << std::endl;
+
+        traceTimer.start();
           // Merge communication
         //set_partition_dag();
         //output_graph("/home/kate/pre_msgpartition.dot");
         std::cout << "Merging for messages..." << std::endl;
         mergeForMessages();
+        traceElapsed = traceTimer.nsecsElapsed();
+        std::cout << "Message Merge: ";
+        gu_printTime(traceElapsed);
+        std::cout << std::endl;
 
         /*
         for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
@@ -153,14 +168,25 @@ void Trace::partition()
         //set_partition_dag();
         //output_graph("/home/kate/pre_cyclepartition.dot");
         //output_graph("/home/kate/pre_cyclepartitionparent.dot", true);
+        traceTimer.start();
         mergeCycles();
+        traceElapsed = traceTimer.nsecsElapsed();
+        std::cout << "Cycle Merge: ";
+        gu_printTime(traceElapsed);
+        std::cout << std::endl;
 
           // Merge by rank level [ later ]
         if (options.leapMerge)
         {
             std::cout << "Merging to complete leaps..." << std::endl;
+            traceTimer.start();
             set_dag_steps();
             mergeByLeap();
+            traceElapsed = traceTimer.nsecsElapsed();
+            std::cout << "Leap Merge: ";
+            gu_printTime(traceElapsed);
+            std::cout << std::endl;
+
         }
     }
 
@@ -346,6 +372,10 @@ void Trace::assignSteps()
 {
     // Step
     //int count = 0;
+    QElapsedTimer traceTimer;
+    qint64 traceElapsed;
+
+    traceTimer.start();
     std::cout << "Assigning local steps" << std::endl;
     for (QList<Partition *>::Iterator partition = partitions->begin(); partition != partitions->end(); ++partition)
     {
@@ -353,6 +383,11 @@ void Trace::assignSteps()
         (*partition)->step();
         //count++;
     }
+    traceElapsed = traceTimer.nsecsElapsed();
+    std::cout << "Local Stepping: ";
+    gu_printTime(traceElapsed);
+    std::cout << std::endl;
+
 
     /*
     for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
@@ -377,13 +412,23 @@ void Trace::assignSteps()
     //std::cout << "Setting dag steps..." << std::endl;
     //set_dag_steps();
     std::cout << "Setting global steps..." << std::endl;
+    traceTimer.start();
     set_global_steps();
+    traceElapsed = traceTimer.nsecsElapsed();
+    std::cout << "Global Stepping: ";
+    gu_printTime(traceElapsed);
+    std::cout << std::endl;
 
     //output_graph("/home/kate/post_global.dot");
 
     // Calculate Step metrics
     std::cout << "Calculating lateness..." << std::endl;
+    traceTimer.start();
     calculate_lateness();
+    traceElapsed = traceTimer.nsecsElapsed();
+    std::cout << "Lateness Calculation: ";
+    gu_printTime(traceElapsed);
+    std::cout << std::endl;
 
     // Verify
     /*bool flag = true;
