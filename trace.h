@@ -27,6 +27,7 @@ public:
     int units;
 
     QList<Partition *> * partitions;
+    QList<QString> * metrics;
 
     // Processing options
     bool isLegacy; // from Python-build JSON

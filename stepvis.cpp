@@ -1,8 +1,8 @@
 #include "stepvis.h"
 #include <iostream>
 
-StepVis::StepVis(QWidget* parent) : TimelineVis(parent = parent),
-    showAggSteps(true),
+StepVis::StepVis(QWidget* parent, VisOptions * _options)
+    : TimelineVis(parent = parent, _options),
     maxLateness(0),
     maxLatenessText(""),
     maxLatenessTextWidth(0),
@@ -36,7 +36,7 @@ void StepVis::setTrace(Trace * t)
             }
         }
     }
-    colormap->setRange(0, maxLateness);
+    options->colormap->setRange(0, maxLateness);
 
     // Initial conditions
     startStep = 0;
@@ -169,7 +169,7 @@ void StepVis::drawNativeGL()
     if (effectiveHeight / processSpan >= 3 && rect().width() / stepSpan >= 3)
         return;
 
-    QString metric("Lateness");
+    QString metric(options->metric);
 
     // Setup viewport
     int width = rect().width();
@@ -187,7 +187,7 @@ void StepVis::drawNativeGL()
     // Figure out if either height/process or width/step is bigger than 1
     float barwidth = 1;
     int effectiveStepSpan = stepSpan;
-    if (!showAggSteps)
+    if (!options->showAggregateSteps)
         effectiveStepSpan = ceil(stepSpan / 2.0);
     if (width / float(effectiveStepSpan) > 1)
     {
@@ -247,7 +247,7 @@ void StepVis::drawNativeGL()
 
                 // Calculate position of this bar in float space
                 y = (position - startProcess) * barheight + 1;
-                if (showAggSteps)
+                if (options->showAggregateSteps)
                     x = ((*evt)->step - startStep) * barwidth + 1;
                 else
                     x = ((*evt)->step - startStep) / 2 * barwidth + 1;
@@ -258,7 +258,7 @@ void StepVis::drawNativeGL()
                 if (sx < 0)
                     sx = 0;
                 if (sx > width - 1)
-                    if (showAggSteps)
+                    if (options->showAggregateSteps)
                         draw = false;
                     else
                         continue;
@@ -305,7 +305,7 @@ void StepVis::drawNativeGL()
                         }
                     }
 
-                if (showAggSteps) // repeat!
+                if (options->showAggregateSteps) // repeat!
                 {
                     x = ((*evt)->step - startStep - 1) * barwidth + 1;
                     if (x + barwidth <= 0)
@@ -358,7 +358,7 @@ void StepVis::drawNativeGL()
             index = base_index + 3*x;
             if (contributors[metric_index + x] > 0)
             {
-                color = colormap->color(metrics[metric_index + x] / contributors[metric_index + x]);
+                color = options->colormap->color(metrics[metric_index + x] / contributors[metric_index + x]);
                 colors[index] = color.red() / 255.0;
                 colors[index + 1] = color.green() / 255.0;
                 colors[index + 2] = color.blue() / 255.0;
@@ -403,7 +403,7 @@ void StepVis::paintEvents(QPainter * painter)
 
     float x, y, w, h, xa, wa, blockwidth;
     float blockheight = floor(effectiveHeight / processSpan);
-    if (showAggSteps)
+    if (options->showAggregateSteps)
         blockwidth = floor(rect().width() / stepSpan);
     else
         blockwidth = floor(rect().width() / (ceil(stepSpan / 2.0)));
@@ -421,7 +421,7 @@ void StepVis::paintEvents(QPainter * painter)
     // our own active partition list that we determin whenever a setSteps happens.
     for (QList<Partition *>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
     {
-        if ((*part)->min_global_step > boundStep(startStep + stepSpan) || (*part)->max_global_step < floor(startStep))
+        if ((*part)->min_global_step - 1 > boundStep(startStep + stepSpan) || (*part)->max_global_step < floor(startStep) - 1)
         {
             //std::cout << (*part)->min_global_step << ", " << (*part)->max_global_step << " : " << startStep << ", " << stepSpan << std::endl;
             continue;
@@ -440,7 +440,7 @@ void StepVis::paintEvents(QPainter * painter)
                 // 0 = startProcess, effectiveHeight = stopProcess (startProcess + processSpan)
                 // 0 = startStep, rect().width() = stopStep (startStep + stepSpan)
                 y = floor((position - startProcess) * blockheight) + 1;
-                if (showAggSteps)
+                if (options->showAggregateSteps)
                     x = floor(((*evt)->step - startStep) * blockwidth) + 1;
                 else
                     x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1;
@@ -468,7 +468,7 @@ void StepVis::paintEvents(QPainter * painter)
 
                 // Draw the event
                 if ((*evt)->hasMetric(metric))
-                    painter->fillRect(QRectF(x, y, w, h), QBrush(colormap->color((*evt)->getMetric(metric))));
+                    painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color((*evt)->getMetric(metric))));
                 else
                     painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(180, 180, 180)));
                 // Change pen color if selected
@@ -490,7 +490,7 @@ void StepVis::paintEvents(QPainter * painter)
                 for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
                     drawMessages.insert((*msg));
 
-                if (showAggSteps) {
+                if (options->showAggregateSteps) {
                     xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1;
                     wa = barwidth;
                     if (xa + wa <= 0)
@@ -508,7 +508,7 @@ void StepVis::paintEvents(QPainter * painter)
 
                     aggcomplete = aggcomplete && complete;
                     if ((*evt)->hasMetric(metric))
-                        painter->fillRect(QRectF(xa, y, wa, h), QBrush(colormap->color((*evt)->getMetric(metric, true))));
+                        painter->fillRect(QRectF(xa, y, wa, h), QBrush(options->colormap->color((*evt)->getMetric(metric, true))));
                     else
                         painter->fillRect(QRectF(xa, y, wa, h), QBrush(QColor(180, 180, 180)));
                     if (step_spacing > 0 && process_spacing > 0)
@@ -536,14 +536,14 @@ void StepVis::paintEvents(QPainter * painter)
             recv_event = (*msg)->receiver;
             position = proc_to_order[send_event->process];
             y = floor((position - startProcess) * blockheight) + 1;
-            if (showAggSteps)
+            if (options->showAggregateSteps)
                 x = floor((send_event->step - startStep) * blockwidth) + 1;
             else
                 x = floor((send_event->step - startStep) / 2 * blockwidth) + 1;
             p1 = QPointF(x + w/2.0, y + h/2.0);
             position = proc_to_order[recv_event->process];
             y = floor((position - startProcess) * blockheight) + 1;
-            if (showAggSteps)
+            if (options->showAggregateSteps)
                 x = floor((recv_event->step - startStep) * blockwidth) + 1;
             else
                 x = floor((recv_event->step - startStep) / 2 * blockwidth) + 1;
@@ -579,11 +579,11 @@ void StepVis::drawColorBarGL()
 
             glTranslatef(colorbar_offset + i*segment_size, barMargin, 0);
             glBegin(GL_QUADS);
-            startColor = colormap->color(i / 100.0 * maxLateness);
+            startColor = options->colormap->color(i / 100.0 * maxLateness);
             glColor3f(startColor.red() / 255.0, startColor.green() / 255.0, startColor.blue() / 255.0);
             glVertex3f(0, 0, 0);
             glVertex3f(0, barHeight, 0);
-            finishColor = colormap->color((i + 1) / 100.0 * maxLateness);
+            finishColor = options->colormap->color((i + 1) / 100.0 * maxLateness);
             glColor3f(finishColor.red() / 255.0, finishColor.green() / 255.0, finishColor.blue() / 255.0);
             glVertex3f(segment_size, barHeight, 0);
             glVertex3f(segment_size, 0, 0);

@@ -4,7 +4,8 @@
 #include <iostream>
 #include <cmath>
 
-OverviewVis::OverviewVis(QWidget *parent) : VisWidget(parent = parent)
+OverviewVis::OverviewVis(QWidget *parent, VisOptions * _options)
+    : VisWidget(parent = parent, _options = _options)
 {
     height = 70;
 

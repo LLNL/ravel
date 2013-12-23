@@ -10,18 +10,20 @@
 #include <cmath>
 
 #include "trace.h"
+#include "visoptions.h"
 
 class VisWidget : public QGLWidget
 {
     Q_OBJECT
 public:
-    VisWidget(QWidget *parent = 0);
+    VisWidget(QWidget *parent = 0, VisOptions * _options = new VisOptions());
     ~VisWidget();
     virtual void setTrace(Trace *t);
     virtual void processVis();
     QSize sizeHint() const;
 
     void setClosed(bool _closed);
+    void setVisOptions(VisOptions * _options);
     QWidget * container;
 
 signals:
@@ -53,6 +55,7 @@ private:
 protected:
     Trace * trace;
     bool visProcessed;
+    VisOptions * options;
     QColor backgroundColor;
     QBrush selectColor;
     bool changeSource;

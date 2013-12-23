@@ -16,16 +16,15 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow),
     traces(QVector<Trace *>()),
     viswidgets(QVector<VisWidget *>()),
+    activeTrace(-1),
     otfoptions(new OTFImportOptions()),
     otfdialog(NULL),
-    metriccolormap(new ColorMap(QColor(173, 216, 230), 0))
+    visoptions(new VisOptions()),
+    visdialog(NULL)
 {
     ui->setupUi(this);
 
-    metriccolormap->addColor(QColor(240, 230, 140), 0.5);
-    metriccolormap->addColor(QColor(178, 34, 34), 1);
-
-    OverviewVis* overview = new OverviewVis(ui->overviewContainer);
+    OverviewVis* overview = new OverviewVis(ui->overviewContainer, visoptions);
     //ui->overviewLayout->addWidget(overview);
     //ui->overviewLayout->setStretchFactor(overview, 1);
     ui->overviewContainer->layout()->addWidget(overview);
@@ -34,22 +33,20 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(overview, SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
     viswidgets.push_back(overview);
 
-    StepVis* stepvis = new StepVis(ui->stepContainer);
+    StepVis* stepvis = new StepVis(ui->stepContainer, visoptions);
     //ui->stepLayout->addWidget(stepvis);
     ui->stepContainer->layout()->addWidget(stepvis);
 
     connect((stepvis), SIGNAL(stepsChanged(float, float)), this, SLOT(pushSteps(float, float)));
     connect((stepvis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
-    stepvis->setColorMap(metriccolormap);
     viswidgets.push_back(stepvis);
 
-    TraditionalVis* timevis = new TraditionalVis(ui->traditionalContainer);
+    TraditionalVis* timevis = new TraditionalVis(ui->traditionalContainer, visoptions);
     //ui->traditionalLayout->addWidget(timevis);
     ui->traditionalContainer->layout()->addWidget(timevis);
 
     connect((timevis), SIGNAL(stepsChanged(float, float)), this, SLOT(pushSteps(float, float)));
     connect((timevis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
-    timevis->setColorMap(metriccolormap);
     viswidgets.push_back(timevis);
 
     connect(ui->actionOpen_JSON, SIGNAL(triggered()),this,SLOT(importJSON()));
@@ -67,7 +64,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
-    delete metriccolormap;
     delete otfdialog;
     delete ui;
 }
@@ -98,7 +94,15 @@ void MainWindow::launchOTFOptions()
 
 void MainWindow::launchVisOptions()
 {
+    delete visdialog;
+    if (activeTrace >= 0)
+        visdialog = new VisOptionsDialog(this, visoptions, traces[activeTrace]);
+    else
+        visdialog = new VisOptionsDialog(this, visoptions);
+    visdialog->show();
 
+    for(int i = 0; i < viswidgets.size(); i++)
+        viswidgets[i]->repaint();
 }
 
 void MainWindow::importOTFbyGUI()
@@ -135,6 +139,7 @@ void MainWindow::importOTF(QString dataFileName){
     trace->printStats();
 
     this->traces.push_back(trace);
+    activeTrace = traces.size() - 1;
 
     for(int i = 0; i < viswidgets.size(); i++)
     {
@@ -245,6 +250,7 @@ void MainWindow::importJSON()
 
 
     this->traces.push_back(trace);
+    activeTrace = traces.size() - 1;
     dataFile.close();
 
     for(int i = 0; i < viswidgets.size(); i++)

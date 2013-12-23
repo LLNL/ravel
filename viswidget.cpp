@@ -1,10 +1,11 @@
 #include "viswidget.h"
 #include <iostream>
 
-VisWidget::VisWidget(QWidget *parent) :
+VisWidget::VisWidget(QWidget *parent, VisOptions * _options) :
     QGLWidget(QGLFormat(QGL::SampleBuffers), parent),
     container(parent),
     trace(NULL),
+    options(_options),
     visProcessed(false),
     backgroundColor(Qt::white),
     selectColor(QBrush(Qt::yellow)),
@@ -165,6 +166,11 @@ void VisWidget::setClosed(bool _closed)
         repaint();
     }
     closed = _closed;
+}
+
+void VisWidget::setVisOptions(VisOptions * _options)
+{
+    options = _options;
 }
 
 

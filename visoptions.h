@@ -8,7 +8,7 @@ class VisOptions
 public:
     VisOptions(bool _showAgg = true,
                      bool _metricTraditional = false,
-                     QString _metric = "lateness");
+                     QString _metric = "Lateness");
     VisOptions(const VisOptions& copy);
 
     bool showAggregateSteps;

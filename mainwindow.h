@@ -7,6 +7,8 @@
 #include "trace.h"
 #include "otfimportoptions.h"
 #include "importoptionsdialog.h"
+#include "visoptions.h"
+#include "visoptionsdialog.h"
 #include "colormap.h"
 
 #include "json/json.h"
@@ -38,13 +40,15 @@ private:
 
     QVector<Trace *> traces;
     QVector<VisWidget *> viswidgets;
+    int activeTrace;
 
     // Import Trace options
     OTFImportOptions * otfoptions;
     ImportOptionsDialog * otfdialog;
 
-    // Color stuff
-    ColorMap * metriccolormap;
+    // Color stuff & other vis options
+    VisOptions * visoptions;
+    VisOptionsDialog * visdialog;
 };
 
 #endif // MAINWINDOW_H

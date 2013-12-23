@@ -8,6 +8,7 @@ Trace::Trace(int np, bool legacy)
     : num_processes(np),
       units(-9),
       partitions(new QList<Partition *>()),
+      metrics(new QList<QString>()),
       isLegacy(legacy),
       options(NULL),
       functionGroups(new QMap<int, QString>()),
@@ -36,6 +37,7 @@ Trace::Trace(int np)
 
 Trace::~Trace()
 {
+    delete metrics;
     delete functionGroups;
 
     for (QMap<int, Function *>::Iterator itr = functions->begin(); itr != functions->end(); ++itr)
@@ -246,6 +248,8 @@ void Trace::set_global_steps()
 
 void Trace::calculate_lateness()
 {
+    metrics->append("Lateness");
+
     // Go through dag, starting at the beginning
     QSet<Partition *> * active_partitions = new QSet<Partition *>();
     for (QList<Partition *>::Iterator part = dag_entries->begin(); part != dag_entries->end(); ++part)
@@ -342,6 +346,7 @@ void Trace::assignSteps()
 {
     // Step
     //int count = 0;
+    std::cout << "Assigning local steps" << std::endl;
     for (QList<Partition *>::Iterator partition = partitions->begin(); partition != partitions->end(); ++partition)
     {
         //std::cout << "Stepping partition " << count << std::endl;

@@ -2,7 +2,8 @@
 #include <iostream>
 #include <QFontMetrics>
 
-TraditionalVis::TraditionalVis(QWidget * parent) : TimelineVis(parent = parent),
+TraditionalVis::TraditionalVis(QWidget * parent, VisOptions * _options)
+    : TimelineVis(parent = parent, _options),
     minTime(0),
     maxTime(0),
     startTime(0),
@@ -262,20 +263,28 @@ void TraditionalVis::paintEvents(QPainter *painter)
 
                 // Change pen color if selected
                 if (*evt == selected_event)
-                {
-                    // Draw event
-                    painter->fillRect(QRectF(x, y, w, h), QBrush(Qt::yellow));
                     painter->setPen(QPen(Qt::yellow));
+
+                if (options->colorTraditionalByMetric && (*evt)->hasMetric(options->metric))
+                {
+                        painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color((*evt)->getMetric(options->metric))));
                 }
                 else
-                    // Draw event
-                    painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(200, 200, 255)));
+                {
+                    if (*evt == selected_event)
+                        painter->fillRect(QRectF(x, y, w, h), QBrush(Qt::yellow));
+                    else
+                        // Draw event
+                        painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(200, 200, 255)));
+                }
+
                 // Draw border
                 if (process_spacing > 0)
                     if (complete)
                         painter->drawRect(QRectF(x,y,w,h));
                     else
                         incompleteBox(painter, x, y, w, h);
+
                 // Revert pen color
                 if (*evt == selected_event)
                     painter->setPen(QPen(QColor(0, 0, 0)));

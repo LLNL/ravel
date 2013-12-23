@@ -7,7 +7,7 @@ class StepVis : public TimelineVis
 {
     Q_OBJECT
 public:
-    StepVis(QWidget* parent = 0);
+    StepVis(QWidget* parent = 0, VisOptions *_options = new VisOptions());
     ~StepVis();
     void setTrace(Trace * t);
 
@@ -26,7 +26,6 @@ protected:
     void drawColorBarText(QPainter * painter);
 
 private:
-    bool showAggSteps;
     long long maxLateness;
     QString maxLatenessText;
     int maxLatenessTextWidth;

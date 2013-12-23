@@ -8,7 +8,7 @@ class OverviewVis : public VisWidget
 {
     Q_OBJECT
 public:
-    OverviewVis(QWidget *parent = 0);
+    OverviewVis(QWidget *parent = 0, VisOptions *_options = new VisOptions());
     void setTrace(Trace * t);
     void processVis();
     void resizeEvent(QResizeEvent * event);

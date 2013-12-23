@@ -7,7 +7,7 @@ class TraditionalVis : public TimelineVis
 {
     Q_OBJECT
 public:
-    TraditionalVis(QWidget * parent = 0);
+    TraditionalVis(QWidget * parent = 0, VisOptions *_options = new VisOptions());
     ~TraditionalVis();
     void setTrace(Trace * t);
 
