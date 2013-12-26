@@ -3,6 +3,7 @@
 #include <fstream>
 #include <QElapsedTimer>
 #include "general_util.h"
+#include <cmath>
 
 Trace::Trace(int np, bool legacy)
     : num_processes(np),
@@ -286,8 +287,19 @@ void Trace::calculate_lateness()
     // For each step, find all the events in the active partitions with that step
     // and calculate lateness
     // Active partition group may change every time the step is changed.
+    int progressPortion = round(global_max_step / 2.0 / lateness_portion);
+    int currentPortion = 0;
+    int currentIter = 0;
+
     for (int i = 0; i <= global_max_step; i+= 2)
     {
+        if (round(currentIter / 1.0 / progressPortion) > currentPortion)
+        {
+            ++currentPortion;
+            emit(updatePreprocess(steps_portion + partition_portion + currentPortion, "Calculating Lateness..."));
+        }
+        ++currentIter;
+
         //std::cout << "Handling step " << i << std::endl;
         QList<Event *> * i_list = new QList<Event *>();
         for (QSet<Partition *>::Iterator part = active_partitions->begin(); part != active_partitions->end(); ++part)
@@ -377,8 +389,17 @@ void Trace::assignSteps()
 
     traceTimer.start();
     std::cout << "Assigning local steps" << std::endl;
+    int progressPortion = round(partitions->size() / 1.0 / steps_portion);
+    int currentPortion = 0;
+    int currentIter = 0;
     for (QList<Partition *>::Iterator partition = partitions->begin(); partition != partitions->end(); ++partition)
     {
+        if (round(currentIter / 1.0 / progressPortion) > currentPortion)
+        {
+            ++currentPortion;
+            emit(updatePreprocess(partition_portion + currentPortion, "Assigning steps..."));
+        }
+        ++currentIter;
         //std::cout << "Stepping partition " << count << std::endl;
         (*partition)->step();
         //count++;
@@ -413,18 +434,23 @@ void Trace::assignSteps()
     //set_dag_steps();
     std::cout << "Setting global steps..." << std::endl;
     traceTimer.start();
+
     set_global_steps();
+
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "Global Stepping: ";
     gu_printTime(traceElapsed);
     std::cout << std::endl;
+    std::cout << "Num partitions " << partitions->length() << std::endl;
 
     //output_graph("/home/kate/post_global.dot");
 
     // Calculate Step metrics
     std::cout << "Calculating lateness..." << std::endl;
     traceTimer.start();
+
     calculate_lateness();
+
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "Lateness Calculation: ";
     gu_printTime(traceElapsed);
@@ -774,6 +800,10 @@ void Trace::mergeForMessagesHelper(Partition * part, QSet<Partition *> * to_merg
 // Loop through the partitions and merge all connected by messages.
 void Trace::mergeForMessages()
 {
+    int progressPortion = round(partitions->size() / 1.0 / 35);
+    int currentPortion = 0;
+    int currentIter = 0;
+
     Partition * p;
 
     // Loop through partitions to determine which to merge based on messages
@@ -782,6 +812,12 @@ void Trace::mergeForMessages()
     QList<QList<Partition *> *> * components = new QList<QList<Partition *> *>();
     for(QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++ part)
     {
+        if (round(currentIter / 1.0 / progressPortion) > currentPortion)
+        {
+            ++currentPortion;
+            emit(updatePreprocess(5 + currentPortion, "Merging for messages..."));
+        }
+        ++currentIter;
         if ((*part)->mark)
             continue;
         to_merge->clear();
@@ -926,11 +962,14 @@ void Trace::mergeCycles()
 {
     // Determine partition parents/children through dag
     // and then determine strongly connected components (SCCs) with tarjan.
+    emit(updatePreprocess(41, "Merging cycles..."));
     set_partition_dag();
     //output_graph("/Users/kate/pre_merge_cycles.dot");
     QList<QList<Partition *> *> * components = tarjan();
+    emit(updatePreprocess(43, "Merging cycles..."));
 
     mergePartitions(components);
+    emit(updatePreprocess(45, "Merging cycles..."));
 }
 
 
@@ -1173,7 +1212,17 @@ void Trace::partitionByPhase()
 // Every send/recv event becomes its own partition
 void Trace::initializePartitions()
 {
-    for (QVector<QList<Event *> *>::Iterator event_list = mpi_events->begin(); event_list != mpi_events->end(); ++event_list) {
+    int progressPortion = round(num_processes / 1.0 / 5);
+    int currentPortion = 0;
+    int currentIter = 0;
+    for (QVector<QList<Event *> *>::Iterator event_list = mpi_events->begin(); event_list != mpi_events->end(); ++event_list)
+    {
+        if (round(currentIter / 1.0 / progressPortion) > currentPortion)
+        {
+            ++currentPortion;
+            emit(updatePreprocess(currentPortion, "Initializing partitions..."));
+        }
+        ++currentIter;
         for (QList<Event *>::Iterator evt = (*event_list)->begin(); evt != (*event_list)->end(); ++evt)
         {
             // Every event with messages becomes its own partition
@@ -1210,11 +1259,20 @@ void Trace::initializePartitionsWaitall()
         }
     }
 
+    int progressPortion = round(num_processes / 1.0 / 5);
+    int currentPortion = 0;
+    int currentIter = 0;
 
     bool aggregating;
     QList<Event *> * aggregation;
     for (QVector<QList<Event *> *>::Iterator event_list = mpi_events->begin(); event_list != mpi_events->end(); ++event_list)
     {
+        if (round(currentIter / 1.0 / progressPortion) > currentPortion)
+        {
+            ++currentPortion;
+            emit(updatePreprocess(currentPortion, "Initializing partitions..."));
+        }
+        ++currentIter;
         // We note these should be in reverse order because of the way they were added
         aggregating = false;
         for (QList<Event *>::Iterator evt = (*event_list)->begin(); evt != (*event_list)->end(); ++evt)

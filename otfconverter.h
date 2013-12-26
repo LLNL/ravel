@@ -9,12 +9,17 @@
 #include <QSet>
 #include <cmath>
 
-class OTFConverter
+class OTFConverter : public QObject
 {
+    Q_OBJECT
 public:
     OTFConverter();
     ~OTFConverter();
     Trace * importOTF(QString filename, OTFImportOptions * _options);
+
+signals:
+    void finishRead();
+    void matchingUpdate(int, QString);
 
 private:
     void matchEvents();
@@ -28,6 +33,8 @@ private:
     OTFImportOptions * options;
     int phaseFunction;
 
+    static const int event_match_portion = 14;
+    static const int message_match_portion = 10;
 };
 
 #endif // OTFCONVERTER_H

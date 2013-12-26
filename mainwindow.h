@@ -3,6 +3,8 @@
 
 #include <QMainWindow>
 #include <QElapsedTimer>
+#include <QThread>
+#include <QProgressDialog>
 #include "viswidget.h"
 #include "trace.h"
 #include "otfimportoptions.h"
@@ -10,6 +12,7 @@
 #include "visoptions.h"
 #include "visoptionsdialog.h"
 #include "colormap.h"
+#include "otfimportfunctor.h"
 
 #include "json/json.h"
 
@@ -33,6 +36,11 @@ public slots:
     void pushSteps(float start, float stop);
     void selectEvent(Event * event);
     void handleSplitter(int pos, int index);
+    void traceFinished(Trace * trace);
+    void updateProgress(int portion, QString msg);
+
+signals:
+    void operate(const QString &);
     
 private:
     Ui::MainWindow *ui;
@@ -42,6 +50,10 @@ private:
     QVector<Trace *> traces;
     QVector<VisWidget *> viswidgets;
     int activeTrace;
+
+    OTFImportFunctor * importWorker;
+    QThread * importThread;
+    QProgressDialog * progress;
 
     // Import Trace options
     OTFImportOptions * otfoptions;

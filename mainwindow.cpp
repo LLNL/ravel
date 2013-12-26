@@ -8,7 +8,7 @@
 #include "general_util.h"
 
 #include <QFileDialog>
-#include <QProgressDialog>
+#include "QtConcurrent/qtconcurrentrun.h"
 #include <iostream>
 #include <string>
 
@@ -18,6 +18,9 @@ MainWindow::MainWindow(QWidget *parent) :
     traces(QVector<Trace *>()),
     viswidgets(QVector<VisWidget *>()),
     activeTrace(-1),
+    importWorker(NULL),
+    importThread(NULL),
+    progress(NULL),
     otfoptions(new OTFImportOptions()),
     otfdialog(NULL),
     visoptions(new VisOptions()),
@@ -110,18 +113,60 @@ void MainWindow::importOTFbyGUI()
 {
     // Now get the OTF File
     QString dataFileName = QFileDialog::getOpenFileName(this, tr("Import OTF Data"),
-                                                     "",
-                                                     tr("Files (*.otf)"));
+                                                        "",
+                                                        tr("Files (*.otf)")); /*,
+                                                        0,
+                                                        QFileDialog::DontUseNativeDialog);*/
+    qApp->processEvents();
+
     // Guard against Cancel
     if (dataFileName == NULL || dataFileName.length() == 0)
         return;
 
+    repaint();
     importOTF(dataFileName);
+}
+
+void MainWindow::importOTF(QString dataFileName){
+
+    progress = new QProgressDialog("Reading OTF...", "", 0, 0, this);
+    progress->setWindowTitle("Importing OTF...");
+    progress->setCancelButton(0);
+    progress->show();
+
+    delete importThread;
+    importThread = new QThread();
+    importWorker = new OTFImportFunctor(otfoptions);
+    importWorker->moveToThread(importThread);
+    connect(this, SIGNAL(operate(QString)), importWorker, SLOT(doImport(QString)));
+    connect(importWorker, SIGNAL(done(Trace *)), this, SLOT(traceFinished(Trace *)));
+    connect(importWorker, SIGNAL(reportProgress(int, QString)), this, SLOT(updateProgress(int, QString)));
+
+    importThread->start();
+    emit(operate(dataFileName));
+}
+
+void MainWindow::traceFinished(Trace * trace)
+{
+    progress->close();
+
+    this->traces.push_back(trace);
+    activeTrace = traces.size() - 1;
+
+    delete importWorker;
+    delete progress;
+
     activeTraceChanged();
 }
 
+void MainWindow::updateProgress(int portion, QString msg)
+{
+    progress->setMaximum(100);
+    progress->setLabelText(msg);
+    progress->setValue(portion);
+}
 
-
+/*
 void MainWindow::importOTF(QString dataFileName){
 
     std::cout << "Processing " << dataFileName.toStdString().c_str() << std::endl;
@@ -130,7 +175,8 @@ void MainWindow::importOTF(QString dataFileName){
 
     traceTimer.start();
 
-    QProgressDialog * progress = new QProgressDialog("Importing OTF", "", 0, 0, this, Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
+    QProgressDialog * progress = new QProgressDialog("Importing OTF", "", 0, 0, this);
+    progress->setWindowTitle("Importing OTF Progress");
     progress->setCancelButton(0);
     progress->show();
 
@@ -148,7 +194,7 @@ void MainWindow::importOTF(QString dataFileName){
 
     this->traces.push_back(trace);
     activeTrace = traces.size() - 1;
-}
+}*/
 
 void MainWindow::activeTraceChanged()
 {

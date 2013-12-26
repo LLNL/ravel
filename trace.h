@@ -11,8 +11,9 @@
 #include <QSet>
 #include <QQueue>
 
-class Trace
+class Trace : public QObject
 {
+    Q_OBJECT
 public:
     Trace(int np);
     Trace(int np, bool legacy = false);
@@ -46,6 +47,9 @@ public:
     int global_max_step; // largest global step
     QList<Partition * > * dag_entries; // Leap 0 in the dag
     QMap<int, QSet<Partition *> *> * dag_step_dict; // Map from leap to partition
+
+signals:
+    void updatePreprocess(int, QString);
 
 private:
     // Link the comm events together by order
@@ -87,6 +91,10 @@ private:
     // TODO: Replace this terrible stuff with QSharedPointer
     QSet<RecurseInfo *> * riTracker;
     QSet<QList<Partition *> *> * riChildrenTracker;
+
+    static const int partition_portion = 45;
+    static const int lateness_portion = 35;
+    static const int steps_portion = 20;
 };
 
 #endif // TRACE_H

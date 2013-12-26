@@ -21,6 +21,7 @@ Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
     // Start with the rawtrace similar to what we got from PARAVER
     OTFImporter * importer = new OTFImporter();
     rawtrace = importer->importOTF(filename.toStdString().c_str());
+    emit(finishRead());
 
     // Time the rest of this
     QElapsedTimer traceTimer;
@@ -63,6 +64,14 @@ Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
         (*(trace->mpi_events))[i] = new QList<Event *>();
     matchEvents();
 
+
+    traceElapsed = traceTimer.nsecsElapsed();
+    std::cout << "Event Matching: ";
+    gu_printTime(traceElapsed);
+    std::cout << std::endl;
+
+    traceTimer.start();
+
     // Match messages to previously connected events
     matchMessages();
 
@@ -70,7 +79,7 @@ Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
     delete rawtrace;
 
     traceElapsed = traceTimer.nsecsElapsed();
-    std::cout << "Event & Message Matching: ";
+    std::cout << "Message Matching: ";
     gu_printTime(traceElapsed);
     std::cout << std::endl;
 
@@ -82,11 +91,21 @@ void OTFConverter::matchEvents()
 {
     // We can handle each set of events separately
     QStack<Event *> * stack = new QStack<Event *>();
+    emit(matchingUpdate(1, "Constructing events..."));
+    int progressPortion = round(rawtrace->num_processes / 1.0 / event_match_portion);
+    int currentPortion = 0;
+    int currentIter = 0;
+
     for (QVector<QVector<EventRecord *> *>::Iterator event_list = rawtrace->events->begin(); event_list != rawtrace->events->end(); ++event_list) {
         int depth = 0;
         int phase = 0;
         unsigned long long endtime = 0;
-
+        if (round(currentIter / progressPortion) > currentPortion)
+        {
+            ++currentPortion;
+            emit(matchingUpdate(1 + currentPortion, "Constructing events..."));
+        }
+        ++currentIter;
         for (QVector<EventRecord *>::Iterator evt = (*event_list)->begin(); evt != (*event_list)->end(); ++evt)
         {
             if ((*evt)->value == 0) // End of a subroutine
@@ -155,8 +174,17 @@ void OTFConverter::matchMessages()
     int messages = 0;
     int unmatched_recvs = 0;
     int unmatched_sends = 0;
+    int progressPortion = round(rawtrace->messages->size() / 1.0 / message_match_portion);
+    int currentPortion = 0;
+    int currentIter = 0;
     for (QVector<QVector<CommRecord *> *>::Iterator commlist = rawtrace->messages->begin(); commlist != rawtrace->messages->end(); ++commlist)
     {
+        if (round(currentIter / progressPortion) > currentPortion)
+        {
+            ++currentPortion;
+            emit(matchingUpdate(1 + event_match_portion + currentPortion, "Event/Message matching..."));
+        }
+        ++currentIter;
         for (QVector<CommRecord *>::Iterator comm = (*commlist)->begin(); comm != (*commlist)->end(); ++comm)
         {
             messages++;

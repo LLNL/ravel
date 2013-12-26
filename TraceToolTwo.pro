@@ -28,7 +28,8 @@ SOURCES  += main.cpp \
     timelinevis.cpp \
     traditionalvis.cpp \
     visoptionsdialog.cpp \
-    visoptions.cpp
+    visoptions.cpp \
+    otfimportfunctor.cpp
 
 
 HEADERS += \
@@ -53,7 +54,8 @@ HEADERS += \
     timelinevis.h \
     traditionalvis.h \
     visoptionsdialog.h \
-    visoptions.h
+    visoptions.h \
+    otfimportfunctor.h
 
 
 FORMS += \
