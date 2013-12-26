@@ -8,6 +8,7 @@
 #include "general_util.h"
 
 #include <QFileDialog>
+#include <QProgressDialog>
 #include <iostream>
 #include <string>
 
@@ -116,6 +117,7 @@ void MainWindow::importOTFbyGUI()
         return;
 
     importOTF(dataFileName);
+    activeTraceChanged();
 }
 
 
@@ -128,6 +130,10 @@ void MainWindow::importOTF(QString dataFileName){
 
     traceTimer.start();
 
+    QProgressDialog * progress = new QProgressDialog("Importing OTF", "", 0, 0, this, Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
+    progress->setCancelButton(0);
+    progress->show();
+
     OTFConverter importer = OTFConverter();
     Trace* trace = importer.importOTF(dataFileName, otfoptions);
     trace->preprocess(otfoptions);
@@ -138,12 +144,17 @@ void MainWindow::importOTF(QString dataFileName){
     std::cout << std::endl;
     trace->printStats();
 
+    progress->close();
+
     this->traces.push_back(trace);
     activeTrace = traces.size() - 1;
+}
 
+void MainWindow::activeTraceChanged()
+{
     for(int i = 0; i < viswidgets.size(); i++)
     {
-        viswidgets[i]->setTrace(trace);
+        viswidgets[i]->setTrace(traces[activeTrace]);
         viswidgets[i]->processVis();
         viswidgets[i]->repaint();
     }
@@ -252,13 +263,7 @@ void MainWindow::importJSON()
     this->traces.push_back(trace);
     activeTrace = traces.size() - 1;
     dataFile.close();
-
-    for(int i = 0; i < viswidgets.size(); i++)
-    {
-        viswidgets[i]->setTrace(trace);
-        viswidgets[i]->processVis();
-        viswidgets[i]->repaint();
-    }
+    activeTraceChanged();
 }
 
 void MainWindow::handleSplitter(int pos, int index)

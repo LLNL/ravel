@@ -37,6 +37,7 @@ public slots:
 private:
     Ui::MainWindow *ui;
     void importOTF(QString dataFileName);
+    void activeTraceChanged();
 
     QVector<Trace *> traces;
     QVector<VisWidget *> viswidgets;
