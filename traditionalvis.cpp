@@ -206,7 +206,7 @@ void TraditionalVis::prepaint()
         Partition * part = NULL;
         if (startStep < lastStartStep) // check earlier partitions
         {
-            for (int i = startPartition; i >0; --i) // Keep setting the one before until its right
+            for (int i = startPartition; i >= 0; --i) // Keep setting the one before until its right
             {
                 part = trace->partitions->at(i);
                 if (part->max_global_step >= bottomStep)

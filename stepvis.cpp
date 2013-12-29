@@ -169,7 +169,7 @@ void StepVis::prepaint()
         Partition * part = NULL;
         if (startStep < lastStartStep) // check earlier partitions
         {
-            for (int i = startPartition; i >0; --i) // Keep setting the one before until its right
+            for (int i = startPartition; i >= 0; --i) // Keep setting the one before until its right
             {
                 part = trace->partitions->at(i);
                 if (part->max_global_step >= bottomStep)
@@ -203,8 +203,8 @@ void StepVis::qtPaint(QPainter *painter)
         return;
 
     // In this case we haven't already drawn stuff with GL, so we paint it here.
-    //if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
-    //  paintEvents(painter);
+    if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
+      paintEvents(painter);
 
     drawColorBarText(painter);
 
@@ -222,8 +222,8 @@ void StepVis::drawNativeGL()
     drawColorBarGL();
 
     int effectiveHeight = rect().height() - colorBarHeight;
-    //if (effectiveHeight / processSpan >= 3 && rect().width() / stepSpan >= 3)
-    //    return;
+    if (effectiveHeight / processSpan >= 3 && rect().width() / stepSpan >= 3)
+        return;
 
     QString metric(options->metric);
 
@@ -244,8 +244,8 @@ void StepVis::drawNativeGL()
 
     float barwidth = 1.0;
     float barheight = 1.0;
-    processheight = processSpan / height;
-    stepwidth = effectiveSpan / width;
+    processheight = height/ processSpan;
+    stepwidth = width / effectiveSpan;
 
     // Generate buffers to hold each bar. We don't know how many there will
     // be since we draw one per event.
@@ -271,7 +271,7 @@ void StepVis::drawNativeGL()
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
                 position = proc_to_order[(*evt)->process];
-                if ((*evt)->step < floor(startStep) || (*evt)->step > boundStep(startStep + stepSpan)) // Out of span
+                if ((*evt)->step < bottomStep || (*evt)->step > topStep) // Out of span
                     continue;
                 if (position < floor(startProcess) || position > ceil(startProcess + processSpan)) // Out of span
                     continue;
@@ -334,7 +334,7 @@ void StepVis::drawNativeGL()
     glEnableClientState(GL_VERTEX_ARRAY);
     glColorPointer(3,GL_FLOAT,0,colors.constData());
     glVertexPointer(2,GL_FLOAT,0,bars.constData());
-    glDrawArrays(GL_QUADS,0,bars.size()/2); // 8 = 4 points/quad * 2 coordinates/point
+    glDrawArrays(GL_QUADS,0,bars.size()/2);
 }
 
 void StepVis::paintEvents(QPainter * painter)
@@ -382,7 +382,7 @@ void StepVis::paintEvents(QPainter * painter)
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
                 position = proc_to_order[(*evt)->process];
-                if ((*evt)->step < floor(startStep) || (*evt)->step > boundStep(startStep + stepSpan)) // Out of span
+                if ((*evt)->step < bottomStep || (*evt)->step > topStep) // Out of span
                 {
                     //std::cout << (*evt)->step << ", " << startStep << ", " << boundStep(startStep + stepSpan) << std::endl;
                     continue;
