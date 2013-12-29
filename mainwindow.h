@@ -33,7 +33,7 @@ public slots:
     void launchVisOptions();
     void importJSON();
     void importOTFbyGUI();
-    void pushSteps(float start, float stop);
+    void pushSteps(float start, float stop, bool jump = false);
     void selectEvent(Event * event);
     void handleSplitter(int pos, int index);
     void traceFinished(Trace * trace);

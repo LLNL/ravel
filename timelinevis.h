@@ -1,7 +1,7 @@
 #ifndef TIMELINEVIS_H
 #define TIMELINEVIS_H
 
-
+#include <QLinkedList>
 #include "viswidget.h"
 #include "colormap.h"
 #include "event.h"
@@ -25,6 +25,7 @@ public slots:
 protected:
     void drawHover(QPainter *painter);
 
+    bool jumped;
     bool mousePressed;
     int mousex;
     int mousey;
@@ -34,10 +35,12 @@ protected:
     int processheight;
 
     int maxStep;
+    int startPartition;
     float startStep;
     float startProcess; // refers to order rather than process really
     float stepSpan;
     float processSpan;
+    float lastStartStep;
     QMap<int, int> proc_to_order;
     QMap<int, int> order_to_proc;
 

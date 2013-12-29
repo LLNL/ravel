@@ -33,7 +33,7 @@ MainWindow::MainWindow(QWidget *parent) :
     //ui->overviewLayout->setStretchFactor(overview, 1);
     ui->overviewContainer->layout()->addWidget(overview);
 
-    connect(overview, SIGNAL(stepsChanged(float, float)), this, SLOT(pushSteps(float, float)));
+    connect(overview, SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
     connect(overview, SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
     viswidgets.push_back(overview);
 
@@ -41,7 +41,7 @@ MainWindow::MainWindow(QWidget *parent) :
     //ui->stepLayout->addWidget(stepvis);
     ui->stepContainer->layout()->addWidget(stepvis);
 
-    connect((stepvis), SIGNAL(stepsChanged(float, float)), this, SLOT(pushSteps(float, float)));
+    connect((stepvis), SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
     connect((stepvis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
     viswidgets.push_back(stepvis);
 
@@ -49,7 +49,7 @@ MainWindow::MainWindow(QWidget *parent) :
     //ui->traditionalLayout->addWidget(timevis);
     ui->traditionalContainer->layout()->addWidget(timevis);
 
-    connect((timevis), SIGNAL(stepsChanged(float, float)), this, SLOT(pushSteps(float, float)));
+    connect((timevis), SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
     connect((timevis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
     viswidgets.push_back(timevis);
 
@@ -72,11 +72,11 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::pushSteps(float start, float stop)
+void MainWindow::pushSteps(float start, float stop, bool jump)
 {
     for(int i = 0; i < viswidgets.size(); i++)
     {
-        viswidgets[i]->setSteps(start, stop);
+        viswidgets[i]->setSteps(start, stop, jump);
     }
 }
 

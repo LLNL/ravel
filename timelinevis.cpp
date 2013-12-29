@@ -3,6 +3,7 @@
 
 TimelineVis::TimelineVis(QWidget* parent, VisOptions * _options)
     : VisWidget(parent = parent, _options),
+      jumped(false),
       mousePressed(false),
       mousex(0),
       mousey(0),
@@ -11,10 +12,12 @@ TimelineVis::TimelineVis(QWidget* parent, VisOptions * _options)
       stepwidth(0),
       processheight(0),
       maxStep(0),
+      startPartition(0),
       startStep(0),
       startProcess(0),
       stepSpan(0),
       processSpan(0),
+      lastStartStep(0),
       proc_to_order(QMap<int, int>()),
       order_to_proc(QMap<int, int>())
 {

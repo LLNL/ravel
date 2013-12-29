@@ -29,8 +29,10 @@ int OverviewVis::roundeven(float step)
 }
 
 // We use the set steps to find out where the cursor goes in the overview.
-void OverviewVis::setSteps(float start, float stop)
+void OverviewVis::setSteps(float start, float stop, bool jump)
 {
+    Q_UNUSED(jump);
+
     if (!visProcessed)
         return;
 
@@ -121,7 +123,7 @@ void OverviewVis::mouseReleaseEvent(QMouseEvent * event) {
         stopStep = maxStep;
     //std::cout << startStep << ", " << stopStep << " : " << startCursor << ", " << stopCursor << std::endl;
     changeSource = true;
-    emit stepsChanged(startStep, stopStep);
+    emit stepsChanged(startStep, stopStep, true);
 }
 
 

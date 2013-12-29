@@ -17,7 +17,7 @@ public:
     void mouseMoveEvent(QMouseEvent * event);
 
 public slots:
-    void setSteps(float start, float stop);
+    void setSteps(float start, float stop, bool jump = false);
 
 protected:
     void qtPaint(QPainter *painter);

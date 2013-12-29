@@ -19,13 +19,22 @@ StepVis::~StepVis()
 void StepVis::setTrace(Trace * t)
 {
     VisWidget::setTrace(t);
+    // Initial conditions
+    startStep = 0;
+    stepSpan = initStepSpan;
+    startProcess = 0;
+    processSpan = trace->num_processes;
+    startPartition = 0;
+
     maxStep = trace->global_max_step;
     maxLateness = 0;
     QString lateness("Lateness");
     for (QList<Partition *>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
     {
-        for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list) {
-            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt) {
+        for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
+        {
+            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
+            {
                 if ((*evt)->hasMetric(lateness))
                 {
                     if ((*evt)->getMetric(lateness) > maxLateness)
@@ -38,18 +47,12 @@ void StepVis::setTrace(Trace * t)
     }
     options->colormap->setRange(0, maxLateness);
 
-    // Initial conditions
-    startStep = 0;
-    stepSpan = initStepSpan;
-    startProcess = 0;
-    processSpan = trace->num_processes;
-
     // For colorbar
     QLocale systemlocale = QLocale::system();
     maxLatenessText = systemlocale.toString(maxLateness);
 }
 
-void StepVis::setSteps(float start, float stop)
+void StepVis::setSteps(float start, float stop, bool jump)
 {
     if (!visProcessed)
         return;
@@ -58,8 +61,10 @@ void StepVis::setSteps(float start, float stop)
         changeSource = false;
         return;
     }
+    lastStartStep = startStep;
     startStep = start;
     stepSpan = stop - start + 1;
+    jumped = jump;
 
     if (!closed)
         repaint();
@@ -72,6 +77,7 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
 
     if (mousePressed)
     {
+        lastStartStep = startStep;
         int diffx = mousex - event->x();
         int diffy = mousey - event->y();
         startStep += diffx / 1.0 / stepwidth;
@@ -93,7 +99,7 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
         repaint();
         changeSource = true;
         //std::cout << "Emitting " << startStep << ", " << (startStep + stepSpan) << std::endl;
-        emit stepsChanged(startStep, startStep + stepSpan);
+        emit stepsChanged(startStep, startStep + stepSpan, false);
     }
     else // potential hover
     {
@@ -128,18 +134,67 @@ void StepVis::wheelEvent(QWheelEvent * event)
         startProcess = avgProc - processSpan / 2.0;
     } else {
         // Horizontal
+        lastStartStep = startStep;
         float avgStep = startStep + stepSpan / 2.0;
         stepSpan *= scale;
         startStep = avgStep - stepSpan / 2.0;
     }
     repaint();
     changeSource = true;
-    emit stepsChanged(startStep, startStep + stepSpan);
+    emit stepsChanged(startStep, startStep + stepSpan, false);
 }
 
 void StepVis::prepaint()
 {
     drawnEvents.clear();
+    if (jumped) // We have to redo the active_partitions
+    {
+        // We know this list is in order, so we only have to go so far
+        //int topStep = boundStep(startStep + stepSpan) + 1;
+        int bottomStep = floor(startStep) - 1;
+        Partition * part = NULL;
+        for (int i = 0; i < trace->partitions->length(); ++i)
+        {
+            part = trace->partitions->at(i);
+            if (part->max_global_step >= bottomStep)
+            {
+                startPartition = i;
+                break;
+            }
+        }
+    }
+    else // We nudge the active partitions as necessary
+    {
+        int bottomStep = floor(startStep) - 1;
+        Partition * part = NULL;
+        if (startStep < lastStartStep) // check earlier partitions
+        {
+            for (int i = startPartition; i >0; --i) // Keep setting the one before until its right
+            {
+                part = trace->partitions->at(i);
+                if (part->max_global_step >= bottomStep)
+                {
+                    startPartition = i;
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+        else if (startStep > lastStartStep) // check current partitions up
+        {
+            for (int i = startPartition; i < trace->partitions->length(); ++i) // As soon as we find one, we're good
+            {
+                part = trace->partitions->at(i);
+                if (part->max_global_step >= bottomStep)
+                {
+                    startPartition = i;
+                    break;
+                }
+            }
+        }
+    }
 }
 
 void StepVis::qtPaint(QPainter *painter)
@@ -232,11 +287,17 @@ void StepVis::drawNativeGL()
     float fx, fy; // fractions
     int sx, tx, sy, ty; // max extents
     float position; // placement of process
-    for (QList<Partition *>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
+    Partition * part = NULL;
+    int topStep = boundStep(startStep + stepSpan) + 1;
+    int bottomStep = floor(startStep) - 1;
+    for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
-        if ((*part)->min_global_step > boundStep(startStep + stepSpan)|| (*part)->max_global_step < floor(startStep))
+        part = trace->partitions->at(i);
+        if (part->min_global_step > topStep)
+            break;
+        else if (part->max_global_step < bottomStep)
             continue;
-        for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list) {
+        for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin(); event_list != part->events->end(); ++event_list) {
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
                 position = proc_to_order[(*evt)->process];
@@ -417,16 +478,17 @@ void StepVis::paintEvents(QPainter * painter)
     bool complete, aggcomplete;
     QSet<Message *> drawMessages = QSet<Message *>();
     painter->setPen(QPen(QColor(0, 0, 0)));
-    // TODO: Replace this part where we look through all partitions with a part where we look through
-    // our own active partition list that we determin whenever a setSteps happens.
-    for (QList<Partition *>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
+    Partition * part = NULL;
+    int topStep = boundStep(startStep + stepSpan) + 1;
+    int bottomStep = floor(startStep) - 1;
+    for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
-        if ((*part)->min_global_step - 1 > boundStep(startStep + stepSpan) || (*part)->max_global_step < floor(startStep) - 1)
-        {
-            //std::cout << (*part)->min_global_step << ", " << (*part)->max_global_step << " : " << startStep << ", " << stepSpan << std::endl;
+        part = trace->partitions->at(i);
+        if (part->min_global_step > topStep)
+            break;
+        else if (part->max_global_step < bottomStep)
             continue;
-        }
-        for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list) {
+        for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin(); event_list != part->events->end(); ++event_list) {
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
                 position = proc_to_order[(*evt)->process];

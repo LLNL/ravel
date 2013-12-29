@@ -32,6 +32,7 @@ void TraditionalVis::setTrace(Trace * t)
     int stopStep = startStep + initStepSpan;
     startProcess = 0;
     processSpan = trace->num_processes;
+    startPartition = 0;
 
     // Determine time information
     minTime = ULLONG_MAX;
@@ -129,7 +130,7 @@ void TraditionalVis::mouseMoveEvent(QMouseEvent * event)
 
     if (mousePressed) {
         changeSource = true;
-        emit stepsChanged(startStep, startStep + stepSpan); // Calculated during painting
+        emit stepsChanged(startStep, startStep + stepSpan, false); // Calculated during painting
     }
 }
 
@@ -154,10 +155,10 @@ void TraditionalVis::wheelEvent(QWheelEvent * event)
     }
     repaint();
     changeSource = true;
-    emit stepsChanged(startStep, startStep + stepSpan); // Calculated during painting
+    emit stepsChanged(startStep, startStep + stepSpan, false); // Calculated during painting
 }
 
-void TraditionalVis::setSteps(float start, float stop)
+void TraditionalVis::setSteps(float start, float stop, bool jump)
 {
     if (!visProcessed)
         return;
@@ -168,6 +169,7 @@ void TraditionalVis::setSteps(float start, float stop)
     }
     startTime = (*stepToTime)[std::max(boundStep(start)/2, 0)]->start;
     timeSpan = (*stepToTime)[std::min(boundStep(stop)/2,  maxStep/2)]->stop - startTime;
+    jumped = jump;
 
     if (!closed)
         repaint();
@@ -280,10 +282,12 @@ void TraditionalVis::paintEvents(QPainter *painter)
 
                 // Draw border
                 if (process_spacing > 0)
+                {
                     if (complete)
                         painter->drawRect(QRectF(x,y,w,h));
                     else
                         incompleteBox(painter, x, y, w, h);
+                }
 
                 // Revert pen color
                 if (*evt == selected_event)

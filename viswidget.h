@@ -28,12 +28,12 @@ public:
 
 signals:
     void repaintAll();
-    void stepsChanged(float start, float stop);
+    void stepsChanged(float start, float stop, bool jump);
     void eventClicked(Event * evt);
 
 
 public slots:
-    virtual void setSteps(float start, float stop);
+    virtual void setSteps(float start, float stop, bool jump = false);
     virtual void selectEvent(Event *);
 
 protected:

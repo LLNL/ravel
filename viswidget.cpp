@@ -37,10 +37,11 @@ void VisWidget::initializeGL()
     glDisable(GL_DEPTH);
 }
 
-void VisWidget::setSteps(float start, float stop)
+void VisWidget::setSteps(float start, float stop, bool jump)
 {
     Q_UNUSED(start);
     Q_UNUSED(stop);
+    Q_UNUSED(jump);
 }
 
 void VisWidget::selectEvent(Event * evt)
