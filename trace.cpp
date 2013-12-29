@@ -804,7 +804,7 @@ void Trace::mergeForMessages()
     int currentPortion = 0;
     int currentIter = 0;
 
-    Partition * p;
+    Partition * p = NULL;
 
     // Loop through partitions to determine which to merge based on messages
     QSet<Partition *> * to_merge = new QSet<Partition *>();
