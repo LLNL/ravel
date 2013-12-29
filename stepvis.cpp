@@ -203,14 +203,15 @@ void StepVis::qtPaint(QPainter *painter)
         return;
 
     // In this case we haven't already drawn stuff with GL, so we paint it here.
-    if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
-      paintEvents(painter);
+    //if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
+    //  paintEvents(painter);
 
     drawColorBarText(painter);
 
     // Hover is independent of how we drew things
     drawHover(painter);
 }
+
 
 void StepVis::drawNativeGL()
 {
@@ -221,14 +222,17 @@ void StepVis::drawNativeGL()
     drawColorBarGL();
 
     int effectiveHeight = rect().height() - colorBarHeight;
-    if (effectiveHeight / processSpan >= 3 && rect().width() / stepSpan >= 3)
-        return;
+    //if (effectiveHeight / processSpan >= 3 && rect().width() / stepSpan >= 3)
+    //    return;
 
     QString metric(options->metric);
 
     // Setup viewport
     int width = rect().width();
     int height = effectiveHeight;
+    float effectiveSpan = stepSpan;
+    if (!(options->showAggregateSteps))
+        effectiveSpan /= 2.0;
 
     glViewport(0,
                colorBarHeight,
@@ -236,60 +240,26 @@ void StepVis::drawNativeGL()
                height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho(0, width, 0, height, 0, 1);
-    //glTranslatef(0, -colorBarHeight, 0);
+    glOrtho(0, effectiveSpan, 0, processSpan, 0, 1);
 
-    // Figure out if either height/process or width/step is bigger than 1
-    float barwidth = 1;
-    int effectiveStepSpan = stepSpan;
-    if (!options->showAggregateSteps)
-        effectiveStepSpan = ceil(stepSpan / 2.0);
-    if (width / float(effectiveStepSpan) > 1)
-    {
-        barwidth = width / float(effectiveStepSpan);
-    }
+    float barwidth = 1.0;
+    float barheight = 1.0;
+    processheight = processSpan / height;
+    stepwidth = effectiveSpan / width;
 
-    float barheight = 1;
-    if (height / float(processSpan) > 1)
-    {
-        barheight = height / float(processSpan);
-    }
-
-    processheight = barheight;
-    stepwidth = barwidth;
-
-    // Generate buffers to hold/accumulate information for anti-aliasing
-    // We do this by pixel, each needs x,y
-    //QVector<GLfloat> bars = QVector<GLfloat>(2 * width * height);
-    // Each "bar" has 4 vertices and each vertex has a color which is 3 floats
-    // So our color vector must be 3 * height * width
-    // Initialized with 1.0s (white)
-    QVector<GLfloat> colors = QVector<GLfloat>(3 * width * height, 1.0);
-    // Per bar metrics saved and # affecting that slot, both initialized to zero
-    QVector<GLfloat> metrics = QVector<GLfloat>(width * height, 0.0);
-    QVector<GLfloat> contributors = QVector<GLfloat>(width * height, 0.0);
-
-    // Set the points
-    int base_index, index;
-    /*for (int y = 0; y < height; y++)
-    {
-        base_index = 2*y*width;
-        for (int x = 0; x < width; x++)
-        {
-            index = base_index + 2*x;
-            bars[index] = x;
-            bars[index + 1] = y;
-        }
-    }*/
+    // Generate buffers to hold each bar. We don't know how many there will
+    // be since we draw one per event.
+    QVector<GLfloat> bars = QVector<GLfloat>();
+    QVector<GLfloat> colors = QVector<GLfloat>();
 
     // Process events for values
     float x, y; // true position
-    float fx, fy; // fractions
-    int sx, tx, sy, ty; // max extents
     float position; // placement of process
     Partition * part = NULL;
     int topStep = boundStep(startStep + stepSpan) + 1;
     int bottomStep = floor(startStep) - 1;
+    QColor color;
+    float maxProcess = processSpan + startProcess;
     for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
         part = trace->partitions->at(i);
@@ -307,99 +277,51 @@ void StepVis::drawNativeGL()
                     continue;
 
                 // Calculate position of this bar in float space
-                y = (position - startProcess) * barheight + 1;
+                y = maxProcess - (position - startProcess) * barheight - 1;
                 if (options->showAggregateSteps)
-                    x = ((*evt)->step - startStep) * barwidth + 1;
+                    x = ((*evt)->step - startStep) * barwidth;
                 else
-                    x = ((*evt)->step - startStep) / 2 * barwidth + 1;
+                    x = ((*evt)->step - startStep) / 2 * barwidth;
 
-                // Find actually drawn extents and/or skip
-                bool draw = true;
-                sx = floor(x);
-                if (sx < 0)
-                    sx = 0;
-                if (sx > width - 1)
-                    if (options->showAggregateSteps)
-                        draw = false;
-                    else
-                        continue;
-                tx = ceil(x + barwidth);
-                if (tx < 0)
-                    continue;
-                if (tx > width - 1)
-                    tx = width - 1;
-                sy = floor(y);
-                if (sy < 0)
-                    sy = 0;
-                if (sy > height - 1)
-                    continue;
-                ty = ceil(y + barheight);
-                if (ty < 0)
-                    continue;
-                if (ty > height - 1)
-                    ty = height - 1;
+                color = options->colormap->color((*(*evt)->metrics)[metric]->event);
 
-                // Make contributions to each pixel space
-                if (draw)
-                    for (int j = sy; j <= ty; j++)
-                    {
-                        fy = 1.0;
-                        if (j < y && j + 1 > y + barheight)
-                            fy = barheight;
-                        else if (j < y)
-                            fy = j + 1 - y;
-                        else if (y + barheight < j + 1)
-                            fy = j + 1 - y - barheight;
-                        for (int i = sx; i <= tx; i++)
-                        {
-                            fx = 1.0;
-                            if (i < x && i + 1 > x + barwidth )
-                                fx = barwidth;
-                            else if (i < x)
-                                fx = i + 1 - x;
-                            else if (x + barwidth < i + 1)
-                                fx = i + 1 - x - barwidth;
+                bars.append(x);
+                bars.append(y);
+                bars.append(x);
+                bars.append(y + barheight);
+                bars.append(x + barwidth);
+                bars.append(y + barheight);
+                bars.append(x + barwidth);
+                bars.append(y);
+                for (int j = 0; j < 4; ++j)
+                {
+                    colors.append(color.red() / 255.0);
+                    colors.append(color.green() / 255.0);
+                    colors.append(color.blue() / 255.0);
+                }
 
-                            metrics[width*j + i] += (*(*evt)->metrics)[metric]->event * fx * fy;
-
-                            contributors[width*j + i] += fx * fy;
-                        }
-                    }
 
                 if (options->showAggregateSteps) // repeat!
                 {
-                    x = ((*evt)->step - startStep - 1) * barwidth + 1;
+                    x = ((*evt)->step - startStep - 1) * barwidth;
                     if (x + barwidth <= 0)
                         continue;
 
-                    // Not as many checks since we know this comes before the preivous event
-                    sx = floor(x);
-                    if (sx < 0)
-                        sx = 0;
+                    color = options->colormap->color((*(*evt)->metrics)[metric]->aggregate);
 
-                    for (int j = sy; j <= ty; j++)
+                    bars.append(x);
+                    bars.append(y);
+                    bars.append(x);
+                    bars.append(y + barheight);
+                    bars.append(x + barwidth);
+                    bars.append(y + barheight);
+                    bars.append(x + barwidth);
+                    bars.append(y);
+                    for (int j = 0; j < 4; ++j)
                     {
-                        fy = 1.0;
-                        if (j < y && j + 1 > y + barheight)
-                            fy = barheight;
-                        else if (j < y)
-                            fy = j + 1 - y;
-                        else if (y + barheight < j + 1)
-                            fy = j + 1 - y - barheight;
-                        for (int i = sx; i <= tx; i++)
-                        {
-                            fx = 1.0;
-                            if (i < x && i + 1 > x + barwidth )
-                                fx = barwidth;
-                            else if (i < x)
-                                fx = i + 1 - x;
-                            else if (x + barwidth < i + 1)
-                                fx = i + 1 - x - barwidth;
-
-                            metrics[width*j + i] += (*(*evt)->metrics)[metric]->aggregate * fx * fy;
-
-                            contributors[width*j + i] += fx * fy;
-                        }
+                        colors.append(color.red() / 255.0);
+                        colors.append(color.green() / 255.0);
+                        colors.append(color.blue() / 255.0);
                     }
                 }
 
@@ -407,44 +329,12 @@ void StepVis::drawNativeGL()
         }
     }
 
-    // Convert colors
-    QColor color;
-    int metric_index;
-    for (int y = 0; y < height; y++)
-    {
-        base_index = 3*y*width;
-        metric_index = y*width;
-        for (int x = 0; x < width; x++)
-        {
-            index = base_index + 3*x;
-            if (contributors[metric_index + x] > 0)
-            {
-                color = options->colormap->color(metrics[metric_index + x] / contributors[metric_index + x]);
-                colors[index] = color.red() / 255.0;
-                colors[index + 1] = color.green() / 255.0;
-                colors[index + 2] = color.blue() / 255.0;
-            }
-            else
-            {
-                colors[index] = backgroundColor.red() / 255.0;
-                colors[index + 1] = backgroundColor.green() / 255.0;
-                colors[index + 2] = backgroundColor.blue() / 255.0;
-            }
-        }
-    }
-
     // Draw
-    glPointSize(1.0f);
-
-    // Points
-    /*glEnableClientState(GL_COLOR_ARRAY);
+    glEnableClientState(GL_COLOR_ARRAY);
     glEnableClientState(GL_VERTEX_ARRAY);
     glColorPointer(3,GL_FLOAT,0,colors.constData());
     glVertexPointer(2,GL_FLOAT,0,bars.constData());
-    glDrawArrays(GL_POINTS,0,bars.size()/2);*/
-    //glRasterPos2i(0, colorBarHeight);
-    glDrawPixels(width, height, GL_RGB, GL_FLOAT, colors.constData());
-    glRasterPos2i(0,0);
+    glDrawArrays(GL_QUADS,0,bars.size()/2); // 8 = 4 points/quad * 2 coordinates/point
 }
 
 void StepVis::paintEvents(QPainter * painter)

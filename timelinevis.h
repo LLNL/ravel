@@ -31,8 +31,8 @@ protected:
     int mousey;
     int pressx;
     int pressy;
-    int stepwidth;
-    int processheight;
+    float stepwidth;
+    float processheight;
 
     int maxStep;
     int startPartition;
