@@ -92,6 +92,7 @@ void TraditionalVis::mouseMoveEvent(QMouseEvent * event)
         return;
 
     if (mousePressed) {
+        lastStartStep = startStep;
         int diffx = mousex - event->x();
         int diffy = mousey - event->y();
         //startTime += rect().width() * diffx / 1.0 / timeSpan;
@@ -149,6 +150,7 @@ void TraditionalVis::wheelEvent(QWheelEvent * event)
         startProcess = avgProc - processSpan / 2.0;
     } else {
         // Horizontal
+        lastStartStep = startStep;
         float middleTime = startTime + timeSpan / 2.0;
         timeSpan *= scale;
         startTime = middleTime - timeSpan / 2.0;
@@ -157,6 +159,7 @@ void TraditionalVis::wheelEvent(QWheelEvent * event)
     changeSource = true;
     emit stepsChanged(startStep, startStep + stepSpan, false); // Calculated during painting
 }
+
 
 void TraditionalVis::setSteps(float start, float stop, bool jump)
 {
@@ -167,12 +170,68 @@ void TraditionalVis::setSteps(float start, float stop, bool jump)
         changeSource = false;
         return;
     }
+    lastStartStep = startStep;
+    startStep = start;
+    stepSpan = stop - start + 1;
     startTime = (*stepToTime)[std::max(boundStep(start)/2, 0)]->start;
     timeSpan = (*stepToTime)[std::min(boundStep(stop)/2,  maxStep/2)]->stop - startTime;
     jumped = jump;
 
     if (!closed)
         repaint();
+}
+
+void TraditionalVis::prepaint()
+{
+    drawnEvents.clear();
+    if (jumped) // We have to redo the active_partitions
+    {
+        // We know this list is in order, so we only have to go so far
+        //int topStep = boundStep(startStep + stepSpan) + 1;
+        int bottomStep = floor(startStep) - 1;
+        Partition * part = NULL;
+        for (int i = 0; i < trace->partitions->length(); ++i)
+        {
+            part = trace->partitions->at(i);
+            if (part->max_global_step >= bottomStep)
+            {
+                startPartition = i;
+                break;
+            }
+        }
+    }
+    else // We nudge the active partitions as necessary
+    {
+        int bottomStep = floor(startStep) - 1;
+        Partition * part = NULL;
+        if (startStep < lastStartStep) // check earlier partitions
+        {
+            for (int i = startPartition; i >0; --i) // Keep setting the one before until its right
+            {
+                part = trace->partitions->at(i);
+                if (part->max_global_step >= bottomStep)
+                {
+                    startPartition = i;
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+        else if (startStep > lastStartStep) // check current partitions up
+        {
+            for (int i = startPartition; i < trace->partitions->length(); ++i) // As soon as we find one, we're good
+            {
+                part = trace->partitions->at(i);
+                if (part->max_global_step >= bottomStep)
+                {
+                    startPartition = i;
+                    break;
+                }
+            }
+        }
+    }
 }
 
 void TraditionalVis::qtPaint(QPainter *painter)
@@ -190,7 +249,6 @@ void TraditionalVis::qtPaint(QPainter *painter)
 void TraditionalVis::paintEvents(QPainter *painter)
 {
     //painter->fillRect(rect(), backgroundColor);
-
     int canvasHeight = rect().height() - timescaleHeight;
 
     int process_spacing = 0;
@@ -212,10 +270,11 @@ void TraditionalVis::paintEvents(QPainter *painter)
     QSet<Message *> drawMessages = QSet<Message *>();
     unsigned long long stopTime = startTime + timeSpan;
     painter->setPen(QPen(QColor(0, 0, 0)));
-    drawnEvents.clear();
-    for (QList<Partition*>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
+    Partition * part = NULL;
+    for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
-        for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
+        part = trace->partitions->at(i);
+        for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin(); event_list != part->events->end(); ++event_list)
         {
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
