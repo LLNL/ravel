@@ -21,6 +21,7 @@ protected:
     void qtPaint(QPainter *painter);
     void paintEvents(QPainter *painter);
     void prepaint();
+    void drawNativeGL();
 
 private:
     class TimePair {

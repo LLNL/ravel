@@ -234,6 +234,121 @@ void TraditionalVis::prepaint()
     }
 }
 
+
+void TraditionalVis::drawNativeGL()
+{
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    if (!visProcessed)
+        return;
+
+    int effectiveHeight = rect().height() - timescaleHeight;
+    //if (effectiveHeight / processSpan >= 3 && rect().width() / stepSpan >= 3)
+    //    return;
+
+    QString metric(options->metric);
+    unsigned long long stopTime = startTime + timeSpan;
+
+    // Setup viewport
+    int width = rect().width();
+    int height = effectiveHeight;
+    float effectiveSpan = timeSpan;
+
+    glViewport(0,
+               timescaleHeight,
+               width,
+               height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0, effectiveSpan, 0, processSpan, 0, 1);
+
+    float barheight = 1.0;
+    processheight = height/ processSpan;
+
+    // Generate buffers to hold each bar. We don't know how many there will
+    // be since we draw one per event.
+    QVector<GLfloat> bars = QVector<GLfloat>();
+    QVector<GLfloat> colors = QVector<GLfloat>();
+
+    // Process events for values
+    float x, y, w; // true position
+    float position; // placement of process
+    Partition * part = NULL;
+    int step, stopStep = 0;
+    int upperStep = startStep + stepSpan + 2;
+    startStep = maxStep;
+    QColor color;
+    float maxProcess = processSpan + startProcess;
+    for (int i = startPartition; i < trace->partitions->length(); ++i)
+    {
+        part = trace->partitions->at(i);
+        if (part->min_global_step > upperStep)
+            break;
+        for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin(); event_list != part->events->end(); ++event_list) {
+            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
+            {
+                position = proc_to_order[(*evt)->process];
+                if ((*evt)->exit < startTime || (*evt)->enter > stopTime) // Out of time span
+                    continue;
+                if (position < floor(startProcess) || position > ceil(startProcess + processSpan)) // Out of span
+                    continue;
+
+                // save step information for emitting
+                step = (*evt)->step;
+                if (step >= 0 && step > stopStep)
+                    stopStep = step;
+                if (step >= 0 && step < startStep) {
+                    startStep = step;
+                }
+
+                // Calculate position of this bar in float space
+                w = (*evt)->exit - (*evt)->enter;
+                y = maxProcess - (position - startProcess) * barheight - 1;
+                x = 0;
+                if ((*evt)->enter >= startTime)
+                    x = (*evt)->enter - startTime;
+                else
+                    w -= (startTime - (*evt)->enter);
+
+                color = options->colormap->color((*(*evt)->metrics)[metric]->event);
+                if (options->colorTraditionalByMetric && (*evt)->hasMetric(options->metric))
+                    color = options->colormap->color((*evt)->getMetric(options->metric));
+                else
+                {
+                    if (*evt == selected_event)
+                        color = Qt::yellow;
+                    else
+                        color = QColor(200, 200, 255);
+                }
+
+                bars.append(x);
+                bars.append(y);
+                bars.append(x);
+                bars.append(y + barheight);
+                bars.append(x + w);
+                bars.append(y + barheight);
+                bars.append(x + w);
+                bars.append(y);
+                for (int j = 0; j < 4; ++j)
+                {
+                    colors.append(color.red() / 255.0);
+                    colors.append(color.green() / 255.0);
+                    colors.append(color.blue() / 255.0);
+                }
+
+            }
+        }
+    }
+
+    // Draw
+    glEnableClientState(GL_COLOR_ARRAY);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glColorPointer(3,GL_FLOAT,0,colors.constData());
+    glVertexPointer(2,GL_FLOAT,0,bars.constData());
+    glDrawArrays(GL_QUADS,0,bars.size()/2);
+    stepSpan = stopStep - startStep;
+}
+
+
 void TraditionalVis::qtPaint(QPainter *painter)
 {
     if(!visProcessed)
@@ -259,6 +374,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
     float blockheight = floor(canvasHeight / processSpan);
     float barheight = blockheight - process_spacing;
     processheight = blockheight;
+    int upperStep = startStep + stepSpan + 2;
     startStep = maxStep;
     int stopStep = 0;
 
@@ -274,6 +390,8 @@ void TraditionalVis::paintEvents(QPainter *painter)
     for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
         part = trace->partitions->at(i);
+        if (part->min_global_step > upperStep)
+            break;
         for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin(); event_list != part->events->end(); ++event_list)
         {
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)

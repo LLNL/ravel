@@ -8,7 +8,8 @@
 #include "general_util.h"
 
 #include <QFileDialog>
-#include "QtConcurrent/qtconcurrentrun.h"
+//#include "QtConcurrent/qtconcurrentrun.h"
+#include "qtconcurrentrun.h"
 #include <iostream>
 #include <string>
 
