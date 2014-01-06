@@ -502,6 +502,7 @@ void Trace::mergeByLeap()
     int leap = 0;
     QSet<Partition *> * new_partitions = new QSet<Partition *>();
     QSet<Partition *> * current_leap = new QSet<Partition *>();
+    QSet<QSet<Partition *> *> * toDelete = new QSet<QSet<Partition *> *>();
     for (QList<Partition *>::Iterator part = dag_entries->begin(); part != dag_entries->end(); ++part)
         current_leap->insert(*part);
     while (!current_leap->isEmpty())
@@ -546,7 +547,8 @@ void Trace::mergeByLeap()
                             {
                                 if (*group_member != *partition)
                                 {
-                                    delete (*group_member)->group;
+                                    //delete (*group_member)->group;
+                                    toDelete->insert((*group_member)->group);
                                     (*group_member)->group = (*partition)->group;
                                 }
                             }
@@ -565,7 +567,8 @@ void Trace::mergeByLeap()
                             {
                                 if (*group_member != *partition)
                                 {
-                                    delete (*group_member)->group;
+                                    //delete (*group_member)->group;
+                                    toDelete->insert((*group_member)->group);
                                     (*group_member)->group = (*partition)->group;
                                 }
                             }
@@ -603,7 +606,8 @@ void Trace::mergeByLeap()
                                 {
                                     if (*group_member != *partition)
                                     {
-                                        delete (*group_member)->group;
+                                        //delete (*group_member)->group;
+                                        toDelete->insert((*group_member)->group);
                                         (*group_member)->group = (*partition)->group;
                                     }
                                 }
@@ -740,6 +744,11 @@ void Trace::mergeByLeap()
         }
     } // End Leap While
     delete current_leap;
+
+    // Delete all the old partition groups
+    for (QSet<QSet<Partition *> *>::Iterator group = toDelete->begin(); group != toDelete->end(); ++group)
+        delete *group;
+    delete toDelete;
 
     // Delete all old partitions
     for (QList<Partition *>::Iterator partition = partitions->begin(); partition != partitions->end(); ++partition)

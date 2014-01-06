@@ -242,8 +242,8 @@ void TraditionalVis::drawNativeGL()
         return;
 
     int effectiveHeight = rect().height() - timescaleHeight;
-    //if (effectiveHeight / processSpan >= 3 && rect().width() / stepSpan >= 3)
-    //    return;
+    if (effectiveHeight / processSpan >= 3 && rect().width() / stepSpan >= 3)
+        return;
 
     QString metric(options->metric);
     unsigned long long stopTime = startTime + timeSpan;
