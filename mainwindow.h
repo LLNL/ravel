@@ -14,8 +14,6 @@
 #include "colormap.h"
 #include "otfimportfunctor.h"
 
-#include "json/json.h"
-
 namespace Ui {
 class MainWindow;
 }
@@ -31,7 +29,6 @@ public:
 public slots:
     void launchOTFOptions();
     void launchVisOptions();
-    void importJSON();
     void importOTFbyGUI();
     void pushSteps(float start, float stop, bool jump = false);
     void selectEvent(Event * event);

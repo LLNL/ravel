@@ -8,7 +8,6 @@
 #include "general_util.h"
 
 #include <QFileDialog>
-//#include "QtConcurrent/qtconcurrentrun.h"
 #include "qtconcurrentrun.h"
 #include <iostream>
 #include <string>
@@ -54,7 +53,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect((timevis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
     viswidgets.push_back(timevis);
 
-    connect(ui->actionOpen_JSON, SIGNAL(triggered()),this,SLOT(importJSON()));
     connect(ui->actionOpen_OTF, SIGNAL(triggered()),this,SLOT(importOTFbyGUI()));
 
     connect(ui->actionOTF_Importing, SIGNAL(triggered()), this, SLOT(launchOTFOptions()));
@@ -167,36 +165,6 @@ void MainWindow::updateProgress(int portion, QString msg)
     progress->setValue(portion);
 }
 
-/*
-void MainWindow::importOTF(QString dataFileName){
-
-    std::cout << "Processing " << dataFileName.toStdString().c_str() << std::endl;
-    QElapsedTimer traceTimer;
-    qint64 traceElapsed;
-
-    traceTimer.start();
-
-    QProgressDialog * progress = new QProgressDialog("Importing OTF", "", 0, 0, this);
-    progress->setWindowTitle("Importing OTF Progress");
-    progress->setCancelButton(0);
-    progress->show();
-
-    OTFConverter importer = OTFConverter();
-    Trace* trace = importer.importOTF(dataFileName, otfoptions);
-    trace->preprocess(otfoptions);
-
-    traceElapsed = traceTimer.nsecsElapsed();
-    std::cout << "Total trace: ";
-    gu_printTime(traceElapsed);
-    std::cout << std::endl;
-    trace->printStats();
-
-    progress->close();
-
-    this->traces.push_back(trace);
-    activeTrace = traces.size() - 1;
-}*/
-
 void MainWindow::activeTraceChanged()
 {
     for(int i = 0; i < viswidgets.size(); i++)
@@ -206,111 +174,6 @@ void MainWindow::activeTraceChanged()
         viswidgets[i]->repaint();
     }
 
-}
-
-void MainWindow::importJSON()
-{
-    QString dataFileName = QFileDialog::getOpenFileName(this, tr("Import JSON Data"),
-                                                     "",
-                                                     tr("Files (*.json)"));
-
-    // Guard against Cancel
-    if (dataFileName == NULL || dataFileName.length() == 0)
-        return;
-
-    QFile dataFile(dataFileName);
-
-    QFile file(dataFileName);
-     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-         return;
-
-    QString content = file.readAll();
-    //dataFile.close();
-
-    Json::Value root;
-    Json::Reader reader;
-    bool parsingSuccessful = reader.parse(content.toStdString(), root);
-    if (!parsingSuccessful)
-    {
-        std::cout << "Failed to parse JSON\n" << reader.getFormatedErrorMessages().c_str();
-        return;
-    }
-
-    Trace* trace = new Trace(root["nodes"].asInt(), true);
-    Json::Value fxns = root["fxns"];
-    for (Json::ValueIterator itr = fxns.begin(); itr != fxns.end(); ++itr) {
-        int key = QString(itr.key().asString().c_str()).toInt();
-        (*(trace->functions))[key] = new Function(QString((*itr)["name"].asString().c_str()), (*itr)["type"].asInt());
-    }
-
-    Json::Value fxnGroups = root["types"];
-    for (Json::ValueIterator itr = fxnGroups.begin(); itr != fxnGroups.end(); ++itr)
-    {
-        int key = QString(itr.key().asString().c_str()).toInt();
-        (*(trace->functionGroups))[key] = QString((*itr).asString().c_str());
-    }
-
-    QMap<int, Event*> eventmap; // map ID to event
-    Json::Value events = root["events"];
-    // Create a single partition since this is all the information we have
-    Partition * partition = new Partition();
-    partition->min_global_step = 0;
-    trace->partitions->append(partition);
-    int max_step = 0;
-
-    // First pass to create events
-    for (Json::ValueIterator itr = events.begin(); itr != events.end(); ++itr) {
-        int key = QString(itr.key().asString().c_str()).toInt();
-        Event* e = new Event(static_cast<unsigned long long>((*itr)["entertime"].asDouble()),
-                static_cast<unsigned long long>((*itr)["leavetime"].asDouble()),
-                (*itr)["fxn"].asInt(), (*itr)["process"].asInt() - 1, (*itr)["step"].asInt());
-        e->addMetric("Lateness", static_cast<long long>((*itr)["lateness"].asDouble()),
-                static_cast<long long>((*itr)["comp_lateness"].asDouble()));
-        eventmap[key] = e;
-        if (e->step > max_step)
-            max_step = e->step;
-        if (e->step >= 0)
-        {
-            if (!(partition->events->contains(e->process)))
-                (*(partition->events))[e->process] = new QList<Event *>();
-            (*(partition->events))[e->process]->push_back(e);
-        }
-        (*(trace->events))[e->process]->push_back(e);
-    }
-    partition->max_global_step = max_step;
-    trace->global_max_step = max_step;
-    trace->dag_entries = new QList<Partition *>();
-    trace->dag_entries->append(partition);
-
-    // Second pass to link parents and children
-    for (Json::ValueIterator itr = events.begin(); itr != events.end(); itr++) {
-        int key = QString(itr.key().asString().c_str()).toInt();
-        Event* e = eventmap[key];
-        Json::Value parents = (*itr)["parents"];
-        for (unsigned int i = 0; i < parents.size(); ++i) {
-            e->parents->push_back(eventmap[parents[i].asInt()]);
-        }
-        Json::Value children = (*itr)["children"];
-        for (unsigned int i = 0; i < children.size(); ++i) {
-            e->children->push_back(eventmap[children[i].asInt()]);
-        }
-    }
-
-    Json::Value messages = root["comms"];
-    for (Json::ValueIterator itr = messages.begin(); itr != messages.end(); itr++) {
-        Message* m = new Message(static_cast<unsigned long long>((*itr)["sendtime"].asDouble()),
-                static_cast<unsigned long long>((*itr)["recvtime"].asDouble()));
-        m->sender = eventmap[(*itr)["senderid"].asInt()];
-        m->receiver = eventmap[(*itr)["receiverid"].asInt()];
-        m->sender->messages->push_back(m);
-        m->receiver->messages->push_back(m);
-    }
-
-
-    this->traces.push_back(trace);
-    activeTrace = traces.size() - 1;
-    dataFile.close();
-    activeTraceChanged();
 }
 
 void MainWindow::handleSplitter(int pos, int index)

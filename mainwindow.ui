@@ -146,7 +146,6 @@
      <string>File</string>
     </property>
     <addaction name="actionOpen_OTF"/>
-    <addaction name="actionOpen_JSON"/>
    </widget>
    <widget class="QMenu" name="menuOptions">
     <property name="title">
