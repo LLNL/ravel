@@ -16,6 +16,7 @@ VisOptionsDialog::VisOptionsDialog(QWidget *parent, VisOptions * _options, Trace
     connect(ui->metricColorTraditionalCheckBox, SIGNAL(clicked(bool)), this, SLOT(onMetricColorTraditional(bool)));
     connect(ui->metricComboBox, SIGNAL(currentIndexChanged(QString)), this, SLOT(onMetric(QString)));
     connect(ui->showAggregateCheckBox, SIGNAL(clicked(bool)), this, SLOT(onShowAggregate(bool)));
+    connect(ui->showMessagesCheckBox, SIGNAL(clicked(bool)), this, SLOT(onShowMessages(bool)));
 
     if (trace)
         for (QList<QString>::Iterator metric = trace->metrics->begin(); metric != trace->metrics->end(); ++metric)
@@ -56,6 +57,11 @@ void VisOptionsDialog::onShowAggregate(bool showAggregate)
     options->showAggregateSteps = showAggregate;
 }
 
+void VisOptionsDialog::onShowMessages(bool showMessages)
+{
+    options->showMessages = showMessages;
+}
+
 void VisOptionsDialog::setUIState()
 {
     if (options->colorTraditionalByMetric)
@@ -67,6 +73,11 @@ void VisOptionsDialog::setUIState()
         ui->showAggregateCheckBox->setChecked(true);
     else
         ui->showAggregateCheckBox->setChecked(false);
+
+    if (options->showMessages)
+        ui->showMessagesCheckBox->setChecked(true);
+    else
+        ui->showMessagesCheckBox->setChecked(false);
 
     if (trace)
     {

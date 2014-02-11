@@ -11,6 +11,7 @@ TimelineVis::TimelineVis(QWidget* parent, VisOptions * _options)
       pressy(0),
       stepwidth(0),
       processheight(0),
+      labelWidth(0),
       maxStep(0),
       startPartition(0),
       startStep(0),
@@ -37,6 +38,18 @@ void TimelineVis::processVis()
         proc_to_order[i] = i;
         order_to_proc[i] = i;
     }
+
+    int max_process = pow(10,ceil(log10(trace->num_processes))) - 1;
+    QPainter * painter = new QPainter();
+    painter->begin(this);
+    painter->setPen(Qt::black);
+    painter->setFont(QFont("Helvetica", 10));
+    QLocale systemlocale = QLocale::system();
+    QFontMetrics font_metrics = painter->fontMetrics();
+    labelWidth = font_metrics.width(systemlocale.toString(max_process));
+    painter->end();
+    delete painter;
+
     visProcessed = true;
 }
 

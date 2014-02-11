@@ -228,13 +228,13 @@ void StepVis::drawNativeGL()
     QString metric(options->metric);
 
     // Setup viewport
-    int width = rect().width();
+    int width = rect().width() - labelWidth;
     int height = effectiveHeight;
     float effectiveSpan = stepSpan;
     if (!(options->showAggregateSteps))
         effectiveSpan /= 2.0;
 
-    glViewport(0,
+    glViewport(labelWidth,
                colorBarHeight,
                width,
                height);
@@ -342,26 +342,28 @@ void StepVis::paintEvents(QPainter * painter)
     //painter->fillRect(rect(), backgroundColor);
 
     int effectiveHeight = rect().height() - colorBarHeight;
+    int effectiveWidth = rect().width() - labelWidth;
 
     int process_spacing = 0;
     if (effectiveHeight / processSpan > spacingMinimum)
         process_spacing = 3;
 
     int step_spacing = 0;
-    if (rect().width() / stepSpan > spacingMinimum)
+    if (effectiveWidth / stepSpan > spacingMinimum)
         step_spacing = 3;
 
 
     float x, y, w, h, xa, wa, blockwidth;
     float blockheight = floor(effectiveHeight / processSpan);
     if (options->showAggregateSteps)
-        blockwidth = floor(rect().width() / stepSpan);
+        blockwidth = floor(effectiveWidth / stepSpan);
     else
-        blockwidth = floor(rect().width() / (ceil(stepSpan / 2.0)));
+        blockwidth = floor(effectiveWidth / (ceil(stepSpan / 2.0)));
     float barheight = blockheight - process_spacing;
     float barwidth = blockwidth - step_spacing;
     processheight = blockheight;
     stepwidth = blockwidth;
+    QRect extents = QRect(labelWidth, 0, rect().width(), effectiveHeight);
 
     QString metric("Lateness");
     int position;
@@ -371,6 +373,7 @@ void StepVis::paintEvents(QPainter * painter)
     Partition * part = NULL;
     int topStep = boundStep(startStep + stepSpan) + 1;
     int bottomStep = floor(startStep) - 1;
+    bool skipDraw;
     for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
         part = trace->partitions->at(i);
@@ -381,6 +384,7 @@ void StepVis::paintEvents(QPainter * painter)
         for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin(); event_list != part->events->end(); ++event_list) {
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
+                skipDraw = false;
                 position = proc_to_order[(*evt)->process];
                 if ((*evt)->step < bottomStep || (*evt)->step > topStep) // Out of span
                 {
@@ -393,9 +397,9 @@ void StepVis::paintEvents(QPainter * painter)
                 // 0 = startStep, rect().width() = stopStep (startStep + stepSpan)
                 y = floor((position - startProcess) * blockheight) + 1;
                 if (options->showAggregateSteps)
-                    x = floor(((*evt)->step - startStep) * blockwidth) + 1;
+                    x = floor(((*evt)->step - startStep) * blockwidth) + 1 + labelWidth;
                 else
-                    x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1;
+                    x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1 + labelWidth;
                 w = barwidth;
                 h = barheight;
 
@@ -405,13 +409,15 @@ void StepVis::paintEvents(QPainter * painter)
                     h = barheight - fabs(y);
                     y = 0;
                     complete = false;
+                } else if (y >= effectiveHeight) {
+                    continue;
                 } else if (y + barheight > effectiveHeight) {
                     h = effectiveHeight - y;
                     complete = false;
                 }
-                if (x < 0) {
-                    w = barwidth - fabs(x);
-                    x = 0;
+                if (x < labelWidth) {
+                    w = barwidth - (labelWidth - x);
+                    x = labelWidth;
                     complete = false;
                 } else if (x + barwidth > rect().width()) {
                     w = rect().width() - x;
@@ -431,7 +437,7 @@ void StepVis::paintEvents(QPainter * painter)
                     if (complete)
                         painter->drawRect(QRectF(x,y,w,h));
                     else
-                        incompleteBox(painter, x, y, w, h);
+                        incompleteBox(painter, x, y, w, h, extents);
                 // Revert pen color
                 if (*evt == selected_event)
                     painter->setPen(QPen(QColor(0, 0, 0)));
@@ -443,15 +449,15 @@ void StepVis::paintEvents(QPainter * painter)
                     drawMessages.insert((*msg));
 
                 if (options->showAggregateSteps) {
-                    xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1;
+                    xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + labelWidth;
                     wa = barwidth;
-                    if (xa + wa <= 0)
+                    if (xa + wa <= labelWidth)
                         continue;
 
                     aggcomplete = true;
-                    if (xa < 0) {
-                        wa = barwidth - fabs(xa);
-                        xa = 0;
+                    if (xa < labelWidth) {
+                        wa = barwidth - (labelWidth - xa);
+                        xa = labelWidth;
                         aggcomplete = false;
                     } else if (xa + barwidth > rect().width()) {
                         wa = rect().width() - xa;
@@ -467,7 +473,7 @@ void StepVis::paintEvents(QPainter * painter)
                         if (aggcomplete)
                             painter->drawRect(QRectF(xa, y, wa, h));
                         else
-                            incompleteBox(painter, xa, y, wa, h);
+                            incompleteBox(painter, xa, y, wa, h, extents);
                 }
 
             }
@@ -477,7 +483,12 @@ void StepVis::paintEvents(QPainter * painter)
         // Messages
         // We need to do all of the message drawing after the event drawing
         // for overlap purposes
-        painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
+    if (options->showMessages)
+    {
+        if (processSpan <= 32)
+            painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
+        else
+            painter->setPen(QPen(Qt::black, 1, Qt::SolidLine));
         Event * send_event;
         Event * recv_event;
         QPointF p1, p2;
@@ -489,19 +500,47 @@ void StepVis::paintEvents(QPainter * painter)
             position = proc_to_order[send_event->process];
             y = floor((position - startProcess) * blockheight) + 1;
             if (options->showAggregateSteps)
-                x = floor((send_event->step - startStep) * blockwidth) + 1;
+                x = floor((send_event->step - startStep) * blockwidth) + 1 + labelWidth;
             else
-                x = floor((send_event->step - startStep) / 2 * blockwidth) + 1;
+                x = floor((send_event->step - startStep) / 2 * blockwidth) + 1 + labelWidth;
             p1 = QPointF(x + w/2.0, y + h/2.0);
             position = proc_to_order[recv_event->process];
             y = floor((position - startProcess) * blockheight) + 1;
             if (options->showAggregateSteps)
-                x = floor((recv_event->step - startStep) * blockwidth) + 1;
+                x = floor((recv_event->step - startStep) * blockwidth) + 1 + labelWidth;
             else
-                x = floor((recv_event->step - startStep) / 2 * blockwidth) + 1;
+                x = floor((recv_event->step - startStep) / 2 * blockwidth) + 1 + labelWidth;
             p2 = QPointF(x + w/2.0, y + h/2.0);
-            painter->drawLine(p1, p2);
+            drawLine(painter, &p1, &p2, effectiveHeight);
         }
+    }
+
+    // For labels
+    painter->fillRect(QRectF(0,0,labelWidth,effectiveHeight), QBrush(QColor(Qt::white)));
+}
+
+void StepVis::drawLine(QPainter * painter, QPointF * p1, QPointF * p2, int effectiveHeight)
+{
+    if (p1->y() > effectiveHeight && p2->y() > effectiveHeight)
+    {
+        return;
+    }
+    else if (p1->y() > effectiveHeight)
+    {
+        float slope = float(p1->y() - p2->y()) / (p1->x() - p2->x());
+        float intercept = p1->y() - slope * p1->x();
+        painter->drawLine(QPointF((effectiveHeight - intercept) / slope, effectiveHeight), *p2);
+    }
+    else if (p2->y() > effectiveHeight)
+    {
+        float slope = float(p1->y() - p2->y()) / (p1->x() - p2->x());
+        float intercept = p1->y() - slope * p1->x();
+        painter->drawLine(*p1, QPointF((effectiveHeight - intercept) / slope, effectiveHeight));
+    }
+    else
+    {
+        painter->drawLine(*p1, *p2);
+    }
 }
 
 void StepVis::drawColorBarGL()
@@ -553,7 +592,7 @@ void StepVis::drawColorBarText(QPainter * painter)
     // Based on Lateness
     painter->setPen(Qt::black);
     painter->setFont(QFont("Helvetica", 10));
-    QFontMetrics font_metrics = this->fontMetrics();
+    QFontMetrics font_metrics = painter->fontMetrics();
     maxLatenessTextWidth = font_metrics.width(maxLatenessText);
     painter->drawText(rect().width() - colorbar_offset + 3,
                       rect().height() - colorBarHeight/2 + font_metrics.xHeight()/2,

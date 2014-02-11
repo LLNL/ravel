@@ -13,6 +13,7 @@ public:
 
     bool showAggregateSteps;
     bool colorTraditionalByMetric;
+    bool showMessages;
     QString metric;
     ColorMap * colormap;
 };

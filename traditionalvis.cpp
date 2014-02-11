@@ -377,6 +377,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
     int upperStep = startStep + stepSpan + 2;
     startStep = maxStep;
     int stopStep = 0;
+    QRect extents = QRect(labelWidth, 0, rect().width(), canvasHeight);
 
     painter->setFont(QFont("Helvetica", 10));
     QFontMetrics font_metrics = this->fontMetrics();
@@ -412,71 +413,70 @@ void TraditionalVis::paintEvents(QPainter *painter)
 
 
                 w = ((*evt)->exit - (*evt)->enter) / 1.0 / timeSpan * rect().width();
-                if (w < 2)
-                    continue;
-
-                y = floor((position - startProcess) * blockheight) + 1;
-                x = floor(static_cast<long long>((*evt)->enter - startTime) / 1.0 / timeSpan * rect().width()) + 1;
-                h = barheight;
-
-
-                // Corrections for partially drawn
-                complete = true;
-                if (y < 0) {
-                    h = barheight - fabs(y);
-                    y = 0;
-                    complete = false;
-                } else if (y + barheight > canvasHeight) {
-                    h = canvasHeight - y;
-                    complete = false;
-                }
-                if (x < 0) {
-                    w -= fabs(x);
-                    x = 0;
-                    complete = false;
-                } else if (x + w > rect().width()) {
-                    w = rect().width() - x;
-                    complete = false;
-                }
-
-
-                // Change pen color if selected
-                if (*evt == selected_event)
-                    painter->setPen(QPen(Qt::yellow));
-
-                if (options->colorTraditionalByMetric && (*evt)->hasMetric(options->metric))
+                if (w >= 2)
                 {
-                        painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color((*evt)->getMetric(options->metric))));
-                }
-                else
-                {
+                    y = floor((position - startProcess) * blockheight) + 1;
+                    x = floor(static_cast<long long>((*evt)->enter - startTime) / 1.0 / timeSpan * rect().width()) + 1;
+                    h = barheight;
+
+
+                    // Corrections for partially drawn
+                    complete = true;
+                    if (y < 0) {
+                        h = barheight - fabs(y);
+                        y = 0;
+                        complete = false;
+                    } else if (y + barheight > canvasHeight) {
+                        h = canvasHeight - y;
+                        complete = false;
+                    }
+                    if (x < 0) {
+                        w -= fabs(x);
+                        x = 0;
+                        complete = false;
+                    } else if (x + w > rect().width()) {
+                        w = rect().width() - x;
+                        complete = false;
+                    }
+
+
+                    // Change pen color if selected
                     if (*evt == selected_event)
-                        painter->fillRect(QRectF(x, y, w, h), QBrush(Qt::yellow));
+                        painter->setPen(QPen(Qt::yellow));
+
+                    if (options->colorTraditionalByMetric && (*evt)->hasMetric(options->metric))
+                    {
+                            painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color((*evt)->getMetric(options->metric))));
+                    }
                     else
-                        // Draw event
-                        painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(200, 200, 255)));
+                    {
+                        if (*evt == selected_event)
+                            painter->fillRect(QRectF(x, y, w, h), QBrush(Qt::yellow));
+                        else
+                            // Draw event
+                            painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(200, 200, 255)));
+                    }
+
+                    // Draw border
+                    if (process_spacing > 0)
+                    {
+                        if (complete)
+                            painter->drawRect(QRectF(x,y,w,h));
+                        else
+                            incompleteBox(painter, x, y, w, h, extents);
+                    }
+
+                    // Revert pen color
+                    if (*evt == selected_event)
+                        painter->setPen(QPen(QColor(0, 0, 0)));
+
+                    drawnEvents[*evt] = QRect(x, y, w, h);
+
+                    QString fxnName = ((*(trace->functions))[(*evt)->function])->name;
+                    QRect fxnRect = font_metrics.boundingRect(fxnName);
+                    if (fxnRect.width() < w && fxnRect.height() < h)
+                        painter->drawText(x + 2, y + fxnRect.height() - 2, fxnName);
                 }
-
-                // Draw border
-                if (process_spacing > 0)
-                {
-                    if (complete)
-                        painter->drawRect(QRectF(x,y,w,h));
-                    else
-                        incompleteBox(painter, x, y, w, h);
-                }
-
-                // Revert pen color
-                if (*evt == selected_event)
-                    painter->setPen(QPen(QColor(0, 0, 0)));
-
-                drawnEvents[*evt] = QRect(x, y, w, h);
-
-                QString fxnName = ((*(trace->functions))[(*evt)->function])->name;
-                QRect fxnRect = font_metrics.boundingRect(fxnName);
-                //std::cout << fxnRect.width() << ", " << fxnRect.height() << std::endl;
-                if (fxnRect.width() < w && fxnRect.height() < h)
-                    painter->drawText(x + 2, y + fxnRect.height() - 2, fxnName);
 
                 for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
                     drawMessages.insert((*msg));
@@ -487,7 +487,12 @@ void TraditionalVis::paintEvents(QPainter *painter)
         // Messages
         // We need to do all of the message drawing after the event drawing
         // for overlap purposes
-        painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
+    if (options->showMessages)
+    {
+        if (processSpan <= 32)
+            painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
+        else
+            painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
         Event * send_event;
         Event * recv_event;
         QPointF p1, p2;
@@ -504,6 +509,8 @@ void TraditionalVis::paintEvents(QPainter *painter)
             p2 = QPointF(x, y);
             painter->drawLine(p1, p2);
         }
+    }
 
     stepSpan = stopStep - startStep;
+    painter->fillRect(QRectF(0,canvasHeight,rect().width(),rect().height()), QBrush(QColor(Qt::white)));
 }

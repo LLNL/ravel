@@ -33,6 +33,7 @@ protected:
     int pressy;
     float stepwidth;
     float processheight;
+    int labelWidth;
 
     int maxStep;
     int startPartition;

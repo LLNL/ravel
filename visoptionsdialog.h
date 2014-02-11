@@ -23,6 +23,7 @@ public slots:
     void onMetricColorTraditional(bool metricColor);
     void onMetric(QString metric);
     void onShowAggregate(bool showAggregate);
+    void onShowMessages(bool showMessages);
 
 private:
     int mapMetricToIndex(QString metric);

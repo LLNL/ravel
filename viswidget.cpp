@@ -122,19 +122,19 @@ void VisWidget::qtPaint(QPainter *painter)
     Q_UNUSED(painter);
 }
 
-void VisWidget::incompleteBox(QPainter *painter, float x, float y, float w, float h)
+void VisWidget::incompleteBox(QPainter *painter, float x, float y, float w, float h, QRect extents)
 {
     bool left = true;
     bool right = true;
     bool top = true;
     bool bottom = true;
-    if (x <= 0)
+    if (x <= extents.x())
         left = false;
-    if (x + w >= rect().width())
+    if (x + w >= extents.width())
         right = false;
-    if (y <= 0)
+    if (y <= extents.y())
         top = false;
-    if (y + h >= rect().height())
+    if (y + h >= extents.height())
         bottom = false;
 
     if (left)

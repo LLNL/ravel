@@ -16,7 +16,6 @@ class Trace : public QObject
     Q_OBJECT
 public:
     Trace(int np);
-    Trace(int np, bool legacy = false);
     ~Trace();
 
     void preprocess(OTFImportOptions * _options);
@@ -31,7 +30,6 @@ public:
     QList<QString> * metrics;
 
     // Processing options
-    bool isLegacy; // from Python-build JSON
     OTFImportOptions options;
 
     // Below set by OTFConverter
@@ -42,7 +40,7 @@ public:
 
     QVector<QList<Event *> *> * mpi_events;
 
-    int mpi_group;
+    int mpi_group; // functionGroup index of "MPI" functions
 
     int global_max_step; // largest global step
     QList<Partition * > * dag_entries; // Leap 0 in the dag

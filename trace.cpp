@@ -5,12 +5,11 @@
 #include "general_util.h"
 #include <cmath>
 
-Trace::Trace(int np, bool legacy)
+Trace::Trace(int np)
     : num_processes(np),
       units(-9),
       partitions(new QList<Partition *>()),
       metrics(new QList<QString>()),
-      isLegacy(legacy),
       options(NULL),
       functionGroups(new QMap<int, QString>()),
       functions(new QMap<int, Function *>()),
@@ -29,11 +28,6 @@ Trace::Trace(int np, bool legacy)
         (*events)[i] = new QVector<Event *>();
         (*roots)[i] = new QVector<Event *>();
     }
-}
-
-Trace::Trace(int np)
-{
-    Trace(np, false);
 }
 
 Trace::~Trace()

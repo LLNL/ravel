@@ -5,6 +5,7 @@ VisOptions::VisOptions(bool _showAgg,
                  QString _metric)
     : showAggregateSteps(_showAgg),
       colorTraditionalByMetric(_metricTraditional),
+      showMessages(true),
       metric(_metric),
       colormap(new ColorMap(QColor(173, 216, 230), 0))
 {
@@ -16,6 +17,7 @@ VisOptions::VisOptions(const VisOptions& copy)
 {
     showAggregateSteps = copy.showAggregateSteps;
     colorTraditionalByMetric = copy.colorTraditionalByMetric;
+    showMessages = copy.showMessages;
     metric = copy.metric;
     colormap = new ColorMap(*(copy.colormap));
 }

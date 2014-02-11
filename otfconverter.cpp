@@ -27,7 +27,7 @@ Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
     QElapsedTimer traceTimer;
     qint64 traceElapsed;
     traceTimer.start();
-    trace = new Trace(rawtrace->num_processes, false);
+    trace = new Trace(rawtrace->num_processes);
 
     // Start setting up new Trace
     delete trace->functions;

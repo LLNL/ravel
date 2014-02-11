@@ -48,6 +48,7 @@ public:
     Event * comm_prev;
     bool is_recv;
 
+    // Used in stepping procedure
     Event * last_send;
     Event * next_send;
     QList<Event *> * last_recvs;
@@ -60,7 +61,6 @@ public:
     int step;
     int depth;
     int phase;
-    bool mark;
 
     //enum mpi_class_t { WAITALL, COLLECTIVE, OTHER };
 
