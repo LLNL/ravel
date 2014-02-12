@@ -489,7 +489,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
                     QString fxnName = ((*(trace->functions))[(*evt)->function])->name;
                     QRect fxnRect = font_metrics.boundingRect(fxnName);
                     if (fxnRect.width() < w && fxnRect.height() < h)
-                        painter->drawText(x + 2, y + fxnRect.height() - 2, fxnName);
+                        painter->drawText(x + 2, y + fxnRect.height(), fxnName);
                 }
 
                 for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
@@ -582,7 +582,7 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt, float po
             else
             {
                 // Draw event
-                int graycolor = 200 - evt->depth * 20;
+                int graycolor = std::max(100, 100 + evt->depth * 20);
                 painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(graycolor, graycolor, graycolor)));
             }
         }
@@ -606,7 +606,7 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt, float po
         QString fxnName = ((*(trace->functions))[evt->function])->name;
         QRect fxnRect = painter->fontMetrics().boundingRect(fxnName);
         if (fxnRect.width() < w && fxnRect.height() < h)
-            painter->drawText(x + 2, y + fxnRect.height() - 2, fxnName);
+            painter->drawText(x + 2, y + fxnRect.height(), fxnName);
     }
 
     for (QVector<Event *>::Iterator child = evt->callees->begin(); child != evt->callees->end(); ++child)
