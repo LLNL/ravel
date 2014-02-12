@@ -189,7 +189,9 @@ void Trace::partition()
       // Form partitions given in some way -- need to write options for this [ later ]
     else
     {
+        std::cout << "Partitioning by phase..." << std::endl;
         partitionByPhase();
+        set_partition_dag();
     }
 
     //std::cout << "Setting partition dag for the first time..." << std::endl;

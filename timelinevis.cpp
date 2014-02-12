@@ -147,7 +147,6 @@ void TimelineVis::drawProcessLabels(QPainter * painter, int effectiveHeight, int
 
     int start = std::max(floor(startProcess), 0.0);
     int end = std::min(ceil(startProcess + processSpan), trace->num_processes - 1.0);
-    std::cout << skip << ", " << start << ", " << end <<  std::endl;
     for (int i = start; i <= end; i+= skip) // Do this by order
     {
         y = floor((i - startProcess) * barHeight) + 1 + (barHeight + labelHeight) / 2;
