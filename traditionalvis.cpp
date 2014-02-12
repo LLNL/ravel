@@ -357,6 +357,7 @@ void TraditionalVis::qtPaint(QPainter *painter)
     if ((rect().height() - timescaleHeight) / processSpan >= 3)
         paintEvents(painter);
 
+    drawProcessLabels(painter, rect().height() - timescaleHeight, processheight);
     drawTimescale(painter, startTime, timeSpan);
     drawHover(painter);
 }
@@ -365,6 +366,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
 {
     //painter->fillRect(rect(), backgroundColor);
     int canvasHeight = rect().height() - timescaleHeight;
+    int effectiveWidth = rect().width() - labelWidth;
 
     int process_spacing = 0;
     if (canvasHeight / processSpan > 12)
@@ -416,7 +418,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
                 if (w >= 2)
                 {
                     y = floor((position - startProcess) * blockheight) + 1;
-                    x = floor(static_cast<long long>((*evt)->enter - startTime) / 1.0 / timeSpan * rect().width()) + 1;
+                    x = floor(static_cast<long long>((*evt)->enter - startTime) / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
                     h = barheight;
 
 
@@ -430,9 +432,9 @@ void TraditionalVis::paintEvents(QPainter *painter)
                         h = canvasHeight - y;
                         complete = false;
                     }
-                    if (x < 0) {
-                        w -= fabs(x);
-                        x = 0;
+                    if (x < labelWidth) {
+                        w -= (labelWidth - x);
+                        x = labelWidth;
                         complete = false;
                     } else if (x + w > rect().width()) {
                         w = rect().width() - x;

@@ -515,9 +515,6 @@ void StepVis::paintEvents(QPainter * painter)
             drawLine(painter, &p1, &p2, effectiveHeight);
         }
     }
-
-    // For labels
-    painter->fillRect(QRectF(0,0,labelWidth,effectiveHeight), QBrush(QColor(Qt::white)));
 }
 
 void StepVis::drawLine(QPainter * painter, QPointF * p1, QPointF * p2, int effectiveHeight)

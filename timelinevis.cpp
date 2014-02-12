@@ -135,6 +135,9 @@ void TimelineVis::drawHover(QPainter * painter)
 
 void TimelineVis::drawProcessLabels(QPainter * painter, int effectiveHeight, int barHeight)
 {
+    painter->setPen(Qt::black);
+    painter->setFont(QFont("Helvetica", 10));
+    painter->fillRect(QRectF(0,0,labelWidth,effectiveHeight), QBrush(QColor(Qt::white)));
     int total_labels = floor(effectiveHeight / labelHeight);
     int y;
     int skip = 1;
@@ -149,8 +152,7 @@ void TimelineVis::drawProcessLabels(QPainter * painter, int effectiveHeight, int
     for (int i = start; i <= end; i+= skip) // Do this by order
     {
         y = floor((i - startProcess) * barHeight) + 1 + (barHeight + labelHeight) / 2;
-        painter->drawText(1, y, QString::number(order_to_proc[i]));
+        if (y < effectiveHeight)
+            painter->drawText(1, y, QString::number(order_to_proc[i]));
     }
-    std::cout << "Done" << std::endl;
-
 }
