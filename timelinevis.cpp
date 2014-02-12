@@ -12,6 +12,7 @@ TimelineVis::TimelineVis(QWidget* parent, VisOptions * _options)
       stepwidth(0),
       processheight(0),
       labelWidth(0),
+      labelHeight(0),
       maxStep(0),
       startPartition(0),
       startStep(0),
@@ -39,14 +40,16 @@ void TimelineVis::processVis()
         order_to_proc[i] = i;
     }
 
-    int max_process = pow(10,ceil(log10(trace->num_processes))) - 1;
+    int max_process = pow(10,ceil(log10(trace->num_processes)) + 1) - 1;
     QPainter * painter = new QPainter();
     painter->begin(this);
     painter->setPen(Qt::black);
     painter->setFont(QFont("Helvetica", 10));
     QLocale systemlocale = QLocale::system();
     QFontMetrics font_metrics = painter->fontMetrics();
-    labelWidth = font_metrics.width(systemlocale.toString(max_process));
+    QString testString = systemlocale.toString(max_process);
+    labelWidth = font_metrics.width(testString);
+    labelHeight = font_metrics.height();
     painter->end();
     delete painter;
 
@@ -116,7 +119,7 @@ void TimelineVis::drawHover(QPainter * painter)
     if (hover_event == NULL)
         return;
     painter->setFont(QFont("Helvetica", 10));
-    QFontMetrics font_metrics = this->fontMetrics();
+    QFontMetrics font_metrics = painter->fontMetrics();
     QString text = ((*(trace->functions))[hover_event->function])->name + ", " + QString::number(hover_event->step);
 
     // Determine bounding box of FontMetrics
@@ -128,4 +131,26 @@ void TimelineVis::drawHover(QPainter * painter)
 
     // Draw text
     painter->drawText(mousex + 2, mousey + textRect.height() - 2, text);
+}
+
+void TimelineVis::drawProcessLabels(QPainter * painter, int effectiveHeight, int barHeight)
+{
+    int total_labels = floor(effectiveHeight / labelHeight);
+    int y;
+    int skip = 1;
+    if (total_labels < trace->num_processes)
+    {
+        skip = ceil(float(trace->num_processes) / total_labels);
+    }
+
+    int start = std::max(floor(startProcess), 0.0);
+    int end = std::min(ceil(startProcess + processSpan), trace->num_processes - 1.0);
+    std::cout << skip << ", " << start << ", " << end <<  std::endl;
+    for (int i = start; i <= end; i+= skip) // Do this by order
+    {
+        y = floor((i - startProcess) * barHeight) + 1 + (barHeight + labelHeight) / 2;
+        painter->drawText(1, y, QString::number(order_to_proc[i]));
+    }
+    std::cout << "Done" << std::endl;
+
 }

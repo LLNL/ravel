@@ -206,6 +206,7 @@ void StepVis::qtPaint(QPainter *painter)
     if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
       paintEvents(painter);
 
+    drawProcessLabels(painter, rect().height() - colorBarHeight, processheight);
     drawColorBarText(painter);
 
     // Hover is independent of how we drew things

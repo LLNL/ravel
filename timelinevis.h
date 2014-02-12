@@ -24,6 +24,7 @@ public slots:
 
 protected:
     void drawHover(QPainter *painter);
+    void drawProcessLabels(QPainter * painter, int effectiveHeight, int barHeight);
 
     bool jumped;
     bool mousePressed;
@@ -34,6 +35,7 @@ protected:
     float stepwidth;
     float processheight;
     int labelWidth;
+    int labelHeight;
 
     int maxStep;
     int startPartition;
