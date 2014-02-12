@@ -22,6 +22,8 @@ protected:
     void paintEvents(QPainter *painter);
     void prepaint();
     void drawNativeGL();
+    void paintNotStepEvents(QPainter *painter, Event * evt, float position, int process_spacing,
+                            float barheight, float blockheight, QRect * extents);
 
 private:
     class TimePair {

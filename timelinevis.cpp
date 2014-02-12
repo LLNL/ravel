@@ -126,7 +126,6 @@ void TimelineVis::drawHover(QPainter * painter)
     QRect textRect = font_metrics.boundingRect(text);
 
     // Draw bounding box
-    //std::cout << "Drawing bounding box" << std::endl;
     painter->fillRect(QRectF(mousex, mousey, textRect.width(), textRect.height()), QBrush(QColor(255, 255, 0, 150)));
 
     // Draw text

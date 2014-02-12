@@ -364,9 +364,7 @@ void TraditionalVis::qtPaint(QPainter *painter)
 
 void TraditionalVis::paintEvents(QPainter *painter)
 {
-    //painter->fillRect(rect(), backgroundColor);
     int canvasHeight = rect().height() - timescaleHeight;
-    int effectiveWidth = rect().width() - labelWidth;
 
     int process_spacing = 0;
     if (canvasHeight / processSpan > 12)
@@ -382,7 +380,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
     QRect extents = QRect(labelWidth, 0, rect().width(), canvasHeight);
 
     painter->setFont(QFont("Helvetica", 10));
-    QFontMetrics font_metrics = this->fontMetrics();
+    QFontMetrics font_metrics = painter->fontMetrics();
 
     int position, step;
     bool complete;
@@ -390,6 +388,20 @@ void TraditionalVis::paintEvents(QPainter *painter)
     unsigned long long stopTime = startTime + timeSpan;
     painter->setPen(QPen(QColor(0, 0, 0)));
     Partition * part = NULL;
+
+    int start = std::max(int(floor(startProcess)), 0);
+    int end = std::min(int(ceil(startProcess + processSpan)), trace->num_processes - 1);
+    for (int i = start; i <= end; ++i)
+    {
+        position = order_to_proc[i];
+        QVector<Event *> * roots = trace->roots->at(i);
+        for (QVector<Event *>::Iterator root = roots->begin(); root != roots->end(); ++root)
+        {
+            paintNotStepEvents(painter, *root, position, process_spacing,
+                               barheight, blockheight, &extents);
+        }
+    }
+
     for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
         part = trace->partitions->at(i);
@@ -465,7 +477,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
                         if (complete)
                             painter->drawRect(QRectF(x,y,w,h));
                         else
-                            incompleteBox(painter, x, y, w, h, extents);
+                            incompleteBox(painter, x, y, w, h, &extents);
                     }
 
                     // Revert pen color
@@ -503,11 +515,11 @@ void TraditionalVis::paintEvents(QPainter *painter)
             recv_event = (*msg)->receiver;
             position = proc_to_order[send_event->process];
             y = floor((position - startProcess + 0.5) * blockheight) + 1;
-            x = floor(static_cast<long long>(send_event->enter - startTime) / 1.0 / timeSpan * rect().width()) + 1;
+            x = floor(static_cast<long long>(send_event->enter - startTime) / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
             p1 = QPointF(x, y);
             position = proc_to_order[recv_event->process];
             y = floor((position - startProcess + 0.5) * blockheight) + 1;
-            x = floor(static_cast<long long>(recv_event->exit - startTime) / 1.0 / timeSpan * rect().width()) + 1;
+            x = floor(static_cast<long long>(recv_event->exit - startTime) / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
             p2 = QPointF(x, y);
             painter->drawLine(p1, p2);
         }
@@ -515,4 +527,91 @@ void TraditionalVis::paintEvents(QPainter *painter)
 
     stepSpan = stopStep - startStep;
     painter->fillRect(QRectF(0,canvasHeight,rect().width(),rect().height()), QBrush(QColor(Qt::white)));
+}
+
+void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt, float position, int process_spacing,
+                                        float barheight, float blockheight, QRect * extents)
+{
+    if (evt->enter > startTime + timeSpan || evt->exit < startTime)
+        return; // Out of time
+    if (evt->step >= 0)
+        return; // Drawn later
+
+    int x, y, w, h;
+    w = (evt->exit - evt->enter) / 1.0 / timeSpan * rect().width();
+    if (w >= 2)
+    {
+        y = floor((position - startProcess) * blockheight) + 1;
+        x = floor(static_cast<long long>(evt->enter - startTime) / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
+        h = barheight;
+
+
+        // Corrections for partially drawn
+        bool complete = true;
+        if (y < 0) {
+            h = barheight - fabs(y);
+            y = 0;
+            complete = false;
+        } else if (y + barheight > rect().height() - timescaleHeight) {
+            h = rect().height() - timescaleHeight - y;
+            complete = false;
+        }
+        if (x < labelWidth) {
+            w -= (labelWidth - x);
+            x = labelWidth;
+            complete = false;
+        } else if (x + w > rect().width()) {
+            w = rect().width() - x;
+            complete = false;
+        }
+
+
+        // Change pen color if selected
+        // TODO: Have all these events know they are part of the agg events of what they follow
+        if (evt == selected_event)
+            painter->setPen(QPen(Qt::yellow));
+
+        if (options->colorTraditionalByMetric && evt->hasMetric(options->metric))
+        {
+                painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color(evt->getMetric(options->metric))));
+        }
+        else
+        {
+            if (evt == selected_event)
+                painter->fillRect(QRectF(x, y, w, h), QBrush(Qt::yellow));
+            else
+            {
+                // Draw event
+                int graycolor = 200 - evt->depth * 20;
+                painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(graycolor, graycolor, graycolor)));
+            }
+        }
+
+        // Draw border
+        if (process_spacing > 0)
+        {
+            if (complete)
+                painter->drawRect(QRectF(x,y,w,h));
+            else
+                incompleteBox(painter, x, y, w, h, extents);
+        }
+
+        // Revert pen color
+        if (evt == selected_event)
+            painter->setPen(QPen(QColor(0, 0, 0)));
+
+        // Replace this with something else that handles tree
+        //drawnEvents[*evt] = QRect(x, y, w, h);
+
+        QString fxnName = ((*(trace->functions))[evt->function])->name;
+        QRect fxnRect = painter->fontMetrics().boundingRect(fxnName);
+        if (fxnRect.width() < w && fxnRect.height() < h)
+            painter->drawText(x + 2, y + fxnRect.height() - 2, fxnName);
+    }
+
+    for (QVector<Event *>::Iterator child = evt->callees->begin(); child != evt->callees->end(); ++child)
+        paintNotStepEvents(painter, *child, position, process_spacing,
+                           barheight, blockheight, extents);
+
+
 }

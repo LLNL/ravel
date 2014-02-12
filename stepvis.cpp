@@ -438,7 +438,7 @@ void StepVis::paintEvents(QPainter * painter)
                     if (complete)
                         painter->drawRect(QRectF(x,y,w,h));
                     else
-                        incompleteBox(painter, x, y, w, h, extents);
+                        incompleteBox(painter, x, y, w, h, &extents);
                 // Revert pen color
                 if (*evt == selected_event)
                     painter->setPen(QPen(QColor(0, 0, 0)));
@@ -474,7 +474,7 @@ void StepVis::paintEvents(QPainter * painter)
                         if (aggcomplete)
                             painter->drawRect(QRectF(xa, y, wa, h));
                         else
-                            incompleteBox(painter, xa, y, wa, h, extents);
+                            incompleteBox(painter, xa, y, wa, h, &extents);
                 }
 
             }
