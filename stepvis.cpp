@@ -3,9 +3,10 @@
 
 StepVis::StepVis(QWidget* parent, VisOptions * _options)
     : TimelineVis(parent = parent, _options),
-    maxLateness(0),
-    maxLatenessText(""),
-    maxLatenessTextWidth(0),
+    maxMetric(0),
+    cacheMetric(""),
+    maxMetricText(""),
+    maxMetricTextWidth(0),
     colorbar_offset(0)
 {
 
@@ -27,29 +28,35 @@ void StepVis::setTrace(Trace * t)
     startPartition = 0;
 
     maxStep = trace->global_max_step;
-    maxLateness = 0;
-    QString lateness("Lateness");
+    setupMetric();
+}
+
+void StepVis::setupMetric()
+{
+    maxMetric = 0;
+    QString metric(options->metric);
     for (QList<Partition *>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
     {
         for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
         {
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
-                if ((*evt)->hasMetric(lateness))
+                if ((*evt)->hasMetric(metric))
                 {
-                    if ((*evt)->getMetric(lateness) > maxLateness)
-                        maxLateness = (*evt)->getMetric(lateness);
-                    if ((*evt)->getMetric(lateness, true) > maxLateness)
-                        maxLateness = (*evt)->getMetric(lateness, true);
+                    if ((*evt)->getMetric(metric) > maxMetric)
+                        maxMetric = (*evt)->getMetric(metric);
+                    if ((*evt)->getMetric(metric, true) > maxMetric)
+                        maxMetric = (*evt)->getMetric(metric, true);
                 }
             }
         }
     }
-    options->colormap->setRange(0, maxLateness);
+    options->colormap->setRange(0, maxMetric);
+    cacheMetric = options->metric;
 
     // For colorbar
     QLocale systemlocale = QLocale::system();
-    maxLatenessText = systemlocale.toString(maxLateness);
+    maxMetricText = systemlocale.toString(maxMetric);
 }
 
 void StepVis::setSteps(float start, float stop, bool jump)
@@ -195,6 +202,9 @@ void StepVis::prepaint()
             }
         }
     }
+
+    if (trace && options->metric.compare(cacheMetric) != 0)
+        setupMetric();
 }
 
 void StepVis::qtPaint(QPainter *painter)
@@ -366,7 +376,7 @@ void StepVis::paintEvents(QPainter * painter)
     stepwidth = blockwidth;
     QRect extents = QRect(labelWidth, 0, rect().width(), effectiveHeight);
 
-    QString metric("Lateness");
+    QString metric(options->metric);
     int position;
     bool complete, aggcomplete;
     QSet<Message *> drawMessages = QSet<Message *>();
@@ -568,11 +578,11 @@ void StepVis::drawColorBarGL()
 
             glTranslatef(colorbar_offset + i*segment_size, barMargin, 0);
             glBegin(GL_QUADS);
-            startColor = options->colormap->color(i / 100.0 * maxLateness);
+            startColor = options->colormap->color(i / 100.0 * maxMetric);
             glColor3f(startColor.red() / 255.0, startColor.green() / 255.0, startColor.blue() / 255.0);
             glVertex3f(0, 0, 0);
             glVertex3f(0, barHeight, 0);
-            finishColor = options->colormap->color((i + 1) / 100.0 * maxLateness);
+            finishColor = options->colormap->color((i + 1) / 100.0 * maxMetric);
             glColor3f(finishColor.red() / 255.0, finishColor.green() / 255.0, finishColor.blue() / 255.0);
             glVertex3f(segment_size, barHeight, 0);
             glVertex3f(segment_size, 0, 0);
@@ -587,12 +597,12 @@ void StepVis::drawColorBarGL()
 
 void StepVis::drawColorBarText(QPainter * painter)
 {
-    // Based on Lateness
+    // Based on metric
     painter->setPen(Qt::black);
     painter->setFont(QFont("Helvetica", 10));
     QFontMetrics font_metrics = painter->fontMetrics();
-    maxLatenessTextWidth = font_metrics.width(maxLatenessText);
+    maxMetricTextWidth = font_metrics.width(maxMetricText);
     painter->drawText(rect().width() - colorbar_offset + 3,
                       rect().height() - colorBarHeight/2 + font_metrics.xHeight()/2,
-                      maxLatenessText);
+                      maxMetricText);
 }

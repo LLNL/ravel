@@ -25,11 +25,13 @@ protected:
     void drawColorBarGL();
     void drawColorBarText(QPainter * painter);
     void drawLine(QPainter * painter, QPointF * p1, QPointF * p2, int effectiveHeight);
+    void setupMetric();
 
 private:
-    long long maxLateness;
-    QString maxLatenessText;
-    int maxLatenessTextWidth;
+    long long maxMetric;
+    QString cacheMetric;
+    QString maxMetricText;
+    int maxMetricTextWidth;
     float colorbar_offset;
 
     static const int spacingMinimum = 12;

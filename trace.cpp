@@ -1,4 +1,5 @@
 #include "trace.h"
+#include "exchangegnome.h"
 #include <iostream>
 #include <fstream>
 #include <QElapsedTimer>
@@ -10,6 +11,7 @@ Trace::Trace(int np)
       units(-9),
       partitions(new QList<Partition *>()),
       metrics(new QList<QString>()),
+      gnomes(new QList<Gnome *>()),
       options(NULL),
       functionGroups(new QMap<int, QString>()),
       functions(new QMap<int, Function *>()),
@@ -28,6 +30,8 @@ Trace::Trace(int np)
         (*events)[i] = new QVector<Event *>();
         (*roots)[i] = new QVector<Event *>();
     }
+
+    gnomes->append(new ExchangeGnome());
 }
 
 Trace::~Trace()
@@ -65,6 +69,13 @@ Trace::~Trace()
         *eitr = NULL;
     }
     delete roots;
+
+    for (QList<Gnome *>::Iterator gnome = gnomes->begin(); gnome != gnomes->end(); ++gnome)
+    {
+        delete *gnome;
+        *gnome = NULL;
+    }
+    delete gnomes;
 }
 
 void Trace::printStats()
@@ -93,6 +104,7 @@ void Trace::preprocess(OTFImportOptions * _options)
     options = *_options;
     partition();
     assignSteps();
+    gnomify();
 
     qSort(partitions->begin(), partitions->end(), dereferencedLessThan<Partition>);
 
@@ -102,6 +114,39 @@ void Trace::preprocess(OTFImportOptions * _options)
     std::cout << "Structure Extraction: ";
     gu_printTime(traceElapsed);
     std::cout << std::endl;
+}
+
+void Trace::gnomify()
+{
+    metrics->append("Gnome");
+    for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
+    {
+        for (QList<Gnome *>::Iterator gnome = gnomes->begin(); gnome != gnomes->end(); ++gnome)
+        {
+            if ((*gnome)->detectGnome(*part))
+            {
+                (*part)->gnome = *gnome;
+                break;
+            }
+        }
+        setGnomeMetric(*part);
+    }
+}
+
+void Trace::setGnomeMetric(Partition * part)
+{
+    long long metric = 0;
+    if (part->gnome)
+        metric = 1 + gnomes->indexOf(part->gnome);
+    for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin();
+         event_list != part->events->end(); ++event_list)
+    {
+        for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+             evt != (event_list.value())->end(); ++evt)
+        {
+            (*evt)->addMetric("Gnome", metric, metric);
+        }
+    }
 }
 
 void Trace::partition()

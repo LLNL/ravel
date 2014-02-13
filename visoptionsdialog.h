@@ -29,6 +29,7 @@ private:
     int mapMetricToIndex(QString metric);
 
     Ui::VisOptionsDialog *ui;
+    bool isSet;
 
     VisOptions * options;
     VisOptions saved;

@@ -27,7 +27,9 @@ SOURCES  += main.cpp \
     traditionalvis.cpp \
     visoptionsdialog.cpp \
     visoptions.cpp \
-    otfimportfunctor.cpp
+    otfimportfunctor.cpp \
+    gnome.cpp \
+    exchangegnome.cpp
 
 
 HEADERS += \
@@ -53,7 +55,9 @@ HEADERS += \
     traditionalvis.h \
     visoptionsdialog.h \
     visoptions.h \
-    otfimportfunctor.h
+    otfimportfunctor.h \
+    gnome.h \
+    exchangegnome.h
 
 
 FORMS += \

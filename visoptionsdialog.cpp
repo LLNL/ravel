@@ -5,6 +5,7 @@
 VisOptionsDialog::VisOptionsDialog(QWidget *parent, VisOptions * _options, Trace * _trace) :
     QDialog(parent),
     ui(new Ui::VisOptionsDialog),
+    isSet(false),
     options(_options),
     saved(VisOptions(*_options)),
     trace(_trace)
@@ -23,6 +24,7 @@ VisOptionsDialog::VisOptionsDialog(QWidget *parent, VisOptions * _options, Trace
             ui->metricComboBox->addItem(*metric);
 
     setUIState();
+    isSet = true;
 }
 
 VisOptionsDialog::~VisOptionsDialog()
@@ -48,6 +50,8 @@ void VisOptionsDialog::onMetricColorTraditional(bool metricColor)
 
 void VisOptionsDialog::onMetric(QString metric)
 {
+    if (!isSet)
+        return;
     if (trace)
         options->metric = metric;
 }
@@ -83,16 +87,17 @@ void VisOptionsDialog::setUIState()
     {
         int metric_index = mapMetricToIndex(options->metric);
         ui->metricComboBox->setCurrentIndex(metric_index);
-        options->metric = ui->metricComboBox->itemText(metric_index); // In case we're stuck at the defautl
+        options->metric = ui->metricComboBox->itemText(metric_index); // In case we're stuck at the default
     }
 }
 
 int VisOptionsDialog::mapMetricToIndex(QString metric)
 {
-    int index = 0;
     for (int i = 0; i < trace->metrics->length(); i++)
-        if (trace->metrics->at(i) == metric)
-            return index;
+    {
+        if (trace->metrics->at(i).compare(metric) == 0)
+            return i;
+    }
 
-    return index;
+    return 0;
 }

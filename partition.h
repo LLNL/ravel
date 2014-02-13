@@ -9,6 +9,8 @@
 #include <QMap>
 #include <climits>
 
+class Gnome;
+
 class Partition
 {
 public:
@@ -56,6 +58,8 @@ public:
 
     // For graph drawing
     QString gvid;
+
+    Gnome * gnome;
 
 private:
     void step_receive(Message * msg);

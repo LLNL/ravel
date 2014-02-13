@@ -5,6 +5,7 @@
 #include "function.h"
 #include "partition.h"
 #include "otfimportoptions.h"
+#include "gnome.h"
 #include <QMap>
 #include <QVector>
 #include <QStack>
@@ -21,6 +22,7 @@ public:
     void preprocess(OTFImportOptions * _options);
     void partition();
     void assignSteps();
+    void gnomify();
     void printStats();
 
     int num_processes;
@@ -28,6 +30,7 @@ public:
 
     QList<Partition *> * partitions;
     QList<QString> * metrics;
+    QList<Gnome *> * gnomes;
 
     // Processing options
     OTFImportOptions options;
@@ -83,6 +86,8 @@ private:
     void calculate_lateness();
     void output_graph(QString filename, bool byparent = false);
 
+
+    void setGnomeMetric(Partition * part);
 
     bool isProcessed; // Partitions exist
 

@@ -18,6 +18,7 @@ Partition::Partition()
       leapmark(false),
       group(new QSet<Partition *>()),
       gvid(""),
+      gnome(NULL),
       free_recvs(NULL)
 {
     group->insert(this);
