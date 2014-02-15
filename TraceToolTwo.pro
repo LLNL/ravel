@@ -29,7 +29,8 @@ SOURCES  += main.cpp \
     visoptions.cpp \
     otfimportfunctor.cpp \
     gnome.cpp \
-    exchangegnome.cpp
+    exchangegnome.cpp \
+    collectiverecord.cpp
 
 
 HEADERS += \
@@ -57,7 +58,8 @@ HEADERS += \
     visoptions.h \
     otfimportfunctor.h \
     gnome.h \
-    exchangegnome.h
+    exchangegnome.h \
+    collectiverecord.h
 
 
 FORMS += \

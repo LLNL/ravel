@@ -28,6 +28,7 @@ public:
     bool operator==(const Partition &);
 
     unsigned long long int distance(Partition * other);
+    void setMergables(bool considerCollectives);
     void calculate_dag_leap();
     QString generate_process_string();
     Partition * newest_partition();
@@ -48,6 +49,8 @@ public:
     QSet<Partition *> * children;
     QSet<Partition *> * old_parents;
     QSet<Partition *> * old_children;
+    QSet<Partition *> * mergable_parents;
+    QSet<Partition *> * mergable_children;
     Partition * new_partition;
     int tindex;
     int lowlink;

@@ -1,16 +1,24 @@
 #include "rawtrace.h"
 
-RawTrace::RawTrace(int np) : num_processes(np)
+RawTrace::RawTrace(int np)
+    : functionGroups(new QMap<int, QString>()),
+      functions(new QMap<int, Function *>()),
+      events(new QVector<QVector<EventRecord *> *>(np)),
+      messages(new QVector<QVector<CommRecord *> *>(np)),
+      collectives(new QVector<QVector<CollectiveRecord *> *>(np)),
+      num_processes(np)
 {
-    functionGroups = new QMap<int, QString>();
-    functions = new QMap<int, Function *>();
-    events = new QVector<QVector<EventRecord *> *>(np);
+
     for (int i = 0; i < np; i++) {
         (*events)[i] = new QVector<EventRecord *>();
     }
-    messages = new QVector<QVector<CommRecord *> *>(np);
+
     for (int i = 0; i < np; i++) {
         (*messages)[i] = new QVector<CommRecord *>();
+    }
+
+    for (int i = 0; i < np; i++) {
+        (*collectives)[i] = new QVector<CollectiveRecord *>();
     }
 }
 

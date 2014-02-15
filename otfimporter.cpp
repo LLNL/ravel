@@ -6,10 +6,24 @@
 #include "general_util.h"
 
 OTFImporter::OTFImporter()
+    : ticks_per_second(0),
+      time_conversion_factor(0),
+      num_processes(0),
+      entercount(0),
+      exitcount(0),
+      sendcount(0),
+      recvcount(0),
+      fileManager(NULL),
+      otfReader(NULL),
+      handlerArray(NULL),
+      unmatched_recvs(new QVector<QLinkedList<CommRecord *> *>()),
+      unmatched_sends(new QVector<QLinkedList<CommRecord *> *>()),
+      rawtrace(NULL),
+      functionGroups(NULL),
+      functions(NULL),
+      collectiveMap(new QMap<std::pair<uint64_t, uint32_t>, CollectiveRecord *>())
 {
-    num_processes = 0;
-    unmatched_recvs = new QVector<QLinkedList<CommRecord *> *>();
-    unmatched_sends = new QVector<QLinkedList<CommRecord *> *>();
+
 }
 
 OTFImporter::~OTFImporter()
@@ -32,6 +46,8 @@ OTFImporter::~OTFImporter()
         *eitr = NULL;
     }
     delete unmatched_sends;
+
+    delete collectiveMap;
 }
 
 RawTrace * OTFImporter::importOTF(const char* otf_file)
@@ -166,6 +182,35 @@ void OTFImporter::setHandlers()
                                 (OTF_FunctionPointer*) &OTFImporter::handleCounter,
                                 OTF_COUNTER_RECORD);
     OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_COUNTER_RECORD);
+
+    // Collectives
+    OTF_HandlerArray_setHandler(handlerArray,
+                                (OTF_FunctionPointer*) &OTFImporter::handleDefProcessGroup,
+                                OTF_DEFPROCESSGROUP_RECORD);
+    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_DEFPROCESSGROUP_RECORD);
+
+    OTF_HandlerArray_setHandler(handlerArray,
+                                (OTF_FunctionPointer*) &OTFImporter::handleDefCollectiveOperation,
+                                OTF_DEFCOLLOP_RECORD);
+    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_DEFCOLLOP_RECORD);
+
+    /* Doesn't seem to be used anymore
+    OTF_HandlerArray_setHandler(handlerArray,
+                                (OTF_FunctionPointer*) &OTFImporter::handleCollectiveOperation,
+                                OTF_COLLOP_RECORD);
+    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_COLLOP_RECORD);
+    */
+
+    OTF_HandlerArray_setHandler(handlerArray,
+                                (OTF_FunctionPointer*) &OTFImporter::handleBeginCollectiveOperation,
+                                OTF_BEGINCOLLOP_RECORD);
+    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_BEGINCOLLOP_RECORD);
+
+
+    OTF_HandlerArray_setHandler(handlerArray,
+                                (OTF_FunctionPointer*) &OTFImporter::handleEndCollectiveOperation,
+                                OTF_ENDCOLLOP_RECORD);
+    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_ENDCOLLOP_RECORD);
 }
 
 uint64_t OTFImporter::convertTime(void* userData, uint64_t time) {
@@ -330,5 +375,54 @@ int OTFImporter::handleRecv(void * userData, uint64_t time, uint32_t receiver, u
 int OTFImporter::handleCounter(void * userData, uint64_t time, uint32_t process, uint32_t counter,
                          uint64_t value)
 {
+    return 0;
+}
+
+int OTFImporter::handleDefProcessGroup(void * userData, uint32_t stream, uint32_t procGroup,
+                                       const char * name, uint32_t numberOfProcs, const uint32_t * procs)
+{
+    std::cout << "ProcessGroup: " << name << " : " << numberOfProcs << std::endl;
+    return 0;
+}
+
+int OTFImporter::handleDefCollectiveOperation(void * userData, uint32_t stream, uint32_t collOp,
+                                              const char * name, uint32_t type)
+{
+    std::cout << "DefCollective: " << collOp << " --> " << name << " : " << type << std::endl;
+    return 0;
+}
+
+int OTFImporter::handleCollectiveOperation(void * userData, uint64_t time, uint32_t process,
+                                           uint32_t collective, uint32_t procGroup, uint32_t rootProc,
+                                           uint32_t sent, uint32_t received, uint64_t duration,
+                                           uint32_t source)
+{
+    Q_UNUSED(source); // Location in source code
+
+    std::cout << "Collective: " << time << ", proc: " << process << ", coll: " << collective;
+    std::cout << ", root: " << rootProc << ", group: " << procGroup << ", sent: " << sent;
+    std::cout << ", recv: " << received << ", dur: " << duration << std::endl;
+
+    return 0;
+}
+
+int OTFImporter::handleBeginCollectiveOperation(void * userData, uint64_t time, uint32_t process,
+                                           uint32_t collective, uint64_t matchingId, uint32_t procGroup,
+                                           uint32_t rootProc, uint32_t sent, uint32_t received,
+                                           uint32_t scltoken, OTF_KeyValueList * list)
+{
+    Q_UNUSED(list);
+    Q_UNUSED(scltoken);
+    std::cout << "Begin Collective: " << time << ", proc: " << process << ", coll: " << collective;
+    std::cout << ", root: " << rootProc << ", group: " << procGroup << ", sent: " << sent;
+    std::cout << ", recv: " << received << ", matching: " << matchingId << std::endl;
+}
+
+int OTFImporter::handleEndCollectiveOperation(void * userData, uint64_t time, uint32_t process,
+                                        uint64_t matchingId, OTF_KeyValueList * list)
+{
+    Q_UNUSED(list);
+    std::cout << "End Collective: " << time << ", proc: " << process;
+    std::cout << ", matching: " << matchingId << std::endl;
     return 0;
 }

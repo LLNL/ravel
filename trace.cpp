@@ -23,6 +23,7 @@ Trace::Trace(int np)
       dag_entries(NULL),
       dag_step_dict(NULL),
       isProcessed(false),
+      collectives_string(QString("MPI_BarrierMPI_BcastMPI_ReduceMPI_GatherMPI_ScatterMPI_AllgatherMPI_AllreduceMPI_AlltoallMPI_ScanMPI_Reduce_scatterMPI_Op_createMPI_Op_freeMPIMPI_AlltoallvMPI_AllgathervMPI_GathervMPI_Scatterv")),
       riTracker(NULL),
       riChildrenTracker(NULL)
 {
@@ -527,12 +528,22 @@ void Trace::chainCommEvents()
     // is the next event of the one we are processing.
     for (QVector<QList<Event *> *>::Iterator event_list = mpi_events->begin(); event_list != mpi_events->end(); ++event_list) {
         Event * next = NULL;
+        Event * ccnext = NULL;
         for (QList<Event *>::Iterator evt = (*event_list)->begin(); evt != (*event_list)->end(); ++evt) {
             if ((*evt)->messages->size() > 0) {
                 (*evt)->comm_next = next;
+                (*evt)->cc_next = ccnext;
                 if (next)
                     next->comm_prev = (*evt);
+                if (ccnext)
+                    ccnext->cc_prev = (*evt);
                 next = (*evt);
+                ccnext = (*evt);
+            } else if (collectives_string.contains(functions->value((*evt)->function)->name)) {
+                (*evt)->cc_next = ccnext;
+                if (ccnext)
+                    ccnext->cc_prev = (*evt);
+                ccnext = (*evt);
             }
         }
     }
@@ -541,6 +552,7 @@ void Trace::chainCommEvents()
 void Trace::mergeByLeap()
 {
     int leap = 0;
+    bool blockMergeAll = false;
     QSet<Partition *> * new_partitions = new QSet<Partition *>();
     QSet<Partition *> * current_leap = new QSet<Partition *>();
     QSet<QSet<Partition *> *> * toDelete = new QSet<QSet<Partition *> *>();
@@ -559,17 +571,22 @@ void Trace::mergeByLeap()
         if (processes.size() < num_processes)
         {
             //std::cout << "   Merge required!" << std::endl;
+            blockMergeAll = false;
             QSet<Partition *> * new_leap_parts = new QSet<Partition *>();
             QSet<int> added_processes = QSet<int>();
             bool back_merge = false;
             for (QSet<Partition *>::Iterator partition = current_leap->begin(); partition != current_leap->end(); ++partition)
             {
+                (*partition)->setMergables(options.leapCollective);
                 // Determine distances from parent and child partitions 1 leap away
                 unsigned long long int parent_distance = ULLONG_MAX;
                 unsigned long long int child_distance = ULLONG_MAX;
-                for (QSet<Partition *>::Iterator parent = (*partition)->parents->begin(); parent != (*partition)->parents->end(); ++parent)
-                    if ((*parent)->dag_leap == (*partition)->dag_leap - 1)
-                        parent_distance = std::min(parent_distance, (*partition)->distance(*parent));
+                // If we're doing leapCollectives and we might not be able to merge all parents, do not do parent_distance
+                // calculation because we absolutely will not back merge.
+                if (!options.leapCollective || (*partition)->parents->subtract((*(*partition)->mergable_parents)).size() == 0)
+                    for (QSet<Partition *>::Iterator parent = (*partition)->parents->begin(); parent != (*partition)->parents->end(); ++parent)
+                        if ((*parent)->dag_leap == (*partition)->dag_leap - 1)
+                            parent_distance = std::min(parent_distance, (*partition)->distance(*parent));
                 for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++child)
                 {
                     (*child)->calculate_dag_leap(); // Recalculate, maybe have changed in previous iteration
@@ -598,7 +615,10 @@ void Trace::mergeByLeap()
                 }
                 else // merge children in
                 {
-                    for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++child)
+                    if (options.leapCollective && (*partition)->children->subtract((*(*partition)->mergable_children)).size() > 0)
+                        blockMergeAll = true;
+                    for (QSet<Partition *>::Iterator child = (*partition)->mergable_children->begin();
+                         child != (*partition)->mergable_children->end(); ++child)
                         if ((*child)->dag_leap == (*partition)->dag_leap + 1
                                 && ((QSet<int>::fromList((*child)->events->keys()) - processes)).size() > 0)
                         {
@@ -619,7 +639,7 @@ void Trace::mergeByLeap()
             }
 
             if (!back_merge && added_processes.size() <= 0)
-                if (options.leapSkip) // Skip leap if we didn't add anything
+                if (options.leapSkip || blockMergeAll) // Skip leap if we didn't add anything
                 {
                     for (QSet<Partition *>::Iterator partition = current_leap->begin(); partition != current_leap->end(); ++partition)
                     {
@@ -1294,12 +1314,11 @@ void Trace::initializePartitionsWaitall()
     QVector<int> * collective_ids = new QVector<int>(16);
     int collective_index = 0;
     int waitall_index = -1;
-    QString collectives("MPI_BarrierMPI_BcastMPI_ReduceMPI_GatherMPI_ScatterMPI_AllgatherMPI_AllreduceMPI_AlltoallMPI_ScanMPI_Reduce_scatterMPI_Op_createMPI_Op_freeMPIMPI_AlltoallvMPI_AllgathervMPI_GathervMPI_Scatterv");
     for (QMap<int, Function * >::Iterator function = functions->begin(); function != functions->end(); ++function)
     {
         if (function.value()->group == mpi_group)
         {
-            if ( collectives.contains(function.value()->name) )
+            if ( collectives_string.contains(function.value()->name) )
             {
                 (*collective_ids)[collective_index] = function.key();
                 ++collective_index;

@@ -14,6 +14,7 @@ ImportOptionsDialog::ImportOptionsDialog(QWidget *parent, OTFImportOptions * _op
     connect(ui->heuristicRadioButton, SIGNAL(clicked(bool)), this, SLOT(onPartitionByHeuristic(bool)));
     connect(ui->waitallCheckbox, SIGNAL(clicked(bool)), this, SLOT(onWaitallMerge(bool)));
     connect(ui->leapCheckbox, SIGNAL(clicked(bool)), this, SLOT(onLeapMerge(bool)));
+    connect(ui->leapCollectiveCheckbox, SIGNAL(clicked(bool)), this, SLOT(onLeapCollective(bool)));
     connect(ui->skipCheckbox, SIGNAL(clicked(bool)), this, SLOT(onLeapSkip(bool)));
     connect(ui->functionEdit, SIGNAL(textChanged(QString)), this, SLOT(onFunctionEdit(QString)));
 
@@ -59,6 +60,11 @@ void ImportOptionsDialog::onLeapMerge(bool merge)
     setUIState();
 }
 
+void ImportOptionsDialog::onLeapCollective(bool respect)
+{
+    options->leapCollective = respect;
+}
+
 void ImportOptionsDialog::onLeapSkip(bool skip)
 {
     options->leapSkip = skip;
@@ -82,15 +88,22 @@ void ImportOptionsDialog::setUIState()
     else
         ui->skipCheckbox->setChecked(false);
 
+    if (options->leapCollective)
+        ui->leapCollectiveCheckbox->setChecked(true);
+    else
+        ui->leapCollectiveCheckbox->setChecked(false);
+
     if (options->leapMerge)
     {
         ui->leapCheckbox->setChecked(true);
         ui->skipCheckbox->setEnabled(true);
+        ui->leapCollectiveCheckbox->setEnabled(true);
     }
     else
     {
         ui->leapCheckbox->setChecked(false);
         ui->skipCheckbox->setEnabled(false);
+        ui->leapCollectiveCheckbox->setEnabled(false);
     }
 
 
@@ -102,6 +115,7 @@ void ImportOptionsDialog::setUIState()
         ui->functionRadioButton->setChecked(true);
         ui->waitallCheckbox->setEnabled(false);
         ui->leapCheckbox->setEnabled(false);
+        ui->leapCollectiveCheckbox->setEnabled(false);
         ui->skipCheckbox->setEnabled(false);
         ui->functionEdit->setEnabled(true);
     }

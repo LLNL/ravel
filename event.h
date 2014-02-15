@@ -46,6 +46,8 @@ public:
     Partition * partition;
     Event * comm_next;
     Event * comm_prev;
+    Event * cc_next; // Comm with collectives
+    Event * cc_prev;
     bool is_recv;
 
     // Used in stepping procedure

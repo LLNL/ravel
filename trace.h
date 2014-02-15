@@ -90,6 +90,7 @@ private:
     void setGnomeMetric(Partition * part);
 
     bool isProcessed; // Partitions exist
+    QString collectives_string;
 
     // TODO: Replace this terrible stuff with QSharedPointer
     QSet<RecurseInfo *> * riTracker;
