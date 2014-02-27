@@ -31,8 +31,10 @@ bool ExchangeGnome::detectGnome(Partition * part)
                 }
             }
         }
-        if (sends != recvs)
+        if (sends != recvs) {
             gnome = false;
+            return gnome;
+        }
     }
     return gnome;
 }

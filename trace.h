@@ -88,6 +88,7 @@ private:
 
 
     void setGnomeMetric(Partition * part);
+    void addPartitionMetric();
 
     bool isProcessed; // Partitions exist
     QString collectives_string;

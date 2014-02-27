@@ -108,6 +108,7 @@ void Trace::preprocess(OTFImportOptions * _options)
     gnomify();
 
     qSort(partitions->begin(), partitions->end(), dereferencedLessThan<Partition>);
+    addPartitionMetric(); // For debugging
 
     isProcessed = true;
 
@@ -149,6 +150,25 @@ void Trace::setGnomeMetric(Partition * part)
         }
     }
 }
+
+void Trace::addPartitionMetric()
+{
+    metrics->append("Partition");
+    long long partition = 0;
+    for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
+    {
+        for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin();
+             event_list != (*part)->events->end(); ++event_list)
+        {
+            for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+                 evt != (event_list.value())->end(); ++evt)
+            {
+                (*evt)->addMetric("Partition", partition, partition);
+            }
+        }
+    }
+}
+
 
 void Trace::partition()
 {

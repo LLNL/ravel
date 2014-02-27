@@ -7,7 +7,7 @@
 class ColorMap
 {
 public:
-    ColorMap(QColor color, float value);
+    ColorMap(QColor color, float value, bool _categorical = false);
     ~ColorMap();
     ColorMap(const ColorMap& copy);
     void addColor(QColor color, float stop);
@@ -27,9 +27,11 @@ private:
     };
 
     QColor average(ColorValue * low, ColorValue * high, double norm);
+    QColor categorical_color(double value);
 
     double minValue;
     double maxValue;
+    bool categorical;
     QVector<ColorValue *> * colors;
 };
 

@@ -1,9 +1,10 @@
 #include "colormap.h"
 #include <iostream>
 
-ColorMap::ColorMap(QColor color, float value)
+ColorMap::ColorMap(QColor color, float value, bool _categorical)
     : minValue(0),
       maxValue(1),
+      categorical(_categorical),
       colors(new QVector<ColorValue *>())
 {
     colors->push_back(new ColorValue(color, value));
@@ -22,6 +23,7 @@ ColorMap::ColorMap(const ColorMap & copy)
 {
     minValue = copy.minValue;
     maxValue = copy.maxValue;
+    categorical = copy.categorical;
     colors = new QVector<ColorValue *>();
     for (QVector<ColorValue *>::Iterator itr = copy.colors->begin(); itr != copy.colors->end(); ++itr)
     {
@@ -52,6 +54,10 @@ void ColorMap::addColor(QColor color, float stop)
 
 QColor ColorMap::color(double value)
 {
+    // Do something else if we're categorical
+    if (categorical)
+        return categorical_color(value);
+
     ColorValue base1 = ColorValue(QColor(0,0,0), 0);
     ColorValue base2 = ColorValue(QColor(0,0,0), 1);
     ColorValue* low = &base1;
@@ -66,6 +72,14 @@ QColor ColorMap::color(double value)
         }
     }
     return low->color;
+}
+
+// In categorical, we only take the minValue into account and the number of input colors
+// This is somewhat magical and should probably be turned into something that is more elegant and makes sense.
+QColor ColorMap::categorical_color(double value)
+{
+    int cat_value = int(value - minValue) % colors->size();
+    return colors->at(cat_value)->color;
 }
 
 QColor ColorMap::average(ColorValue * low, ColorValue * high, double norm)

@@ -16,6 +16,7 @@ public:
     bool showMessages;
     QString metric;
     ColorMap * colormap;
+    ColorMap * catcolormap; // categorical colormap
 };
 
 #endif // VISOPTIONS_H
