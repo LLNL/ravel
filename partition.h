@@ -63,6 +63,7 @@ public:
     QString gvid;
 
     Gnome * gnome;
+    int gnome_type;
 
 private:
     void step_receive(Message * msg);

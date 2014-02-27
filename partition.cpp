@@ -21,6 +21,7 @@ Partition::Partition()
       group(new QSet<Partition *>()),
       gvid(""),
       gnome(NULL),
+      gnome_type(0),
       free_recvs(NULL)
 {
     group->insert(this);
@@ -41,6 +42,7 @@ Partition::~Partition()
     delete children;
     delete old_parents;
     delete old_children;
+    delete gnome;
 }
 
 // Call when we are sure we want to delete events held in this partition

@@ -121,32 +121,32 @@ void Trace::preprocess(OTFImportOptions * _options)
 void Trace::gnomify()
 {
     metrics->append("Gnome");
+    Gnome * gnome;
     for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
     {
-        for (QList<Gnome *>::Iterator gnome = gnomes->begin(); gnome != gnomes->end(); ++gnome)
+        for (int i = 0; i < gnomes->size(); i++)
         {
-            if ((*gnome)->detectGnome(*part))
+            gnome = gnomes->at(i);
+            if (gnome->detectGnome(*part))
             {
-                (*part)->gnome = *gnome;
+                (*part)->gnome_type = i;
+                (*part)->gnome = gnome->create();
+                setGnomeMetric(*part, i);
                 break;
             }
         }
-        setGnomeMetric(*part);
     }
 }
 
-void Trace::setGnomeMetric(Partition * part)
+void Trace::setGnomeMetric(Partition * part, int gnome_index)
 {
-    long long metric = 0;
-    if (part->gnome)
-        metric = 1 + gnomes->indexOf(part->gnome);
     for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin();
          event_list != part->events->end(); ++event_list)
     {
         for (QList<Event *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
         {
-            (*evt)->addMetric("Gnome", metric, metric);
+            (*evt)->addMetric("Gnome", gnome_index, gnome_index);
         }
     }
 }

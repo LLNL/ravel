@@ -6,6 +6,8 @@ VisOptions::VisOptions(bool _showAgg,
     : showAggregateSteps(_showAgg),
       colorTraditionalByMetric(_metricTraditional),
       showMessages(true),
+      categoricalColors(false),
+      drawGnomes(true),
       metric(_metric),
       colormap(new ColorMap(QColor(173, 216, 230), 0)),
       catcolormap(new ColorMap(QColor(31, 119, 180), 0))
@@ -40,6 +42,9 @@ VisOptions::VisOptions(const VisOptions& copy)
     showAggregateSteps = copy.showAggregateSteps;
     colorTraditionalByMetric = copy.colorTraditionalByMetric;
     showMessages = copy.showMessages;
+    categoricalColors = copy.categoricalColors;
+    drawGnomes = copy.drawGnomes;
     metric = copy.metric;
     colormap = new ColorMap(*(copy.colormap));
+    catcolormap = new ColorMap(*(copy.catcolormap));
 }

@@ -38,3 +38,23 @@ bool ExchangeGnome::detectGnome(Partition * part)
     }
     return gnome;
 }
+
+Gnome * ExchangeGnome::create()
+{
+    return new ExchangeGnome();
+}
+
+void ExchangeGnome::preprocess()
+{
+
+}
+
+void ExchangeGnome::drawGnomeGL(QRect extents)
+{
+
+}
+
+void ExchangeGnome::drawGnomeQt(QPainter * painter, QRect extents)
+{
+
+}

@@ -18,6 +18,8 @@ VisOptionsDialog::VisOptionsDialog(QWidget *parent, VisOptions * _options, Trace
     connect(ui->metricComboBox, SIGNAL(currentIndexChanged(QString)), this, SLOT(onMetric(QString)));
     connect(ui->showAggregateCheckBox, SIGNAL(clicked(bool)), this, SLOT(onShowAggregate(bool)));
     connect(ui->showMessagesCheckBox, SIGNAL(clicked(bool)), this, SLOT(onShowMessages(bool)));
+    connect(ui->categoricalCheckBox, SIGNAL(clicked(bool)), this, SLOT(onCategoricalColors(bool)));
+    connect(ui->gnomeCheckBox, SIGNAL(clicked(bool)), this, SLOT(onDrawGnomes(bool)));
 
     if (trace)
         for (QList<QString>::Iterator metric = trace->metrics->begin(); metric != trace->metrics->end(); ++metric)
@@ -66,6 +68,16 @@ void VisOptionsDialog::onShowMessages(bool showMessages)
     options->showMessages = showMessages;
 }
 
+void VisOptionsDialog::onCategoricalColors(bool useCategorical)
+{
+    options->categoricalColors = useCategorical;
+}
+
+void VisOptionsDialog::onDrawGnomes(bool drawGnomes)
+{
+    options->drawGnomes = drawGnomes;
+}
+
 void VisOptionsDialog::setUIState()
 {
     if (options->colorTraditionalByMetric)
@@ -82,6 +94,16 @@ void VisOptionsDialog::setUIState()
         ui->showMessagesCheckBox->setChecked(true);
     else
         ui->showMessagesCheckBox->setChecked(false);
+
+    if (options->categoricalColors)
+        ui->categoricalCheckBox->setChecked(true);
+    else
+        ui->categoricalCheckBox->setChecked(false);
+
+    if (options->drawGnomes)
+        ui->gnomeCheckBox->setChecked(true);
+    else
+        ui->gnomeCheckBox->setChecked(false);
 
     if (trace)
     {

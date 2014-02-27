@@ -14,6 +14,8 @@ public:
     bool showAggregateSteps;
     bool colorTraditionalByMetric;
     bool showMessages;
+    bool categoricalColors;
+    bool drawGnomes;
     QString metric;
     ColorMap * colormap;
     ColorMap * catcolormap; // categorical colormap

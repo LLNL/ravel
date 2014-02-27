@@ -87,7 +87,7 @@ private:
     void output_graph(QString filename, bool byparent = false);
 
 
-    void setGnomeMetric(Partition * part);
+    void setGnomeMetric(Partition * part, int gnome_index);
     void addPartitionMetric();
 
     bool isProcessed; // Partitions exist
