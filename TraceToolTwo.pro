@@ -30,7 +30,8 @@ SOURCES  += main.cpp \
     otfimportfunctor.cpp \
     gnome.cpp \
     exchangegnome.cpp \
-    collectiverecord.cpp
+    collectiverecord.cpp \
+    partitioncluster.cpp
 
 
 HEADERS += \
@@ -59,7 +60,8 @@ HEADERS += \
     otfimportfunctor.h \
     gnome.h \
     exchangegnome.h \
-    collectiverecord.h
+    collectiverecord.h \
+    partitioncluster.h
 
 
 FORMS += \

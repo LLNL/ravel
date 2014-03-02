@@ -1,7 +1,8 @@
 #include "gnome.h"
 
 Gnome::Gnome()
-    : partition(NULL)
+    : partition(NULL),
+      options(NULL)
 {
 }
 
