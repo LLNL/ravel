@@ -14,13 +14,13 @@ public:
 
     bool detectGnome(Partition * part);
     Gnome * create();
-    void preprocess(VisOptions *options);
+    void preprocess();
     void drawGnomeQt(QPainter * painter, QRect extents);
-    void drawGnomeGL(QRect extents);
+    void drawGnomeGL(QRect extents, VisOptions * _options);
 
 private:
     // send-receive, sends-receives, sends-waitall
-    enum ExchangeType { UNKNOWN, SRSR, SSRR, SSWA };
+    enum ExchangeType { SRSR, SSRR, SSWA, UNKNOWN };
     ExchangeType type;
     QString metric;
     ExchangeType findType();

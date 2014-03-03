@@ -131,7 +131,9 @@ void Trace::gnomify()
             {
                 (*part)->gnome_type = i;
                 (*part)->gnome = gnome->create();
+                (*part)->gnome->setPartition(*part);
                 setGnomeMetric(*part, i);
+                (*part)->gnome->preprocess();
                 break;
             }
         }

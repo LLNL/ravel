@@ -1,9 +1,11 @@
 #include "exchangegnome.h"
+#include <iostream>
+#include <climits>
 
 ExchangeGnome::ExchangeGnome()
     : Gnome(),
       type(UNKNOWN),
-      metric(""),
+      metric("Lateness"),
       cluster_leaves(NULL),
       cluster_root(NULL)
 {
@@ -31,7 +33,12 @@ bool ExchangeGnome::detectGnome(Partition * part)
         for (QList<Event *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
         {
-            for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
+            Message * msg = (*evt)->messages->at(0); // For now only first matters, rest will be the same
+            if (msg->sender == (*evt))
+                recvs.insert(msg->receiver->process);
+            else
+                sends.insert(msg->sender->process);
+            /*for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
                  msg != (*evt)->messages->end(); ++msg)
             {
                 if ((*msg)->sender == (*evt))
@@ -42,7 +49,7 @@ bool ExchangeGnome::detectGnome(Partition * part)
                 {
                     sends.insert((*msg)->sender->process);
                 }
-            }
+            }*/
         }
         if (sends != recvs) {
             gnome = false;
@@ -57,30 +64,94 @@ Gnome * ExchangeGnome::create()
     return new ExchangeGnome();
 }
 
-void ExchangeGnome::preprocess(VisOptions * options)
+void ExchangeGnome::preprocess()
 {
-    Gnome::preprocess(options);
     // Possibly determine type
+    type = findType();
+    std::cout << "Type is " << type << std::endl;
 
     // Cluster vectors
+    findClusters();
 }
 
+// Need to add even/odd check so we can tell if we have somethign essentially srsr
 ExchangeGnome::ExchangeType ExchangeGnome::findType()
 {
-    int ssrr = 0, srsr = 0, sswa = 0, unk = 0;
+    int types[UNKNOWN + 1];
+    for (int i = 0; i <= UNKNOWN; i++)
+        types[i] = 0;
     for (QMap<int, QList<Event *> *>::Iterator event_list = partition->events->begin();
          event_list != partition->events->end(); ++event_list)
     {
+        bool b_ssrr = true, b_srsr = true, b_sswa = true, first = true, sentlast = true, odd = true;
         for (QList<Event *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
         {
-            for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
-                 msg != (*evt)->messages->end(); ++msg)
+            Message * msg = (*evt)->messages->at(0);
+            if (first) // For the first message, we don't have a sentlast
             {
-                // ??
+                first = false;
+                if (msg->receiver == *evt) // Receive
+                {
+                    sentlast = false;
+                    // Can't be these patterns
+                    b_ssrr = false;
+                    b_sswa = false;
+                }
+                odd = false;
+            }
+            else // For all other messages, check the pattern
+            {
+                if (msg->receiver == *evt) // Receive
+                {
+                    if (!sentlast && !odd) // Not alternating
+                        b_srsr = false;
+                    else if (sentlast && (*evt)->messages->size() > 1) // WaitAll or similar
+                        b_ssrr = false;
+                    sentlast = false;
+                }
+                else // Send
+                {
+                    if (!sentlast)
+                    {
+                        b_ssrr = false;
+                        b_sswa = false;
+                    }
+                    else if (sentlast && !odd)
+                    {
+                        b_srsr = false;
+                    }
+                    sentlast = true;
+                }
+                odd = !odd;
+            }
+            if (!(b_ssrr || b_sswa || b_srsr)) { // Unknown
+                types[UNKNOWN]++;
+                break;
             }
         }
+        std::cout << "Process " << event_list.key() << " with SRSR: " << b_srsr << ", SSRR ";
+        std::cout << b_ssrr << ", SSWA " << b_sswa << std::endl;
+        if (b_srsr)
+            types[SRSR]++;
+        if (b_ssrr)
+            types[SSRR]++;
+        if (b_sswa)
+            types[SSWA]++;
     }
+    std::cout << "Types are SRSR " << types[SRSR] << ", SSRR " << types[SSRR] << ", SSWA ";
+    std::cout << types[SSWA] << ", UNKNOWN " << types[UNKNOWN] << std::endl;
+
+    if (types[SRSR] > 0 && (types[SSRR] > 0 || types[SSWA] > 0)) // If we have this going on, really confusing
+        return UNKNOWN;
+    else if (types[UNKNOWN] > types[SRSR] && types[UNKNOWN] > types[SSRR] && types[UNKNOWN] > types[SSWA])
+        return UNKNOWN;
+    else if (types[SRSR] > 0)
+        return SRSR;
+    else if (types[SSWA] > types[SSRR]) // Some SSWA might look like SSRR and thus be double counted
+        return SSWA;
+    else
+        return SSRR;
 }
 
 void ExchangeGnome::findClusters()
@@ -102,11 +173,13 @@ void ExchangeGnome::findClusters()
     for (int i = 0; i < num_processes; i++)
     {
         p1 = processes[i];
+        //std::cout << "Calculating distances for process " << p1 << std::endl;
         cluster_leaves->insert(i, new PartitionCluster());
         cluster_leaves->value(i)->members->insert(i);
         for (int j = i + 1; j < num_processes; j++)
         {
             p2 = processes[j];
+            //std::cout << "     Calculating between " << p1 << " and " << p2 << std::endl;
             distance = calculateMetricDistance(partition->events->value(p1),
                                                partition->events->value(p2));
             distances.append(DistancePair(distance, p1, p2));
@@ -119,6 +192,7 @@ void ExchangeGnome::findClusters()
     QList<long long int> cluster_distances = QList<long long int>();
     for (int i = 0; i < distances.size(); i++)
     {
+        //std::cout << "Handling distance #" << i << std::endl;
         DistancePair current = distances[i];
         if (cluster_leaves->value(current.p1)->get_root() != cluster_leaves->value(current.p2)->get_root())
         {
@@ -148,6 +222,17 @@ long long int ExchangeGnome::calculateMetricDistance(QList<Event *> * list1, QLi
         {
             total_difference += (evt1->getMetric(metric) - evt2->getMetric(metric)) * (evt1->getMetric(metric) - evt2->getMetric(metric));
             ++total_matched_steps;
+            // Increment both event lists now
+            ++index2;
+            if (index2 < list2->size())
+                evt2 = list2->at(index2);
+            else
+                evt2 = NULL;
+            ++index1;
+            if (index1 < list2->size())
+                evt1 = list1->at(index1);
+            else
+                evt1 = NULL;
         } else if (evt1->step > evt2->step) { // If not, increment steps until they match
             ++index2;
             if (index2 < list2->size())
@@ -162,15 +247,19 @@ long long int ExchangeGnome::calculateMetricDistance(QList<Event *> * list1, QLi
                 evt1 = NULL;
         }
     }
+    if (total_matched_steps == 0)
+            return 0; //LLONG_MAX;
     return total_difference / total_matched_steps;
 }
 
-void ExchangeGnome::drawGnomeGL(QRect extents)
+void ExchangeGnome::drawGnomeGL(QRect extents, VisOptions *_options)
 {
+    options = _options;
     if (options->metric != metric)
     {
         metric = options->metric;
         // Re-cluster
+        findClusters();
     }
 }
 
