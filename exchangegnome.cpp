@@ -277,7 +277,7 @@ void ExchangeGnome::drawGnomeQt(QPainter * painter, QRect extents, VisOptions *_
 
 void ExchangeGnome::drawGnomeQtCluster(QPainter * painter, QRect extents)
 {
-    int treemargin = 5 * cluster_root->max_depth();
+    int treemargin = 20 * cluster_root->max_depth();
 
     int effectiveHeight = extents.height();
     int effectiveWidth = extents.width() - treemargin;
@@ -319,8 +319,10 @@ void ExchangeGnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, 
 {
     std::cout << "Drawing for cluster " << pc->memberString().toStdString().c_str() << std::endl;
     int pc_size = pc->members->size();
+    std::cout << "PC size is " << pc_size << " and blockheight is " << blockheight << std::endl;
     int my_x = current.x();
-    int my_y = pc_size / 2.0 * blockheight;
+    int top_y = current.y();
+    int my_y = top_y + pc_size / 2.0 * blockheight;
     int child_x, child_y, used_y = 0;
     for (QList<PartitionCluster *>::Iterator child = pc->children->begin(); child != pc->children->end(); ++child)
     {
@@ -328,14 +330,16 @@ void ExchangeGnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, 
         // We are in the middle of these extents at current.x() and current.y() + current.h()
         // Though we may want to take the discreteness of the processes into account and figure it out by blockheight
         int child_size = (*child)->members->size();
-        child_y = child_size / 2.0 * blockheight + used_y;
+        std::cout << "  Child size " << child_size << std::endl;
+        child_y = top_y + child_size / 2.0 * blockheight + used_y;
         painter->drawLine(my_x, my_y, my_x, child_y);
+        std::cout << "Drawing line from " << my_x << ", " << my_y << "  to   " << my_x << ", " << child_y << std::endl;
 
         // Draw forward correct amount of px
-        child_x = my_x + 5;
+        child_x = my_x + 20;
         painter->drawLine(my_x, child_y, child_x, child_y);
 
-        drawGnomeQtClusterBranch(painter, QRect(child_x, my_y + used_y, current.width(), current.height()), *child,
+        drawGnomeQtClusterBranch(painter, QRect(child_x, top_y + used_y, current.width(), current.height()), *child,
                                  leafx, blockheight, blockwidth, barheight, barwidth);
         used_y += child_size * blockheight;
     }
@@ -345,8 +349,8 @@ void ExchangeGnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, 
     {
         int process = pc->members->at(0);
         std::cout << "Drawing leaf for member " << process << std::endl;
-        drawGnomeQtClusterLeaf(painter, QRect(current.x(), current.y(), barwidth, barheight),
-                               partition->events->value(process), blockwidth, partition->min_global_step);
+        //drawGnomeQtClusterLeaf(painter, QRect(leafx, current.y(), barwidth, barheight),
+        //                       partition->events->value(process), blockwidth, partition->min_global_step);
     }
 }
 
