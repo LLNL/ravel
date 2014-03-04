@@ -13,8 +13,8 @@ public:
     virtual Gnome * create();
     void setPartition(Partition * part) { partition = part; }
     virtual void preprocess() {}
-    virtual void drawGnomeQt(QPainter * painter, QRect extents)
-        { Q_UNUSED(painter); Q_UNUSED(extents); }
+    virtual void drawGnomeQt(QPainter * painter, QRect extents, VisOptions * _options)
+        { Q_UNUSED(painter); Q_UNUSED(extents); Q_UNUSED(_options);}
     virtual void drawGnomeGL(QRect extents, VisOptions * _options) { Q_UNUSED(extents); options = _options; }
 
 protected:

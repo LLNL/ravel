@@ -12,11 +12,14 @@ public:
     ~PartitionCluster();
     PartitionCluster * get_root();
     void delete_tree();
+    int max_depth();
+    QString memberString();
+    void print(QString indent = "");
 
     long long int max_distance;
     PartitionCluster * parent;
     QList<PartitionCluster *> * children;
-    QSet<int> * members;
+    QList<int> * members;
 };
 
 #endif // PARTITIONCLUSTER_H

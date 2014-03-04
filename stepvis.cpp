@@ -278,6 +278,14 @@ void StepVis::drawNativeGL()
             break;
         else if (part->max_global_step < bottomStep)
             continue;
+        if (part->gnome) {
+            // The y value here of 0 isn't general... we need another structure to keep track of how much
+            // y is used when we're doing the gnome thing.
+            part->gnome->drawGnomeGL(QRect(barwidth * (part->min_global_step - startStep), 0,
+                                           barwidth, barheight),
+                                     options);
+            continue;
+        }
         for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin(); event_list != part->events->end(); ++event_list) {
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
@@ -392,11 +400,20 @@ void StepVis::paintEvents(QPainter * painter)
             break;
         else if (part->max_global_step < bottomStep)
             continue;
+        if (part->gnome) {
+            // The y value here of 0 isn't general... we need another structure to keep track of how much
+            // y is used when we're doing the gnome thing.
+            part->gnome->drawGnomeQt(painter, QRect(barwidth * (part->min_global_step - startStep), 0,
+                                                    blockwidth * (part->max_global_step - part->min_global_step +1),
+                                                    part->events->size() / trace->num_processes),
+                                     options);
+            continue;
+        }
         for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin(); event_list != part->events->end(); ++event_list) {
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
                 skipDraw = false;
-                position = proc_to_order[(*evt)->process];
+                position = proc_to_order[(*evt)->process]; // Move this into the out loop!
                 if ((*evt)->step < bottomStep || (*evt)->step > topStep) // Out of span
                 {
                     //std::cout << (*evt)->step << ", " << startStep << ", " << boundStep(startStep + stepSpan) << std::endl;

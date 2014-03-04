@@ -1,6 +1,9 @@
 #include "exchangegnome.h"
+#include <QPainter>
+#include <QRect>
 #include <iostream>
 #include <climits>
+#include <cmath>
 
 ExchangeGnome::ExchangeGnome()
     : Gnome(),
@@ -72,6 +75,7 @@ void ExchangeGnome::preprocess()
 
     // Cluster vectors
     findClusters();
+    cluster_root->print();
 }
 
 // Need to add even/odd check so we can tell if we have somethign essentially srsr
@@ -175,7 +179,7 @@ void ExchangeGnome::findClusters()
         p1 = processes[i];
         //std::cout << "Calculating distances for process " << p1 << std::endl;
         cluster_leaves->insert(i, new PartitionCluster());
-        cluster_leaves->value(i)->members->insert(i);
+        cluster_leaves->value(i)->members->append(i);
         for (int j = i + 1; j < num_processes; j++)
         {
             p2 = processes[j];
@@ -197,8 +201,8 @@ void ExchangeGnome::findClusters()
         if (cluster_leaves->value(current.p1)->get_root() != cluster_leaves->value(current.p2)->get_root())
         {
             pc = new PartitionCluster(current.distance,
-                                      cluster_leaves->value(current.p1),
-                                      cluster_leaves->value(current.p2));
+                                      cluster_leaves->value(current.p1)->get_root(),
+                                      cluster_leaves->value(current.p2)->get_root());
             cluster_distances.append(current.distance);
             lastp = current.p1;
         }
@@ -255,6 +259,7 @@ long long int ExchangeGnome::calculateMetricDistance(QList<Event *> * list1, QLi
 void ExchangeGnome::drawGnomeGL(QRect extents, VisOptions *_options)
 {
     options = _options;
+    std::cout << "Setting options in gnome" << std::endl;
     if (options->metric != metric)
     {
         metric = options->metric;
@@ -263,7 +268,125 @@ void ExchangeGnome::drawGnomeGL(QRect extents, VisOptions *_options)
     }
 }
 
-void ExchangeGnome::drawGnomeQt(QPainter * painter, QRect extents)
+void ExchangeGnome::drawGnomeQt(QPainter * painter, QRect extents, VisOptions *_options)
 {
+    options = _options;
+    // debug
+    drawGnomeQtCluster(painter, extents);
+}
 
+void ExchangeGnome::drawGnomeQtCluster(QPainter * painter, QRect extents)
+{
+    int treemargin = 5 * cluster_root->max_depth();
+
+    int effectiveHeight = extents.height();
+    int effectiveWidth = extents.width() - treemargin;
+
+    int processSpan = partition->events->size();
+    int stepSpan = partition->max_global_step - partition->min_global_step + 1;
+    int spacingMinimum = 12;
+
+
+    int process_spacing = 0;
+    if (effectiveHeight / processSpan > spacingMinimum)
+        process_spacing = 3;
+
+    int step_spacing = 0;
+    if (effectiveWidth / stepSpan + 1 > spacingMinimum)
+        step_spacing = 3;
+
+
+    float blockwidth;
+    float blockheight = floor(effectiveHeight / processSpan);
+    if (options->showAggregateSteps)
+        blockwidth = floor(effectiveWidth / stepSpan);
+    else
+        blockwidth = floor(effectiveWidth / (ceil(stepSpan / 2.0)));
+    float barheight = blockheight - process_spacing;
+    float barwidth = blockwidth - step_spacing;
+    painter->setPen(QPen(QColor(0, 0, 0)));
+
+    // Generate inorder list of clusters
+
+    // I need to go through clusters and keep track of how I'm drawing my branches from the root.
+    // When I get to the leaf, I need to draw it.
+    drawGnomeQtClusterBranch(painter, extents, cluster_root, extents.x() + treemargin, blockheight, blockwidth, barheight, barwidth);
+
+}
+
+void ExchangeGnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, PartitionCluster * pc, int leafx,
+                                             int blockheight, int blockwidth, int barheight, int barwidth)
+{
+    std::cout << "Drawing for cluster " << pc->memberString().toStdString().c_str() << std::endl;
+    int pc_size = pc->members->size();
+    int my_x = current.x();
+    int my_y = pc_size / 2.0 * blockheight;
+    int child_x, child_y, used_y = 0;
+    for (QList<PartitionCluster *>::Iterator child = pc->children->begin(); child != pc->children->end(); ++child)
+    {
+        // Draw line from wherever we start to correct height -- actually loop through children since info this side?
+        // We are in the middle of these extents at current.x() and current.y() + current.h()
+        // Though we may want to take the discreteness of the processes into account and figure it out by blockheight
+        int child_size = (*child)->members->size();
+        child_y = child_size / 2.0 * blockheight + used_y;
+        painter->drawLine(my_x, my_y, my_x, child_y);
+
+        // Draw forward correct amount of px
+        child_x = my_x + 5;
+        painter->drawLine(my_x, child_y, child_x, child_y);
+
+        drawGnomeQtClusterBranch(painter, QRect(child_x, my_y + used_y, current.width(), current.height()), *child,
+                                 leafx, blockheight, blockwidth, barheight, barwidth);
+        used_y += child_size * blockheight;
+    }
+
+    // Possibly draw leaf
+    if (pc->children->isEmpty())
+    {
+        int process = pc->members->at(0);
+        std::cout << "Drawing leaf for member " << process << std::endl;
+        drawGnomeQtClusterLeaf(painter, QRect(current.x(), current.y(), barwidth, barheight),
+                               partition->events->value(process), blockwidth, partition->min_global_step);
+    }
+}
+
+void ExchangeGnome::drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy, QList<Event *> * elist, int blockwidth, int startStep)
+{
+    QString metric(options->metric);
+    int y = startxy.y();
+    int x, w, h, xa, wa;
+    for (QList<Event *>::Iterator evt = elist->begin(); evt != elist->end(); ++evt)
+    {
+        if (options->showAggregateSteps)
+            x = floor(((*evt)->step - startStep) * blockwidth) + 1 + startxy.x();
+        else
+            x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1 + startxy.x();
+        w = startxy.width();
+        h = startxy.height();
+
+        // We know it will be complete in this view because we're not doing scrolling or anything here.
+
+        // Draw the event
+        if ((*evt)->hasMetric(metric))
+            painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color((*evt)->getMetric(metric))));
+        else
+            painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(180, 180, 180)));
+
+        // Draw border but only if we're doing spacing, otherwise too messy
+        if (blockwidth == w)
+            painter->drawRect(QRectF(x,y,w,h));
+
+        if (options->showAggregateSteps) {
+            xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + startxy.x();
+            wa = startxy.width();
+
+            if ((*evt)->hasMetric(metric))
+                painter->fillRect(QRectF(xa, y, wa, h), QBrush(options->colormap->color((*evt)->getMetric(metric, true))));
+            else
+                painter->fillRect(QRectF(xa, y, wa, h), QBrush(QColor(180, 180, 180)));
+            if (blockwidth == w)
+                painter->drawRect(QRectF(xa, y, wa, h));
+        }
+
+    }
 }
