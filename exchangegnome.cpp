@@ -252,7 +252,7 @@ long long int ExchangeGnome::calculateMetricDistance(QList<Event *> * list1, QLi
         }
     }
     if (total_matched_steps == 0)
-            return 0; //LLONG_MAX;
+            return LLONG_MAX; //0;
     return total_difference / total_matched_steps;
 }
 
@@ -349,8 +349,9 @@ void ExchangeGnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, 
     {
         int process = pc->members->at(0);
         std::cout << "Drawing leaf for member " << process << std::endl;
-        //drawGnomeQtClusterLeaf(painter, QRect(leafx, current.y(), barwidth, barheight),
-        //                       partition->events->value(process), blockwidth, partition->min_global_step);
+        painter->drawLine(my_x, my_y, leafx, my_y);
+        drawGnomeQtClusterLeaf(painter, QRect(leafx, current.y(), barwidth, barheight),
+                              partition->events->value(process), blockwidth, partition->min_global_step);
     }
 }
 
@@ -359,6 +360,8 @@ void ExchangeGnome::drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy, QL
     QString metric(options->metric);
     int y = startxy.y();
     int x, w, h, xa, wa;
+    if (options->showAggregateSteps)
+        startStep -= 1;
     for (QList<Event *>::Iterator evt = elist->begin(); evt != elist->end(); ++evt)
     {
         if (options->showAggregateSteps)
