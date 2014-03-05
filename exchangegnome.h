@@ -17,6 +17,7 @@ public:
     void preprocess();
     void drawGnomeQt(QPainter * painter, QRect extents, VisOptions *_options);
     void drawGnomeGL(QRect extents, VisOptions * _options);
+    void handleDoubleClick(QMouseEvent * event);
 
 private:
     // send-receive, sends-receives, sends-waitall
@@ -41,10 +42,27 @@ private:
     QMap<int, PartitionCluster * > * cluster_leaves;
     PartitionCluster * cluster_root;
 
+    class DrawMessage {
+    public:
+        DrawMessage(QPoint _send, QPoint _recv, int _nsends)
+            : send(_send), recv(_recv), nsends(_nsends), nrecvs(0) { }
+
+        QPoint send;
+        QPoint recv;
+        int nsends;
+        int nrecvs;
+    };
+
+    QMap<PartitionCluster *, QRect> drawnPCs;
+
     void drawGnomeQtCluster(QPainter * painter, QRect extents);
     void drawGnomeQtClusterBranch(QPainter * painter, QRect current, PartitionCluster * pc, int leafx,
                                                  int blockheight, int blockwidth, int barheight, int barwidth);
+    void drawGnomeQtClusterBranchPerfect(QPainter * painter, QRect current, PartitionCluster * pc, int leafx,
+                                                 int blockheight, int blockwidth, int barheight, int barwidth);
     void drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy, QList<Event *> * elist, int blockwidth, int startStep);
+    void drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, PartitionCluster * pc,
+                                               int blockwidth, int blockheight, int startStep);
 };
 
 #endif // EXCHANGEGNOME_H

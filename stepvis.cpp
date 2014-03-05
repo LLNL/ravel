@@ -7,7 +7,8 @@ StepVis::StepVis(QWidget* parent, VisOptions * _options)
     cacheMetric(""),
     maxMetricText(""),
     maxMetricTextWidth(0),
-    colorbar_offset(0)
+    colorbar_offset(0),
+    drawnGnomes(QMap<Gnome *, QRect>())
 {
 
 }
@@ -151,9 +152,32 @@ void StepVis::wheelEvent(QWheelEvent * event)
     emit stepsChanged(startStep, startStep + stepSpan, false);
 }
 
+
+void StepVis::mouseDoubleClickEvent(QMouseEvent * event)
+{
+    if (!visProcessed)
+        return;
+
+    std::cout << "Step vis double click" << std::endl;
+    int x = event->x();
+    int y = event->y();
+    for (QMap<Gnome *, QRect>::Iterator gnome = drawnGnomes.begin(); gnome != drawnGnomes.end(); ++gnome)
+        if (gnome.value().contains(x,y))
+        {
+            Gnome * g = gnome.key();
+            g->handleDoubleClick(event);
+            repaint();
+            return;
+        }
+
+    // If we get here, fall through to normal behavior
+    TimelineVis::mouseDoubleClickEvent(event);
+}
+
 void StepVis::prepaint()
 {
     drawnEvents.clear();
+    drawnGnomes.clear();
     if (jumped) // We have to redo the active_partitions
     {
         // We know this list is in order, so we only have to go so far
@@ -403,10 +427,11 @@ void StepVis::paintEvents(QPainter * painter)
         if (options->drawGnomes && part->gnome) {
             // The y value here of 0 isn't general... we need another structure to keep track of how much
             // y is used when we're doing the gnome thing.
-            part->gnome->drawGnomeQt(painter, QRect(labelWidth + barwidth * (part->min_global_step - startStep), 0,
-                                                    blockwidth * (part->max_global_step - part->min_global_step +1),
-                                                    part->events->size() / 1.0 / trace->num_processes * effectiveHeight),
-                                     options);
+            QRect gnomeRect = QRect(labelWidth + barwidth * (part->min_global_step - startStep), 0,
+                                    blockwidth * (part->max_global_step - part->min_global_step +1),
+                                    part->events->size() / 1.0 / trace->num_processes * effectiveHeight);
+            part->gnome->drawGnomeQt(painter, gnomeRect, options);
+            drawnGnomes[part->gnome] = gnomeRect;
             continue;
         }
         for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin(); event_list != part->events->end(); ++event_list) {

@@ -2,7 +2,8 @@
 #include <iostream>
 
 PartitionCluster::PartitionCluster(int member, QList<Event *> * elist, QString metric, long long int divider)
-    : max_distance(0),
+    : open(false),
+      max_distance(0),
       parent(NULL),
       children(new QList<PartitionCluster *>()),
       members(new QList<int>()),
@@ -35,7 +36,8 @@ PartitionCluster::PartitionCluster(int member, QList<Event *> * elist, QString m
 }
 
 PartitionCluster::PartitionCluster(long long int distance, PartitionCluster * c1, PartitionCluster * c2)
-    : max_distance(distance),
+    : open(false),
+      max_distance(distance),
       parent(NULL),
       children(new QList<PartitionCluster *>()),
       members(new QList<int>()),

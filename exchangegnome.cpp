@@ -10,7 +10,8 @@ ExchangeGnome::ExchangeGnome()
       type(UNKNOWN),
       metric("Lateness"),
       cluster_leaves(NULL),
-      cluster_root(NULL)
+      cluster_root(NULL),
+      drawnPCs(QMap<PartitionCluster *, QRect>())
 {
 }
 
@@ -207,6 +208,9 @@ void ExchangeGnome::findClusters()
         }
     }
     cluster_root = cluster_leaves->value(lastp)->get_root();
+
+    // From here we could now compress the ClusterEvent metrics (doing the four divides ahead of time)
+    // but I'm going to retain the information for now and see how it goes
 }
 
 
@@ -265,11 +269,14 @@ void ExchangeGnome::drawGnomeGL(QRect extents, VisOptions *_options)
         // Re-cluster
         findClusters();
     }
+
+    drawnPCs.clear();
 }
 
 void ExchangeGnome::drawGnomeQt(QPainter * painter, QRect extents, VisOptions *_options)
 {
     options = _options;
+    drawnPCs.clear();
     // debug
     drawGnomeQtCluster(painter, extents);
 }
@@ -309,49 +316,187 @@ void ExchangeGnome::drawGnomeQtCluster(QPainter * painter, QRect extents)
 
     // I need to go through clusters and keep track of how I'm drawing my branches from the root.
     // When I get to the leaf, I need to draw it.
-    drawGnomeQtClusterBranch(painter, extents, cluster_root, extents.x() + treemargin, blockheight, blockwidth, barheight, barwidth);
+    //drawGnomeQtClusterBranchPerfect(painter, extents, cluster_root, extents.x() + treemargin,
+    //                                blockheight, blockwidth, barheight, barwidth);
+    drawGnomeQtClusterBranch(painter, extents, cluster_root, extents.x() + treemargin,
+                                    blockheight, blockwidth, barheight, barwidth);
+
+}
+
+void ExchangeGnome::drawGnomeQtClusterBranchPerfect(QPainter * painter, QRect current, PartitionCluster * pc, int leafx,
+                                                    int blockheight, int blockwidth, int barheight, int barwidth)
+{
+    int pc_size = pc->members->size();
+    int my_x = current.x();
+    int top_y = current.y();
+    int my_y = top_y + pc_size / 2.0 * blockheight;
+    int child_x, child_y, used_y = 0;
+
+        for (QList<PartitionCluster *>::Iterator child = pc->children->begin(); child != pc->children->end(); ++child)
+        {
+            // Draw line from wherever we start to correct height -- actually loop through children since info this side?
+            // We are in the middle of these extents at current.x() and current.y() + current.h()
+            // Though we may want to take the discreteness of the processes into account and figure it out by blockheight
+            int child_size = (*child)->members->size();
+            std::cout << "  Child size " << child_size << std::endl;
+            child_y = top_y + child_size / 2.0 * blockheight + used_y;
+            painter->drawLine(my_x, my_y, my_x, child_y);
+            std::cout << "Drawing line from " << my_x << ", " << my_y << "  to   " << my_x << ", " << child_y << std::endl;
+
+            // Draw forward correct amount of px
+            child_x = my_x + 20;
+            painter->drawLine(my_x, child_y, child_x, child_y);
+
+            drawGnomeQtClusterBranchPerfect(painter, QRect(child_x, top_y + used_y, current.width(), current.height()), *child,
+                                     leafx, blockheight, blockwidth, barheight, barwidth);
+            used_y += child_size * blockheight;
+        }
+
+        // Possibly draw leaf
+        if (pc->children->isEmpty())
+        {
+            int process = pc->members->at(0);
+            std::cout << "Drawing leaf for member " << process << std::endl;
+            painter->drawLine(my_x, my_y, leafx, my_y);
+            drawGnomeQtClusterLeaf(painter, QRect(leafx, current.y(), barwidth, barheight),
+                                  partition->events->value(process), blockwidth, partition->min_global_step);
+        }
 
 }
 
 void ExchangeGnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, PartitionCluster * pc, int leafx,
                                              int blockheight, int blockwidth, int barheight, int barwidth)
 {
-    std::cout << "Drawing for cluster " << pc->memberString().toStdString().c_str() << std::endl;
+    //std::cout << "Drawing for cluster " << pc->memberString().toStdString().c_str() << std::endl;
     int pc_size = pc->members->size();
-    std::cout << "PC size is " << pc_size << " and blockheight is " << blockheight << std::endl;
+    //std::cout << "PC size is " << pc_size << " and blockheight is " << blockheight << std::endl;
     int my_x = current.x();
     int top_y = current.y();
     int my_y = top_y + pc_size / 2.0 * blockheight;
     int child_x, child_y, used_y = 0;
-    for (QList<PartitionCluster *>::Iterator child = pc->children->begin(); child != pc->children->end(); ++child)
+    if (pc->open && !pc->children->isEmpty())
     {
-        // Draw line from wherever we start to correct height -- actually loop through children since info this side?
-        // We are in the middle of these extents at current.x() and current.y() + current.h()
-        // Though we may want to take the discreteness of the processes into account and figure it out by blockheight
-        int child_size = (*child)->members->size();
-        std::cout << "  Child size " << child_size << std::endl;
-        child_y = top_y + child_size / 2.0 * blockheight + used_y;
-        painter->drawLine(my_x, my_y, my_x, child_y);
-        std::cout << "Drawing line from " << my_x << ", " << my_y << "  to   " << my_x << ", " << child_y << std::endl;
+        for (QList<PartitionCluster *>::Iterator child = pc->children->begin(); child != pc->children->end(); ++child)
+        {
+            // Draw line from wherever we start to correct height -- actually loop through children since info this side?
+            // We are in the middle of these extents at current.x() and current.y() + current.h()
+            // Though we may want to take the discreteness of the processes into account and figure it out by blockheight
+            int child_size = (*child)->members->size();
+            //std::cout << "  Child size " << child_size << std::endl;
+            child_y = top_y + child_size / 2.0 * blockheight + used_y;
+            painter->drawLine(my_x, my_y, my_x, child_y);
+            //std::cout << "Drawing line from " << my_x << ", " << my_y << "  to   " << my_x << ", " << child_y << std::endl;
 
-        // Draw forward correct amount of px
-        child_x = my_x + 20;
-        painter->drawLine(my_x, child_y, child_x, child_y);
+            // Draw forward correct amount of px
+            child_x = my_x + 20;
+            painter->drawLine(my_x, child_y, child_x, child_y);
 
-        drawGnomeQtClusterBranch(painter, QRect(child_x, top_y + used_y, current.width(), current.height()), *child,
-                                 leafx, blockheight, blockwidth, barheight, barwidth);
-        used_y += child_size * blockheight;
+            drawGnomeQtClusterBranch(painter, QRect(child_x, top_y + used_y, current.width(), current.height()), *child,
+                                     leafx, blockheight, blockwidth, barheight, barwidth);
+            used_y += child_size * blockheight;
+        }
+    }
+    else if (pc->children->isEmpty())
+    {
+            std::cout << "Drawing for cluster " << pc->memberString().toStdString().c_str() << std::endl;
+            int process = pc->members->at(0);
+            std::cout << "Drawing leaf for member " << process << std::endl;
+            painter->drawLine(my_x, my_y, leafx, my_y);
+            drawGnomeQtClusterLeaf(painter, QRect(leafx, current.y(), barwidth, barheight),
+                                  partition->events->value(process), blockwidth, partition->min_global_step);
+            // TODO: Figure out message lines for this view -- may need to look up things in cluster to leaves to
+            // see if we draw and if so where.
+            // So we really need to save the locations of sends and receives with messages... probably need a new
+            // ClusterMessage container for this. Lots of allocating and deleting will be required
+            drawnPCs[pc] = current;
+    }
+    else // This is open
+    {
+        std::cout << "Drawing for cluster " << pc->memberString().toStdString().c_str() << std::endl;
+        if (type == SRSR)
+            drawGnomeQtClusterSRSR(painter, QRect(leafx, current.y(), barwidth, barheight),
+                                   pc, blockwidth, blockheight, partition->min_global_step);
+        drawnPCs[pc] = current;
     }
 
-    // Possibly draw leaf
-    if (pc->children->isEmpty())
-    {
-        int process = pc->members->at(0);
-        std::cout << "Drawing leaf for member " << process << std::endl;
-        painter->drawLine(my_x, my_y, leafx, my_y);
-        drawGnomeQtClusterLeaf(painter, QRect(leafx, current.y(), barwidth, barheight),
-                              partition->events->value(process), blockwidth, partition->min_global_step);
+
+}
+
+void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, PartitionCluster * pc,
+                                           int blockwidth, int blockheight, int startStep)
+{
+    int total_height = pc->members->size() * blockheight;
+    int base_y = startxy.y() + total_height / 2 - blockheight;
+    int x, y, w, h, xa, wa, xr, yr;
+    xr = blockwidth;
+    if (options->showAggregateSteps) {
+        startStep -= 1;
+        xr *= 2;
     }
+    QList<DrawMessage *> msgs = QList<DrawMessage *>();
+    for (QList<ClusterEvent *>::Iterator evt = pc->events->begin(); evt != pc->events->end(); ++evt)
+    {
+        if (options->showAggregateSteps)
+            x = floor(((*evt)->step - startStep) * blockwidth) + 1 + startxy.x();
+        else
+            x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1 + startxy.x();
+        w = startxy.width();
+        h = startxy.height();
+        y = base_y;
+        if ((((*evt)->step - startStep + 2) / 4) % 2)
+            y += blockheight;
+
+        // We know it will be complete in this view because we're not doing scrolling or anything here.
+
+        // Draw the event
+        painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color(
+                                                         ((*evt)->low_metric + (*evt)->high_metric)
+                                                         / ((*evt)->num_low + (*evt)->num_high)
+                                                         )));
+
+        // Draw border but only if we're doing spacing, otherwise too messy
+        if (blockwidth != w)
+            painter->drawRect(QRectF(x,y,w,h));
+
+        if (options->showAggregateSteps) {
+            xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + startxy.x();
+            wa = startxy.width();
+
+                painter->fillRect(QRectF(xa, y, wa, h), QBrush(options->colormap->color(
+                                                                   ((*evt)->agg_low + (*evt)->agg_high)
+                                                                   / ((*evt)->num_agg_low + (*evt)->num_agg_high)
+                                                                   )));
+            if (blockwidth != w)
+                painter->drawRect(QRectF(xa, y, wa, h));
+        }
+
+        // Need to draw messages after this, or at least keep track of messages...
+        // Maybe check num_sends here?
+        if ((*evt)->num_send > 0)
+        {
+            if (y == base_y)
+                yr = base_y + blockheight;
+            else
+                yr = base_y;
+            msgs.append(new DrawMessage(QPoint(x + w/2, y + h/2), QPoint(x + w/2 + xr, yr + h/2), (*evt)->num_send));
+        }
+        if ((*evt)->num_recv > 0)
+        {
+            DrawMessage * dm = msgs.last();
+            dm->nrecvs = (*evt)->num_recv;
+        }
+    }
+
+    // Now draw the messages....
+    for (QList<DrawMessage *>::Iterator dm = msgs.begin(); dm != msgs.end(); ++dm)
+    {
+        painter->setPen(QPen(Qt::black, (*dm)->nsends * 2.0 / pc->members->size(), Qt::SolidLine));
+        painter->drawLine((*dm)->send, (*dm)->recv);
+    }
+
+    // Clean up the draw messages...
+    for (QList<DrawMessage *>::Iterator dm = msgs.begin(); dm != msgs.end(); ++dm)
+        delete *dm;
 }
 
 void ExchangeGnome::drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy, QList<Event *> * elist, int blockwidth, int startStep)
@@ -379,7 +524,7 @@ void ExchangeGnome::drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy, QL
             painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(180, 180, 180)));
 
         // Draw border but only if we're doing spacing, otherwise too messy
-        if (blockwidth == w)
+        if (blockwidth != w)
             painter->drawRect(QRectF(x,y,w,h));
 
         if (options->showAggregateSteps) {
@@ -390,9 +535,23 @@ void ExchangeGnome::drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy, QL
                 painter->fillRect(QRectF(xa, y, wa, h), QBrush(options->colormap->color((*evt)->getMetric(metric, true))));
             else
                 painter->fillRect(QRectF(xa, y, wa, h), QBrush(QColor(180, 180, 180)));
-            if (blockwidth == w)
+            if (blockwidth != w)
                 painter->drawRect(QRectF(xa, y, wa, h));
         }
 
     }
+}
+
+void ExchangeGnome::handleDoubleClick(QMouseEvent * event)
+{
+    std::cout << "I am handling double click for gnome" << std::endl;
+    int x = event->x();
+    int y = event->y();
+    // Figure out which branch this occurs in, open that branch
+    for (QMap<PartitionCluster *, QRect>::Iterator p = drawnPCs.begin(); p != drawnPCs.end(); ++p)
+        if (p.value().contains(x,y))
+        {
+            PartitionCluster * pc = p.key();
+            pc->open = true;
+        }
 }

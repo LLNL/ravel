@@ -19,6 +19,7 @@ public:
     QString memberString();
     void print(QString indent = "");
 
+    bool open;
     long long int max_distance;
     PartitionCluster * parent;
     QList<PartitionCluster *> * children;

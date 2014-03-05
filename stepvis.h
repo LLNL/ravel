@@ -26,6 +26,7 @@ protected:
     void drawColorBarText(QPainter * painter);
     void drawLine(QPainter * painter, QPointF * p1, QPointF * p2, int effectiveHeight);
     void setupMetric();
+    void mouseDoubleClickEvent(QMouseEvent * event);
 
 private:
     long long maxMetric;
@@ -33,6 +34,7 @@ private:
     QString maxMetricText;
     int maxMetricTextWidth;
     float colorbar_offset;
+    QMap<Gnome *, QRect> drawnGnomes;
 
     static const int spacingMinimum = 12;
     static const int colorBarHeight = 24;
