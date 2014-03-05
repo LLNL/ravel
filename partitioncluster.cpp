@@ -151,3 +151,10 @@ void PartitionCluster::print(QString indent)
     for (QList<PartitionCluster *>::Iterator child = children->begin(); child != children->end(); ++child)
         (*child)->print(myindent);
 }
+
+void PartitionCluster::close()
+{
+    open = false;
+    for (QList<PartitionCluster *>::Iterator child = children->begin(); child != children->end(); ++child)
+        (*child)->close();
+}

@@ -11,7 +11,8 @@ ExchangeGnome::ExchangeGnome()
       metric("Lateness"),
       cluster_leaves(NULL),
       cluster_root(NULL),
-      drawnPCs(QMap<PartitionCluster *, QRect>())
+      drawnPCs(QMap<PartitionCluster *, QRect>()),
+      drawnNodes(QMap<PartitionCluster *, QRect>())
 {
 }
 
@@ -277,6 +278,7 @@ void ExchangeGnome::drawGnomeQt(QPainter * painter, QRect extents, VisOptions *_
 {
     options = _options;
     drawnPCs.clear();
+    drawnNodes.clear();
     // debug
     drawGnomeQtCluster(painter, extents);
 }
@@ -390,6 +392,10 @@ void ExchangeGnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, 
             // Draw forward correct amount of px
             child_x = my_x + 20;
             painter->drawLine(my_x, child_y, child_x, child_y);
+
+            QRect node = QRect(my_x - 3, my_y - 3, 6, 6);
+            painter->fillRect(node, QBrush(Qt::black));
+            drawnNodes[pc] = node;
 
             drawGnomeQtClusterBranch(painter, QRect(child_x, top_y + used_y, current.width(), current.height()), *child,
                                      leafx, blockheight, blockwidth, barheight, barwidth);
@@ -548,10 +554,18 @@ void ExchangeGnome::handleDoubleClick(QMouseEvent * event)
     int x = event->x();
     int y = event->y();
     // Figure out which branch this occurs in, open that branch
+    for (QMap<PartitionCluster *, QRect>::Iterator p = drawnNodes.begin(); p != drawnNodes.end(); ++p)
+        if (p.value().contains(x,y))
+        {
+            PartitionCluster * pc = p.key();
+            pc->close();
+            return; // Return so we don't look elsewhere.
+        }
     for (QMap<PartitionCluster *, QRect>::Iterator p = drawnPCs.begin(); p != drawnPCs.end(); ++p)
         if (p.value().contains(x,y))
         {
             PartitionCluster * pc = p.key();
             pc->open = true;
+            return;
         }
 }

@@ -18,6 +18,7 @@ public:
     int max_depth();
     QString memberString();
     void print(QString indent = "");
+    void close();
 
     bool open;
     long long int max_distance;

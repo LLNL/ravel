@@ -54,6 +54,7 @@ private:
     };
 
     QMap<PartitionCluster *, QRect> drawnPCs;
+    QMap<PartitionCluster *, QRect> drawnNodes;
 
     void drawGnomeQtCluster(QPainter * painter, QRect extents);
     void drawGnomeQtClusterBranch(QPainter * painter, QRect current, PartitionCluster * pc, int leafx,
