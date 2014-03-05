@@ -31,7 +31,8 @@ SOURCES  += main.cpp \
     gnome.cpp \
     exchangegnome.cpp \
     collectiverecord.cpp \
-    partitioncluster.cpp
+    partitioncluster.cpp \
+    clusterevent.cpp
 
 
 HEADERS += \
@@ -61,7 +62,8 @@ HEADERS += \
     gnome.h \
     exchangegnome.h \
     collectiverecord.h \
-    partitioncluster.h
+    partitioncluster.h \
+    clusterevent.h
 
 
 FORMS += \

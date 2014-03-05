@@ -1,19 +1,45 @@
 #include "partitioncluster.h"
 #include <iostream>
 
-PartitionCluster::PartitionCluster()
+PartitionCluster::PartitionCluster(int member, QList<Event *> * elist, QString metric, long long int divider)
     : max_distance(0),
       parent(NULL),
       children(new QList<PartitionCluster *>()),
-      members(new QList<int>())
+      members(new QList<int>()),
+      events(new QList<ClusterEvent *>())
 {
+    members->append(member);
+    for (QList<Event *>::Iterator evt = elist->begin(); evt != elist->end(); ++evt)
+    {
+        long long low = 0, high = 0, agg_low = 0, agg_high = 0;
+        long long evt_metric = (*evt)->getMetric(metric);
+        long long agg_metric = (*evt)->getMetric(metric, true);
+        int nsend = 0, nrecv = 0;
+        if (evt_metric < divider)
+            low = evt_metric;
+        else
+            high = evt_metric;
+        if (agg_metric < divider)
+            agg_low = agg_metric;
+        else
+            agg_high = agg_metric;
+        for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
+            if ((*msg)->sender == *evt)
+                nsend += 1;
+            else
+                nrecv += 1;
+        events->append(new ClusterEvent((*evt)->step, low, high, high ? 0 : 1, high ? 1 : 0,
+                                        agg_low, agg_high, agg_high ? 0 : 1, agg_high ? 0 : 1,
+                                        nsend, nrecv));
+    }
 }
 
 PartitionCluster::PartitionCluster(long long int distance, PartitionCluster * c1, PartitionCluster * c2)
     : max_distance(distance),
       parent(NULL),
       children(new QList<PartitionCluster *>()),
-      members(new QList<int>())
+      members(new QList<int>()),
+      events(new QList<ClusterEvent *>())
 {
     c1->parent = this;
     c2->parent = this;
@@ -21,12 +47,61 @@ PartitionCluster::PartitionCluster(long long int distance, PartitionCluster * c1
     children->append(c2);
     members->append(*(c1->members));
     members->append(*(c2->members));
+
+    int index1 = 0, index2 = 0;
+    ClusterEvent * evt1 = c1->events->at(0), * evt2 = c2->events->at(0);
+    while (evt1 && evt2)
+    {
+        if (evt1->step == evt2->step) // If they're equal, add their distance
+        {
+            events->append(new ClusterEvent(evt1->step, evt1->low_metric + evt2->low_metric,
+                                            evt1->high_metric + evt2->high_metric,
+                                            evt1->num_low + evt2->num_low, evt1->num_high + evt2->num_high,
+                                            evt1->agg_low + evt2->agg_low, evt1->agg_high + evt2->agg_high,
+                                            evt1->num_agg_low + evt2->num_agg_low,
+                                            evt1->num_agg_high + evt2->num_agg_high,
+                                            evt1->num_send + evt2->num_send, evt1->num_recv + evt2->num_recv));
+
+            // Increment both event lists now
+            ++index2;
+            if (index2 < c2->events->size())
+                evt2 = c2->events->at(index2);
+            else
+                evt2 = NULL;
+            ++index1;
+            if (index1 < c1->events->size())
+                evt1 = c1->events->at(index1);
+            else
+                evt1 = NULL;
+        } else if (evt1->step > evt2->step) { // If not, add lower one and increment
+            events->append(new ClusterEvent(*evt2));
+            ++index2;
+            if (index2 < c2->events->size())
+                evt2 = c2->events->at(index2);
+            else
+                evt2 = NULL;
+        } else {
+            events->append(new ClusterEvent(*evt1));
+            ++index1;
+            if (index1 < c1->events->size())
+                evt1 = c1->events->at(index1);
+            else
+                evt1 = NULL;
+        }
+    }
 }
 
 PartitionCluster::~PartitionCluster()
 {
     delete children;
     delete members;
+
+    for (QList<ClusterEvent *>::Iterator evt = events->begin(); evt != events->end(); ++evt)
+    {
+        delete *evt;
+        *evt = NULL;
+    }
+    delete events;
 }
 
 void PartitionCluster::delete_tree()

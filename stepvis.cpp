@@ -278,7 +278,7 @@ void StepVis::drawNativeGL()
             break;
         else if (part->max_global_step < bottomStep)
             continue;
-        if (part->gnome) {
+        if (options->drawGnomes && part->gnome) {
             // The y value here of 0 isn't general... we need another structure to keep track of how much
             // y is used when we're doing the gnome thing.
             part->gnome->drawGnomeGL(QRect(barwidth * (part->min_global_step - startStep), 0,
@@ -400,7 +400,7 @@ void StepVis::paintEvents(QPainter * painter)
             break;
         else if (part->max_global_step < bottomStep)
             continue;
-        if (part->gnome) {
+        if (options->drawGnomes && part->gnome) {
             // The y value here of 0 isn't general... we need another structure to keep track of how much
             // y is used when we're doing the gnome thing.
             part->gnome->drawGnomeQt(painter, QRect(labelWidth + barwidth * (part->min_global_step - startStep), 0,

@@ -178,8 +178,7 @@ void ExchangeGnome::findClusters()
     {
         p1 = processes[i];
         //std::cout << "Calculating distances for process " << p1 << std::endl;
-        cluster_leaves->insert(i, new PartitionCluster());
-        cluster_leaves->value(i)->members->append(i);
+        cluster_leaves->insert(i, new PartitionCluster(i, partition->events->value(i), "Lateness"));
         for (int j = i + 1; j < num_processes; j++)
         {
             p2 = processes[j];
@@ -233,7 +232,7 @@ long long int ExchangeGnome::calculateMetricDistance(QList<Event *> * list1, QLi
             else
                 evt2 = NULL;
             ++index1;
-            if (index1 < list2->size())
+            if (index1 < list1->size())
                 evt1 = list1->at(index1);
             else
                 evt1 = NULL;
@@ -245,7 +244,7 @@ long long int ExchangeGnome::calculateMetricDistance(QList<Event *> * list1, QLi
                 evt2 = NULL;
         } else {
             ++index1;
-            if (index1 < list2->size())
+            if (index1 < list1->size())
                 evt1 = list1->at(index1);
             else
                 evt1 = NULL;
