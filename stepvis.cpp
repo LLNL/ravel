@@ -158,7 +158,6 @@ void StepVis::mouseDoubleClickEvent(QMouseEvent * event)
     if (!visProcessed)
         return;
 
-    std::cout << "Step vis double click" << std::endl;
     int x = event->x();
     int y = event->y();
     for (QMap<Gnome *, QRect>::Iterator gnome = drawnGnomes.begin(); gnome != drawnGnomes.end(); ++gnome)
