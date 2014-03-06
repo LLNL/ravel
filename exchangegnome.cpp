@@ -91,6 +91,7 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
          event_list != partition->events->end(); ++event_list)
     {
         bool b_ssrr = true, b_srsr = true, b_sswa = true, first = true, sentlast = true, odd = true;
+        int recv_dist_2 = 0, recv_dist_not_2 = 0;
         for (QList<Event *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
         {
@@ -129,6 +130,10 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
                         b_srsr = false;
                     }
                     sentlast = true;
+                    if (msg->receiver->step - msg->sender->step == 2)
+                        recv_dist_2++;
+                    else
+                        recv_dist_not_2++;
                 }
                 odd = !odd;
             }
@@ -137,14 +142,18 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
                 break;
             }
         }
-        std::cout << "Process " << event_list.key() << " with SRSR: " << b_srsr << ", SSRR ";
-        std::cout << b_ssrr << ", SSWA " << b_sswa << std::endl;
+        if (b_srsr && recv_dist_not_2 > recv_dist_2)
+            b_srsr = false;
+        //std::cout << "Process " << event_list.key() << " with SRSR: " << b_srsr << ", SSRR ";
+        //std::cout << b_ssrr << ", SSWA " << b_sswa << std::endl;
         if (b_srsr)
             types[SRSR]++;
         if (b_ssrr)
             types[SSRR]++;
         if (b_sswa)
             types[SSWA]++;
+        if (!(b_ssrr || b_sswa || b_srsr))
+            types[UNKNOWN]++;
     }
     std::cout << "Types are SRSR " << types[SRSR] << ", SSRR " << types[SSRR] << ", SSWA ";
     std::cout << types[SSWA] << ", UNKNOWN " << types[UNKNOWN] << std::endl;
@@ -334,7 +343,7 @@ void ExchangeGnome::drawGnomeQtClusterBranchPerfect(QPainter * painter, QRect cu
     int top_y = current.y();
     int my_y = top_y + pc_size / 2.0 * blockheight;
     int child_x, child_y, used_y = 0;
-
+    painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
         for (QList<PartitionCluster *>::Iterator child = pc->children->begin(); child != pc->children->end(); ++child)
         {
             // Draw line from wherever we start to correct height -- actually loop through children since info this side?
@@ -377,6 +386,7 @@ void ExchangeGnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, 
     int top_y = current.y();
     int my_y = top_y + pc_size / 2.0 * blockheight;
     int child_x, child_y, used_y = 0;
+    painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
     if (pc->open && !pc->children->isEmpty())
     {
         for (QList<PartitionCluster *>::Iterator child = pc->children->begin(); child != pc->children->end(); ++child)
