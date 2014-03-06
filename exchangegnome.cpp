@@ -485,8 +485,19 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, Pa
                                            int barwidth, int barheight, int blockwidth, int blockheight,
                                            int startStep)
 {
-    int total_height = pc->members->size() * blockheight;
-    int base_y = startxy.y() + total_height / 2 - blockheight;
+    if (startxy.height() > 2 * clusterMaxHeight)
+    {
+        blockheight = clusterMaxHeight;
+        barheight = clusterMaxHeight - 3;
+    }
+    else
+    {
+        blockheight = startxy.height() / 2;
+        if (barheight > blockheight - 3)
+            barheight = blockheight;
+    }
+    // Rest of these should not be blockheight now that we've changed blockheight
+    int base_y = startxy.y() + startxy.height() / 2 - blockheight;
     int x, y, w, h, xa, wa, xr, yr;
     xr = blockwidth;
     if (options->showAggregateSteps) {
