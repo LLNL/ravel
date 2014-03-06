@@ -7,7 +7,8 @@ PartitionCluster::PartitionCluster(int member, QList<Event *> * elist, QString m
       parent(NULL),
       children(new QList<PartitionCluster *>()),
       members(new QList<int>()),
-      events(new QList<ClusterEvent *>())
+      events(new QList<ClusterEvent *>()),
+      extents(QRect())
 {
     members->append(member);
     for (QList<Event *>::Iterator evt = elist->begin(); evt != elist->end(); ++evt)
@@ -41,7 +42,8 @@ PartitionCluster::PartitionCluster(long long int distance, PartitionCluster * c1
       parent(NULL),
       children(new QList<PartitionCluster *>()),
       members(new QList<int>()),
-      events(new QList<ClusterEvent *>())
+      events(new QList<ClusterEvent *>()),
+      extents(QRect())
 {
     c1->parent = this;
     c2->parent = this;
@@ -119,6 +121,14 @@ PartitionCluster * PartitionCluster::get_root()
 {
     if (parent)
         return parent->get_root();
+
+    return this;
+}
+
+PartitionCluster * PartitionCluster::get_closed_root()
+{
+    if (parent && !parent->open)
+        return parent->get_closed_root();
 
     return this;
 }

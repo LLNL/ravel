@@ -53,8 +53,10 @@ private:
         int nrecvs;
     };
 
+    QSet<Message *> saved_messages;
     QMap<PartitionCluster *, QRect> drawnPCs;
     QMap<PartitionCluster *, QRect> drawnNodes;
+    bool alternation;
 
     void drawGnomeQtCluster(QPainter * painter, QRect extents);
     void drawGnomeQtClusterBranch(QPainter * painter, QRect current, PartitionCluster * pc, int leafx,
@@ -62,8 +64,9 @@ private:
     void drawGnomeQtClusterBranchPerfect(QPainter * painter, QRect current, PartitionCluster * pc, int leafx,
                                                  int blockheight, int blockwidth, int barheight, int barwidth);
     void drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy, QList<Event *> * elist, int blockwidth, int startStep);
-    void drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, PartitionCluster * pc,
+    void drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, PartitionCluster * pc, int barwidth, int barheight,
                                                int blockwidth, int blockheight, int startStep);
+    void drawGnomeQtInterMessages(QPainter * painter, int leafx, int blockwidth, int startStep);
 };
 
 #endif // EXCHANGEGNOME_H

@@ -14,6 +14,7 @@ public:
     PartitionCluster(long long int distance, PartitionCluster * c1, PartitionCluster * c2);
     ~PartitionCluster();
     PartitionCluster * get_root();
+    PartitionCluster * get_closed_root();
     void delete_tree();
     int max_depth();
     QString memberString();
@@ -26,6 +27,7 @@ public:
     QList<PartitionCluster *> * children;
     QList<int> * members;
     QList<ClusterEvent *> * events;
+    QRect extents;
 };
 
 #endif // PARTITIONCLUSTER_H
