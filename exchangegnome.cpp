@@ -354,21 +354,17 @@ void ExchangeGnome::drawGnomeQtInterMessages(QPainter * painter, int leafx, int 
         PartitionCluster * sender_pc = cluster_leaves->value((*msg)->sender->process)->get_closed_root();
         PartitionCluster * receiver_pc = cluster_leaves->value((*msg)->receiver->process)->get_closed_root();
 
-        x1 = leafx + blockwidth * ((*msg)->sender->step - startStep);
-        if (sender_pc->children->isEmpty())  {// Sender is leaf, go from middle
+        x1 = leafx + blockwidth * ((*msg)->sender->step - startStep + 0.5);
+        if (sender_pc->children->isEmpty())  // Sender is leaf
             y1 = sender_pc->extents.y() + sender_pc->extents.height() / 2;
-            x1 += blockwidth/2;
-        }
         else if (sender_pc->extents.y() > receiver_pc->extents.y()) // Sender is lower cluster
             y1 = sender_pc->extents.y();
         else
             y1 = sender_pc->extents.y() + sender_pc->extents.height();
 
-        x2 = leafx + blockwidth * ((*msg)->receiver->step - startStep);
-        if (receiver_pc->children->isEmpty()) { // Sender is leaf, go from middle
+        x2 = leafx + blockwidth * ((*msg)->receiver->step - startStep + 0.5);
+        if (receiver_pc->children->isEmpty()) // Sender is leaf
             y2 = receiver_pc->extents.y() + receiver_pc->extents.height() / 2;
-            x2 += blockwidth/2;
-        }
         else if (receiver_pc->extents.y() > sender_pc->extents.y()) // Sender is lower cluster
             y2 = receiver_pc->extents.y();
         else
