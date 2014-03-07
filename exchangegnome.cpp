@@ -506,6 +506,7 @@ void ExchangeGnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, 
             // Draw line from wherever we start to correct height -- actually loop through children since info this side?
             // We are in the middle of these extents at current.x() and current.y() + current.h()
             // Though we may want to take the discreteness of the processes into account and figure it out by blockheight
+            painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
             int child_size = (*child)->members->size();
             //std::cout << "  Child size " << child_size << std::endl;
             child_y = top_y + child_size / 2.0 * blockheight + used_y;
@@ -527,6 +528,7 @@ void ExchangeGnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, 
     }
     else if (pc->children->isEmpty())
     {
+        painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
             //std::cout << "Drawing for cluster " << pc->memberString().toStdString().c_str() << std::endl;
             int process = pc->members->at(0);
             //std::cout << "Drawing leaf for member " << process << std::endl;
@@ -546,6 +548,7 @@ void ExchangeGnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, 
     }
     else // This is open
     {
+        painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
         //std::cout << "Drawing for cluster " << pc->memberString().toStdString().c_str() << std::endl;
         painter->drawLine(my_x, my_y, leafx, my_y);
         QRect clusterRect = QRect(leafx, current.y(), current.width() - leafx, blockheight * pc->members->size());
@@ -678,6 +681,8 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, Pa
         blockheight = startxy.height() / 2;
         if (barheight > blockheight - 3)
             barheight = blockheight;
+        else
+            barheight = blockheight - 3;
     }
     // Rest of these should not be blockheight now that we've changed blockheight
     int base_y = startxy.y() + startxy.height() / 2 - blockheight;
