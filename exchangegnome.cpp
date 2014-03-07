@@ -201,7 +201,7 @@ void ExchangeGnome::findClusters()
             distance = calculateMetricDistance2(partition->events->value(p1),
                                                partition->events->value(p2));
             distances.append(DistancePair(distance, p1, p2));
-            std::cout << "    distance between " << p1 << " and " << p2 << " is " << distance << std::endl;
+            //std::cout << "    distance between " << p1 << " and " << p2 << " is " << distance << std::endl;
         }
     }
     qSort(distances);
@@ -335,10 +335,10 @@ long long int ExchangeGnome::calculateMetricDistance2(QList<Event *> * list1, QL
         }
     }
     if (total_calced_steps == 0) {
-        std::cout << "No steps between " << evt1->process << " and " << evt2->process << std::endl;
+        //std::cout << "No steps between " << evt1->process << " and " << evt2->process << std::endl;
         return LLONG_MAX; //0;
     }
-    std::cout << "     total_difference " << total_difference << " with steps " << total_calced_steps << std::endl;
+    //std::cout << "     total_difference " << total_difference << " with steps " << total_calced_steps << std::endl;
     return total_difference / total_calced_steps;
 }
 
@@ -346,7 +346,7 @@ long long int ExchangeGnome::calculateMetricDistance2(QList<Event *> * list1, QL
 void ExchangeGnome::drawGnomeGL(QRect extents, VisOptions *_options)
 {
     options = _options;
-    std::cout << "Setting options in gnome" << std::endl;
+    //std::cout << "Setting options in gnome" << std::endl;
     if (options->metric != metric)
     {
         metric = options->metric;
@@ -406,7 +406,7 @@ void ExchangeGnome::drawGnomeQtCluster(QPainter * painter, QRect extents)
     //drawGnomeQtClusterBranchPerfect(painter, extents, cluster_root, extents.x() + treemargin,
     //                                blockheight, blockwidth, barheight, barwidth);
     drawGnomeQtClusterBranch(painter, extents, cluster_root, extents.x() + treemargin,
-                             blockheight, blockwidth, barheight, barwidth);
+                             blockheight, blockwidth, barheight, barwidth, treemargin);
 
     // Now that we have drawn all the events, we need to draw the leaf-cluster messages or the leaf-leaf
     // messages which are saved in saved_messages.
@@ -478,7 +478,7 @@ void ExchangeGnome::drawGnomeQtClusterBranchPerfect(QPainter * painter, QRect cu
         if (pc->children->isEmpty())
         {
             int process = pc->members->at(0);
-            std::cout << "Drawing leaf for member " << process << std::endl;
+            //std::cout << "Drawing leaf for member " << process << std::endl;
             painter->drawLine(my_x, my_y, leafx, my_y);
             drawGnomeQtClusterLeaf(painter, QRect(leafx, current.y(), barwidth, barheight),
                                   partition->events->value(process), blockwidth, partition->min_global_step);
@@ -487,7 +487,7 @@ void ExchangeGnome::drawGnomeQtClusterBranchPerfect(QPainter * painter, QRect cu
 }
 
 void ExchangeGnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, PartitionCluster * pc, int leafx,
-                                             int blockheight, int blockwidth, int barheight, int barwidth)
+                                             int blockheight, int blockwidth, int barheight, int barwidth, int treemargin)
 {
     //std::cout << "Drawing for cluster " << pc->memberString().toStdString().c_str() << std::endl;
     int pc_size = pc->members->size();
@@ -522,7 +522,7 @@ void ExchangeGnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, 
             drawnNodes[pc] = node;
 
             drawGnomeQtClusterBranch(painter, QRect(child_x, top_y + used_y, current.width(), current.height()), *child,
-                                     leafx, blockheight, blockwidth, barheight, barwidth);
+                                     leafx, blockheight, blockwidth, barheight, barwidth, treemargin);
             used_y += child_size * blockheight;
         }
     }
@@ -543,7 +543,7 @@ void ExchangeGnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, 
             // see if we draw and if so where.
             // So we really need to save the locations of sends and receives with messages... probably need a new
             // ClusterMessage container for this. Lots of allocating and deleting will be required
-            drawnPCs[pc] = QRect(leafx, current.y(), current.width() - leafx, blockheight);
+            drawnPCs[pc] = QRect(leafx, current.y(), current.width() - treemargin, blockheight);
             pc->extents = drawnPCs[pc];
     }
     else // This is open
@@ -551,9 +551,13 @@ void ExchangeGnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, 
         painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
         //std::cout << "Drawing for cluster " << pc->memberString().toStdString().c_str() << std::endl;
         painter->drawLine(my_x, my_y, leafx, my_y);
-        QRect clusterRect = QRect(leafx, current.y(), current.width() - leafx, blockheight * pc->members->size());
+        QRect clusterRect = QRect(leafx, current.y(), current.width() - treemargin, blockheight * pc->members->size());
         if (type == SRSR)
             drawGnomeQtClusterSRSR(painter, clusterRect, pc,
+                                   barwidth, barheight, blockwidth, blockheight,
+                                   partition->min_global_step);
+        else if (type == SSRR)
+            drawGnomeQtClusterSSRR(painter, clusterRect, pc,
                                    barwidth, barheight, blockwidth, blockheight,
                                    partition->min_global_step);
         drawnPCs[pc] = clusterRect;
@@ -593,6 +597,8 @@ void ExchangeGnome::drawGnomeQtClusterSSRR(QPainter * painter, QRect startxy, Pa
     if (options->showAggregateSteps) {
         startStep -= 1;
     }
+    std::cout << "Drawing background " << startxy.x() << ", " << startxy.y();
+    std::cout << ", " << startxy.width() << ", " << startxy.height() << std::endl;
     if (alternation) {
         painter->fillRect(startxy, QBrush(QColor(217, 217, 217)));
     } else {
@@ -614,13 +620,15 @@ void ExchangeGnome::drawGnomeQtClusterSSRR(QPainter * painter, QRect startxy, Pa
         hr = barheight * nrecvs / 1.0 / pc->members->size();
 
         // Draw the event
-        painter->fillRect(QRectF(x, ys, w, hs), QBrush(options->colormap->color(
+        if ((*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND, ClusterEvent::ALL))
+            painter->fillRect(QRectF(x, ys, w, hs), QBrush(options->colormap->color(
                                                          (*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::SEND,
                                                                            ClusterEvent::ALL)
                                                          / (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND,
                                                                             ClusterEvent::ALL)
                                                          )));
-        painter->fillRect(QRectF(x, yr, w, hr), QBrush(options->colormap->color(
+        if ((*evt)->getCount(ClusterEvent::COMM, ClusterEvent::RECV, ClusterEvent::ALL))
+            painter->fillRect(QRectF(x, yr, w, hr), QBrush(options->colormap->color(
                                                          (*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::RECV,
                                                                            ClusterEvent::ALL)
                                                          / (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::RECV,
@@ -642,14 +650,14 @@ void ExchangeGnome::drawGnomeQtClusterSSRR(QPainter * painter, QRect startxy, Pa
             if (nrecvs)
             {
                 painter->setPen(QPen(Qt::black, nrecvs * 2.0 / pc->members->size(), Qt::SolidLine));
-                painter->drawLine(x + blockwidth / 2, yr + barheight, x + barwidth, yr + 20);
+                painter->drawLine(x + blockwidth / 2, yr + barheight, x + barwidth, yr + barheight + 20);
             }
         }
 
         if (options->showAggregateSteps) {
             xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + startxy.x();
             wa = barwidth;
-            ha = (nsends + nrecvs) / 1.0 / pc->members->size();
+            ha = barheight * (nsends + nrecvs) / 1.0 / pc->members->size();
             ya = base_ya + (barheight - ha) / 2;
 
             painter->fillRect(QRectF(xa, ya, wa, ha),
@@ -843,7 +851,7 @@ void ExchangeGnome::drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy, QL
 
 void ExchangeGnome::handleDoubleClick(QMouseEvent * event)
 {
-    std::cout << "I am handling double click for gnome" << std::endl;
+    //std::cout << "I am handling double click for gnome" << std::endl;
     int x = event->x();
     int y = event->y();
     // Figure out which branch this occurs in, open that branch
@@ -851,7 +859,7 @@ void ExchangeGnome::handleDoubleClick(QMouseEvent * event)
         if (p.value().contains(x,y))
         {
             PartitionCluster * pc = p.key();
-            std::cout << "Closing " << pc->memberString().toStdString().c_str() << std::endl;
+            //std::cout << "Closing " << pc->memberString().toStdString().c_str() << std::endl;
             pc->close();
             return; // Return so we don't look elsewhere.
         }
@@ -859,7 +867,7 @@ void ExchangeGnome::handleDoubleClick(QMouseEvent * event)
         if (p.value().contains(x,y))
         {
             PartitionCluster * pc = p.key();
-            std::cout << "Opening " << pc->memberString().toStdString().c_str() << std::endl;
+            //std::cout << "Opening " << pc->memberString().toStdString().c_str() << std::endl;
             pc->open = true;
             return;
         }

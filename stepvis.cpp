@@ -427,7 +427,7 @@ void StepVis::paintEvents(QPainter * painter)
             // The y value here of 0 isn't general... we need another structure to keep track of how much
             // y is used when we're doing the gnome thing.
             QRect gnomeRect = QRect(labelWidth + barwidth * (part->min_global_step - startStep), 0,
-                                    blockwidth * (part->max_global_step - part->min_global_step +1),
+                                    blockwidth * (part->max_global_step - part->min_global_step),
                                     part->events->size() / 1.0 / trace->num_processes * effectiveHeight);
             part->gnome->drawGnomeQt(painter, gnomeRect, options);
             drawnGnomes[part->gnome] = gnomeRect;
