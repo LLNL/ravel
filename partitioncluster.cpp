@@ -13,26 +13,41 @@ PartitionCluster::PartitionCluster(int member, QList<Event *> * elist, QString m
     members->append(member);
     for (QList<Event *>::Iterator evt = elist->begin(); evt != elist->end(); ++evt)
     {
-        long long low = 0, high = 0, agg_low = 0, agg_high = 0;
         long long evt_metric = (*evt)->getMetric(metric);
         long long agg_metric = (*evt)->getMetric(metric, true);
         int nsend = 0, nrecv = 0;
-        if (evt_metric < divider)
-            low = evt_metric;
-        else
-            high = evt_metric;
-        if (agg_metric < divider)
-            agg_low = agg_metric;
-        else
-            agg_high = agg_metric;
+        ClusterEvent * ce = new ClusterEvent((*evt)->step);
+
         for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
             if ((*msg)->sender == *evt)
                 nsend += 1;
             else
                 nrecv += 1;
-        events->append(new ClusterEvent((*evt)->step, low, high, high ? 0 : 1, high ? 1 : 0,
-                                        agg_low, agg_high, agg_high ? 0 : 1, agg_high ? 0 : 1,
-                                        nsend, nrecv));
+
+        if (evt_metric < divider)
+        {
+            if (nsend)
+                ce->setMetric(nsend, evt_metric, ClusterEvent::COMM, ClusterEvent::SEND, ClusterEvent::LOW);
+            if (nrecv)
+                ce->setMetric(nrecv, evt_metric, ClusterEvent::COMM, ClusterEvent::RECV, ClusterEvent::LOW);
+        }
+        else
+        {
+            if (nsend)
+                ce->setMetric(nsend, evt_metric, ClusterEvent::COMM, ClusterEvent::SEND, ClusterEvent::HIGH);
+            if (nrecv)
+                ce->setMetric(nrecv, evt_metric, ClusterEvent::COMM, ClusterEvent::RECV, ClusterEvent::HIGH);
+        }
+        if (agg_metric < divider)
+        {
+            ce->setMetric(1, evt_metric, ClusterEvent::AGG, ClusterEvent::SEND, ClusterEvent::LOW);
+        }
+        else
+        {
+            ce->setMetric(1, evt_metric, ClusterEvent::AGG, ClusterEvent::SEND, ClusterEvent::HIGH);
+        }
+
+        events->append(ce);
     }
 }
 
@@ -58,13 +73,7 @@ PartitionCluster::PartitionCluster(long long int distance, PartitionCluster * c1
     {
         if (evt1->step == evt2->step) // If they're equal, add their distance
         {
-            events->append(new ClusterEvent(evt1->step, evt1->low_metric + evt2->low_metric,
-                                            evt1->high_metric + evt2->high_metric,
-                                            evt1->num_low + evt2->num_low, evt1->num_high + evt2->num_high,
-                                            evt1->agg_low + evt2->agg_low, evt1->agg_high + evt2->agg_high,
-                                            evt1->num_agg_low + evt2->num_agg_low,
-                                            evt1->num_agg_high + evt2->num_agg_high,
-                                            evt1->num_send + evt2->num_send, evt1->num_recv + evt2->num_recv));
+            events->append(new ClusterEvent(evt1->step, evt1, evt2));
 
             // Increment both event lists now
             ++index2;

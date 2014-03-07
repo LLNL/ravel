@@ -4,24 +4,30 @@
 class ClusterEvent
 {
 public:
-    ClusterEvent(int _step, long long int _low, long long int _high,
-                 int _nlow, int _nhigh, long long int _alow,
-                 long long int _ahigh, int _nagglow, int _nagghigh, int _nsend, int _nrecv);
+    ClusterEvent(int _step);
 
     ClusterEvent(const ClusterEvent& copy);
+    ClusterEvent(int _step, const ClusterEvent * copy1, const ClusterEvent * copy2);
+
+    enum EventType { COMM, AGG };
+    enum CommType { SEND, RECV, BOTH };
+    enum Threshhold { LOW, HIGH, ALL };
+
+    void setMetric(int count, long long int value,
+                   EventType etype = COMM,
+                   CommType ctype = SEND,
+                   Threshhold thresh = LOW);
+    long long int getMetric(EventType etype = COMM,
+                            CommType ctype = BOTH,
+                            Threshhold thresh = ALL);
+    int getCount(EventType etype = COMM,
+                 CommType ctype = BOTH,
+                 Threshhold thresh = ALL);
 
     int step;
     // On the way up, use metrics as total, then once the root, go back down and average them
-    long long int low_metric;
-    long long int high_metric;
-    int num_low;
-    int num_high;
-    long long int agg_low;
-    long long int agg_high;
-    int num_agg_low;
-    int num_agg_high;
-    int num_send;
-    int num_recv;
+    long long int metric[2][2][2]; // [COMM/AGG] [SEND/RECV] [LOW/HIGH]
+    int counts[2][2][2];
 };
 
 #endif // CLUSTEREVENT_H
