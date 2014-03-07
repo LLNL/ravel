@@ -428,6 +428,8 @@ void ExchangeGnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, 
     painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
     if (pc->open && !pc->children->isEmpty())
     {
+        // Draw line to myself
+        //painter->drawLine(my_x - 20, my_y, my_x, my_y);
         for (QList<PartitionCluster *>::Iterator child = pc->children->begin(); child != pc->children->end(); ++child)
         {
             // Draw line from wherever we start to correct height -- actually loop through children since info this side?
@@ -457,7 +459,11 @@ void ExchangeGnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, 
             //std::cout << "Drawing for cluster " << pc->memberString().toStdString().c_str() << std::endl;
             int process = pc->members->at(0);
             //std::cout << "Drawing leaf for member " << process << std::endl;
-            painter->drawLine(my_x, my_y, leafx, my_y);
+            painter->drawLine(my_x, my_y, leafx - 10, my_y);
+            painter->setPen(QPen(Qt::white, 2.0, Qt::SolidLine));
+            painter->drawLine(leafx - 10, my_y, leafx, my_y);
+            painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
+            painter->drawText(leafx - 9, my_y + 3, QString::number(process));
             drawGnomeQtClusterLeaf(painter, QRect(leafx, current.y(), barwidth, barheight),
                                   partition->events->value(process), blockwidth, partition->min_global_step);
             // TODO: Figure out message lines for this view -- may need to look up things in cluster to leaves to
