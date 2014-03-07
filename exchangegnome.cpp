@@ -489,19 +489,27 @@ void ExchangeGnome::drawGnomeQtClusterSSRR(QPainter * painter, QRect startxy, Pa
 {
     // Here blockheight is the maximum height afforded to the block. We actually scale it
     // based on how many processes are sending or receiving at that point
+    // The first row is send, the second row is recv
+    bool drawMessages = true;
     if (startxy.height() > 2 * clusterMaxHeight)
     {
-        blockheight = clusterMaxHeight;
-        barheight = clusterMaxHeight - 3;
+        blockheight = clusterMaxHeight - 25;
+        barheight = blockheight - 3;
     }
     else
     {
         blockheight = startxy.height() / 2;
+        if (blockheight < 40)
+            drawMessages = false;
+        else
+            blockheight -= 20; // For message drawing
         if (barheight > blockheight - 3)
             barheight = blockheight;
     }
     int base_y = startxy.y() + startxy.height() / 2 - blockheight;
-    int x, y, w, h, xa, wa;
+    int x, ys, yr, w, hs, hr, xa, wa, ya, ha, nsends, nrecvs;
+    yr = base_y + blockheight;
+    int base_ya = base_y + blockheight / 2 + (blockheight - barheight) / 2;
     if (options->showAggregateSteps) {
         startStep -= 1;
     }
@@ -519,37 +527,54 @@ void ExchangeGnome::drawGnomeQtClusterSSRR(QPainter * painter, QRect startxy, Pa
         else
             x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1 + startxy.x();
         w = barwidth;
-        h = barheight;
-        y = base_y;
-        if ((((*evt)->step - startStep + 2) / 4) % 2)
-            y += blockheight;
-
-        // We know it will be complete in this view because we're not doing scrolling or anything here.
+        nsends = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND);
+        nrecvs = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND);
+        hs = barheight * nsends / 1.0 / pc->members->size();
+        ys = base_y + barheight - hs;
+        hr = barheight * nrecvs / 1.0 / pc->members->size();
 
         // Draw the event
-        painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color(
-                                                         (*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::BOTH,
+        painter->fillRect(QRectF(x, ys, w, hs), QBrush(options->colormap->color(
+                                                         (*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::SEND,
                                                                            ClusterEvent::ALL)
-                                                         / (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::BOTH,
+                                                         / (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND,
+                                                                            ClusterEvent::ALL)
+                                                         )));
+        painter->fillRect(QRectF(x, yr, w, hr), QBrush(options->colormap->color(
+                                                         (*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::RECV,
+                                                                           ClusterEvent::ALL)
+                                                         / (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::RECV,
                                                                             ClusterEvent::ALL)
                                                          )));
 
         // Draw border but only if we're doing spacing, otherwise too messy
-        if (blockwidth != w)
-            painter->drawRect(QRectF(x,y,w,h));
+        if (blockwidth != w) {
+            painter->drawRect(QRectF(x,ys,w,hs));
+            painter->drawRect(QRectF(x,yr,w,hr));
+        }
+
+        if (drawMessages) {
+            painter->setPen(QPen(Qt::black, nsends * 2.0 / pc->members->size(), Qt::SolidLine));
+            painter->drawLine(x + blockwidth / 2, ys, x + barwidth, ys - 20);
+            painter->setPen(QPen(Qt::black, nrecvs * 2.0 / pc->members->size(), Qt::SolidLine));
+            painter->drawLine(x + blockwidth / 2, yr + barheight, x + barwidth, yr + 20);
+        }
 
         if (options->showAggregateSteps) {
             xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + startxy.x();
             wa = barwidth;
+            ha = (nsends + nrecvs) / 1.0 / pc->members->size();
+            ya = base_ya + (barheight - ha) / 2;
 
-                painter->fillRect(QRectF(xa, y, wa, h), QBrush(options->colormap->color(
-                                                                   (*evt)->getMetric(ClusterEvent::AGG, ClusterEvent::BOTH,
-                                                                                     ClusterEvent::ALL)
-                                                                   / (*evt)->getCount(ClusterEvent::AGG, ClusterEvent::BOTH,
-                                                                                      ClusterEvent::ALL)
-                                                                   )));
+            painter->fillRect(QRectF(xa, ya, wa, ha),
+                              QBrush(options->colormap->color(
+                                                              (*evt)->getMetric(ClusterEvent::AGG, ClusterEvent::BOTH,
+                                                                                ClusterEvent::ALL)
+                                                              / (*evt)->getCount(ClusterEvent::AGG, ClusterEvent::BOTH,
+                                                                                 ClusterEvent::ALL)
+                                                              )));
             if (blockwidth != w)
-                painter->drawRect(QRectF(xa, y, wa, h));
+                painter->drawRect(QRectF(xa, ya, wa, ha));
         }
 
 
@@ -602,10 +627,6 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, Pa
         // We know it will be complete in this view because we're not doing scrolling or anything here.
 
         // Draw the event
-        std::cout << "Metric " << (*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::BOTH,
-                                                        ClusterEvent::ALL);
-        std::cout << " count " << (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::BOTH,
-                                                   ClusterEvent::ALL) << std::endl;
         painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color(
                                                          (*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::BOTH,
                                                                            ClusterEvent::ALL)
@@ -620,10 +641,6 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, Pa
         if (options->showAggregateSteps) {
             xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + startxy.x();
             wa = barwidth;
-            std::cout << "Agg Metric " << (*evt)->getMetric(ClusterEvent::AGG, ClusterEvent::BOTH,
-                                                            ClusterEvent::ALL);
-            std::cout << " count " << (*evt)->getCount(ClusterEvent::AGG, ClusterEvent::BOTH,
-                                                       ClusterEvent::ALL) << std::endl;
             painter->fillRect(QRectF(xa, y, wa, h), QBrush(options->colormap->color(
                                                                    (*evt)->getMetric(ClusterEvent::AGG, ClusterEvent::BOTH,
                                                                                      ClusterEvent::ALL)
