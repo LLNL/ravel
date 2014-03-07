@@ -28,23 +28,34 @@ PartitionCluster::PartitionCluster(int member, QList<Event *> * elist, QString m
         {
             if (nsend)
                 ce->setMetric(nsend, evt_metric, ClusterEvent::COMM, ClusterEvent::SEND, ClusterEvent::LOW);
-            if (nrecv)
+            if (nrecv > 1)
+            {
+                ce->setMetric(1, evt_metric, ClusterEvent::COMM, ClusterEvent::WAITALL, ClusterEvent::LOW);
+                ce->waitallrecvs = nrecv;
+            }
+            else if (nrecv)
                 ce->setMetric(nrecv, evt_metric, ClusterEvent::COMM, ClusterEvent::RECV, ClusterEvent::LOW);
         }
         else
         {
             if (nsend)
                 ce->setMetric(nsend, evt_metric, ClusterEvent::COMM, ClusterEvent::SEND, ClusterEvent::HIGH);
-            if (nrecv)
+            if (nrecv > 1)
+            {
+                ce->setMetric(1, evt_metric, ClusterEvent::COMM, ClusterEvent::WAITALL, ClusterEvent::HIGH);
+                ce->waitallrecvs = nrecv;
+            }
+            else if (nrecv)
                 ce->setMetric(nrecv, evt_metric, ClusterEvent::COMM, ClusterEvent::RECV, ClusterEvent::HIGH);
+
         }
         if (agg_metric < divider)
         {
-            ce->setMetric(1, evt_metric, ClusterEvent::AGG, ClusterEvent::SEND, ClusterEvent::LOW);
+            ce->setMetric(1, agg_metric, ClusterEvent::AGG, ClusterEvent::SEND, ClusterEvent::LOW);
         }
         else
         {
-            ce->setMetric(1, evt_metric, ClusterEvent::AGG, ClusterEvent::SEND, ClusterEvent::HIGH);
+            ce->setMetric(1, agg_metric, ClusterEvent::AGG, ClusterEvent::SEND, ClusterEvent::HIGH);
         }
 
         events->append(ce);

@@ -1,7 +1,7 @@
 #include "clusterevent.h"
 
 ClusterEvent::ClusterEvent(int _step)
-    : step(_step)
+    : step(_step), waitallrecvs(0)
 {
     for (int i = COMM; i <= AGG; i++)
     {
@@ -19,6 +19,7 @@ ClusterEvent::ClusterEvent(int _step)
 ClusterEvent::ClusterEvent(const ClusterEvent& copy)
 {
     step = copy.step;
+    waitallrecvs = copy.waitallrecvs;
     for (int i = COMM; i <= AGG; i++)
     {
         for (int j = SEND; j < BOTH; j++)
@@ -35,6 +36,7 @@ ClusterEvent::ClusterEvent(const ClusterEvent& copy)
 ClusterEvent::ClusterEvent(int _step, const ClusterEvent *copy1, const ClusterEvent *copy2)
     : step(_step)
 {
+    waitallrecvs = copy1->waitallrecvs + copy2->waitallrecvs;
     for (int i = COMM; i <= AGG; i++)
     {
         for (int j = SEND; j < BOTH; j++)

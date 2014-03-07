@@ -10,7 +10,7 @@ public:
     ClusterEvent(int _step, const ClusterEvent * copy1, const ClusterEvent * copy2);
 
     enum EventType { COMM, AGG };
-    enum CommType { SEND, RECV, BOTH };
+    enum CommType { SEND, RECV, WAITALL, BOTH };
     enum Threshhold { LOW, HIGH, ALL };
 
     void setMetric(int count, long long int value,
@@ -25,9 +25,10 @@ public:
                  Threshhold thresh = ALL);
 
     int step;
+    int waitallrecvs;
     // On the way up, use metrics as total, then once the root, go back down and average them
-    long long int metric[2][2][2]; // [COMM/AGG] [SEND/RECV] [LOW/HIGH]
-    int counts[2][2][2];
+    long long int metric[2][3][2]; // [COMM/AGG] [SEND/RECV] [LOW/HIGH]
+    int counts[2][3][2];
 };
 
 #endif // CLUSTEREVENT_H

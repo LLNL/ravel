@@ -71,6 +71,9 @@ private:
     void drawGnomeQtClusterSSRR(QPainter * painter, QRect startxy, PartitionCluster * pc,
                                                int barwidth, int barheight, int blockwidth, int blockheight,
                                                int startStep);
+    void drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy, PartitionCluster * pc,
+                                               int barwidth, int barheight, int blockwidth, int blockheight,
+                                               int startStep);
     void drawGnomeQtInterMessages(QPainter * painter, int leafx, int blockwidth, int startStep);
 
     static const int clusterMaxHeight = 76;
