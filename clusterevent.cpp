@@ -64,7 +64,7 @@ long long int ClusterEvent::getMetric(EventType etype,
     if (ctype == BOTH && thresh == ALL)
     {
         long long int value = 0;
-        for (int i = SEND; i < BOTH; i++)
+        for (int i = SEND; i < NEITHER; i++)
             for (int j = LOW; j < ALL; j++)
                 value += metric[etype][i][j];
         return value;
@@ -72,7 +72,7 @@ long long int ClusterEvent::getMetric(EventType etype,
     else if (ctype == BOTH)
     {
         long long int value = 0;
-        for (int i = SEND; i < BOTH; i++)
+        for (int i = SEND; i < NEITHER; i++)
             value += metric[etype][i][thresh];
         return value;
     }
@@ -94,7 +94,7 @@ int ClusterEvent::getCount(EventType etype,
     if (ctype == BOTH && thresh == ALL)
     {
         int count = 0;
-        for (int i = SEND; i < BOTH; i++)
+        for (int i = SEND; i < NEITHER; i++)
             for (int j = LOW; j < ALL; j++)
                 count += counts[etype][i][j];
         return count;
@@ -102,7 +102,7 @@ int ClusterEvent::getCount(EventType etype,
     else if (ctype == BOTH)
     {
         int count = 0;
-        for (int i = SEND; i < BOTH; i++)
+        for (int i = SEND; i < NEITHER; i++)
             count += counts[etype][i][thresh];
         return count;
     }

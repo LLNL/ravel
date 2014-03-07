@@ -605,7 +605,7 @@ void ExchangeGnome::drawGnomeQtClusterSSRR(QPainter * painter, QRect startxy, Pa
             x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1 + startxy.x();
         w = barwidth;
         nsends = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND);
-        nrecvs = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND);
+        nrecvs = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::RECV);
         hs = barheight * nsends / 1.0 / pc->members->size();
         ys = base_y + barheight - hs;
         hr = barheight * nrecvs / 1.0 / pc->members->size();
@@ -631,10 +631,16 @@ void ExchangeGnome::drawGnomeQtClusterSSRR(QPainter * painter, QRect startxy, Pa
         }
 
         if (drawMessages) {
-            painter->setPen(QPen(Qt::black, nsends * 2.0 / pc->members->size(), Qt::SolidLine));
-            painter->drawLine(x + blockwidth / 2, ys, x + barwidth, ys - 20);
-            painter->setPen(QPen(Qt::black, nrecvs * 2.0 / pc->members->size(), Qt::SolidLine));
-            painter->drawLine(x + blockwidth / 2, yr + barheight, x + barwidth, yr + 20);
+            if (nsends)
+            {
+                painter->setPen(QPen(Qt::black, nsends * 2.0 / pc->members->size(), Qt::SolidLine));
+                painter->drawLine(x + blockwidth / 2, ys, x + barwidth, ys - 20);
+            }
+            if (nrecvs)
+            {
+                painter->setPen(QPen(Qt::black, nrecvs * 2.0 / pc->members->size(), Qt::SolidLine));
+                painter->drawLine(x + blockwidth / 2, yr + barheight, x + barwidth, yr + 20);
+            }
         }
 
         if (options->showAggregateSteps) {
@@ -737,7 +743,7 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, Pa
 
             // Need to draw messages after this, or at least keep track of messages...
             // Maybe check num_sends here?
-            if (evt->getCount(ClusterEvent::COMM, ClusterEvent::BOTH) > 0)
+            if (evt->getCount(ClusterEvent::COMM, ClusterEvent::SEND) > 0)
             {
                 if (y == base_y)
                     yr = base_y + blockheight;
@@ -746,7 +752,7 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, Pa
                 msgs.append(new DrawMessage(QPoint(x + w/2, y + h/2), QPoint(x + w/2 + xr, yr + h/2),
                                             evt->getCount(ClusterEvent::COMM, ClusterEvent::SEND)));
             }
-            if (evt->getCount(ClusterEvent::COMM, ClusterEvent::RECV) > 0)
+            if (evt->getCount(ClusterEvent::COMM, ClusterEvent::RECV) > 0 && !msgs.isEmpty())
             {
                 DrawMessage * dm = msgs.last();
                 dm->nrecvs = evt->getCount(ClusterEvent::COMM, ClusterEvent::RECV);

@@ -10,7 +10,7 @@ public:
     ClusterEvent(int _step, const ClusterEvent * copy1, const ClusterEvent * copy2);
 
     enum EventType { COMM, AGG };
-    enum CommType { SEND, RECV, BOTH };
+    enum CommType { SEND, RECV, NEITHER, BOTH };
     enum Threshhold { LOW, HIGH, ALL };
 
     void setMetric(int count, long long int value,
