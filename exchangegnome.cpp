@@ -80,7 +80,7 @@ void ExchangeGnome::preprocess()
 
     // Cluster vectors
     findClusters();
-    cluster_root->print();
+    //cluster_root->print();
 }
 
 // Need to add even/odd check so we can tell if we have somethign essentially srsr
@@ -157,8 +157,8 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
         if (!(b_ssrr || b_sswa || b_srsr))
             types[UNKNOWN]++;
     }
-    std::cout << "Types are SRSR " << types[SRSR] << ", SSRR " << types[SSRR] << ", SSWA ";
-    std::cout << types[SSWA] << ", UNKNOWN " << types[UNKNOWN] << std::endl;
+    //std::cout << "Types are SRSR " << types[SRSR] << ", SSRR " << types[SSRR] << ", SSWA ";
+   // std::cout << types[SSWA] << ", UNKNOWN " << types[UNKNOWN] << std::endl;
 
     if (types[SRSR] > 0 && (types[SSRR] > 0 || types[SSWA] > 0)) // If we have this going on, really confusing
         return UNKNOWN;
@@ -175,6 +175,7 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
 void ExchangeGnome::findClusters()
 {
     // Calculate initial distances
+    std::cout << "Finding clusters..." << std::endl;
     QList<DistancePair> distances;
     QList<int> processes = partition->events->keys();
     if (cluster_root)
@@ -197,9 +198,10 @@ void ExchangeGnome::findClusters()
         {
             p2 = processes[j];
             //std::cout << "     Calculating between " << p1 << " and " << p2 << std::endl;
-            distance = calculateMetricDistance(partition->events->value(p1),
+            distance = calculateMetricDistance2(partition->events->value(p1),
                                                partition->events->value(p2));
             distances.append(DistancePair(distance, p1, p2));
+            std::cout << "    distance between " << p1 << " and " << p2 << " is " << distance << std::endl;
         }
     }
     qSort(distances);
@@ -271,6 +273,75 @@ long long int ExchangeGnome::calculateMetricDistance(QList<Event *> * list1, QLi
             return LLONG_MAX; //0;
     return total_difference / total_matched_steps;
 }
+
+// When calculating distance between two event lists. When one is missing a step, we
+// estimate the lateness of that missing step via the average of the two adjacent steps
+// No wait, for now lets estimate the lateness as the step that came before it if available
+// and only if not we estimate as the one afterwards or perhaps skip?
+long long int ExchangeGnome::calculateMetricDistance2(QList<Event *> * list1, QList<Event *> * list2)
+{
+    int index1 = 0, index2 = 0, total_calced_steps = 0;
+    Event * evt1 = list1->at(0), * evt2 = list2->at(0);
+    long long int last1 = 0, last2 = 0, total_difference = 0;
+
+    while (evt1 && evt2)
+    {
+        if (evt1->step == evt2->step) // If they're equal, add their distance
+        {
+            last1 = evt1->getMetric(metric);
+            last2 = evt2->getMetric(metric);
+            total_difference += (last1 - last2) * (last1 - last2);
+            ++total_calced_steps;
+            // Increment both event lists now
+            ++index2;
+            if (index2 < list2->size())
+                evt2 = list2->at(index2);
+            else
+                evt2 = NULL;
+            ++index1;
+            if (index1 < list1->size())
+                evt1 = list1->at(index1);
+            else
+                evt1 = NULL;
+        } else if (evt1->step > evt2->step) { // If not, increment steps until they match
+            // Estimate evt1 lateness
+            last2 = evt2->getMetric(metric);
+            if (evt1->comm_prev && evt1->comm_prev->partition == evt1->partition)
+            {
+                total_difference += (last1 - last2) * (last1 - last2);
+                ++total_calced_steps;
+            }
+
+            // Move evt2 forward
+            ++index2;
+            if (index2 < list2->size())
+                evt2 = list2->at(index2);
+            else
+                evt2 = NULL;
+        } else {
+            last1 = evt1->getMetric(metric);
+            if (evt2->comm_prev && evt2->comm_prev->partition == evt2->partition)
+            {
+                total_difference += (last1 - last2) * (last1 - last2);
+                ++total_calced_steps;
+            }
+
+            // Move evt1 forward
+            ++index1;
+            if (index1 < list1->size())
+                evt1 = list1->at(index1);
+            else
+                evt1 = NULL;
+        }
+    }
+    if (total_calced_steps == 0) {
+        std::cout << "No steps between " << evt1->process << " and " << evt2->process << std::endl;
+        return LLONG_MAX; //0;
+    }
+    std::cout << "     total_difference " << total_difference << " with steps " << total_calced_steps << std::endl;
+    return total_difference / total_calced_steps;
+}
+
 
 void ExchangeGnome::drawGnomeGL(QRect extents, VisOptions *_options)
 {
@@ -618,60 +689,85 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, Pa
     alternation = !alternation;
     painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
     QList<DrawMessage *> msgs = QList<DrawMessage *>();
-    for (QList<ClusterEvent *>::Iterator evt = pc->events->begin(); evt != pc->events->end(); ++evt)
+    ClusterEvent * evt = pc->events->first();
+    int events_index = 0;
+    //for (QList<ClusterEvent *>::Iterator evt = pc->events->begin(); evt != pc->events->end(); ++evt)
+    for (int i = startStep + 1; i < partition->max_global_step; i += 2)
     {
         if (options->showAggregateSteps)
-            x = floor(((*evt)->step - startStep) * blockwidth) + 1 + startxy.x();
+        {
+            x = floor((i - startStep) * blockwidth) + 1 + startxy.x();
+            xa = floor((i - startStep - 1) * blockwidth) + 1 + startxy.x();
+            wa = barwidth;
+        }
         else
-            x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1 + startxy.x();
+            x = floor((i - startStep) / 2 * blockwidth) + 1 + startxy.x();
         w = barwidth;
         h = barheight;
         y = base_y;
-        if ((((*evt)->step - startStep + 2) / 4) % 2)
+        if (((i - startStep + 2) / 4) % 2)
             y += blockheight;
 
-        // We know it will be complete in this view because we're not doing scrolling or anything here.
+        if (evt->step == i)
+        {
+            // We know it will be complete in this view because we're not doing scrolling or anything here.
 
-        // Draw the event
-        painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color(
-                                                         (*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::BOTH,
-                                                                           ClusterEvent::ALL)
-                                                         / (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::BOTH,
-                                                                            ClusterEvent::ALL)
-                                                         )));
+            // Draw the event
+            painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color(
+                                                             evt->getMetric(ClusterEvent::COMM, ClusterEvent::BOTH,
+                                                                               ClusterEvent::ALL)
+                                                             / evt->getCount(ClusterEvent::COMM, ClusterEvent::BOTH,
+                                                                                ClusterEvent::ALL)
+                                                             )));
 
-        // Draw border but only if we're doing spacing, otherwise too messy
-        if (blockwidth != w)
-            painter->drawRect(QRectF(x,y,w,h));
-
-        if (options->showAggregateSteps) {
-            xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + startxy.x();
-            wa = barwidth;
-            painter->fillRect(QRectF(xa, y, wa, h), QBrush(options->colormap->color(
-                                                                   (*evt)->getMetric(ClusterEvent::AGG, ClusterEvent::BOTH,
-                                                                                     ClusterEvent::ALL)
-                                                                   / (*evt)->getCount(ClusterEvent::AGG, ClusterEvent::BOTH,
-                                                                                      ClusterEvent::ALL)
-                                                                   )));
+            // Draw border but only if we're doing spacing, otherwise too messy
             if (blockwidth != w)
-                painter->drawRect(QRectF(xa, y, wa, h));
-        }
+                painter->drawRect(QRectF(x,y,w,h));
 
-        // Need to draw messages after this, or at least keep track of messages...
-        // Maybe check num_sends here?
-        if ((*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND) > 0)
-        {
-            if (y == base_y)
-                yr = base_y + blockheight;
-            else
-                yr = base_y;
-            msgs.append(new DrawMessage(QPoint(x + w/2, y + h/2), QPoint(x + w/2 + xr, yr + h/2),
-                                        (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND)));
+            if (options->showAggregateSteps) {
+                painter->fillRect(QRectF(xa, y, wa, h), QBrush(options->colormap->color(
+                                                                       evt->getMetric(ClusterEvent::AGG, ClusterEvent::BOTH,
+                                                                                         ClusterEvent::ALL)
+                                                                       / evt->getCount(ClusterEvent::AGG, ClusterEvent::BOTH,
+                                                                                          ClusterEvent::ALL)
+                                                                       )));
+                if (blockwidth != w)
+                    painter->drawRect(QRectF(xa, y, wa, h));
+            }
+
+            // Need to draw messages after this, or at least keep track of messages...
+            // Maybe check num_sends here?
+            if (evt->getCount(ClusterEvent::COMM, ClusterEvent::BOTH) > 0)
+            {
+                if (y == base_y)
+                    yr = base_y + blockheight;
+                else
+                    yr = base_y;
+                msgs.append(new DrawMessage(QPoint(x + w/2, y + h/2), QPoint(x + w/2 + xr, yr + h/2),
+                                            evt->getCount(ClusterEvent::COMM, ClusterEvent::SEND)));
+            }
+            if (evt->getCount(ClusterEvent::COMM, ClusterEvent::RECV) > 0)
+            {
+                DrawMessage * dm = msgs.last();
+                dm->nrecvs = evt->getCount(ClusterEvent::COMM, ClusterEvent::RECV);
+            }
+            events_index++;
+            if (events_index < pc->events->size())
+                evt = pc->events->at(events_index);
         }
-        if ((*evt)->getCount(ClusterEvent::COMM, ClusterEvent::RECV) > 0)
+        else // Nothing in the cluster here, draw a dummy
         {
-            DrawMessage * dm = msgs.last();
-            dm->nrecvs = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::RECV);
+            painter->setPen(QPen(Qt::black, 1.5, Qt::DashLine));
+            if (blockwidth != w)
+                painter->drawRect(QRectF(x,y,w,h));
+            else
+                painter->drawRect(QRectF(x+2,y+2,w-4,h-4));
+            if (options->showAggregateSteps)
+                if (blockwidth != w)
+                    painter->drawRect(QRectF(xa, y, wa, h));
+                else
+                    painter->drawRect(QRectF(xa+2, y+2, wa-4, h-4));
+            painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
         }
     }
 

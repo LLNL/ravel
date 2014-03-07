@@ -37,6 +37,7 @@ private:
         int p2;
     };
     long long int calculateMetricDistance(QList<Event *> * list1, QList<Event *> * list2);
+    long long int calculateMetricDistance2(QList<Event *> * list1, QList<Event *> * list2);
     void findClusters();
 
     QMap<int, PartitionCluster * > * cluster_leaves;
