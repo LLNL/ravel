@@ -417,8 +417,8 @@ void StepVis::paintEvents(QPainter * painter)
     int topStep = boundStep(startStep + stepSpan) + 1;
     int bottomStep = floor(startStep) - 1;
     bool skipDraw;
-    std::cout << " Step span is " << bottomStep << " to " << topStep << " and startPartition is ";
-    std::cout << trace->partitions->at(startPartition)->min_global_step << " to " << trace->partitions->at(startPartition)->max_global_step << std::endl;
+    //std::cout << " Step span is " << bottomStep << " to " << topStep << " and startPartition is ";
+    //std::cout << trace->partitions->at(startPartition)->min_global_step << " to " << trace->partitions->at(startPartition)->max_global_step << std::endl;
     for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
         part = trace->partitions->at(i);

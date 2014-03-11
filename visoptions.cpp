@@ -11,7 +11,7 @@ VisOptions::VisOptions(bool _showAgg,
       maptype(DIVERGING),
       divergentmap(new ColorMap(QColor(173, 216, 230), 0)),
       rampmap(new ColorMap(QColor(255, 247, 222), 0)),
-      catcolormap(new ColorMap(QColor(31, 119, 180), 0)),
+      catcolormap(new ColorMap(QColor(31, 119, 180), 0, true)),
       colormap(divergentmap)
 {
 
@@ -42,7 +42,6 @@ VisOptions::VisOptions(bool _showAgg,
     catcolormap->addColor(QColor(219, 219, 141), 0.85);
     catcolormap->addColor(QColor(23, 190, 207), 0.9);
     catcolormap->addColor(QColor(158, 218, 229), 0.95);
-    catcolormap->categorical = true;
 }
 
 VisOptions::VisOptions(const VisOptions& copy)
@@ -50,7 +49,6 @@ VisOptions::VisOptions(const VisOptions& copy)
     showAggregateSteps = copy.showAggregateSteps;
     colorTraditionalByMetric = copy.colorTraditionalByMetric;
     showMessages = copy.showMessages;
-    categoricalColors = copy.categoricalColors;
     drawGnomes = copy.drawGnomes;
     metric = copy.metric;
     maptype = copy.maptype;

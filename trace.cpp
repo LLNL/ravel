@@ -107,7 +107,7 @@ void Trace::preprocess(OTFImportOptions * _options)
     assignSteps();
     if (options.globalMerge)
         mergeGlobalSteps();
-    //gnomify();
+    gnomify();
 
     qSort(partitions->begin(), partitions->end(), dereferencedLessThan<Partition>);
     addPartitionMetric(); // For debugging

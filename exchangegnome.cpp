@@ -193,7 +193,7 @@ void ExchangeGnome::findClusters()
     {
         p1 = processes[i];
         //std::cout << "Calculating distances for process " << p1 << std::endl;
-        cluster_leaves->insert(i, new PartitionCluster(i, partition->events->value(i), "Lateness"));
+        cluster_leaves->insert(p1, new PartitionCluster(p1, partition->events->value(p1), "Lateness"));
         for (int j = i + 1; j < num_processes; j++)
         {
             p2 = processes[j];
