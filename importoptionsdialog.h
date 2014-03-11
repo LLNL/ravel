@@ -25,6 +25,7 @@ public slots:
     void onLeapMerge(bool merge);
     void onLeapCollective(bool respect);
     void onLeapSkip(bool skip);
+    void onGlobalMerge(bool merge);
     void onFunctionEdit(const QString& text);
 
 

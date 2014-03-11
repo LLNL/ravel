@@ -78,14 +78,12 @@ void VisOptionsDialog::onColorCombo(QString type)
     if (!isSet)
         return;
 
-    options->categoricalColors = false;
     if (type == "Sequential") {
         options->maptype = VisOptions::SEQUENTIAL;
         options->colormap = options->rampmap;
     } else if (type == "Categorical") {
         options->maptype = VisOptions::CATEGORICAL;
         options->colormap = options->catcolormap;
-        options->categoricalColors = true;
     } else {
         options->maptype = VisOptions::DIVERGING;
         options->colormap = options->divergentmap;

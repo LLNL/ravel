@@ -6,6 +6,7 @@ OTFImportOptions::OTFImportOptions(bool _waitall, bool _leap, bool _skip, bool _
       leapSkip(_skip),
       leapCollective(true),
       partitionByFunction(_partition),
+      globalMerge(true),
       partitionFunction(_fxn)
 {
 }
@@ -17,5 +18,6 @@ OTFImportOptions::OTFImportOptions(const OTFImportOptions& copy)
     leapSkip = copy.leapSkip;
     leapCollective = copy.leapCollective;
     partitionByFunction = copy.partitionByFunction;
+    globalMerge = copy.globalMerge;
     partitionFunction = copy.partitionFunction;
 }

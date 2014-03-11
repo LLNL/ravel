@@ -17,7 +17,6 @@ public:
     bool showAggregateSteps;
     bool colorTraditionalByMetric;
     bool showMessages;
-    bool categoricalColors;
     bool drawGnomes;
     QString metric;
     ColorMapType maptype;

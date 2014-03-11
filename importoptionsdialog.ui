@@ -9,15 +9,24 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>401</width>
-    <height>236</height>
+    <width>412</width>
+    <height>277</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>OTF Import Options</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
-   <property name="margin">
+   <property name="leftMargin">
+    <number>5</number>
+   </property>
+   <property name="topMargin">
+    <number>5</number>
+   </property>
+   <property name="rightMargin">
+    <number>5</number>
+   </property>
+   <property name="bottomMargin">
     <number>5</number>
    </property>
    <item>
@@ -120,6 +129,16 @@
               </layout>
              </item>
             </layout>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="globalMergeBox">
+             <property name="text">
+              <string>merge across global steps for clustering</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
            </item>
           </layout>
          </item>

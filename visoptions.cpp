@@ -6,7 +6,6 @@ VisOptions::VisOptions(bool _showAgg,
     : showAggregateSteps(_showAgg),
       colorTraditionalByMetric(_metricTraditional),
       showMessages(true),
-      categoricalColors(false),
       drawGnomes(true),
       metric(_metric),
       maptype(DIVERGING),
@@ -43,6 +42,7 @@ VisOptions::VisOptions(bool _showAgg,
     catcolormap->addColor(QColor(219, 219, 141), 0.85);
     catcolormap->addColor(QColor(23, 190, 207), 0.9);
     catcolormap->addColor(QColor(158, 218, 229), 0.95);
+    catcolormap->categorical = true;
 }
 
 VisOptions::VisOptions(const VisOptions& copy)

@@ -64,6 +64,7 @@ private:
     void mergeForMessagesHelper(Partition * part, QSet<Partition *> * to_merge, QQueue<Partition *> * to_process);
     void mergeCycles();
     void mergeByLeap();
+    void mergeGlobalSteps();
     class RecurseInfo {  // For Tarjan
     public:
         RecurseInfo(Partition * p, Partition * c, QList<Partition *> * cc, int i)

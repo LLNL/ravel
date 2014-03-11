@@ -105,7 +105,9 @@ void Trace::preprocess(OTFImportOptions * _options)
     options = *_options;
     partition();
     assignSteps();
-    gnomify();
+    if (options.globalMerge)
+        mergeGlobalSteps();
+    //gnomify();
 
     qSort(partitions->begin(), partitions->end(), dereferencedLessThan<Partition>);
     addPartitionMetric(); // For debugging
@@ -168,6 +170,7 @@ void Trace::addPartitionMetric()
                 (*evt)->addMetric("Partition", partition, partition);
             }
         }
+        partition++;
     }
 }
 
@@ -832,6 +835,150 @@ void Trace::mergeByLeap()
     for (QSet<QSet<Partition *> *>::Iterator group = toDelete->begin(); group != toDelete->end(); ++group)
         delete *group;
     delete toDelete;
+
+    // Delete all old partitions
+    for (QList<Partition *>::Iterator partition = partitions->begin(); partition != partitions->end(); ++partition)
+        if (!(new_partitions->contains(*partition)))
+            delete *partition;
+    delete partitions;
+    partitions = new QList<Partition *>();
+
+    // Need to calculate new dag_entries
+    delete dag_entries;
+    dag_entries = new QList<Partition *>();
+    for (QSet<Partition *>::Iterator partition = new_partitions->begin(); partition != new_partitions->end(); ++partition)
+    {
+        partitions->append(*partition);
+        if ((*partition)->parents->size() <= 0)
+            dag_entries->append(*partition);
+
+        // Update event's reference just in case
+        for (QMap<int, QList<Event *> *>::Iterator event_list = (*partition)->events->begin(); event_list != (*partition)->events->end(); ++event_list) {
+            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt) {
+                (*evt)->partition = *partition;
+            }
+        }
+    }
+    set_dag_steps();
+
+    delete new_partitions;
+}
+
+
+// Any partition with overlapping steps will get merged
+void Trace::mergeGlobalSteps()
+{
+    int spanMin = 0;
+    int spanMax = 0;
+    QSet<Partition *> * new_partitions = new QSet<Partition *>();
+    QSet<Partition *> * working_set = new QSet<Partition *>();
+    QSet<Partition *> * toAdd = new QSet<Partition *>();
+
+    // Initialize to dag entries
+    for (QList<Partition *>::Iterator part = dag_entries->begin(); part != dag_entries->end(); ++part)
+    {
+        working_set->insert(*part);
+        if ((*part)->max_global_step > spanMax)
+            spanMax = (*part)->max_global_step;
+    }
+
+    while (!working_set->isEmpty())
+    {
+        // Find all the overlapping partitions
+        bool addFlag = true;
+        while (addFlag)
+        {
+            toAdd->clear();
+            addFlag = false;
+            for (QSet<Partition *>::Iterator partition = working_set->begin(); partition != working_set->end(); ++partition)
+            {
+                for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++child)
+                {
+                    if ((*child)->min_global_step <= spanMax) {
+                        toAdd->insert(*child);
+                        if ((*child)->max_global_step > spanMax)
+                            spanMax = (*child)->max_global_step;
+                        addFlag = true;
+                    }
+                }
+            }
+
+            if (addFlag)
+                *working_set += *toAdd;
+        }
+
+        int childMin = INT_MAX;
+        Partition * p = new Partition();
+        std::cout << "New merged global partition with max global step " << spanMax << std::endl;
+        for (QSet<Partition *>::Iterator partition = working_set->begin(); partition != working_set->end(); ++partition)
+        {
+            std::cout << "     Adding partition from " << (*partition)->min_global_step << " to " << (*partition)->max_global_step << std::endl;
+            // Merge all the events into the new partition
+            QList<int> keys = (*partition)->events->keys();
+            for (QList<int>::Iterator k = keys.begin(); k != keys.end(); ++k)
+            {
+                if (p->events->contains(*k))
+                {
+                    *((*(p->events))[*k]) += *((*((*partition)->events))[*k]);
+                }
+                else
+                {
+                    (*(p->events))[*k] = new QList<Event *>();
+                    *((*(p->events))[*k]) += *((*((*partition)->events))[*k]);
+                }
+            }
+
+            // Update parents/children links
+            for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++child)
+                if (!(working_set->contains(*child)))
+                {
+                    p->children->insert(*child);
+                    for (QSet<Partition *>::Iterator group_member = working_set->begin(); group_member != working_set->end(); ++group_member)
+                        if ((*child)->parents->contains(*group_member))
+                            (*child)->parents->remove(*group_member);
+                    (*child)->parents->insert(p);
+                    if ((*child)->min_global_step < childMin)
+                        childMin = (*child)->min_global_step;
+                }
+
+            for (QSet<Partition *>::Iterator parent = (*partition)->parents->begin(); parent != (*partition)->parents->end(); ++parent)
+                if (!(working_set->contains(*parent)))
+                {
+                    p->parents->insert(*parent);
+                    for (QSet<Partition *>::Iterator group_member = working_set->begin(); group_member != working_set->end(); ++group_member)
+                        if ((*parent)->children->contains(*group_member))
+                            (*parent)->children->remove(*group_member);
+                    (*parent)->children->insert(p);
+                }
+
+            // Update new partitions
+            if (new_partitions->contains(*partition))
+                new_partitions->remove(*partition);
+
+        }
+        p->sortEvents();
+        p->min_global_step = spanMin;
+        p->max_global_step = spanMax;
+        new_partitions->insert(p);
+
+        // Start the next working_set
+        working_set->clear();
+        std::cout << "  Adding children with min step " << childMin << std::endl;
+        for (QSet<Partition *>::Iterator child = p->children->begin(); child != p->children->end(); ++child)
+        {
+            if ((*child)->min_global_step == childMin)
+            {
+                working_set->insert(*child);
+                if ((*child)->max_global_step > spanMax)
+                    spanMax = (*child)->max_global_step;
+                std::cout << "     Child " << (*child)->min_global_step << " to " << (*child)->max_global_step << std::endl;
+            }
+        }
+        spanMin = childMin;
+
+    } // End Working Set While
+    delete working_set;
+    delete toAdd;
 
     // Delete all old partitions
     for (QList<Partition *>::Iterator partition = partitions->begin(); partition != partitions->end(); ++partition)

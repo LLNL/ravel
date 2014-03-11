@@ -16,6 +16,7 @@ ImportOptionsDialog::ImportOptionsDialog(QWidget *parent, OTFImportOptions * _op
     connect(ui->leapCheckbox, SIGNAL(clicked(bool)), this, SLOT(onLeapMerge(bool)));
     connect(ui->leapCollectiveCheckbox, SIGNAL(clicked(bool)), this, SLOT(onLeapCollective(bool)));
     connect(ui->skipCheckbox, SIGNAL(clicked(bool)), this, SLOT(onLeapSkip(bool)));
+    connect(ui->globalMergeBox, SIGNAL(clicked(bool)), this, SLOT(onGlobalMerge(bool)));
     connect(ui->functionEdit, SIGNAL(textChanged(QString)), this, SLOT(onFunctionEdit(QString)));
 
     setUIState();
@@ -70,6 +71,12 @@ void ImportOptionsDialog::onLeapSkip(bool skip)
     options->leapSkip = skip;
 }
 
+void ImportOptionsDialog::onGlobalMerge(bool merge)
+{
+    options->globalMerge = merge;
+}
+
+
 void ImportOptionsDialog::onFunctionEdit(const QString& text)
 {
     options->partitionFunction = text;
@@ -106,6 +113,11 @@ void ImportOptionsDialog::setUIState()
         ui->leapCollectiveCheckbox->setEnabled(false);
     }
 
+    if (options->globalMerge)
+        ui->globalMergeBox->setChecked(true);
+    else
+        ui->globalMergeBox->setChecked(false);
+
 
     ui->functionEdit->setText(options->partitionFunction);
 
@@ -118,6 +130,7 @@ void ImportOptionsDialog::setUIState()
         ui->leapCollectiveCheckbox->setEnabled(false);
         ui->skipCheckbox->setEnabled(false);
         ui->functionEdit->setEnabled(true);
+        ui->globalMergeBox->setEnabled(false);
     }
     else
     {
@@ -126,5 +139,6 @@ void ImportOptionsDialog::setUIState()
         ui->waitallCheckbox->setEnabled(true);
         ui->leapCheckbox->setEnabled(true);
         ui->functionEdit->setEnabled(false);
+        ui->globalMergeBox->setEnabled(true);
     }
 }
