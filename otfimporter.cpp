@@ -184,6 +184,7 @@ void OTFImporter::setHandlers()
     OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_COUNTER_RECORD);
 
     // Collectives
+    /*
     OTF_HandlerArray_setHandler(handlerArray,
                                 (OTF_FunctionPointer*) &OTFImporter::handleDefProcessGroup,
                                 OTF_DEFPROCESSGROUP_RECORD);
@@ -193,6 +194,7 @@ void OTFImporter::setHandlers()
                                 (OTF_FunctionPointer*) &OTFImporter::handleDefCollectiveOperation,
                                 OTF_DEFCOLLOP_RECORD);
     OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_DEFCOLLOP_RECORD);
+    */
 
     /* Doesn't seem to be used anymore
     OTF_HandlerArray_setHandler(handlerArray,
@@ -201,6 +203,7 @@ void OTFImporter::setHandlers()
     OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_COLLOP_RECORD);
     */
 
+    /*
     OTF_HandlerArray_setHandler(handlerArray,
                                 (OTF_FunctionPointer*) &OTFImporter::handleBeginCollectiveOperation,
                                 OTF_BEGINCOLLOP_RECORD);
@@ -211,6 +214,7 @@ void OTFImporter::setHandlers()
                                 (OTF_FunctionPointer*) &OTFImporter::handleEndCollectiveOperation,
                                 OTF_ENDCOLLOP_RECORD);
     OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_ENDCOLLOP_RECORD);
+    */
 }
 
 uint64_t OTFImporter::convertTime(void* userData, uint64_t time) {

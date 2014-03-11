@@ -198,10 +198,12 @@ void VisWidget::drawTimescale(QPainter * painter, unsigned long long start, unsi
     // We want a round number
     unsigned long long tick_span = span / max_ticks; // Not round
     int power = floor(log10(tick_span)); // How many zeros
-    unsigned long long roundfactor = pow(10, power);
+    unsigned long long roundfactor = std::max(1.0, pow(10, power));
     //std::cout << "span " << span << " max_ticks " << max_ticks << " tick_span " << tick_span << std::endl;
     //std::cout << "power " << power << " roundfactor " << roundfactor << std::endl;
     tick_span = (tick_span / roundfactor) * roundfactor; // Now round
+    if (tick_span < 1)
+        tick_span = 1;
 
     // Now we must find the first number after startTime divisible by
     // the tick_span. We don't want to just find the same roundness

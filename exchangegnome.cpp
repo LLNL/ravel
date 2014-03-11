@@ -376,7 +376,7 @@ void ExchangeGnome::drawGnomeQtCluster(QPainter * painter, QRect extents)
     int effectiveWidth = extents.width() - treemargin;
 
     int processSpan = partition->events->size();
-    int stepSpan = partition->max_global_step - partition->min_global_step + 1;
+    int stepSpan = partition->max_global_step - partition->min_global_step + 2;
     int spacingMinimum = 12;
 
 
@@ -733,25 +733,26 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy, Pa
         hw = barheight * nwaits / 1.0 / pc->members->size();
 
         // Draw the event
-        if (nsends)
-            painter->fillRect(QRectF(x, ys, w, hs), QBrush(options->colormap->color(
-                                                         (*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::SEND,
-                                                                           ClusterEvent::ALL)
-                                                         / (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND,
-                                                                            ClusterEvent::ALL)
-                                                         )));
-         else if (nwaits)
-            painter->fillRect(QRectF(x, yw, w, hw), QBrush(options->colormap->color(
-                                                         (*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::WAITALL,
-                                                                           ClusterEvent::ALL)
-                                                         / (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::WAITALL,
-                                                                            ClusterEvent::ALL)
-                                                         )));
+        if (nsends) {
+            QColor sendColor = options->colormap->color((*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::SEND,
+                                          ClusterEvent::ALL) / nsends);
+            //painter->setBrush(sendColor);
+            painter->fillRect(QRectF(x, ys, w, hs), QBrush(sendColor));
+        }
+         if (nwaits)
+         {
+            QColor waitColor = options->colormap->color((*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::WAITALL, ClusterEvent::ALL)
+                        / nwaits );
+            //painter->setBrush(waitColor);
+            painter->fillRect(QRectF(x, yw, w, hw), QBrush(waitColor));
+         }
 
         // Draw border but only if we're doing spacing, otherwise too messy
         if (blockwidth != w) {
-            painter->drawRect(QRectF(x,ys,w,hs));
-            painter->drawRect(QRectF(x,yw,w,hw));
+            if (nsends)
+                painter->drawRect(QRectF(x,ys,w,hs));
+            if (nwaits)
+                painter->drawRect(QRectF(x,yw,w,hw));
         }
 
         if (drawMessages) {
@@ -762,15 +763,19 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy, Pa
             }
             if (nwaits)
             {
-                float avg_recv = (*evt)->waitallrecvs / 1.0 / pc->members->size();
-                int angle = 180 * 16 * (*evt)->waitallrecvs / pc->members->size();
-                int start = 90 * 16 + (180 * 16 - angle) / 2;
+                float avg_recvs = (*evt)->waitallrecvs / 1.0 / nwaits;
+                int angle = 90 * 16 * avg_recvs  / partition->events->size();
+                int start = 180 * 16;
+                painter->setPen(QPen(Qt::black, 1.0, Qt::SolidLine));
+                painter->setBrush(QBrush(Qt::black));
+                //painter->drawPie(x + blockwidth * 3 / 4, yw + blockwidth / 4,
+                //                 blockwidth / 4, blockwidth / 2,
+                //                 start, angle);
+                painter->drawPie(x + blockwidth - 16, yw + hw - 12, 25, 25, start, angle);
+                painter->drawText(x + blockwidth / 4 - 12, yw + hw + 15, QString::number(avg_recvs, 'g', 2));
+                painter->setBrush(QBrush());
+                painter->drawPie(x + blockwidth - 16, yw + hw - 12, 25, 25, start, 90 * 16);
                 painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
-                //painter->setBrush(QBrush(Qt::black));
-                painter->drawPie(x + blockwidth * 3 / 4, yw + blockwidth / 4,
-                                 blockwidth / 4, blockwidth / 2,
-                                 start, angle);
-                painter->drawText(x + blockwidth * 3 / 4 - 9, yw + 2, QString::number(avg_recv, 'g', 1));
             }
         }
 

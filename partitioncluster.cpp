@@ -113,6 +113,24 @@ PartitionCluster::PartitionCluster(long long int distance, PartitionCluster * c1
                 evt1 = NULL;
         }
     }
+    while (evt1)
+    {
+        events->append(new ClusterEvent(*evt1));
+        ++index1;
+        if (index1 < c1->events->size())
+            evt1 = c1->events->at(index1);
+        else
+            evt1 = NULL;
+    }
+    while (evt2)
+    {
+        events->append(new ClusterEvent(*evt2));
+        ++index2;
+        if (index2 < c2->events->size())
+            evt2 = c2->events->at(index2);
+        else
+            evt2 = NULL;
+    }
 }
 
 PartitionCluster::~PartitionCluster()
