@@ -601,8 +601,8 @@ void ExchangeGnome::drawGnomeQtClusterSSRR(QPainter * painter, QRect startxy, Pa
     if (options->showAggregateSteps) {
         startStep -= 1;
     }
-    std::cout << "Drawing background " << startxy.x() << ", " << startxy.y();
-    std::cout << ", " << startxy.width() << ", " << startxy.height() << std::endl;
+    //std::cout << "Drawing background " << startxy.x() << ", " << startxy.y();
+    //std::cout << ", " << startxy.width() << ", " << startxy.height() << std::endl;
     if (alternation) {
         painter->fillRect(startxy, QBrush(QColor(217, 217, 217)));
     } else {

@@ -909,10 +909,10 @@ void Trace::mergeGlobalSteps()
 
         int childMin = INT_MAX;
         Partition * p = new Partition();
-        std::cout << "New merged global partition with max global step " << spanMax << std::endl;
+        //std::cout << "New merged global partition with max global step " << spanMax << std::endl;
         for (QSet<Partition *>::Iterator partition = working_set->begin(); partition != working_set->end(); ++partition)
         {
-            std::cout << "     Adding partition from " << (*partition)->min_global_step << " to " << (*partition)->max_global_step << std::endl;
+            //std::cout << "     Adding partition from " << (*partition)->min_global_step << " to " << (*partition)->max_global_step << std::endl;
             // Merge all the events into the new partition
             QList<int> keys = (*partition)->events->keys();
             for (QList<int>::Iterator k = keys.begin(); k != keys.end(); ++k)
@@ -963,7 +963,7 @@ void Trace::mergeGlobalSteps()
 
         // Start the next working_set
         working_set->clear();
-        std::cout << "  Adding children with min step " << childMin << std::endl;
+        //std::cout << "  Adding children with min step " << childMin << std::endl;
         for (QSet<Partition *>::Iterator child = p->children->begin(); child != p->children->end(); ++child)
         {
             if ((*child)->min_global_step == childMin)
@@ -971,7 +971,7 @@ void Trace::mergeGlobalSteps()
                 working_set->insert(*child);
                 if ((*child)->max_global_step > spanMax)
                     spanMax = (*child)->max_global_step;
-                std::cout << "     Child " << (*child)->min_global_step << " to " << (*child)->max_global_step << std::endl;
+                //std::cout << "     Child " << (*child)->min_global_step << " to " << (*child)->max_global_step << std::endl;
             }
         }
         spanMin = childMin;
