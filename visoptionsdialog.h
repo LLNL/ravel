@@ -24,7 +24,7 @@ public slots:
     void onMetric(QString metric);
     void onShowAggregate(bool showAggregate);
     void onShowMessages(bool showMessages);
-    void onCategoricalColors(bool useCategorical);
+    void onColorCombo(QString type);
     void onDrawGnomes(bool drawGnomes);
 
 private:

@@ -18,12 +18,17 @@ VisOptionsDialog::VisOptionsDialog(QWidget *parent, VisOptions * _options, Trace
     connect(ui->metricComboBox, SIGNAL(currentIndexChanged(QString)), this, SLOT(onMetric(QString)));
     connect(ui->showAggregateCheckBox, SIGNAL(clicked(bool)), this, SLOT(onShowAggregate(bool)));
     connect(ui->showMessagesCheckBox, SIGNAL(clicked(bool)), this, SLOT(onShowMessages(bool)));
-    connect(ui->categoricalCheckBox, SIGNAL(clicked(bool)), this, SLOT(onCategoricalColors(bool)));
+    connect(ui->colorComboBox, SIGNAL(currentIndexChanged(QString)), this, SLOT(onColorCombo(QString)));
     connect(ui->gnomeCheckBox, SIGNAL(clicked(bool)), this, SLOT(onDrawGnomes(bool)));
 
     if (trace)
+    {
         for (QList<QString>::Iterator metric = trace->metrics->begin(); metric != trace->metrics->end(); ++metric)
             ui->metricComboBox->addItem(*metric);
+        ui->colorComboBox->addItem("Sequential");
+        ui->colorComboBox->addItem("Diverging");
+        ui->colorComboBox->addItem("Categorical");
+    }
 
     setUIState();
     isSet = true;
@@ -68,9 +73,23 @@ void VisOptionsDialog::onShowMessages(bool showMessages)
     options->showMessages = showMessages;
 }
 
-void VisOptionsDialog::onCategoricalColors(bool useCategorical)
+void VisOptionsDialog::onColorCombo(QString type)
 {
-    options->categoricalColors = useCategorical;
+    if (!isSet)
+        return;
+
+    options->categoricalColors = false;
+    if (type == "Sequential") {
+        options->maptype = VisOptions::SEQUENTIAL;
+        options->colormap = options->rampmap;
+    } else if (type == "Categorical") {
+        options->maptype = VisOptions::CATEGORICAL;
+        options->colormap = options->catcolormap;
+        options->categoricalColors = true;
+    } else {
+        options->maptype = VisOptions::DIVERGING;
+        options->colormap = options->divergentmap;
+    }
 }
 
 void VisOptionsDialog::onDrawGnomes(bool drawGnomes)
@@ -95,11 +114,6 @@ void VisOptionsDialog::setUIState()
     else
         ui->showMessagesCheckBox->setChecked(false);
 
-    if (options->categoricalColors)
-        ui->categoricalCheckBox->setChecked(true);
-    else
-        ui->categoricalCheckBox->setChecked(false);
-
     if (options->drawGnomes)
         ui->gnomeCheckBox->setChecked(true);
     else
@@ -110,6 +124,12 @@ void VisOptionsDialog::setUIState()
         int metric_index = mapMetricToIndex(options->metric);
         ui->metricComboBox->setCurrentIndex(metric_index);
         options->metric = ui->metricComboBox->itemText(metric_index); // In case we're stuck at the default
+        if (options->maptype == VisOptions::SEQUENTIAL)
+            ui->colorComboBox->setCurrentIndex(0);
+        else if (options->maptype == VisOptions::CATEGORICAL)
+            ui->colorComboBox->setCurrentIndex(2);
+        else
+            ui->colorComboBox->setCurrentIndex(1);
     }
 }
 

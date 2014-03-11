@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>320</width>
-    <height>197</height>
+    <width>340</width>
+    <height>227</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -36,13 +36,6 @@
     </widget>
    </item>
    <item>
-    <widget class="QCheckBox" name="categoricalCheckBox">
-     <property name="text">
-      <string>use categorical coloring</string>
-     </property>
-    </widget>
-   </item>
-   <item>
     <widget class="QCheckBox" name="gnomeCheckBox">
      <property name="text">
       <string>draw gnomes where possible</string>
@@ -60,6 +53,27 @@
      </item>
      <item>
       <widget class="QComboBox" name="metricComboBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>1</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>color map:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="colorComboBox">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
          <horstretch>1</horstretch>

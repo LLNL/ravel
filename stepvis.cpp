@@ -52,7 +52,7 @@ void StepVis::setupMetric()
             }
         }
     }
-    options->colormap->setRange(0, maxMetric);
+    options->setRange(0, maxMetric);
     cacheMetric = options->metric;
 
     // For colorbar
@@ -239,7 +239,7 @@ void StepVis::qtPaint(QPainter *painter)
     if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
       paintEvents(painter);
 
-    drawProcessLabels(painter, rect().height() - colorBarHeight, processheight);
+    //drawProcessLabels(painter, rect().height() - colorBarHeight, processheight);
     drawColorBarText(painter);
 
     // Hover is independent of how we drew things
@@ -262,13 +262,13 @@ void StepVis::drawNativeGL()
     QString metric(options->metric);
 
     // Setup viewport
-    int width = rect().width() - labelWidth;
+    int width = rect().width();
     int height = effectiveHeight;
     float effectiveSpan = stepSpan;
     if (!(options->showAggregateSteps))
         effectiveSpan /= 2.0;
 
-    glViewport(labelWidth,
+    glViewport(0,
                colorBarHeight,
                width,
                height);
@@ -384,7 +384,7 @@ void StepVis::paintEvents(QPainter * painter)
     //painter->fillRect(rect(), backgroundColor);
 
     int effectiveHeight = rect().height() - colorBarHeight;
-    int effectiveWidth = rect().width() - labelWidth;
+    int effectiveWidth = rect().width();
 
     int process_spacing = 0;
     if (effectiveHeight / processSpan > spacingMinimum)
@@ -395,6 +395,7 @@ void StepVis::paintEvents(QPainter * painter)
         step_spacing = 3;
 
 
+    int partitionCount = 0;
     float x, y, w, h, xa, wa, blockwidth;
     float blockheight = floor(effectiveHeight / processSpan);
     if (options->showAggregateSteps)
@@ -405,7 +406,7 @@ void StepVis::paintEvents(QPainter * painter)
     float barwidth = blockwidth - step_spacing;
     processheight = blockheight;
     stepwidth = blockwidth;
-    QRect extents = QRect(labelWidth, 0, rect().width(), effectiveHeight);
+    QRect extents = QRect(0, 0, rect().width(), effectiveHeight);
 
     QString metric(options->metric);
     int position;
@@ -426,7 +427,7 @@ void StepVis::paintEvents(QPainter * painter)
         if (options->drawGnomes && part->gnome) {
             // The y value here of 0 isn't general... we need another structure to keep track of how much
             // y is used when we're doing the gnome thing.
-            QRect gnomeRect = QRect(labelWidth + blockwidth * (part->min_global_step - startStep), 0,
+            QRect gnomeRect = QRect(partitionCount * labelWidth + blockwidth * (part->min_global_step - startStep), 0,
                                     blockwidth * (part->max_global_step - part->min_global_step),
                                     part->events->size() / 1.0 / trace->num_processes * effectiveHeight);
             part->gnome->drawGnomeQt(painter, gnomeRect, options);
@@ -449,9 +450,9 @@ void StepVis::paintEvents(QPainter * painter)
                 // 0 = startStep, rect().width() = stopStep (startStep + stepSpan)
                 y = floor((position - startProcess) * blockheight) + 1;
                 if (options->showAggregateSteps)
-                    x = floor(((*evt)->step - startStep) * blockwidth) + 1 + labelWidth;
+                    x = floor(((*evt)->step - startStep) * blockwidth) + 1 + labelWidth * partitionCount;
                 else
-                    x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1 + labelWidth;
+                    x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1 + labelWidth * partitionCount;
                 w = barwidth;
                 h = barheight;
 
@@ -467,9 +468,9 @@ void StepVis::paintEvents(QPainter * painter)
                     h = effectiveHeight - y;
                     complete = false;
                 }
-                if (x < labelWidth) {
-                    w = barwidth - (labelWidth - x);
-                    x = labelWidth;
+                if (x < 0) {
+                    w = barwidth + x;
+                    x = 0;
                     complete = false;
                 } else if (x + barwidth > rect().width()) {
                     w = rect().width() - x;
@@ -501,15 +502,15 @@ void StepVis::paintEvents(QPainter * painter)
                     drawMessages.insert((*msg));
 
                 if (options->showAggregateSteps) {
-                    xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + labelWidth;
+                    xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + labelWidth * partitionCount;
                     wa = barwidth;
-                    if (xa + wa <= labelWidth)
+                    if (xa + wa <= 0)
                         continue;
 
                     aggcomplete = true;
-                    if (xa < labelWidth) {
-                        wa = barwidth - (labelWidth - xa);
-                        xa = labelWidth;
+                    if (xa < 0) {
+                        wa = barwidth + xa;
+                        xa = 0;
                         aggcomplete = false;
                     } else if (xa + barwidth > rect().width()) {
                         wa = rect().width() - xa;
@@ -552,16 +553,16 @@ void StepVis::paintEvents(QPainter * painter)
             position = proc_to_order[send_event->process];
             y = floor((position - startProcess) * blockheight) + 1;
             if (options->showAggregateSteps)
-                x = floor((send_event->step - startStep) * blockwidth) + 1 + labelWidth;
+                x = floor((send_event->step - startStep) * blockwidth) + 1 + labelWidth * partitionCount;
             else
-                x = floor((send_event->step - startStep) / 2 * blockwidth) + 1 + labelWidth;
+                x = floor((send_event->step - startStep) / 2 * blockwidth) + 1 + labelWidth * partitionCount;
             p1 = QPointF(x + w/2.0, y + h/2.0);
             position = proc_to_order[recv_event->process];
             y = floor((position - startProcess) * blockheight) + 1;
             if (options->showAggregateSteps)
-                x = floor((recv_event->step - startStep) * blockwidth) + 1 + labelWidth;
+                x = floor((recv_event->step - startStep) * blockwidth) + 1 + labelWidth * partitionCount;
             else
-                x = floor((recv_event->step - startStep) / 2 * blockwidth) + 1 + labelWidth;
+                x = floor((recv_event->step - startStep) / 2 * blockwidth) + 1 + labelWidth * partitionCount;
             p2 = QPointF(x + w/2.0, y + h/2.0);
             drawLine(painter, &p1, &p2, effectiveHeight);
         }

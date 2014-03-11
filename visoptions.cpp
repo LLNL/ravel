@@ -9,11 +9,19 @@ VisOptions::VisOptions(bool _showAgg,
       categoricalColors(false),
       drawGnomes(true),
       metric(_metric),
-      colormap(new ColorMap(QColor(173, 216, 230), 0)),
-      catcolormap(new ColorMap(QColor(31, 119, 180), 0))
+      maptype(DIVERGING),
+      divergentmap(new ColorMap(QColor(173, 216, 230), 0)),
+      rampmap(new ColorMap(QColor(255, 247, 222), 0)),
+      catcolormap(new ColorMap(QColor(31, 119, 180), 0)),
+      colormap(divergentmap)
 {
-    colormap->addColor(QColor(240, 230, 140), 0.5);
-    colormap->addColor(QColor(178, 34, 34), 1);
+
+    // rampmap from colorbrewer
+    rampmap->addColor(QColor(252, 141, 89), 0.5);
+    rampmap->addColor(QColor(127, 0, 0), 1);
+
+    divergentmap->addColor(QColor(240, 230, 140), 0.5);
+    divergentmap->addColor(QColor(178, 34, 34), 1);
 
     // Cat colormap from d3's category20
     catcolormap->addColor(QColor(174, 119, 232), 0.05);
@@ -45,6 +53,22 @@ VisOptions::VisOptions(const VisOptions& copy)
     categoricalColors = copy.categoricalColors;
     drawGnomes = copy.drawGnomes;
     metric = copy.metric;
-    colormap = new ColorMap(*(copy.colormap));
+    maptype = copy.maptype;
+    divergentmap = new ColorMap(*(copy.divergentmap));
     catcolormap = new ColorMap(*(copy.catcolormap));
+    rampmap = new ColorMap(*(copy.rampmap));
+    if (maptype == SEQUENTIAL)
+        colormap = rampmap;
+    else if (maptype == CATEGORICAL)
+        colormap = catcolormap;
+    else
+        colormap = divergentmap;
+}
+
+
+void VisOptions::setRange(double low, double high)
+{
+    rampmap->setRange(low, high);
+    divergentmap->setRange(low, high);
+    catcolormap->setRange(low, high);
 }

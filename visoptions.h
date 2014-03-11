@@ -10,6 +10,9 @@ public:
                      bool _metricTraditional = false,
                      QString _metric = "Lateness");
     VisOptions(const VisOptions& copy);
+    void setRange(double low, double high);
+
+    enum ColorMapType { SEQUENTIAL, DIVERGING, CATEGORICAL };
 
     bool showAggregateSteps;
     bool colorTraditionalByMetric;
@@ -17,8 +20,11 @@ public:
     bool categoricalColors;
     bool drawGnomes;
     QString metric;
-    ColorMap * colormap;
+    ColorMapType maptype;
+    ColorMap * divergentmap;
+    ColorMap * rampmap;
     ColorMap * catcolormap; // categorical colormap
+    ColorMap * colormap;
 };
 
 #endif // VISOPTIONS_H
