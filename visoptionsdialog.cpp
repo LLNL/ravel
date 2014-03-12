@@ -20,6 +20,8 @@ VisOptionsDialog::VisOptionsDialog(QWidget *parent, VisOptions * _options, Trace
     connect(ui->showMessagesCheckBox, SIGNAL(clicked(bool)), this, SLOT(onShowMessages(bool)));
     connect(ui->colorComboBox, SIGNAL(currentIndexChanged(QString)), this, SLOT(onColorCombo(QString)));
     connect(ui->gnomeCheckBox, SIGNAL(clicked(bool)), this, SLOT(onDrawGnomes(bool)));
+    connect(ui->topCheckBox, SIGNAL(clicked(bool)), this, SLOT(onDrawTop(bool)));
+
 
     if (trace)
     {
@@ -95,6 +97,12 @@ void VisOptionsDialog::onDrawGnomes(bool drawGnomes)
     options->drawGnomes = drawGnomes;
 }
 
+
+void VisOptionsDialog::onDrawTop(bool drawTop)
+{
+    options->drawTop = drawTop;
+}
+
 void VisOptionsDialog::setUIState()
 {
     if (options->colorTraditionalByMetric)
@@ -116,6 +124,11 @@ void VisOptionsDialog::setUIState()
         ui->gnomeCheckBox->setChecked(true);
     else
         ui->gnomeCheckBox->setChecked(false);
+
+    if (options->drawTop)
+        ui->topCheckBox->setChecked(true);
+    else
+        ui->topCheckBox->setChecked(false);
 
     if (trace)
     {

@@ -40,8 +40,11 @@ private:
     long long int calculateMetricDistance2(QList<Event *> * list1, QList<Event *> * list2);
     void findClusters();
 
+    QMap<int, int> SRSRmap;
+    QSet<int> SRSRpatterns;
     QMap<int, PartitionCluster * > * cluster_leaves;
     PartitionCluster * cluster_root;
+    QList<int> top_processes;
 
     class DrawMessage {
     public:
@@ -60,6 +63,8 @@ private:
     bool alternation;
 
     void drawGnomeQtCluster(QPainter * painter, QRect extents);
+    void drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
+                                 int blockwidth, int barwidth, int labelwidth);
     void drawGnomeQtClusterBranch(QPainter * painter, QRect current, PartitionCluster * pc,
                                   int leafx, int blockheight, int blockwidth, int barheight,
                                   int barwidth, int treemargin, int labelwidth);

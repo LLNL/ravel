@@ -26,6 +26,7 @@ public slots:
     void onShowMessages(bool showMessages);
     void onColorCombo(QString type);
     void onDrawGnomes(bool drawGnomes);
+    void onDrawTop(bool drwaTop);
 
 private:
     int mapMetricToIndex(QString metric);

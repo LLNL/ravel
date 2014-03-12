@@ -18,6 +18,7 @@ public:
     bool colorTraditionalByMetric;
     bool showMessages;
     bool drawGnomes;
+    bool drawTop;
     QString metric;
     ColorMapType maptype;
     ColorMap * divergentmap;

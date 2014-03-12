@@ -24,6 +24,7 @@ public:
     void close();
 
     bool open;
+    bool drawnOut;
     long long int max_distance;
     long long int max_metric;
     PartitionCluster * parent;

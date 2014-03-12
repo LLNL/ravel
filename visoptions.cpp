@@ -7,12 +7,13 @@ VisOptions::VisOptions(bool _showAgg,
       colorTraditionalByMetric(_metricTraditional),
       showMessages(true),
       drawGnomes(true),
+      drawTop(true),
       metric(_metric),
-      maptype(DIVERGING),
+      maptype(SEQUENTIAL),
       divergentmap(new ColorMap(QColor(173, 216, 230), 0)),
       rampmap(new ColorMap(QColor(255, 247, 222), 0)),
       catcolormap(new ColorMap(QColor(31, 119, 180), 0, true)),
-      colormap(divergentmap)
+      colormap(rampmap)
 {
 
     // rampmap from colorbrewer
@@ -50,6 +51,7 @@ VisOptions::VisOptions(const VisOptions& copy)
     colorTraditionalByMetric = copy.colorTraditionalByMetric;
     showMessages = copy.showMessages;
     drawGnomes = copy.drawGnomes;
+    drawTop = copy.drawTop;
     metric = copy.metric;
     maptype = copy.maptype;
     divergentmap = new ColorMap(*(copy.divergentmap));

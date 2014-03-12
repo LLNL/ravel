@@ -9,8 +9,11 @@ ExchangeGnome::ExchangeGnome()
     : Gnome(),
       type(UNKNOWN),
       metric("Lateness"),
+      SRSRmap(QMap<int, int>()),
+      SRSRpatterns(QSet<int>()),
       cluster_leaves(NULL),
       cluster_root(NULL),
+      top_processes(QList<int>()),
       saved_messages(QSet<Message *>()),
       drawnPCs(QMap<PartitionCluster *, QRect>()),
       drawnNodes(QMap<PartitionCluster *, QRect>()),
@@ -77,6 +80,11 @@ void ExchangeGnome::preprocess()
     // Possibly determine type
     type = findType();
     std::cout << "Type is " << type << std::endl;
+    if (type != SRSR)
+    {
+        SRSRmap.clear();
+        SRSRpatterns.clear();
+    }
 
     // Cluster vectors
     findClusters();
@@ -94,6 +102,7 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
     {
         bool b_ssrr = true, b_srsr = true, b_sswa = true, first = true, sentlast = true, odd = true;
         int recv_dist_2 = 0, recv_dist_not_2 = 0;
+        int srsr_pattern = 0;
         for (QList<Event *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
         {
@@ -131,6 +140,8 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
                     {
                         b_srsr = false;
                     }
+
+                    srsr_pattern += 1 << (((*evt)->step - partition->min_global_step) / 2);
                     sentlast = true;
                     if (msg->receiver->step - msg->sender->step == 2)
                         recv_dist_2++;
@@ -148,8 +159,12 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
             b_srsr = false;
         //std::cout << "Process " << event_list.key() << " with SRSR: " << b_srsr << ", SSRR ";
         //std::cout << b_ssrr << ", SSWA " << b_sswa << std::endl;
-        if (b_srsr)
+        if (b_srsr) {
             types[SRSR]++;
+            SRSRmap[event_list.key()] = srsr_pattern;
+            SRSRpatterns.insert(srsr_pattern);
+            std::cout << "Adding pattern " << srsr_pattern << " on process " << event_list.key() << std::endl;
+        }
         if (b_ssrr)
             types[SSRR]++;
         if (b_sswa)
@@ -178,6 +193,7 @@ void ExchangeGnome::findClusters()
     std::cout << "Finding clusters..." << std::endl;
     QList<DistancePair> distances;
     QList<int> processes = partition->events->keys();
+    top_processes.clear();
     if (cluster_root)
     {
         cluster_root->delete_tree();
@@ -185,6 +201,8 @@ void ExchangeGnome::findClusters()
         delete cluster_leaves;
     }
     cluster_leaves = new QMap<int, PartitionCluster *>();
+    long long int max_metric = LLONG_MIN;
+    int max_metric_process = -1;
     qSort(processes);
     int num_processes = processes.size();
     int p1, p2;
@@ -194,6 +212,11 @@ void ExchangeGnome::findClusters()
         p1 = processes[i];
         //std::cout << "Calculating distances for process " << p1 << std::endl;
         cluster_leaves->insert(p1, new PartitionCluster(p1, partition->events->value(p1), "Lateness"));
+        if (cluster_leaves->value(p1)->max_metric > max_metric)
+        {
+            max_metric = cluster_leaves->value(p1)->max_metric;
+            max_metric_process = p1;
+        }
         for (int j = i + 1; j < num_processes; j++)
         {
             p2 = processes[j];
@@ -207,8 +230,8 @@ void ExchangeGnome::findClusters()
     qSort(distances);
 
     int lastp = distances[0].p1;
-    PartitionCluster * pc;
     QList<long long int> cluster_distances = QList<long long int>();
+    PartitionCluster * pc = NULL;
     for (int i = 0; i < distances.size(); i++)
     {
         //std::cout << "Handling distance #" << i << std::endl;
@@ -226,6 +249,144 @@ void ExchangeGnome::findClusters()
 
     // From here we could now compress the ClusterEvent metrics (doing the four divides ahead of time)
     // but I'm going to retain the information for now and see how it goes
+
+    // From the max_metric_process and the type, get the rest of the processes we draw by default
+    top_processes.append(max_metric_process);
+    std::cout << "Top process is " << max_metric_process << std::endl;
+    if (type == SRSR) // Add all partners and then search those partners for the missing strings
+    {
+        QList<Event *> * elist = partition->events->value(max_metric_process);
+        QSet<int> add_processes = QSet<int>();
+        QSet<int> patterns = QSet<int>();
+        patterns.insert(SRSRmap[max_metric_process]);
+        for (QList<Event *>::Iterator evt = elist->begin(); evt != elist->end(); ++evt)
+        {
+            for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
+            {
+                if (*evt == (*msg)->sender)
+                {
+                    add_processes.insert((*msg)->receiver->process);
+                    patterns.insert(SRSRmap[(*msg)->receiver->process]);
+                    std::cout << "  Adding neighbor " << (*msg)->receiver->process << std::endl;
+                }
+                else
+                {
+                    add_processes.insert((*msg)->sender->process);
+                    patterns.insert(SRSRmap[(*msg)->sender->process]);
+                    std::cout << "  Adding neighbor " << (*msg)->sender->process << std::endl;
+                }
+            }
+        }
+
+        // Now check, do we have all patterns?
+        top_processes += add_processes.toList();
+        /*QList<int> all = partition->events->keys();
+        qSort(all);
+        int index = 0;
+        while (top_processes.size() < SRSRpatterns.size())
+        {
+            int ind = all.indexOf(top_processes[index]);
+            ind = (ind + 1) % all.size();
+            if (!top_processes.contains(all[ind]))
+                top_processes.append(all[ind]);
+            index++;
+        }*/
+
+
+        if (!SRSRpatterns.subtract(patterns).isEmpty())
+        {
+            QList<int> check_group = add_processes.toList();
+            add_processes.clear();
+            qSort(check_group); // Future, possibly sort by something else than process id, like metric
+            while (!check_group.isEmpty())
+            {
+                // Now see about adding things from the check group
+                for (QList<int>::Iterator proc = check_group.begin(); proc != check_group.end(); ++proc)
+                {
+                    elist = partition->events->value(*proc);
+                    for (QList<Event *>::Iterator evt = elist->begin(); evt != elist->end(); ++evt)
+                    {
+                        for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
+                        {
+                            if (*evt == (*msg)->sender)
+                            {
+                                if (!patterns.contains(SRSRmap[((*msg)->receiver->process)]))
+                                {
+                                    add_processes.insert((*msg)->receiver->process);
+                                    patterns.insert(SRSRmap[(*msg)->receiver->process]);
+                                    std::cout << "  Adding " << (*msg)->receiver->process << std::endl;
+                                }
+                            }
+                            else
+                            {
+                                if (!patterns.contains(SRSRmap[((*msg)->sender->process)]))
+                                {
+                                    add_processes.insert((*msg)->sender->process);
+                                    patterns.insert(SRSRmap[(*msg)->sender->process]);
+                                    std::cout << "  Adding " << (*msg)->sender->process << std::endl;
+                                }
+                            }
+                        }
+                    }
+                } // checked everything in check_group
+                top_processes += add_processes.toList();
+                check_group.clear();
+                check_group += add_processes.toList();
+                add_processes.clear();
+                qSort(check_group);
+
+            } // check_group now empty
+        }
+
+        QList<int> all = partition->events->keys();
+        qSort(all);
+        int index = all.indexOf(max_metric_process) + 1;
+        while (!SRSRpatterns.subtract(patterns).isEmpty() && index < all.size())
+        {
+            // If still empty, time to look for nearby processes or just go through the list and pick anything?
+            int process = all[index];
+            if (!patterns.contains(SRSRmap[process]))
+            {
+                top_processes.append(process);
+                patterns.insert(SRSRmap[process]);
+            }
+            index++;
+        }
+        int index2 = 0;
+        while (!SRSRpatterns.subtract(patterns).isEmpty() && index2 < index)
+        {
+            // If still empty, time to look for nearby processes or just go through the list and pick anything?
+            int process = all[index2];
+            if (!patterns.contains(SRSRmap[process]))
+            {
+                top_processes.append(process);
+                patterns.insert(SRSRmap[process]);
+            }
+            index2++;
+        }
+
+    }
+    else if (type == SSRR || type == SSWA) // Add all partners
+    {
+        QList<Event *> * elist = partition->events->value(max_metric_process);
+        QSet<int> add_processes = QSet<int>();
+        for (QList<Event *>::Iterator evt = elist->begin(); evt != elist->end(); ++evt)
+        {
+            for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
+            {
+                if (*evt == (*msg)->sender)
+                {
+                    add_processes.insert((*msg)->receiver->process);
+                }
+                else
+                {
+                    add_processes.insert((*msg)->sender->process);
+                }
+            }
+        }
+        top_processes += add_processes.toList();
+    }
+    qSort(top_processes); // Let's keep the initial order for now when we draw
 }
 
 
@@ -383,7 +544,18 @@ void ExchangeGnome::drawGnomeQtCluster(QPainter * painter, QRect extents)
         treemargin += labelwidth;
     }
 
-    int effectiveHeight = extents.height();
+    int topHeight = 0;
+    if (options->drawTop)
+    {
+        int fair_portion = top_processes.size() / 1.0 / cluster_root->members->size() * extents.height();
+        int min_size = 12 * top_processes.size();
+        if (min_size > extents.height())
+            topHeight = fair_portion;
+        else
+            topHeight = std::max(fair_portion, min_size);
+    }
+
+    int effectiveHeight = extents.height() - topHeight;
     int effectiveWidth = extents.width() - treemargin;
 
     int processSpan = partition->events->size();
@@ -410,13 +582,21 @@ void ExchangeGnome::drawGnomeQtCluster(QPainter * painter, QRect extents)
     float barwidth = blockwidth - step_spacing;
     painter->setPen(QPen(QColor(0, 0, 0)));
 
+
+    if (options->drawTop)
+    {
+        QRect top_extents = QRect(extents.x() + treemargin, effectiveHeight, extents.width() - treemargin, topHeight);
+        drawGnomeQtTopProcesses(painter, top_extents, blockwidth, barwidth, labelwidth);
+    }
+
     // Generate inorder list of clusters
 
     // I need to go through clusters and keep track of how I'm drawing my branches from the root.
     // When I get to the leaf, I need to draw it.
     //drawGnomeQtClusterBranchPerfect(painter, extents, cluster_root, extents.x() + treemargin,
     //                                blockheight, blockwidth, barheight, barwidth);
-    drawGnomeQtClusterBranch(painter, extents, cluster_root, extents.x() + treemargin,
+    QRect cluster_extents = QRect(extents.x(), extents.y(), extents.width(), effectiveHeight);
+    drawGnomeQtClusterBranch(painter, cluster_extents, cluster_root, extents.x() + treemargin,
                              blockheight, blockwidth, barheight, barwidth, treemargin,
                              labelwidth);
 
@@ -424,6 +604,105 @@ void ExchangeGnome::drawGnomeQtCluster(QPainter * painter, QRect extents)
     // messages which are saved in saved_messages.
     drawGnomeQtInterMessages(painter, extents.x() + treemargin, blockwidth, partition->min_global_step);
 
+}
+
+
+void ExchangeGnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
+                                            int blockwidth, int barwidth, int labelwidth)
+{
+    int effectiveHeight = extents.height();
+
+    int process_spacing = blockwidth - barwidth;
+    int step_spacing = process_spacing;
+
+    float x, y, w, h, xa, wa;
+    float blockheight = floor(effectiveHeight / top_processes.size());
+    int startStep = partition->min_global_step;
+    if (options->showAggregateSteps)
+    {
+        startStep -= 1;
+    }
+    float barheight = blockheight - process_spacing;
+
+    QSet<Message *> drawMessages = QSet<Message *>();
+    painter->setPen(QPen(QColor(0, 0, 0)));
+    QMap<int, int> processYs = QMap<int, int>();
+
+    for (int i = 0; i < top_processes.size(); ++i)
+    {
+        QList<Event *> * event_list = partition->events->value(top_processes[i]);
+        y =  floor(extents.y() + i * blockheight) + 1;
+        painter->drawText(extents.x() - labelwidth - 1, y + blockheight / 2, QString::number(top_processes[i]));
+        processYs[top_processes[i]] = y;
+        for (QList<Event *>::Iterator evt = event_list->begin(); evt != event_list->end(); ++evt)
+        {
+            if (options->showAggregateSteps)
+                x = floor(((*evt)->step - startStep) * blockwidth) + 1 + extents.x();
+            else
+                x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1 + extents.x();
+            w = barwidth;
+            h = barheight;
+
+            painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color((*evt)->getMetric(metric))));
+
+            // Draw border but only if we're doing spacing, otherwise too messy
+            if (step_spacing > 0 && process_spacing > 0)
+                painter->drawRect(QRectF(x,y,w,h));
+
+            // For selection
+            // drawnEvents[*evt] = QRect(x, y, w, h);
+
+            for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
+            {
+                if (top_processes.contains((*msg)->sender->process) && top_processes.contains((*msg)->receiver->process))
+                    drawMessages.insert((*msg));
+            }
+
+            if (options->showAggregateSteps) {
+                xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + extents.x();
+                wa = barwidth;
+
+                painter->fillRect(QRectF(xa, y, wa, h), QBrush(options->colormap->color((*evt)->getMetric(metric, true))));
+
+                if (step_spacing > 0 && process_spacing > 0)
+                    painter->drawRect(QRectF(xa, y, wa, h));
+            }
+
+        }
+    }
+
+        // Messages
+        // We need to do all of the message drawing after the event drawing
+        // for overlap purposes
+    if (options->showMessages)
+    {
+        if (top_processes.size() <= 32)
+            painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
+        else
+            painter->setPen(QPen(Qt::black, 1, Qt::SolidLine));
+        Event * send_event;
+        Event * recv_event;
+        QPointF p1, p2;
+        w = barwidth;
+        h = barheight;
+        for (QSet<Message *>::Iterator msg = drawMessages.begin(); msg != drawMessages.end(); ++msg) {
+            send_event = (*msg)->sender;
+            recv_event = (*msg)->receiver;
+            y = processYs[send_event->process];
+            if (options->showAggregateSteps)
+                x = floor((send_event->step - startStep) * blockwidth) + 1 + extents.x();
+            else
+                x = floor((send_event->step - startStep) / 2 * blockwidth) + 1 + extents.x();
+            p1 = QPointF(x + w/2.0, y + h/2.0);
+            y = processYs[recv_event->process];
+            if (options->showAggregateSteps)
+                x = floor((recv_event->step - startStep) * blockwidth) + 1 + extents.x();
+            else
+                x = floor((recv_event->step - startStep) / 2 * blockwidth) + 1 + extents.x();
+            p2 = QPointF(x + w/2.0, y + h/2.0);
+            painter->drawLine(p1, p2);
+        }
+    }
 }
 
 void ExchangeGnome::drawGnomeQtInterMessages(QPainter * painter, int leafx, int blockwidth, int startStep)
@@ -834,6 +1113,7 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, Pa
     int base_y = startxy.y() + startxy.height() / 2 - blockheight;
     int x, y, w, h, xa, wa, xr, yr;
     xr = blockwidth;
+    int starti = startStep;
     if (options->showAggregateSteps) {
         startStep -= 1;
         xr *= 2;
@@ -849,7 +1129,7 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, Pa
     ClusterEvent * evt = pc->events->first();
     int events_index = 0;
     //for (QList<ClusterEvent *>::Iterator evt = pc->events->begin(); evt != pc->events->end(); ++evt)
-    for (int i = startStep + 1; i < partition->max_global_step; i += 2)
+    for (int i = starti; i < partition->max_global_step; i += 2)
     {
         if (options->showAggregateSteps)
         {

@@ -3,6 +3,7 @@
 
 PartitionCluster::PartitionCluster(int member, QList<Event *> * elist, QString metric, long long int divider)
     : open(false),
+      drawnOut(false),
       max_distance(0),
       max_metric(LLONG_MIN),
       parent(NULL),
