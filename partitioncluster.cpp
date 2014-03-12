@@ -4,6 +4,7 @@
 PartitionCluster::PartitionCluster(int member, QList<Event *> * elist, QString metric, long long int divider)
     : open(false),
       max_distance(0),
+      max_metric(LLONG_MIN),
       parent(NULL),
       children(new QList<PartitionCluster *>()),
       members(new QList<int>()),
@@ -15,6 +16,8 @@ PartitionCluster::PartitionCluster(int member, QList<Event *> * elist, QString m
     {
         long long evt_metric = (*evt)->getMetric(metric);
         long long agg_metric = (*evt)->getMetric(metric, true);
+        if (evt_metric > max_metric)
+            max_metric = evt_metric;
         int nsend = 0, nrecv = 0;
         ClusterEvent * ce = new ClusterEvent((*evt)->step);
 
@@ -65,6 +68,7 @@ PartitionCluster::PartitionCluster(int member, QList<Event *> * elist, QString m
 PartitionCluster::PartitionCluster(long long int distance, PartitionCluster * c1, PartitionCluster * c2)
     : open(false),
       max_distance(distance),
+      max_metric(std::max(c1->max_metric, c2->max_metric)),
       parent(NULL),
       children(new QList<PartitionCluster *>()),
       members(new QList<int>()),
@@ -73,10 +77,20 @@ PartitionCluster::PartitionCluster(long long int distance, PartitionCluster * c1
 {
     c1->parent = this;
     c2->parent = this;
-    children->append(c1);
-    children->append(c2);
     members->append(*(c1->members));
     members->append(*(c2->members));
+    // Children are ordered by their max_metric
+    if (c1->max_metric > c2->max_metric)
+    {
+        children->append(c2);
+        children->append(c1);
+    }
+    else
+    {
+        children->append(c1);
+        children->append(c2);
+    }
+
 
     int index1 = 0, index2 = 0;
     ClusterEvent * evt1 = c1->events->at(0), * evt2 = c2->events->at(0);
@@ -177,6 +191,29 @@ int PartitionCluster::max_depth()
     for (QList<PartitionCluster *>::Iterator child = children->begin(); child != children->end(); ++child)
         max = std::max(max, (*child)->max_depth() + 1);
     return max;
+}
+
+int PartitionCluster::max_open_depth()
+{
+    if (!open)
+        return 0;
+
+    int max = 0;
+    for (QList<PartitionCluster *>::Iterator child = children->begin(); child != children->end(); ++child)
+        max = std::max(max, (*child)->max_open_depth() + 1);
+    return max;
+
+}
+
+bool PartitionCluster::leaf_open()
+{
+    if (members->size() == 1)
+        return true;
+
+    bool leaf = false;
+    for (QList<PartitionCluster *>::Iterator child = children->begin(); child != children->end(); ++child)
+        leaf = leaf || (*child)->leaf_open();
+    return leaf;
 }
 
 QString PartitionCluster::memberString()

@@ -370,7 +370,18 @@ void ExchangeGnome::drawGnomeQt(QPainter * painter, QRect extents, VisOptions *_
 void ExchangeGnome::drawGnomeQtCluster(QPainter * painter, QRect extents)
 {
     alternation = true;
-    int treemargin = 20 * cluster_root->max_depth();
+    int treemargin = 5 * cluster_root->max_open_depth();
+    int labelwidth = 0;
+    if (cluster_root->leaf_open())
+    {
+        painter->setFont(QFont("Helvetica", 10));
+        QFontMetrics font_metrics = painter->fontMetrics();
+        QString text = QString::number((*(std::max_element(cluster_root->members->begin(), cluster_root->members->end()))));
+
+        // Determine bounding box of FontMetrics
+        labelwidth = font_metrics.boundingRect(text).width();
+        treemargin += labelwidth;
+    }
 
     int effectiveHeight = extents.height();
     int effectiveWidth = extents.width() - treemargin;
@@ -406,7 +417,8 @@ void ExchangeGnome::drawGnomeQtCluster(QPainter * painter, QRect extents)
     //drawGnomeQtClusterBranchPerfect(painter, extents, cluster_root, extents.x() + treemargin,
     //                                blockheight, blockwidth, barheight, barwidth);
     drawGnomeQtClusterBranch(painter, extents, cluster_root, extents.x() + treemargin,
-                             blockheight, blockwidth, barheight, barwidth, treemargin);
+                             blockheight, blockwidth, barheight, barwidth, treemargin,
+                             labelwidth);
 
     // Now that we have drawn all the events, we need to draw the leaf-cluster messages or the leaf-leaf
     // messages which are saved in saved_messages.
@@ -487,7 +499,8 @@ void ExchangeGnome::drawGnomeQtClusterBranchPerfect(QPainter * painter, QRect cu
 }
 
 void ExchangeGnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, PartitionCluster * pc, int leafx,
-                                             int blockheight, int blockwidth, int barheight, int barwidth, int treemargin)
+                                             int blockheight, int blockwidth, int barheight, int barwidth,
+                                             int treemargin, int labelwidth)
 {
     //std::cout << "Drawing for cluster " << pc->memberString().toStdString().c_str() << std::endl;
     int pc_size = pc->members->size();
@@ -514,7 +527,7 @@ void ExchangeGnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, 
             //std::cout << "Drawing line from " << my_x << ", " << my_y << "  to   " << my_x << ", " << child_y << std::endl;
 
             // Draw forward correct amount of px
-            child_x = my_x + 20;
+            child_x = my_x + 5;
             painter->drawLine(my_x, child_y, child_x, child_y);
 
             QRect node = QRect(my_x - 3, my_y - 3, 6, 6);
@@ -522,7 +535,7 @@ void ExchangeGnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, 
             drawnNodes[pc] = node;
 
             drawGnomeQtClusterBranch(painter, QRect(child_x, top_y + used_y, current.width(), current.height()), *child,
-                                     leafx, blockheight, blockwidth, barheight, barwidth, treemargin);
+                                     leafx, blockheight, blockwidth, barheight, barwidth, treemargin, labelwidth);
             used_y += child_size * blockheight;
         }
     }
@@ -532,11 +545,11 @@ void ExchangeGnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, 
             //std::cout << "Drawing for cluster " << pc->memberString().toStdString().c_str() << std::endl;
             int process = pc->members->at(0);
             //std::cout << "Drawing leaf for member " << process << std::endl;
-            painter->drawLine(my_x, my_y, leafx - 10, my_y);
+            painter->drawLine(my_x, my_y, leafx - labelwidth, my_y);
             painter->setPen(QPen(Qt::white, 2.0, Qt::SolidLine));
-            painter->drawLine(leafx - 10, my_y, leafx, my_y);
+            painter->drawLine(leafx - labelwidth, my_y, leafx, my_y);
             painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
-            painter->drawText(leafx - 9, my_y + 3, QString::number(process));
+            painter->drawText(leafx - labelwidth, my_y + 3, QString::number(process));
             drawGnomeQtClusterLeaf(painter, QRect(leafx, current.y(), barwidth, barheight),
                                   partition->events->value(process), blockwidth, partition->min_global_step);
             // TODO: Figure out message lines for this view -- may need to look up things in cluster to leaves to

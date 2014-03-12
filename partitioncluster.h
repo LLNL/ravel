@@ -17,12 +17,15 @@ public:
     PartitionCluster * get_closed_root();
     void delete_tree();
     int max_depth();
+    int max_open_depth();
+    bool leaf_open();
     QString memberString();
     void print(QString indent = "");
     void close();
 
     bool open;
     long long int max_distance;
+    long long int max_metric;
     PartitionCluster * parent;
     QList<PartitionCluster *> * children;
     QList<int> * members;

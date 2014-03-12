@@ -62,7 +62,7 @@ private:
     void drawGnomeQtCluster(QPainter * painter, QRect extents);
     void drawGnomeQtClusterBranch(QPainter * painter, QRect current, PartitionCluster * pc,
                                   int leafx, int blockheight, int blockwidth, int barheight,
-                                  int barwidth, int treemargin);
+                                  int barwidth, int treemargin, int labelwidth);
     void drawGnomeQtClusterBranchPerfect(QPainter * painter, QRect current, PartitionCluster * pc, int leafx,
                                                  int blockheight, int blockwidth, int barheight, int barwidth);
     void drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy, QList<Event *> * elist, int blockwidth, int startStep);
