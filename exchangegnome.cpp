@@ -11,6 +11,7 @@ ExchangeGnome::ExchangeGnome()
       metric("Lateness"),
       SRSRmap(QMap<int, int>()),
       SRSRpatterns(QSet<int>()),
+      maxWAsize(0),
       cluster_leaves(NULL),
       cluster_root(NULL),
       top_processes(QList<int>()),
@@ -128,6 +129,9 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
                     else if (sentlast && (*evt)->messages->size() > 1) // WaitAll or similar
                         b_ssrr = false;
                     sentlast = false;
+
+                    if ((*evt)->messages->size() > maxWAsize)
+                        maxWAsize = (*evt)->messages->size();
                 }
                 else // Send
                 {
@@ -251,123 +255,92 @@ void ExchangeGnome::findClusters()
     // but I'm going to retain the information for now and see how it goes
 
     // From the max_metric_process and the type, get the rest of the processes we draw by default
-    top_processes.append(max_metric_process);
+
     std::cout << "Top process is " << max_metric_process << std::endl;
     if (type == SRSR) // Add all partners and then search those partners for the missing strings
     {
         QList<Event *> * elist = partition->events->value(max_metric_process);
         QSet<int> add_processes = QSet<int>();
+        QSet<int> level_processes = QSet<int>();
         QSet<int> patterns = QSet<int>();
         patterns.insert(SRSRmap[max_metric_process]);
+        add_processes.insert(max_metric_process);
         for (QList<Event *>::Iterator evt = elist->begin(); evt != elist->end(); ++evt)
         {
             for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
             {
                 if (*evt == (*msg)->sender)
                 {
-                    add_processes.insert((*msg)->receiver->process);
-                    patterns.insert(SRSRmap[(*msg)->receiver->process]);
-                    std::cout << "  Adding neighbor " << (*msg)->receiver->process << std::endl;
+                    if (!add_processes.contains((*msg)->receiver->process))
+                    {
+                        add_processes.insert((*msg)->receiver->process);
+                        level_processes.insert((*msg)->receiver->process);
+                        patterns.insert(SRSRmap[(*msg)->receiver->process]);
+                        std::cout << "  Adding neighbor " << (*msg)->receiver->process << std::endl;
+                    }
                 }
                 else
                 {
-                    add_processes.insert((*msg)->sender->process);
-                    patterns.insert(SRSRmap[(*msg)->sender->process]);
-                    std::cout << "  Adding neighbor " << (*msg)->sender->process << std::endl;
+                    if (!add_processes.contains((*msg)->sender->process))
+                    {
+                        add_processes.insert((*msg)->sender->process);
+                        level_processes.insert((*msg)->sender->process);
+                        patterns.insert(SRSRmap[(*msg)->sender->process]);
+                        std::cout << "  Adding neighbor " << (*msg)->sender->process << std::endl;
+                    }
                 }
             }
         }
 
         // Now check, do we have all patterns?
-        top_processes += add_processes.toList();
-        /*QList<int> all = partition->events->keys();
-        qSort(all);
-        int index = 0;
-        while (top_processes.size() < SRSRpatterns.size())
+        int neighbor_depth = 1;
+        while (patterns.size() / 1.0 / SRSRpatterns.size() < 0.5)
         {
-            int ind = all.indexOf(top_processes[index]);
-            ind = (ind + 1) % all.size();
-            if (!top_processes.contains(all[ind]))
-                top_processes.append(all[ind]);
-            index++;
-        }*/
-
-
-        if (!SRSRpatterns.subtract(patterns).isEmpty())
-        {
-            QList<int> check_group = add_processes.toList();
-            add_processes.clear();
+            QList<int> check_group = level_processes.toList();
+            level_processes.clear();
             qSort(check_group); // Future, possibly sort by something else than process id, like metric
-            while (!check_group.isEmpty())
+
+            // Now see about adding things from the check group
+            for (QList<int>::Iterator proc = check_group.begin(); proc != check_group.end(); ++proc)
             {
-                // Now see about adding things from the check group
-                for (QList<int>::Iterator proc = check_group.begin(); proc != check_group.end(); ++proc)
+                elist = partition->events->value(*proc);
+                for (QList<Event *>::Iterator evt = elist->begin(); evt != elist->end(); ++evt)
                 {
-                    elist = partition->events->value(*proc);
-                    for (QList<Event *>::Iterator evt = elist->begin(); evt != elist->end(); ++evt)
+                    for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
                     {
-                        for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
+                        if (*evt == (*msg)->sender)
                         {
-                            if (*evt == (*msg)->sender)
+                            if (!add_processes.contains((*msg)->receiver->process))
                             {
-                                if (!patterns.contains(SRSRmap[((*msg)->receiver->process)]))
-                                {
-                                    add_processes.insert((*msg)->receiver->process);
-                                    patterns.insert(SRSRmap[(*msg)->receiver->process]);
-                                    std::cout << "  Adding " << (*msg)->receiver->process << std::endl;
-                                }
+                                add_processes.insert((*msg)->receiver->process);
+                                level_processes.insert((*msg)->receiver->process);
+                                patterns.insert(SRSRmap[(*msg)->receiver->process]);
+                                std::cout << "  Adding " << (*msg)->receiver->process << std::endl;
                             }
-                            else
+                        }
+                        else
+                        {
+                            if (!add_processes.contains((*msg)->sender->process))
                             {
-                                if (!patterns.contains(SRSRmap[((*msg)->sender->process)]))
-                                {
-                                    add_processes.insert((*msg)->sender->process);
-                                    patterns.insert(SRSRmap[(*msg)->sender->process]);
-                                    std::cout << "  Adding " << (*msg)->sender->process << std::endl;
-                                }
+                                add_processes.insert((*msg)->sender->process);
+                                level_processes.insert((*msg)->sender->process);
+                                patterns.insert(SRSRmap[(*msg)->sender->process]);
+                                std::cout << "  Adding " << (*msg)->sender->process << std::endl;
                             }
                         }
                     }
-                } // checked everything in check_group
-                top_processes += add_processes.toList();
-                check_group.clear();
-                check_group += add_processes.toList();
-                add_processes.clear();
-                qSort(check_group);
+                }
+            } // checked everything in check_group
 
-            } // check_group now empty
+            check_group.clear();
+            neighbor_depth++;
         }
-
-        QList<int> all = partition->events->keys();
-        qSort(all);
-        int index = all.indexOf(max_metric_process) + 1;
-        while (!SRSRpatterns.subtract(patterns).isEmpty() && index < all.size())
-        {
-            // If still empty, time to look for nearby processes or just go through the list and pick anything?
-            int process = all[index];
-            if (!patterns.contains(SRSRmap[process]))
-            {
-                top_processes.append(process);
-                patterns.insert(SRSRmap[process]);
-            }
-            index++;
-        }
-        int index2 = 0;
-        while (!SRSRpatterns.subtract(patterns).isEmpty() && index2 < index)
-        {
-            // If still empty, time to look for nearby processes or just go through the list and pick anything?
-            int process = all[index2];
-            if (!patterns.contains(SRSRmap[process]))
-            {
-                top_processes.append(process);
-                patterns.insert(SRSRmap[process]);
-            }
-            index2++;
-        }
-
+        top_processes += add_processes.toList();
+        std::cout << "Neighbor depth: " << neighbor_depth << std::endl;
     }
     else if (type == SSRR || type == SSWA) // Add all partners
     {
+        top_processes.append(max_metric_process);
         QList<Event *> * elist = partition->events->value(max_metric_process);
         QSet<int> add_processes = QSet<int>();
         for (QList<Event *>::Iterator evt = elist->begin(); evt != elist->end(); ++evt)
@@ -656,6 +629,22 @@ void ExchangeGnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
             {
                 if (top_processes.contains((*msg)->sender->process) && top_processes.contains((*msg)->receiver->process))
                     drawMessages.insert((*msg));
+                else if (*evt == (*msg)->sender)
+                {
+                    // send
+                    if ((*msg)->sender->process > (*msg)->receiver->process)
+                        painter->drawLine(x + w/2, y + h/2, x + w, y);
+                    else
+                        painter->drawLine(x + w/2, y + h/2, x + w, y + h);
+                }
+                else
+                {
+                    // recv
+                    if ((*msg)->sender->process > (*msg)->receiver->process)
+                        painter->drawLine(x + w/2, y + h/2, x, y + h);
+                    else
+                        painter->drawLine(x + w/2, y + h/2, x, y);
+                }
             }
 
             if (options->showAggregateSteps) {
@@ -1056,7 +1045,7 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy, Pa
             if (nwaits)
             {
                 float avg_recvs = (*evt)->waitallrecvs / 1.0 / nwaits;
-                int angle = 90 * 16 * avg_recvs  / partition->events->size();
+                int angle = 90 * 16 * avg_recvs  / maxWAsize;
                 int start = 180 * 16;
                 painter->setPen(QPen(Qt::black, 1.0, Qt::SolidLine));
                 painter->setBrush(QBrush(Qt::black));

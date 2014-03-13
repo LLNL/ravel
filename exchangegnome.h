@@ -42,6 +42,7 @@ private:
 
     QMap<int, int> SRSRmap;
     QSet<int> SRSRpatterns;
+    int maxWAsize;
     QMap<int, PartitionCluster * > * cluster_leaves;
     PartitionCluster * cluster_root;
     QList<int> top_processes;
