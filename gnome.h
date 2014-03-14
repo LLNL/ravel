@@ -3,25 +3,80 @@
 
 #include "partition.h"
 #include "visoptions.h"
+#include "partitioncluster.h"
 #include <QMouseEvent>
+#include <QPainter>
+#include <QRect>
+#include <iostream>
+#include <climits>
+#include <cmath>
 
 class Gnome
 {
 public:
     Gnome();
+    ~Gnome();
 
     virtual bool detectGnome(Partition * part);
     virtual Gnome * create();
     void setPartition(Partition * part) { partition = part; }
-    virtual void preprocess() {}
-    virtual void drawGnomeQt(QPainter * painter, QRect extents, VisOptions * _options)
-        { Q_UNUSED(painter); Q_UNUSED(extents); Q_UNUSED(_options);}
+    virtual void preprocess();
+    virtual void drawGnomeQt(QPainter * painter, QRect extents, VisOptions * _options);
     virtual void drawGnomeGL(QRect extents, VisOptions * _options) { Q_UNUSED(extents); options = _options; }
-    virtual void handleDoubleClick(QMouseEvent * event) { Q_UNUSED(event); }
+    virtual void handleDoubleClick(QMouseEvent * event);
 
 protected:
     Partition * partition;
     VisOptions * options;
+
+    QString metric;
+    class DistancePair {
+    public:
+        DistancePair(long long _d, int _p1, int _p2)
+            : distance(_d), p1(_p1), p2(_p2) {}
+        bool operator<(const DistancePair &dp) const { return distance < dp.distance; }
+
+        long long distance;
+        int p1;
+        int p2;
+    };
+    long long int calculateMetricDistance(QList<Event *> * list1, QList<Event *> * list2);
+    void findClusters();
+    virtual void generateTopProcesses();
+
+
+    class DrawMessage {
+    public:
+        DrawMessage(QPoint _send, QPoint _recv, int _nsends)
+            : send(_send), recv(_recv), nsends(_nsends), nrecvs(0) { }
+
+        QPoint send;
+        QPoint recv;
+        int nsends;
+        int nrecvs;
+    };
+
+    QMap<int, PartitionCluster * > * cluster_leaves;
+    PartitionCluster * cluster_root;
+    int max_metric_process;
+    QList<int> top_processes;
+    bool alternation;
+
+    QSet<Message *> saved_messages;
+    QMap<PartitionCluster *, QRect> drawnPCs;
+    QMap<PartitionCluster *, QRect> drawnNodes;
+
+    void drawGnomeQtCluster(QPainter * painter, QRect extents);
+    void drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
+                                 int blockwidth, int barwidth, int labelwidth);
+    void drawGnomeQtClusterBranch(QPainter * painter, QRect current, PartitionCluster * pc,
+                                  int leafx, int blockheight, int blockwidth, int barheight,
+                                  int barwidth, int treemargin, int labelwidth);
+    void drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy, QList<Event *> * elist, int blockwidth, int startStep);
+    void drawGnomeQtInterMessages(QPainter * painter, int leafx, int blockwidth, int startStep);
+    virtual void drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, PartitionCluster * pc,
+                                    int barwidth, int barheight, int blockwidth, int blockheight,
+                                    int startStep) { }
 };
 
 #endif // GNOME_H
