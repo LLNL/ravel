@@ -38,6 +38,7 @@ Gnome * Gnome::create()
 void Gnome::preprocess()
 {
     findClusters();
+    generateTopProcesses();
 }
 
 void Gnome::findClusters()

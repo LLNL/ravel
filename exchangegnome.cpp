@@ -75,9 +75,7 @@ void ExchangeGnome::preprocess()
         SRSRpatterns.clear();
     }
 
-    // Cluster vectors
-    findClusters();
-    //cluster_root->print();
+    Gnome::preprocess();
 }
 
 // Need to add even/odd check so we can tell if we have somethign essentially srsr
