@@ -19,6 +19,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow),
     traces(QVector<Trace *>()),
     viswidgets(QVector<VisWidget *>()),
+    visactions(QList<QAction *>()),
     activeTrace(-1),
     importWorker(NULL),
     importThread(NULL),
@@ -74,14 +75,22 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionVisualization, SIGNAL(triggered()), this, SLOT(launchVisOptions()));
 
 
+    connect(ui->actionLogical_Steps, SIGNAL(triggered()), this, SLOT(toggleLogicalSteps()));
+    connect(ui->actionClustered_Logical_Steps, SIGNAL(triggered()), this, SLOT(toggleClusteredSteps()));
+    connect(ui->actionPhysical_Time, SIGNAL(triggered()), this, SLOT(togglePhysicalTime()));
+    connect(ui->actionMetric_Overview, SIGNAL(triggered()), this, SLOT(toggleMetricOverview()));
+    visactions.append(ui->actionLogical_Steps);
+    visactions.append(ui->actionClustered_Logical_Steps);
+    visactions.append(ui->actionPhysical_Time);
+    visactions.append(ui->actionMetric_Overview);
+
+
     connect(ui->splitter, SIGNAL(splitterMoved(int, int)), this, SLOT(handleSplitter(int, int)));
     connect(ui->sideSplitter, SIGNAL(splitterMoved(int, int)), this, SLOT(handleSideSplitter(int, int)));
 
     // for testing
-    //importOTF("/Users/kate/Documents/trace_files/sdissbinom16/nbc-test.otf");
+    //importOTF("/Users/kate/Documents/trace_files/sdissbinom16/nbc-test.otf");t
     //importOTF("/home/kate/llnl/traces/trace_files/data/sdissbinom16/nbc-test.otf");
-    int height = ui->centralwidget->height();
-    std::cout << "Height is " << height << std::endl;
     QList<int> sizes = QList<int>();
     sizes.append(500);
     sizes.append(500);
@@ -227,14 +236,7 @@ void MainWindow::handleSplitter(int pos, int index)
     Q_UNUSED(pos);
     Q_UNUSED(index);
     linkSideSplitter();
-    for (int i = 0; i < viswidgets.size(); i++)
-    {
-        if (viswidgets[i]->container->height() == 0)
-            viswidgets[i]->setClosed(true);
-        else
-            viswidgets[i]->setClosed(false);
-    }
-    std::cout << "Main moved" << std::endl;
+    setVisWidgetState();
 }
 
 void MainWindow::handleSideSplitter(int pos, int index)
@@ -242,12 +244,68 @@ void MainWindow::handleSideSplitter(int pos, int index)
     Q_UNUSED(pos);
     Q_UNUSED(index);
     linkMainSplitter();
+    setVisWidgetState();
+
+}
+
+void MainWindow::setVisWidgetState()
+{
     for (int i = 0; i < viswidgets.size(); i++)
     {
-        if (viswidgets[i]->container->height() == 0)
+        if (viswidgets[i]->container->height() == 0 && !viswidgets[i]->isClosed())
+        {
             viswidgets[i]->setClosed(true);
-        else
+            visactions[i]->setChecked(false);
+        }
+        else if (viswidgets[i]->container->height() != 0 && viswidgets[i]->isClosed())
+        {
             viswidgets[i]->setClosed(false);
+            visactions[i]->setChecked(true);
+        }
     }
-    std::cout << "Side moved" << std::endl;
 }
+
+void MainWindow::toggleLogicalSteps()
+{
+    QList<int> sizes = ui->splitter->sizes();
+    if (ui->actionLogical_Steps->isChecked())
+        sizes[0] = this->height() / 3;
+    else
+        sizes[0] = 0;
+    ui->splitter->setSizes(sizes);
+    linkSideSplitter();
+}
+
+void MainWindow::toggleClusteredSteps()
+{
+    QList<int> sizes = ui->splitter->sizes();
+    if (ui->actionClustered_Logical_Steps->isChecked())
+        sizes[1] = this->height() / 3;
+    else
+        sizes[1] = 0;
+    ui->splitter->setSizes(sizes);
+    linkSideSplitter();
+}
+
+void MainWindow::togglePhysicalTime()
+{
+    QList<int> sizes = ui->splitter->sizes();
+    if (ui->actionPhysical_Time->isChecked())
+        sizes[2] = this->height() / 3;
+    else
+        sizes[2] = 0;
+    ui->splitter->setSizes(sizes);
+    linkSideSplitter();
+}
+
+void MainWindow::toggleMetricOverview()
+{
+    QList<int> sizes = ui->splitter->sizes();
+    if (ui->actionMetric_Overview->isChecked())
+        sizes[3] = 70;
+    else
+        sizes[3] = 0;
+    ui->splitter->setSizes(sizes);
+    linkSideSplitter();
+}
+

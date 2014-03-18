@@ -36,6 +36,11 @@ public slots:
     void handleSideSplitter(int pos, int index);
     void traceFinished(Trace * trace);
     void updateProgress(int portion, QString msg);
+    void toggleLogicalSteps();
+    void toggleClusteredSteps();
+    void togglePhysicalTime();
+    void toggleMetricOverview();
+
 
 signals:
     void operate(const QString &);
@@ -46,9 +51,11 @@ private:
     void activeTraceChanged();
     void linkSideSplitter();
     void linkMainSplitter();
+    void setVisWidgetState();
 
     QVector<Trace *> traces;
     QVector<VisWidget *> viswidgets;
+    QList<QAction *> visactions;
     int activeTrace;
 
     OTFImportFunctor * importWorker;

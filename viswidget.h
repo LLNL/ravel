@@ -23,6 +23,7 @@ public:
     virtual QSize sizeHint() const;
 
     void setClosed(bool _closed);
+    bool isClosed() { return closed; }
     void setVisOptions(VisOptions * _options);
     QWidget * container;
 
