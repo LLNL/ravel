@@ -123,6 +123,11 @@ void ClusterTreeVis::mouseDoubleClickEvent(QMouseEvent * event)
     }
 }
 
+void ClusterTreeVis::mousePressEvent(QMouseEvent * event)
+{
+    mouseDoubleClickEvent(event);
+}
+
 void ClusterTreeVis::clusterChanged()
 {
     if (changeSource)

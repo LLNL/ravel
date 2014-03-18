@@ -99,24 +99,11 @@
              <number>0</number>
             </property>
             <item>
-             <widget class="QLabel" name="label_4">
+             <widget class="QWidget" name="logicalLabelWidget" native="true">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="text">
-               <string>Logical</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QWidget" name="widget" native="true">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                <horstretch>0</horstretch>
-                <verstretch>1</verstretch>
                </sizepolicy>
               </property>
              </widget>
@@ -168,17 +155,27 @@
                 <number>0</number>
                </property>
                <item>
-                <widget class="QSlider" name="verticalSlider">
-                 <property name="sliderPosition">
-                  <number>1</number>
-                 </property>
-                 <property name="orientation">
-                  <enum>Qt::Vertical</enum>
-                 </property>
-                 <property name="tickPosition">
-                  <enum>QSlider::NoTicks</enum>
-                 </property>
-                </widget>
+                <layout class="QVBoxLayout" name="verticalLayout_7">
+                 <item>
+                  <widget class="QWidget" name="clusterLabelWidget" native="true"/>
+                 </item>
+                 <item>
+                  <widget class="QSlider" name="verticalSlider">
+                   <property name="maximum">
+                    <number>3</number>
+                   </property>
+                   <property name="sliderPosition">
+                    <number>1</number>
+                   </property>
+                   <property name="orientation">
+                    <enum>Qt::Vertical</enum>
+                   </property>
+                   <property name="tickPosition">
+                    <enum>QSlider::NoTicks</enum>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
                </item>
               </layout>
              </widget>
@@ -206,18 +203,11 @@
              <number>0</number>
             </property>
             <item>
-             <widget class="QLabel" name="label_2">
-              <property name="text">
-               <string>Physical</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QWidget" name="widget_2" native="true">
+             <widget class="QWidget" name="traditionalLabelWidget" native="true">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                 <horstretch>0</horstretch>
-                <verstretch>1</verstretch>
+                <verstretch>0</verstretch>
                </sizepolicy>
               </property>
              </widget>
@@ -251,24 +241,11 @@
              <number>0</number>
             </property>
             <item>
-             <widget class="QLabel" name="label">
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>Overview</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QWidget" name="widget_3" native="true">
+             <widget class="QWidget" name="overviewLabelWidget" native="true">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                 <horstretch>0</horstretch>
-                <verstretch>1</verstretch>
+                <verstretch>0</verstretch>
                </sizepolicy>
               </property>
              </widget>

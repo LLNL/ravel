@@ -8,6 +8,7 @@
 #include "otfconverter.h"
 #include "importoptionsdialog.h"
 #include "general_util.h"
+#include "verticallabel.h"
 
 #include <QFileDialog>
 #include "qtconcurrentrun.h"
@@ -35,6 +36,8 @@ MainWindow::MainWindow(QWidget *parent) :
     //ui->overviewLayout->addWidget(overview);
     //ui->overviewLayout->setStretchFactor(overview, 1);
     ui->overviewContainer->layout()->addWidget(overview);
+    ui->overviewLabelWidget->setLayout(new QVBoxLayout());
+    ui->overviewLabelWidget->layout()->addWidget(new VerticalLabel("Overview", ui->overviewLabelWidget));
 
     connect(overview, SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
     connect(overview, SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
@@ -42,6 +45,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     StepVis* stepvis = new StepVis(ui->stepContainer, visoptions);
     ui->stepContainer->layout()->addWidget(stepvis);
+    ui->logicalLabelWidget->setLayout(new QVBoxLayout());
+    ui->logicalLabelWidget->layout()->addWidget(new VerticalLabel("Logical", ui->logicalLabelWidget));
 
     connect((stepvis), SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
     connect((stepvis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
@@ -50,6 +55,8 @@ MainWindow::MainWindow(QWidget *parent) :
     TraditionalVis* timevis = new TraditionalVis(ui->traditionalContainer, visoptions);
     timevis->setClosed(true);
     ui->traditionalContainer->layout()->addWidget(timevis);
+    ui->traditionalLabelWidget->setLayout(new QVBoxLayout());
+    ui->traditionalLabelWidget->layout()->addWidget(new VerticalLabel("Physical", ui->traditionalLabelWidget));
 
     connect((timevis), SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
     connect((timevis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
@@ -57,6 +64,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ClusterVis* clustervis = new ClusterVis(ui->stepContainer, visoptions);
     ui->clusterContainer->layout()->addWidget(clustervis);
+    ui->clusterLabelWidget->setLayout(new QVBoxLayout());
+    ui->clusterLabelWidget->layout()->addWidget(new VerticalLabel("Clusters", ui->clusterLabelWidget));
 
     connect((clustervis), SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
     connect((clustervis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
@@ -108,7 +117,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QList<int> sizes = QList<int>();
     sizes.append(500);
     sizes.append(500);
-    sizes.append(0);
+    sizes.append(500);
     sizes.append(70);
     ui->splitter->setSizes(sizes);
     ui->sideSplitter->setSizes(sizes);

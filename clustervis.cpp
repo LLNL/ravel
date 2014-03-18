@@ -38,7 +38,6 @@ void ClusterVis::setSteps(float start, float stop, bool jump)
 
     if (!closed)
     {
-        std::cout << "Repainting cluster vis" << std::endl;
         repaint();
     }
 }

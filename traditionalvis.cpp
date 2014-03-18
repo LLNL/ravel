@@ -178,7 +178,6 @@ void TraditionalVis::setSteps(float start, float stop, bool jump)
     jumped = jump;
 
     if (!closed) {
-        std::cout << "Repainting traditional vis" << std::endl;
         repaint();
     }
 }

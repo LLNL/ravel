@@ -23,6 +23,7 @@ public slots:
 protected:
     void qtPaint(QPainter *painter);
     void mouseDoubleClickEvent(QMouseEvent * event);
+    void mousePressEvent(QMouseEvent * event);
     void prepaint();
     
 private:

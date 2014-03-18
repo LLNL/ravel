@@ -34,7 +34,8 @@ SOURCES  += main.cpp \
     partitioncluster.cpp \
     clusterevent.cpp \
     clustervis.cpp \
-    clustertreevis.cpp
+    clustertreevis.cpp \
+    verticallabel.cpp
 
 
 HEADERS += \
@@ -67,7 +68,8 @@ HEADERS += \
     partitioncluster.h \
     clusterevent.h \
     clustervis.h \
-    clustertreevis.h
+    clustertreevis.h \
+    verticallabel.h
 
 
 FORMS += \
