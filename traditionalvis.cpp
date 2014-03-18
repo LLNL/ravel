@@ -177,8 +177,10 @@ void TraditionalVis::setSteps(float start, float stop, bool jump)
     timeSpan = (*stepToTime)[std::min(boundStep(stop)/2,  maxStep/2)]->stop - startTime;
     jumped = jump;
 
-    if (!closed)
+    if (!closed) {
+        std::cout << "Repainting traditional vis" << std::endl;
         repaint();
+    }
 }
 
 void TraditionalVis::prepaint()

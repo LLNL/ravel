@@ -321,12 +321,12 @@ void MainWindow::togglePhysicalTime()
     if (ui->actionPhysical_Time->isChecked())
     {
         sizes[2] = this->height() / 3;
-        viswidgets[1]->setClosed(false);
+        viswidgets[2]->setClosed(false);
     }
     else
     {
         sizes[2] = 0;
-        viswidgets[1]->setClosed(true);
+        viswidgets[2]->setClosed(true);
     }
     ui->splitter->setSizes(sizes);
     linkSideSplitter();
