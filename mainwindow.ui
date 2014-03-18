@@ -75,6 +75,9 @@
           <property name="orientation">
            <enum>Qt::Vertical</enum>
           </property>
+          <property name="opaqueResize">
+           <bool>false</bool>
+          </property>
           <widget class="QWidget" name="stepSide" native="true">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -147,6 +150,9 @@
                 <horstretch>0</horstretch>
                 <verstretch>1</verstretch>
                </sizepolicy>
+              </property>
+              <property name="mouseTracking">
+               <bool>false</bool>
               </property>
               <layout class="QHBoxLayout" name="horizontalLayout_6">
                <property name="leftMargin">
@@ -298,6 +304,9 @@
           <property name="orientation">
            <enum>Qt::Vertical</enum>
           </property>
+          <property name="opaqueResize">
+           <bool>false</bool>
+          </property>
           <widget class="QWidget" name="stepContainer" native="true">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -429,6 +438,7 @@
      <string>File</string>
     </property>
     <addaction name="actionOpen_OTF"/>
+    <addaction name="actionQuit"/>
    </widget>
    <widget class="QMenu" name="menuOptions">
     <property name="title">
@@ -513,6 +523,14 @@
    </property>
    <property name="text">
     <string>Metric Overview</string>
+   </property>
+  </action>
+  <action name="actionQuit">
+   <property name="text">
+    <string>Quit</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::QuitRole</enum>
    </property>
   </action>
  </widget>

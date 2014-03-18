@@ -16,9 +16,11 @@ public:
 
 signals:
     void focusGnome(Gnome * gnome);
+    void clusterChange();
 
 public slots:
     void setSteps(float start, float stop, bool jump = false);
+    void clusterChanged();
 
 protected:
     void qtPaint(QPainter *painter);

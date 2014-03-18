@@ -47,6 +47,14 @@ MainWindow::MainWindow(QWidget *parent) :
     connect((stepvis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
     viswidgets.push_back(stepvis);
 
+    TraditionalVis* timevis = new TraditionalVis(ui->traditionalContainer, visoptions);
+    timevis->setClosed(true);
+    ui->traditionalContainer->layout()->addWidget(timevis);
+
+    connect((timevis), SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
+    connect((timevis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
+    viswidgets.push_back(timevis);
+
     ClusterVis* clustervis = new ClusterVis(ui->stepContainer, visoptions);
     ui->clusterContainer->layout()->addWidget(clustervis);
 
@@ -57,33 +65,39 @@ MainWindow::MainWindow(QWidget *parent) :
     ClusterTreeVis* clustertreevis = new ClusterTreeVis(ui->stepContainer, visoptions);
     ui->treeContainer->layout()->addWidget(clustertreevis);
 
+    connect((clustervis), SIGNAL(focusGnome(Gnome*)), clustertreevis, SLOT(setGnome(Gnome*)));
+    connect((clustervis), SIGNAL(clusterChange()), clustertreevis, SLOT(clusterChanged()));
+    connect((clustertreevis), SIGNAL(clusterChange()), clustervis, SLOT(clusterChanged()));
+
     connect((clustertreevis), SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
     connect((clustertreevis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
     viswidgets.push_back(clustertreevis);
 
-    TraditionalVis* timevis = new TraditionalVis(ui->traditionalContainer, visoptions);
-    timevis->setClosed(true);
-    ui->traditionalContainer->layout()->addWidget(timevis);
-
-    connect((timevis), SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
-    connect((timevis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
-    viswidgets.push_back(timevis);
 
     connect(ui->actionOpen_OTF, SIGNAL(triggered()),this,SLOT(importOTFbyGUI()));
+    ui->actionOpen_OTF->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_O));
 
     connect(ui->actionOTF_Importing, SIGNAL(triggered()), this, SLOT(launchOTFOptions()));
+    ui->actionOTF_Importing->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_I));
     connect(ui->actionVisualization, SIGNAL(triggered()), this, SLOT(launchVisOptions()));
+    ui->actionVisualization->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_V));
 
 
     connect(ui->actionLogical_Steps, SIGNAL(triggered()), this, SLOT(toggleLogicalSteps()));
+    ui->actionLogical_Steps->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_L));
     connect(ui->actionClustered_Logical_Steps, SIGNAL(triggered()), this, SLOT(toggleClusteredSteps()));
+    ui->actionClustered_Logical_Steps->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_C));
     connect(ui->actionPhysical_Time, SIGNAL(triggered()), this, SLOT(togglePhysicalTime()));
+    ui->actionPhysical_Time->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_P));
     connect(ui->actionMetric_Overview, SIGNAL(triggered()), this, SLOT(toggleMetricOverview()));
+    ui->actionMetric_Overview->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_M));
     visactions.append(ui->actionLogical_Steps);
     visactions.append(ui->actionClustered_Logical_Steps);
     visactions.append(ui->actionPhysical_Time);
     visactions.append(ui->actionMetric_Overview);
 
+    connect(ui->actionQuit, SIGNAL(triggered()), this, SLOT(close()));
+    ui->actionQuit->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Q));
 
     connect(ui->splitter, SIGNAL(splitterMoved(int, int)), this, SLOT(handleSplitter(int, int)));
     connect(ui->sideSplitter, SIGNAL(splitterMoved(int, int)), this, SLOT(handleSideSplitter(int, int)));
@@ -250,7 +264,7 @@ void MainWindow::handleSideSplitter(int pos, int index)
 
 void MainWindow::setVisWidgetState()
 {
-    for (int i = 0; i < viswidgets.size(); i++)
+    for (int i = 0; i < viswidgets.size() - 1; i++)
     {
         if (viswidgets[i]->container->height() == 0 && !viswidgets[i]->isClosed())
         {
@@ -269,9 +283,15 @@ void MainWindow::toggleLogicalSteps()
 {
     QList<int> sizes = ui->splitter->sizes();
     if (ui->actionLogical_Steps->isChecked())
+    {
         sizes[0] = this->height() / 3;
+        viswidgets[1]->setClosed(false);
+    }
     else
+    {
         sizes[0] = 0;
+        viswidgets[1]->setClosed(true);
+    }
     ui->splitter->setSizes(sizes);
     linkSideSplitter();
 }
@@ -280,9 +300,17 @@ void MainWindow::toggleClusteredSteps()
 {
     QList<int> sizes = ui->splitter->sizes();
     if (ui->actionClustered_Logical_Steps->isChecked())
+    {
         sizes[1] = this->height() / 3;
+        viswidgets[3]->setClosed(false);
+        viswidgets[4]->setClosed(false);
+    }
     else
+    {
         sizes[1] = 0;
+        viswidgets[3]->setClosed(true);
+        viswidgets[4]->setClosed(true);
+    }
     ui->splitter->setSizes(sizes);
     linkSideSplitter();
 }
@@ -291,9 +319,15 @@ void MainWindow::togglePhysicalTime()
 {
     QList<int> sizes = ui->splitter->sizes();
     if (ui->actionPhysical_Time->isChecked())
+    {
         sizes[2] = this->height() / 3;
+        viswidgets[1]->setClosed(false);
+    }
     else
+    {
         sizes[2] = 0;
+        viswidgets[1]->setClosed(true);
+    }
     ui->splitter->setSizes(sizes);
     linkSideSplitter();
 }
@@ -302,9 +336,15 @@ void MainWindow::toggleMetricOverview()
 {
     QList<int> sizes = ui->splitter->sizes();
     if (ui->actionMetric_Overview->isChecked())
+    {
         sizes[3] = 70;
+        viswidgets[0]->setClosed(false);
+    }
     else
+    {
         sizes[3] = 0;
+        viswidgets[0]->setClosed(true);
+    }
     ui->splitter->setSizes(sizes);
     linkSideSplitter();
 }

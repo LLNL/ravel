@@ -74,10 +74,10 @@ protected:
     void drawGnomeQtClusterBranch(QPainter * painter, QRect current, PartitionCluster * pc,
                                   int blockheight, int blockwidth, int barheight, int barwidth);
     void drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy, QList<Event *> * elist, int blockwidth, int startStep);
-    void drawGnomeQtInterMessages(QPainter * painter, int blockwidth, int startStep);
+    void drawGnomeQtInterMessages(QPainter * painter, int blockwidth, int startStep, int startx);
     virtual void drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, PartitionCluster * pc,
                                     int barwidth, int barheight, int blockwidth, int blockheight,
-                                    int startStep) { }
+                                    int startStep);
     void drawTreeBranch(QPainter * painter, QRect current, PartitionCluster * pc,
                         int branch_length, int labelwidth, int blockheight, int leafx);
     int getTopHeight(QRect extents);
