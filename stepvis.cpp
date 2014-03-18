@@ -7,8 +7,7 @@ StepVis::StepVis(QWidget* parent, VisOptions * _options)
     cacheMetric(""),
     maxMetricText(""),
     maxMetricTextWidth(0),
-    colorbar_offset(0),
-    drawnGnomes(QMap<Gnome *, QRect>())
+    colorbar_offset(0)
 {
 
 }
@@ -163,31 +162,9 @@ void StepVis::wheelEvent(QWheelEvent * event)
     emit stepsChanged(startStep, startStep + stepSpan, false);
 }
 
-
-void StepVis::mouseDoubleClickEvent(QMouseEvent * event)
-{
-    if (!visProcessed)
-        return;
-
-    int x = event->x();
-    int y = event->y();
-    for (QMap<Gnome *, QRect>::Iterator gnome = drawnGnomes.begin(); gnome != drawnGnomes.end(); ++gnome)
-        if (gnome.value().contains(x,y))
-        {
-            Gnome * g = gnome.key();
-            g->handleDoubleClick(event);
-            repaint();
-            return;
-        }
-
-    // If we get here, fall through to normal behavior
-    TimelineVis::mouseDoubleClickEvent(event);
-}
-
 void StepVis::prepaint()
 {
     drawnEvents.clear();
-    drawnGnomes.clear();
     if (jumped) // We have to redo the active_partitions
     {
         // We know this list is in order, so we only have to go so far
@@ -312,14 +289,6 @@ void StepVis::drawNativeGL()
             break;
         else if (part->max_global_step < bottomStep)
             continue;
-        if (options->drawGnomes && part->gnome) {
-            // The y value here of 0 isn't general... we need another structure to keep track of how much
-            // y is used when we're doing the gnome thing.
-            part->gnome->drawGnomeGL(QRect(barwidth * (part->min_global_step - startStep), 0,
-                                           barwidth, barheight),
-                                     options);
-            continue;
-        }
         for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin(); event_list != part->events->end(); ++event_list) {
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
@@ -443,16 +412,6 @@ void StepVis::paintEvents(QPainter * painter)
             break;
         else if (part->max_global_step < bottomStep)
             continue;
-        if (options->drawGnomes && part->gnome) {
-            // The y value here of 0 isn't general... we need another structure to keep track of how much
-            // y is used when we're doing the gnome thing.
-            QRect gnomeRect = QRect(partitionCount * labelWidth + blockwidth * (part->min_global_step + aggOffset - startStep), 0,
-                                    blockwidth * (part->max_global_step - part->min_global_step - aggOffset + 1),
-                                    part->events->size() / 1.0 / trace->num_processes * effectiveHeight);
-            part->gnome->drawGnomeQt(painter, gnomeRect, options);
-            drawnGnomes[part->gnome] = gnomeRect;
-            continue;
-        }
         for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin(); event_list != part->events->end(); ++event_list) {
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {

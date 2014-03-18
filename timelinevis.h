@@ -47,5 +47,7 @@ protected:
     QMap<int, int> proc_to_order;
     QMap<int, int> order_to_proc;
 
+    static const int spacingMinimum = 12;
+
 };
 #endif // TIMELINEVIS_H

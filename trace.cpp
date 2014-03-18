@@ -354,7 +354,7 @@ void Trace::calculate_lateness()
     // For each step, find all the events in the active partitions with that step
     // and calculate lateness
     // Active partition group may change every time the step is changed.
-    int progressPortion = round(global_max_step / 2.0 / lateness_portion);
+    int progressPortion = std::max(round(global_max_step / 2.0 / lateness_portion),1.0);
     int currentPortion = 0;
     int currentIter = 0;
 
@@ -456,7 +456,7 @@ void Trace::assignSteps()
 
     traceTimer.start();
     std::cout << "Assigning local steps" << std::endl;
-    int progressPortion = round(partitions->size() / 1.0 / steps_portion);
+    int progressPortion = std::max(round(partitions->size() / 1.0 / steps_portion),1.0);
     int currentPortion = 0;
     int currentIter = 0;
     for (QList<Partition *>::Iterator partition = partitions->begin(); partition != partitions->end(); ++partition)
@@ -1039,7 +1039,7 @@ void Trace::mergeForMessagesHelper(Partition * part, QSet<Partition *> * to_merg
 // Loop through the partitions and merge all connected by messages.
 void Trace::mergeForMessages()
 {
-    int progressPortion = round(partitions->size() / 1.0 / 35);
+    int progressPortion = std::max(round(partitions->size() / 1.0 / 35),1.0);
     int currentPortion = 0;
     int currentIter = 0;
 
@@ -1451,7 +1451,7 @@ void Trace::partitionByPhase()
 // Every send/recv event becomes its own partition
 void Trace::initializePartitions()
 {
-    int progressPortion = round(num_processes / 1.0 / 5);
+    int progressPortion = std::max(round(num_processes / 1.0 / 5),1.0);
     int currentPortion = 0;
     int currentIter = 0;
     for (QVector<QList<Event *> *>::Iterator event_list = mpi_events->begin(); event_list != mpi_events->end(); ++event_list)
@@ -1497,7 +1497,7 @@ void Trace::initializePartitionsWaitall()
         }
     }
 
-    int progressPortion = round(num_processes / 1.0 / 5);
+    int progressPortion = std::max(round(num_processes / 1.0 / 5),1.0);
     int currentPortion = 0;
     int currentIter = 0;
 

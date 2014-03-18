@@ -253,7 +253,7 @@ void OverviewVis::qtPaint(QPainter *painter)
     QPointF p1, p2;
 
     // Draw lateness
-    painter->setPen(QPen(Qt::red, 1, Qt::SolidLine));
+    painter->setPen(QPen(QColor(127, 0, 0), 1, Qt::SolidLine));
     for(int i = 0; i < heights.size(); i++)
     {
         p1 = QPointF(o.x() + i, o.y());

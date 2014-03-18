@@ -120,15 +120,18 @@ void TimelineVis::drawHover(QPainter * painter)
         return;
     painter->setFont(QFont("Helvetica", 10));
     QFontMetrics font_metrics = painter->fontMetrics();
-    QString text = ((*(trace->functions))[hover_event->function])->name + ", " + QString::number(hover_event->step);
+    QString text = ((*(trace->functions))[hover_event->function])->name;
 
     // Determine bounding box of FontMetrics
     QRect textRect = font_metrics.boundingRect(text);
 
     // Draw bounding box
-    painter->fillRect(QRectF(mousex, mousey, textRect.width(), textRect.height()), QBrush(QColor(255, 255, 0, 150)));
+    painter->setPen(QPen(QColor(255, 255, 0, 150), 1.0, Qt::SolidLine));
+    painter->drawRect(QRectF(mousex, mousey, textRect.width(), textRect.height()));
+    painter->fillRect(QRectF(mousex, mousey, textRect.width(), textRect.height()), QBrush(QColor(255, 255, 144, 150)));
 
     // Draw text
+    painter->setPen(Qt::black);
     painter->drawText(mousex + 2, mousey + textRect.height() - 2, text);
 }
 

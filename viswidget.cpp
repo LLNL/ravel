@@ -28,7 +28,7 @@ VisWidget::~VisWidget()
 
 QSize VisWidget::sizeHint() const
 {
-    return QSize(400, 400);
+    return QSize(50, 50);
 }
 
 void VisWidget::initializeGL()
@@ -114,7 +114,7 @@ void VisWidget::endNativeGL()
 
 void VisWidget::processVis()
 {
-
+    visProcessed = true;
 }
 
 void VisWidget::qtPaint(QPainter *painter)

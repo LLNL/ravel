@@ -203,42 +203,40 @@ void Gnome::generateTopProcesses()
 void Gnome::drawGnomeQt(QPainter * painter, QRect extents, VisOptions *_options)
 {
     options = _options;
-    //saved_messages.clear();
-    //drawnPCs.clear();
-    //drawnNodes.clear();
+    saved_messages.clear();
+    drawnPCs.clear();
+    drawnNodes.clear();
 
     drawGnomeQtCluster(painter, extents);
+}
+
+// The height allowed to the top processes. This is not the y but the height.
+int Gnome::getTopHeight(QRect extents)
+{
+    int topHeight = 0;
+    int fair_portion = top_processes.size() / 1.0 / cluster_root->members->size() * extents.height();
+    int min_size = 12 * top_processes.size();
+    if (min_size > extents.height())
+        topHeight = fair_portion;
+    else
+        topHeight = std::max(fair_portion, min_size);
+
+    int max_cluster_leftover = extents.height() - cluster_root->visible_clusters() * (3 * clusterMaxHeight);
+    if (topHeight < max_cluster_leftover)
+        topHeight = max_cluster_leftover;
+
+    return topHeight;
 }
 
 void Gnome::drawGnomeQtCluster(QPainter * painter, QRect extents)
 {
     alternation = true;
-    int treemargin = 5 * cluster_root->max_open_depth();
-    int labelwidth = 0;
-    if (cluster_root->leaf_open())
-    {
-        painter->setFont(QFont("Helvetica", 10));
-        QFontMetrics font_metrics = painter->fontMetrics();
-        QString text = QString::number((*(std::max_element(cluster_root->members->begin(), cluster_root->members->end()))));
 
-        // Determine bounding box of FontMetrics
-        labelwidth = font_metrics.boundingRect(text).width();
-        treemargin += labelwidth;
-    }
 
-    int topHeight = 0;
-    if (options->drawTop)
-    {
-        int fair_portion = top_processes.size() / 1.0 / cluster_root->members->size() * extents.height();
-        int min_size = 12 * top_processes.size();
-        if (min_size > extents.height())
-            topHeight = fair_portion;
-        else
-            topHeight = std::max(fair_portion, min_size);
-    }
+    int topHeight = getTopHeight(extents);
 
     int effectiveHeight = extents.height() - topHeight;
-    int effectiveWidth = extents.width() - treemargin;
+    int effectiveWidth = extents.width();
 
     int processSpan = partition->events->size();
     int stepSpan = partition->max_global_step - partition->min_global_step + 2;
@@ -264,33 +262,22 @@ void Gnome::drawGnomeQtCluster(QPainter * painter, QRect extents)
     float barwidth = blockwidth - step_spacing;
     painter->setPen(QPen(QColor(0, 0, 0)));
 
+    QRect top_extents = QRect(extents.x(), effectiveHeight, extents.width(), topHeight);
+    drawGnomeQtTopProcesses(painter, top_extents, blockwidth, barwidth);
 
-    if (options->drawTop)
-    {
-        QRect top_extents = QRect(extents.x() + treemargin, effectiveHeight, extents.width() - treemargin, topHeight);
-        drawGnomeQtTopProcesses(painter, top_extents, blockwidth, barwidth, labelwidth);
-    }
-
-    // Generate inorder list of clusters
-
-    // I need to go through clusters and keep track of how I'm drawing my branches from the root.
-    // When I get to the leaf, I need to draw it.
-    //drawGnomeQtClusterBranchPerfect(painter, extents, cluster_root, extents.x() + treemargin,
-    //                                blockheight, blockwidth, barheight, barwidth);
     QRect cluster_extents = QRect(extents.x(), extents.y(), extents.width(), effectiveHeight);
-    drawGnomeQtClusterBranch(painter, cluster_extents, cluster_root, extents.x() + treemargin,
-                             blockheight, blockwidth, barheight, barwidth, treemargin,
-                             labelwidth);
+    drawGnomeQtClusterBranch(painter, cluster_extents, cluster_root,
+                             blockheight, blockwidth, barheight, barwidth);
 
     // Now that we have drawn all the events, we need to draw the leaf-cluster messages or the leaf-leaf
     // messages which are saved in saved_messages.
-    drawGnomeQtInterMessages(painter, extents.x() + treemargin, blockwidth, partition->min_global_step);
+    drawGnomeQtInterMessages(painter, blockwidth, partition->min_global_step);
 
 }
 
 
 void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
-                                            int blockwidth, int barwidth, int labelwidth)
+                                            int blockwidth, int barwidth)
 {
     int effectiveHeight = extents.height();
 
@@ -314,7 +301,7 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
     {
         QList<Event *> * event_list = partition->events->value(top_processes[i]);
         y =  floor(extents.y() + i * blockheight) + 1;
-        painter->drawText(extents.x() - labelwidth - 1, y + blockheight / 2, QString::number(top_processes[i]));
+        painter->drawText(extents.x() - 1, y + blockheight / 2, QString::number(top_processes[i]));
         processYs[top_processes[i]] = y;
         for (QList<Event *>::Iterator evt = event_list->begin(); evt != event_list->end(); ++evt)
         {
@@ -403,7 +390,7 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
     }
 }
 
-void Gnome::drawGnomeQtInterMessages(QPainter * painter, int leafx, int blockwidth, int startStep)
+void Gnome::drawGnomeQtInterMessages(QPainter * painter, int blockwidth, int startStep)
 {
     if (options->showAggregateSteps)
         startStep -= 1;
@@ -414,7 +401,7 @@ void Gnome::drawGnomeQtInterMessages(QPainter * painter, int leafx, int blockwid
         PartitionCluster * sender_pc = cluster_leaves->value((*msg)->sender->process)->get_closed_root();
         PartitionCluster * receiver_pc = cluster_leaves->value((*msg)->receiver->process)->get_closed_root();
 
-        x1 = leafx + blockwidth * ((*msg)->sender->step - startStep + 0.5);
+        x1 = blockwidth * ((*msg)->sender->step - startStep + 0.5);
         if (sender_pc->children->isEmpty())  // Sender is leaf
             y1 = sender_pc->extents.y() + sender_pc->extents.height() / 2;
         else if (sender_pc->extents.y() > receiver_pc->extents.y()) // Sender is lower cluster
@@ -422,7 +409,7 @@ void Gnome::drawGnomeQtInterMessages(QPainter * painter, int leafx, int blockwid
         else
             y1 = sender_pc->extents.y() + sender_pc->extents.height();
 
-        x2 = leafx + blockwidth * ((*msg)->receiver->step - startStep + 0.5);
+        x2 = blockwidth * ((*msg)->receiver->step - startStep + 0.5);
         if (receiver_pc->children->isEmpty()) // Sender is leaf
             y2 = receiver_pc->extents.y() + receiver_pc->extents.height() / 2;
         else if (receiver_pc->extents.y() > sender_pc->extents.y()) // Sender is lower cluster
@@ -434,9 +421,99 @@ void Gnome::drawGnomeQtInterMessages(QPainter * painter, int leafx, int blockwid
     }
 }
 
-void Gnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, PartitionCluster * pc, int leafx,
-                                             int blockheight, int blockwidth, int barheight, int barwidth,
-                                             int treemargin, int labelwidth)
+void Gnome::drawQtTree(QPainter * painter, QRect extents)
+{
+    int labelwidth = 0;
+    if (cluster_root->leaf_open())
+    {
+        painter->setFont(QFont("Helvetica", 10));
+        QFontMetrics font_metrics = painter->fontMetrics();
+        QString text = QString::number((*(std::max_element(cluster_root->members->begin(), cluster_root->members->end()))));
+
+        // Determine bounding box of FontMetrics
+        labelwidth = font_metrics.boundingRect(text).width();
+    }
+    int depth = cluster_root->max_open_depth();
+    int branch_length = 5;
+    if (5 * depth < extents.width() - labelwidth)
+        branch_length = (extents.width() - labelwidth) / depth;
+
+    int topHeight = getTopHeight(extents);
+    int effectiveHeight = extents.height() - topHeight;
+    int processSpan = partition->events->size();
+    float blockheight = floor(effectiveHeight / processSpan);
+
+    int leafx = branch_length * depth + labelwidth;
+
+    drawTreeBranch(painter, QRect(extents.x(), extents.y(), extents.width(), extents.height() - topHeight),
+                   cluster_root, branch_length, labelwidth, blockheight, leafx);
+}
+
+
+void Gnome::drawTreeBranch(QPainter * painter, QRect current, PartitionCluster * pc,
+                                             int branch_length, int labelwidth, int blockheight, int leafx)
+{
+    //std::cout << "Drawing for cluster " << pc->memberString().toStdString().c_str() << std::endl;
+    int pc_size = pc->members->size();
+    //std::cout << "PC size is " << pc_size << " and blockheight is " << blockheight << std::endl;
+    int my_x = current.x();
+    int top_y = current.y();
+    int my_y = top_y + pc_size / 2.0 * blockheight;
+    int child_x, child_y, used_y = 0;
+    painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
+    if (pc->open && !pc->children->isEmpty())
+    {
+        // Draw line to myself
+        //painter->drawLine(my_x - 20, my_y, my_x, my_y);
+        for (QList<PartitionCluster *>::Iterator child = pc->children->begin(); child != pc->children->end(); ++child)
+        {
+            // Draw line from wherever we start to correct height -- actually loop through children since info this side?
+            // We are in the middle of these extents at current.x() and current.y() + current.h()
+            // Though we may want to take the discreteness of the processes into account and figure it out by blockheight
+            painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
+            int child_size = (*child)->members->size();
+            //std::cout << "  Child size " << child_size << std::endl;
+            child_y = top_y + child_size / 2.0 * blockheight + used_y;
+            painter->drawLine(my_x, my_y, my_x, child_y);
+            //std::cout << "Drawing line from " << my_x << ", " << my_y << "  to   " << my_x << ", " << child_y << std::endl;
+
+            // Draw forward correct amount of px
+            child_x = my_x + branch_length;
+            painter->drawLine(my_x, child_y, child_x, child_y);
+
+            QRect node = QRect(my_x - 3, my_y - 3, 6, 6);
+            painter->fillRect(node, QBrush(Qt::black));
+            drawnNodes[pc] = node;
+
+            drawTreeBranch(painter, QRect(child_x, top_y + used_y, current.width(), current.height()), *child,
+                                     branch_length, labelwidth, blockheight, leafx);
+            used_y += child_size * blockheight;
+        }
+    }
+    else if (pc->children->isEmpty())
+    {
+        painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
+            //std::cout << "Drawing for cluster " << pc->memberString().toStdString().c_str() << std::endl;
+            int process = pc->members->at(0);
+            //std::cout << "Drawing leaf for member " << process << std::endl;
+            painter->drawLine(my_x, my_y, leafx - labelwidth, my_y);
+            painter->setPen(QPen(Qt::white, 2.0, Qt::SolidLine));
+            painter->drawLine(leafx - labelwidth, my_y, leafx, my_y);
+            painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
+            painter->drawText(leafx - labelwidth, my_y + 3, QString::number(process));
+    }
+    else // This is open
+    {
+        painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
+        //std::cout << "Drawing for cluster " << pc->memberString().toStdString().c_str() << std::endl;
+        painter->drawLine(my_x, my_y, leafx, my_y);
+    }
+
+
+}
+
+void Gnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, PartitionCluster * pc,
+                                             int blockheight, int blockwidth, int barheight, int barwidth)
 {
     //std::cout << "Drawing for cluster " << pc->memberString().toStdString().c_str() << std::endl;
     int pc_size = pc->members->size();
@@ -470,37 +547,24 @@ void Gnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, Partitio
             painter->fillRect(node, QBrush(Qt::black));
             drawnNodes[pc] = node;
 
-            drawGnomeQtClusterBranch(painter, QRect(child_x, top_y + used_y, current.width(), current.height()), *child,
-                                     leafx, blockheight, blockwidth, barheight, barwidth, treemargin, labelwidth);
+            drawGnomeQtClusterBranch(painter, QRect(my_x, top_y + used_y, current.width(), current.height()), *child,
+                                     blockheight, blockwidth, barheight, barwidth);
             used_y += child_size * blockheight;
         }
     }
     else if (pc->children->isEmpty())
     {
+        int process = pc->members->at(0);
         painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
-            //std::cout << "Drawing for cluster " << pc->memberString().toStdString().c_str() << std::endl;
-            int process = pc->members->at(0);
-            //std::cout << "Drawing leaf for member " << process << std::endl;
-            painter->drawLine(my_x, my_y, leafx - labelwidth, my_y);
-            painter->setPen(QPen(Qt::white, 2.0, Qt::SolidLine));
-            painter->drawLine(leafx - labelwidth, my_y, leafx, my_y);
-            painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
-            painter->drawText(leafx - labelwidth, my_y + 3, QString::number(process));
-            drawGnomeQtClusterLeaf(painter, QRect(leafx, current.y(), barwidth, barheight),
+        drawGnomeQtClusterLeaf(painter, QRect(current.x(), current.y(), barwidth, barheight),
                                   partition->events->value(process), blockwidth, partition->min_global_step);
-            // TODO: Figure out message lines for this view -- may need to look up things in cluster to leaves to
-            // see if we draw and if so where.
-            // So we really need to save the locations of sends and receives with messages... probably need a new
-            // ClusterMessage container for this. Lots of allocating and deleting will be required
-            drawnPCs[pc] = QRect(leafx, current.y(), current.width() - treemargin, blockheight);
-            pc->extents = drawnPCs[pc];
+        drawnPCs[pc] = QRect(current.x(), current.y(), current.width(), blockheight);
+        pc->extents = drawnPCs[pc];
     }
     else // This is open
     {
         painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
-        //std::cout << "Drawing for cluster " << pc->memberString().toStdString().c_str() << std::endl;
-        painter->drawLine(my_x, my_y, leafx, my_y);
-        QRect clusterRect = QRect(leafx, current.y(), current.width() - treemargin, blockheight * pc->members->size());
+        QRect clusterRect = QRect(current.x(), current.y(), current.width(), blockheight * pc->members->size());
         drawGnomeQtClusterEnd(painter, clusterRect, pc,
                            barwidth, barheight, blockwidth, blockheight,
                            partition->min_global_step);
@@ -560,7 +624,19 @@ void Gnome::drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy, QList<Even
 
 void Gnome::handleDoubleClick(QMouseEvent * event)
 {
-    //std::cout << "I am handling double click for gnome" << std::endl;
+    int x = event->x();
+    int y = event->y();
+    for (QMap<PartitionCluster *, QRect>::Iterator p = drawnPCs.begin(); p != drawnPCs.end(); ++p)
+        if (p.value().contains(x,y))
+        {
+            PartitionCluster * pc = p.key();
+            pc->open = true;
+            return;
+        }
+}
+
+void Gnome::handleTreeDoubleClick(QMouseEvent * event)
+{
     int x = event->x();
     int y = event->y();
     // Figure out which branch this occurs in, open that branch
@@ -568,17 +644,7 @@ void Gnome::handleDoubleClick(QMouseEvent * event)
         if (p.value().contains(x,y))
         {
             PartitionCluster * pc = p.key();
-            //std::cout << "Closing " << pc->memberString().toStdString().c_str() << std::endl;
             pc->close();
             return; // Return so we don't look elsewhere.
         }
-    for (QMap<PartitionCluster *, QRect>::Iterator p = drawnPCs.begin(); p != drawnPCs.end(); ++p)
-        if (p.value().contains(x,y))
-        {
-            PartitionCluster * pc = p.key();
-            //std::cout << "Opening " << pc->memberString().toStdString().c_str() << std::endl;
-            pc->open = true;
-            return;
-        }
 }
-

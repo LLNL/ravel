@@ -92,7 +92,7 @@ void OTFConverter::matchEvents()
     // We can handle each set of events separately
     QStack<Event *> * stack = new QStack<Event *>();
     emit(matchingUpdate(1, "Constructing events..."));
-    int progressPortion = round(rawtrace->num_processes / 1.0 / event_match_portion);
+    int progressPortion = std::max(round(rawtrace->num_processes / 1.0 / event_match_portion),1.0);
     int currentPortion = 0;
     int currentIter = 0;
 
@@ -174,7 +174,7 @@ void OTFConverter::matchMessages()
     int messages = 0;
     int unmatched_recvs = 0;
     int unmatched_sends = 0;
-    int progressPortion = round(rawtrace->messages->size() / 1.0 / message_match_portion);
+    int progressPortion = std::max(round(rawtrace->messages->size() / 1.0 / message_match_portion),1.0);
     int currentPortion = 0;
     int currentIter = 0;
     for (QVector<QVector<CommRecord *> *>::Iterator commlist = rawtrace->messages->begin(); commlist != rawtrace->messages->end(); ++commlist)

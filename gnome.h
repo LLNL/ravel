@@ -24,6 +24,8 @@ public:
     virtual void drawGnomeQt(QPainter * painter, QRect extents, VisOptions * _options);
     virtual void drawGnomeGL(QRect extents, VisOptions * _options) { Q_UNUSED(extents); options = _options; }
     virtual void handleDoubleClick(QMouseEvent * event);
+    virtual void handleTreeDoubleClick(QMouseEvent * event);
+    virtual void drawQtTree(QPainter * painter, QRect extents);
 
 protected:
     Partition * partition;
@@ -68,15 +70,19 @@ protected:
 
     void drawGnomeQtCluster(QPainter * painter, QRect extents);
     void drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
-                                 int blockwidth, int barwidth, int labelwidth);
+                                 int blockwidth, int barwidth);
     void drawGnomeQtClusterBranch(QPainter * painter, QRect current, PartitionCluster * pc,
-                                  int leafx, int blockheight, int blockwidth, int barheight,
-                                  int barwidth, int treemargin, int labelwidth);
+                                  int blockheight, int blockwidth, int barheight, int barwidth);
     void drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy, QList<Event *> * elist, int blockwidth, int startStep);
-    void drawGnomeQtInterMessages(QPainter * painter, int leafx, int blockwidth, int startStep);
+    void drawGnomeQtInterMessages(QPainter * painter, int blockwidth, int startStep);
     virtual void drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, PartitionCluster * pc,
                                     int barwidth, int barheight, int blockwidth, int blockheight,
                                     int startStep) { }
+    void drawTreeBranch(QPainter * painter, QRect current, PartitionCluster * pc,
+                        int branch_length, int labelwidth, int blockheight, int leafx);
+    int getTopHeight(QRect extents);
+
+    static const int clusterMaxHeight = 76;
 };
 
 #endif // GNOME_H

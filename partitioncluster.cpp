@@ -217,6 +217,17 @@ bool PartitionCluster::leaf_open()
     return leaf;
 }
 
+int PartitionCluster::visible_clusters()
+{
+    if (!open)
+        return 1;
+
+    int visible = 0;
+    for (QList<PartitionCluster *>::Iterator child = children->begin(); child != children->end(); ++child)
+        visible += (*child)->visible_clusters();
+    return visible;
+}
+
 QString PartitionCluster::memberString()
 {
     QString ms = "[ ";

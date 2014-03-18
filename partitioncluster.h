@@ -19,6 +19,7 @@ public:
     int max_depth();
     int max_open_depth();
     bool leaf_open();
+    int visible_clusters();
     QString memberString();
     void print(QString indent = "");
     void close();

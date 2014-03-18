@@ -41,7 +41,7 @@ private:
                                                int barwidth, int barheight, int blockwidth, int blockheight,
                                                int startStep);
 
-    static const int clusterMaxHeight = 76;
+
 };
 
 #endif // EXCHANGEGNOME_H

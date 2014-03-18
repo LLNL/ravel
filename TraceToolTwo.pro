@@ -32,7 +32,9 @@ SOURCES  += main.cpp \
     exchangegnome.cpp \
     collectiverecord.cpp \
     partitioncluster.cpp \
-    clusterevent.cpp
+    clusterevent.cpp \
+    clustervis.cpp \
+    clustertreevis.cpp
 
 
 HEADERS += \
@@ -63,7 +65,9 @@ HEADERS += \
     exchangegnome.h \
     collectiverecord.h \
     partitioncluster.h \
-    clusterevent.h
+    clusterevent.h \
+    clustervis.h \
+    clustertreevis.h
 
 
 FORMS += \

@@ -33,6 +33,7 @@ public slots:
     void pushSteps(float start, float stop, bool jump = false);
     void selectEvent(Event * event);
     void handleSplitter(int pos, int index);
+    void handleSideSplitter(int pos, int index);
     void traceFinished(Trace * trace);
     void updateProgress(int portion, QString msg);
 
@@ -43,6 +44,8 @@ private:
     Ui::MainWindow *ui;
     void importOTF(QString dataFileName);
     void activeTraceChanged();
+    void linkSideSplitter();
+    void linkMainSplitter();
 
     QVector<Trace *> traces;
     QVector<VisWidget *> viswidgets;

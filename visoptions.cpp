@@ -6,8 +6,6 @@ VisOptions::VisOptions(bool _showAgg,
     : showAggregateSteps(_showAgg),
       colorTraditionalByMetric(_metricTraditional),
       showMessages(true),
-      drawGnomes(true),
-      drawTop(true),
       metric(_metric),
       maptype(SEQUENTIAL),
       divergentmap(new ColorMap(QColor(173, 216, 230), 0)),
@@ -50,8 +48,6 @@ VisOptions::VisOptions(const VisOptions& copy)
     showAggregateSteps = copy.showAggregateSteps;
     colorTraditionalByMetric = copy.colorTraditionalByMetric;
     showMessages = copy.showMessages;
-    drawGnomes = copy.drawGnomes;
-    drawTop = copy.drawTop;
     metric = copy.metric;
     maptype = copy.maptype;
     divergentmap = new ColorMap(*(copy.divergentmap));

@@ -7,7 +7,7 @@ class VisOptions
 {
 public:
     VisOptions(bool _showAgg = true,
-                     bool _metricTraditional = false,
+                     bool _metricTraditional = true,
                      QString _metric = "Lateness");
     VisOptions(const VisOptions& copy);
     void setRange(double low, double high);
@@ -17,8 +17,6 @@ public:
     bool showAggregateSteps;
     bool colorTraditionalByMetric;
     bool showMessages;
-    bool drawGnomes;
-    bool drawTop;
     QString metric;
     ColorMapType maptype;
     ColorMap * divergentmap;

@@ -20,7 +20,7 @@ public:
     ~VisWidget();
     virtual void setTrace(Trace *t);
     virtual void processVis();
-    QSize sizeHint() const;
+    virtual QSize sizeHint() const;
 
     void setClosed(bool _closed);
     void setVisOptions(VisOptions * _options);
