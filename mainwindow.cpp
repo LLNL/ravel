@@ -62,25 +62,31 @@ MainWindow::MainWindow(QWidget *parent) :
     connect((timevis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
     viswidgets.push_back(timevis);
 
-    ClusterVis* clustervis = new ClusterVis(ui->stepContainer, visoptions);
+
+    ClusterTreeVis* clustertreevis = new ClusterTreeVis(ui->stepContainer, visoptions);
+    ui->treeContainer->layout()->addWidget(clustertreevis);
+
+    connect((clustertreevis), SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
+    connect((clustertreevis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
+
+    ClusterVis* clustervis = new ClusterVis(clustertreevis, ui->stepContainer, visoptions);
     ui->clusterContainer->layout()->addWidget(clustervis);
     ui->clusterLabelWidget->setLayout(new QVBoxLayout());
     ui->clusterLabelWidget->layout()->addWidget(new VerticalLabel("Clusters", ui->clusterLabelWidget));
 
     connect((clustervis), SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
     connect((clustervis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
-    viswidgets.push_back(clustervis);
 
-    ClusterTreeVis* clustertreevis = new ClusterTreeVis(ui->stepContainer, visoptions);
-    ui->treeContainer->layout()->addWidget(clustertreevis);
 
     connect((clustervis), SIGNAL(focusGnome(Gnome*)), clustertreevis, SLOT(setGnome(Gnome*)));
     connect((clustervis), SIGNAL(clusterChange()), clustertreevis, SLOT(clusterChanged()));
     connect((clustertreevis), SIGNAL(clusterChange()), clustervis, SLOT(clusterChanged()));
 
-    connect((clustertreevis), SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
-    connect((clustertreevis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
+    viswidgets.push_back(clustervis);
     viswidgets.push_back(clustertreevis);
+
+    connect(ui->verticalSlider, SIGNAL(valueChanged(int)), clustervis, SLOT(changeNeighborRadius(int)));
+    connect((clustervis), SIGNAL(neighborChange(int)), ui->verticalSlider, SLOT(setValue(int)));
 
 
     connect(ui->actionOpen_OTF, SIGNAL(triggered()),this,SLOT(importOTFbyGUI()));
@@ -357,4 +363,3 @@ void MainWindow::toggleMetricOverview()
     ui->splitter->setSizes(sizes);
     linkSideSplitter();
 }
-

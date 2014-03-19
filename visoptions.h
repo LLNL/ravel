@@ -17,6 +17,7 @@ public:
     bool showAggregateSteps;
     bool colorTraditionalByMetric;
     bool showMessages;
+    bool topByCentroid;
     QString metric;
     ColorMapType maptype;
     ColorMap * divergentmap;

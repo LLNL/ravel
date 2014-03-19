@@ -180,7 +180,7 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
 void ExchangeGnome::generateTopProcesses()
 {
 
-    if (type == SRSR) // Add all partners and then search those partners for the missing strings
+    if (type == SRSR && neighbors < 0) // Add all partners and then search those partners for the missing strings
     {
         top_processes.clear();
         QList<Event *> * elist = partition->events->value(max_metric_process);
@@ -263,7 +263,7 @@ void ExchangeGnome::generateTopProcesses()
         std::cout << "Neighbor depth: " << neighbor_depth << std::endl;
         qSort(top_processes);
     }
-    else if (type == SSRR || type == SSWA) // Add all partners
+    else
     {
         Gnome::generateTopProcesses();
     }

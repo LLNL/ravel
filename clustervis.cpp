@@ -1,8 +1,9 @@
 #include "clustervis.h"
 
-ClusterVis::ClusterVis(QWidget* parent, VisOptions *_options)
+ClusterVis::ClusterVis(ClusterTreeVis *ctv, QWidget* parent, VisOptions *_options)
     : TimelineVis(parent, _options),
-      drawnGnomes(QMap<Gnome *, QRect>())
+      drawnGnomes(QMap<Gnome *, QRect>()),
+      treevis(ctv)
 {
 }
 
@@ -370,3 +371,8 @@ void ClusterVis::paintEvents(QPainter * painter)
     */
 }
 
+void ClusterVis::changeNeighborRadius(int neighbors)
+{
+    treevis->getGnome()->setNeighbors(neighbors);
+    repaint();
+}

@@ -2,12 +2,13 @@
 #define CLUSTERVIS_H
 
 #include "timelinevis.h"
+#include "clustertreevis.h"
 
 class ClusterVis : public TimelineVis
 {
     Q_OBJECT
 public:
-    ClusterVis(QWidget* parent = 0, VisOptions *_options = new VisOptions());
+    ClusterVis(ClusterTreeVis * ctv, QWidget* parent = 0, VisOptions *_options = new VisOptions());
     ~ClusterVis() {}
     void setTrace(Trace * t);
 
@@ -21,6 +22,7 @@ signals:
 public slots:
     void setSteps(float start, float stop, bool jump = false);
     void clusterChanged();
+    void changeNeighborRadius(int neighbors);
 
 protected:
     void qtPaint(QPainter *painter);
@@ -32,6 +34,7 @@ protected:
     void mouseDoubleClickEvent(QMouseEvent * event);
 
     QMap<Gnome *, QRect> drawnGnomes;
+    ClusterTreeVis * treevis;
 
 };
 

@@ -26,6 +26,7 @@ public:
     virtual void handleDoubleClick(QMouseEvent * event);
     virtual void handleTreeDoubleClick(QMouseEvent * event);
     virtual void drawQtTree(QPainter * painter, QRect extents);
+    virtual void setNeighbors(int _neighbors);
 
 protected:
     Partition * partition;
@@ -84,6 +85,7 @@ protected:
     int max_metric_process;
     QList<int> top_processes;
     bool alternation;
+    int neighbors;
 
     QSet<Message *> saved_messages;
     QMap<PartitionCluster *, QRect> drawnPCs;

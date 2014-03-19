@@ -11,6 +11,7 @@ public:
     explicit ClusterTreeVis(QWidget *parent = 0, VisOptions * _options = new VisOptions());
     QSize sizeHint() const;
     void setTrace(Trace * t);
+    Gnome * getGnome() { return gnome; }
 
 signals:
     void clusterChange();

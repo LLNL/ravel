@@ -9,6 +9,7 @@ Gnome::Gnome()
       max_metric_process(-1),
       top_processes(QList<int>()),
       alternation(true),
+      neighbors(-1),
       saved_messages(QSet<Message *>()),
       drawnPCs(QMap<PartitionCluster *, QRect>()),
       drawnNodes(QMap<PartitionCluster *, QRect>())
@@ -173,10 +174,20 @@ long long int Gnome::calculateMetricDistance(QList<Event *> * list1, QList<Event
     return total_difference / total_calced_steps;
 }
 
+void Gnome::setNeighbors(int _neighbors)
+{
+    if (neighbors == _neighbors)
+        return;
+
+    neighbors = _neighbors;
+    generateTopProcesses();
+}
+
 void Gnome::generateTopProcesses()
 {
     top_processes.clear();
-
+    if (neighbors < 0)
+        neighbors = 1;
 
     generateTopProcessesWorker(max_metric_process);
     qSort(top_processes);
@@ -184,24 +195,39 @@ void Gnome::generateTopProcesses()
 
 void Gnome::generateTopProcessesWorker(int process)
 {
-    top_processes.append(process);
-    QList<Event *> * elist = partition->events->value(process);
+    QList<Event *> * elist = NULL;
     QSet<int> add_processes = QSet<int>();
-    for (QList<Event *>::Iterator evt = elist->begin(); evt != elist->end(); ++evt)
+    add_processes.insert(process);
+    QSet<int> new_processes = QSet<int>();
+    QSet<int> current_processes = QSet<int>();
+    current_processes.insert(process);
+    for (int i = 0; i < neighbors; i++)
     {
-        for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
+        for (QSet<int>::Iterator proc = current_processes.begin(); proc != current_processes.end(); ++proc)
         {
-            if (*evt == (*msg)->sender)
+            elist = partition->events->value(*proc);
+            for (QList<Event *>::Iterator evt = elist->begin(); evt != elist->end(); ++evt)
             {
-                add_processes.insert((*msg)->receiver->process);
-            }
-            else
-            {
-                add_processes.insert((*msg)->sender->process);
+                for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
+                {
+                    if (*evt == (*msg)->sender)
+                    {
+                        add_processes.insert((*msg)->receiver->process);
+                        new_processes.insert((*msg)->receiver->process);
+                    }
+                    else
+                    {
+                        add_processes.insert((*msg)->sender->process);
+                        new_processes.insert((*msg)->receiver->process);
+                    }
+                }
             }
         }
+        current_processes.clear();
+        current_processes += new_processes;
+        new_processes.clear();
     }
-    top_processes += add_processes.toList();
+    top_processes = add_processes.toList();
 }
 
 int Gnome::findMaxMetricProcess(PartitionCluster * pc)
