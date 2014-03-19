@@ -183,13 +183,21 @@ void Gnome::setNeighbors(int _neighbors)
     generateTopProcesses();
 }
 
-void Gnome::generateTopProcesses()
+void Gnome::generateTopProcesses(PartitionCluster *pc)
 {
     top_processes.clear();
     if (neighbors < 0)
         neighbors = 1;
 
-    generateTopProcessesWorker(max_metric_process);
+    if (pc)
+    {
+        if (options->topByCentroid)
+            generateTopProcessesWorker(findCentroidProcess(pc));
+        else
+            generateTopProcessesWorker(findMaxMetricProcess(pc));
+    }
+    else
+        generateTopProcessesWorker(max_metric_process);
     qSort(top_processes);
 }
 
@@ -739,7 +747,20 @@ void Gnome::handleDoubleClick(QMouseEvent * event)
         if (p.value().contains(x,y))
         {
             PartitionCluster * pc = p.key();
-            pc->open = true;
+            if ((Qt::ControlModifier && event->modifiers()) && (event->button() == Qt::RightButton))
+            {
+                std::cout << "Top by centroid" << std::endl;
+                options->topByCentroid = true;
+                generateTopProcesses(pc);
+            }
+            else if (Qt::ControlModifier && event->modifiers())
+            {
+                std::cout << "Top by max" << std::endl;
+                options->topByCentroid = false;
+                generateTopProcesses(pc);
+            }
+            else
+                pc->open = true;
             return;
         }
 }

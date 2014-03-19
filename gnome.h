@@ -63,7 +63,7 @@ protected:
 
     long long int calculateMetricDistance(QList<Event *> * list1, QList<Event *> * list2);
     void findClusters();
-    virtual void generateTopProcesses();
+    virtual void generateTopProcesses(PartitionCluster * pc = NULL);
     void generateTopProcessesWorker(int process);
     int findCentroidProcess(PartitionCluster * pc);
     int findMaxMetricProcess(PartitionCluster * pc);
