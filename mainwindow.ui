@@ -78,6 +78,9 @@
           <property name="opaqueResize">
            <bool>false</bool>
           </property>
+          <property name="handleWidth">
+           <number>2</number>
+          </property>
           <widget class="QWidget" name="stepSide" native="true">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -283,6 +286,9 @@
           </property>
           <property name="opaqueResize">
            <bool>false</bool>
+          </property>
+          <property name="handleWidth">
+           <number>2</number>
           </property>
           <widget class="QWidget" name="stepContainer" native="true">
            <property name="sizePolicy">

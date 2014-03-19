@@ -34,6 +34,7 @@ protected:
     void mouseDoubleClickEvent(QMouseEvent * event);
 
     QMap<Gnome *, QRect> drawnGnomes;
+    PartitionCluster * selected;
     ClusterTreeVis * treevis;
 
 };

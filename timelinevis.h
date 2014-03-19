@@ -21,6 +21,7 @@ public:
 
 public slots:
     void selectEvent(Event * event);
+    void selectProcesses(QList<int> processes, Gnome *gnome);
 
 protected:
     void drawHover(QPainter *painter);

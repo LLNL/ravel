@@ -10,6 +10,7 @@ Gnome::Gnome()
       top_processes(QList<int>()),
       alternation(true),
       neighbors(-1),
+      selected_pc(NULL),
       saved_messages(QSet<Message *>()),
       drawnPCs(QMap<PartitionCluster *, QRect>()),
       drawnNodes(QMap<PartitionCluster *, QRect>())
@@ -685,6 +686,12 @@ void Gnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, Partitio
         drawGnomeQtClusterEnd(painter, clusterRect, pc,
                            barwidth, barheight, blockwidth, blockheight,
                            partition->min_global_step);
+        if (pc == selected_pc)
+        {
+            painter->setPen(QPen(Qt::green));
+            painter->drawRect(clusterRect);
+            painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
+        }
         drawnPCs[pc] = clusterRect;
         pc->extents = clusterRect;
     }
@@ -739,7 +746,7 @@ void Gnome::drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy, QList<Even
     }
 }
 
-void Gnome::handleDoubleClick(QMouseEvent * event)
+Gnome::ChangeType Gnome::handleDoubleClick(QMouseEvent * event)
 {
     int x = event->x();
     int y = event->y();
@@ -749,19 +756,29 @@ void Gnome::handleDoubleClick(QMouseEvent * event)
             PartitionCluster * pc = p.key();
             if ((Qt::ControlModifier && event->modifiers()) && (event->button() == Qt::RightButton))
             {
-                std::cout << "Top by centroid" << std::endl;
                 options->topByCentroid = true;
                 generateTopProcesses(pc);
+                return NONE;
             }
             else if (Qt::ControlModifier && event->modifiers())
             {
-                std::cout << "Top by max" << std::endl;
                 options->topByCentroid = false;
                 generateTopProcesses(pc);
+                return NONE;
+            }
+            else if (event->button() == Qt::RightButton)
+            {
+                if (selected_pc == pc)
+                    selected_pc = NULL;
+                else
+                    selected_pc = pc;
+                return SELECTION;
             }
             else
+            {
                 pc->open = true;
-            return;
+                return CLUSTER;
+            }
         }
 }
 

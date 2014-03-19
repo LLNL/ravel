@@ -12,6 +12,8 @@ VisWidget::VisWidget(QWidget *parent, VisOptions * _options) :
     changeSource(false),
     border(20),
     drawnEvents(QMap<Event *, QRect>()),
+    selected_processes(QList<int>()),
+    selected_gnome(NULL),
     selected_event(NULL),
     hover_event(NULL),
     closed(false)
@@ -47,6 +49,12 @@ void VisWidget::setSteps(float start, float stop, bool jump)
 void VisWidget::selectEvent(Event * evt)
 {
     Q_UNUSED(evt);
+}
+
+void VisWidget::selectProcesses(QList<int> processes, Gnome *gnome)
+{
+    Q_UNUSED(processes);
+    Q_UNUSED(gnome);
 }
 
 

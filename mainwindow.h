@@ -32,6 +32,7 @@ public slots:
     void importOTFbyGUI();
     void pushSteps(float start, float stop, bool jump = false);
     void selectEvent(Event * event);
+    void selectProcesses(QList<int> processes, Gnome *gnome);
     void handleSplitter(int pos, int index);
     void handleSideSplitter(int pos, int index);
     void traceFinished(Trace * trace);

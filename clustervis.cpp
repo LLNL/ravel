@@ -3,6 +3,7 @@
 ClusterVis::ClusterVis(ClusterTreeVis *ctv, QWidget* parent, VisOptions *_options)
     : TimelineVis(parent, _options),
       drawnGnomes(QMap<Gnome *, QRect>()),
+      selected(NULL),
       treevis(ctv)
 {
 }
@@ -137,10 +138,23 @@ void ClusterVis::mouseDoubleClickEvent(QMouseEvent * event)
         if (gnome.value().contains(x,y))
         {
             Gnome * g = gnome.key();
-            g->handleDoubleClick(event);
+            Gnome::ChangeType change = g->handleDoubleClick(event);
             repaint();
-            changeSource = true;
-            emit(clusterChange());
+            if (change == Gnome::CLUSTER)
+            {
+                changeSource = true;
+                emit(clusterChange());
+            }
+            else if (change == Gnome::SELECTION)
+            {
+                std::cout << "Emitting signal" << std::endl;
+                changeSource = true;
+                PartitionCluster * pc = g->getSelectedPartitionCluster();
+                if (pc)
+                    emit(processesSelected(*(pc->members), g));
+                else
+                    emit(QList<int>(), NULL);
+            }
             return;
         }
 

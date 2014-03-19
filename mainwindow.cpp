@@ -40,7 +40,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->overviewLabelWidget->layout()->addWidget(new VerticalLabel("Overview", ui->overviewLabelWidget));
 
     connect(overview, SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
-    connect(overview, SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
+    //connect(overview, SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
     viswidgets.push_back(overview);
 
     StepVis* stepvis = new StepVis(ui->stepContainer, visoptions);
@@ -66,8 +66,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ClusterTreeVis* clustertreevis = new ClusterTreeVis(ui->stepContainer, visoptions);
     ui->treeContainer->layout()->addWidget(clustertreevis);
 
-    connect((clustertreevis), SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
-    connect((clustertreevis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
+    //connect((clustertreevis), SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
+    //connect((clustertreevis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
 
     ClusterVis* clustervis = new ClusterVis(clustertreevis, ui->stepContainer, visoptions);
     ui->clusterContainer->layout()->addWidget(clustervis);
@@ -76,6 +76,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect((clustervis), SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
     connect((clustervis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
+    connect((clustervis), SIGNAL(processesSelected(QList<int>, Gnome*)), this, SLOT(selectProcesses(QList<int>, Gnome*)));
 
 
     connect((clustervis), SIGNAL(focusGnome(Gnome*)), clustertreevis, SLOT(setGnome(Gnome*)));
@@ -116,6 +117,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(ui->splitter, SIGNAL(splitterMoved(int, int)), this, SLOT(handleSplitter(int, int)));
     connect(ui->sideSplitter, SIGNAL(splitterMoved(int, int)), this, SLOT(handleSideSplitter(int, int)));
+    ui->splitter->setStyleSheet("QSplitter::handle { background-color: black; }");
+    ui->sideSplitter->setStyleSheet("QSplitter::handle { background-color: black; }");
 
     // for testing
     //importOTF("/Users/kate/Documents/trace_files/sdissbinom16/nbc-test.otf");t
@@ -151,6 +154,14 @@ void MainWindow::selectEvent(Event * event)
     }
 }
 
+void MainWindow::selectProcesses(QList<int> processes, Gnome * gnome)
+{
+    std::cout << "selecting processes pass on " << std::endl;
+    for(int i = 0; i < viswidgets.size(); i++)
+    {
+        viswidgets[i]->selectProcesses(processes, gnome);
+    }
+}
 
 void MainWindow::launchOTFOptions()
 {

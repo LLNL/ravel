@@ -31,11 +31,12 @@ signals:
     void repaintAll();
     void stepsChanged(float start, float stop, bool jump);
     void eventClicked(Event * evt);
-
+    void processesSelected(QList<int> processes, Gnome * gnome);
 
 public slots:
     virtual void setSteps(float start, float stop, bool jump = false);
     virtual void selectEvent(Event *);
+    virtual void selectProcesses(QList<int> processes, Gnome * gnome);
 
 protected:
     void initializeGL();
@@ -62,6 +63,8 @@ protected:
     bool changeSource;
     int border;
     QMap<Event *, QRect> drawnEvents;
+    QList<int> selected_processes;
+    Gnome * selected_gnome;
     Event * selected_event;
     Event * hover_event;
     bool closed;

@@ -17,16 +17,19 @@ public:
     Gnome();
     ~Gnome();
 
+    enum ChangeType { CLUSTER, SELECTION, NONE };
+
     virtual bool detectGnome(Partition * part);
     virtual Gnome * create();
     void setPartition(Partition * part) { partition = part; }
     virtual void preprocess();
     virtual void drawGnomeQt(QPainter * painter, QRect extents, VisOptions * _options);
     virtual void drawGnomeGL(QRect extents, VisOptions * _options) { Q_UNUSED(extents); options = _options; }
-    virtual void handleDoubleClick(QMouseEvent * event);
+    virtual ChangeType handleDoubleClick(QMouseEvent * event);
     virtual void handleTreeDoubleClick(QMouseEvent * event);
     virtual void drawQtTree(QPainter * painter, QRect extents);
     virtual void setNeighbors(int _neighbors);
+    PartitionCluster * getSelectedPartitionCluster() { return selected_pc; }
 
 protected:
     Partition * partition;
@@ -86,6 +89,7 @@ protected:
     QList<int> top_processes;
     bool alternation;
     int neighbors;
+    PartitionCluster * selected_pc;
 
     QSet<Message *> saved_messages;
     QMap<PartitionCluster *, QRect> drawnPCs;

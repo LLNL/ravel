@@ -412,7 +412,22 @@ void StepVis::paintEvents(QPainter * painter)
             break;
         else if (part->max_global_step < bottomStep)
             continue;
-        for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin(); event_list != part->events->end(); ++event_list) {
+
+
+        for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin(); event_list != part->events->end(); ++event_list)
+        {
+            bool selected = false;
+            if (part->gnome == selected_gnome && selected_processes.contains(proc_to_order[event_list.key()]))
+                selected = true;
+            if (part->gnome == selected_gnome)
+            {
+                std::cout << "Selected processes are: [ ";
+                if (!selected_processes.isEmpty())
+                    std::cout << selected_processes[0];
+                for (int j = 1; j < selected_processes.size(); j++)
+                    std::cout << ", " << selected_processes[j];
+                std::cout << " ]" << std::endl;
+            }
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
                 skipDraw = false;
@@ -461,8 +476,8 @@ void StepVis::paintEvents(QPainter * painter)
                 else
                     painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(180, 180, 180)));
                 // Change pen color if selected
-                if (*evt == selected_event)
-                    painter->setPen(QPen(Qt::yellow));
+                if (*evt == selected_event || selected)
+                    painter->setPen(QPen(Qt::green));
                 // Draw border but only if we're doing spacing, otherwise too messy
                 if (step_spacing > 0 && process_spacing > 0)
                     if (complete)
@@ -470,7 +485,7 @@ void StepVis::paintEvents(QPainter * painter)
                     else
                         incompleteBox(painter, x, y, w, h, &extents);
                 // Revert pen color
-                if (*evt == selected_event)
+                if (*evt == selected_event || selected)
                     painter->setPen(QPen(QColor(0, 0, 0)));
 
                 // For selection
@@ -500,11 +515,16 @@ void StepVis::paintEvents(QPainter * painter)
                         painter->fillRect(QRectF(xa, y, wa, h), QBrush(options->colormap->color((*evt)->getMetric(metric, true))));
                     else
                         painter->fillRect(QRectF(xa, y, wa, h), QBrush(QColor(180, 180, 180)));
+
+                    if (selected)
+                        painter->setPen(QPen(Qt::green));
                     if (step_spacing > 0 && process_spacing > 0)
                         if (aggcomplete)
                             painter->drawRect(QRectF(xa, y, wa, h));
                         else
                             incompleteBox(painter, xa, y, wa, h, &extents);
+                    if (selected)
+                        painter->setPen(QPen(QColor(0, 0, 0)));
                 }
 
             }

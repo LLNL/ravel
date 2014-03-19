@@ -109,7 +109,22 @@ void TimelineVis::selectEvent(Event * event)
         changeSource = false;
         return;
     }
+    selected_processes.clear();
+    selected_gnome = NULL;
     selected_event = event;
+    if (!closed)
+        repaint();
+}
+
+void TimelineVis::selectProcesses(QList<int> processes, Gnome * gnome)
+{
+    if (changeSource) {
+        changeSource = false;
+        return;
+    }
+    selected_processes = processes;
+    selected_gnome = gnome;
+    selected_event = NULL;
     if (!closed)
         repaint();
 }
