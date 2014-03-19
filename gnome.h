@@ -42,9 +42,30 @@ protected:
         int p1;
         int p2;
     };
+    class CentroidDistance {
+    public:
+        CentroidDistance(long long int _d, int _p)
+            : distance(_d), process(_p) {}
+        bool operator<(const CentroidDistance &cd) const { return distance < cd.distance; }
+
+        long long int distance;
+        int process;
+    };
+    class AverageMetric {
+    public:
+        AverageMetric(long long int _m, int _s)
+            : metric(_m), step(_s) {}
+
+        long long int metric;
+        int step;
+    };
+
     long long int calculateMetricDistance(QList<Event *> * list1, QList<Event *> * list2);
     void findClusters();
     virtual void generateTopProcesses();
+    void generateTopProcessesWorker(int process);
+    int findCentroidProcess(PartitionCluster * pc);
+    int findMaxMetricProcess(PartitionCluster * pc);
 
 
     class DrawMessage {

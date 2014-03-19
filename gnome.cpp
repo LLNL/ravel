@@ -176,10 +176,16 @@ long long int Gnome::calculateMetricDistance(QList<Event *> * list1, QList<Event
 void Gnome::generateTopProcesses()
 {
     top_processes.clear();
-    // From the max_metric_process and the type, get the rest of the processes we draw by default
 
-    top_processes.append(max_metric_process);
-    QList<Event *> * elist = partition->events->value(max_metric_process);
+
+    generateTopProcessesWorker(max_metric_process);
+    qSort(top_processes);
+}
+
+void Gnome::generateTopProcessesWorker(int process)
+{
+    top_processes.append(process);
+    QList<Event *> * elist = partition->events->value(process);
     QSet<int> add_processes = QSet<int>();
     for (QList<Event *>::Iterator evt = elist->begin(); evt != elist->end(); ++evt)
     {
@@ -196,7 +202,97 @@ void Gnome::generateTopProcesses()
         }
     }
     top_processes += add_processes.toList();
-    qSort(top_processes);
+}
+
+int Gnome::findMaxMetricProcess(PartitionCluster * pc)
+{
+    int p1, max_process;
+    long long int max_metric = 0;
+    for (int i = 0; i < pc->members->size(); i++)
+    {
+        p1 = pc->members->at(i);
+        if (cluster_leaves->value(p1)->max_metric > max_metric)
+        {
+            max_metric = cluster_leaves->value(p1)->max_metric;
+            max_process = p1;
+        }
+    }
+    return max_process;
+}
+
+int Gnome::findCentroidProcess(PartitionCluster * pc)
+{
+    QList<CentroidDistance> distances = QList<CentroidDistance>();
+    for (int i = 0; i < pc->members->size(); i++)
+        distances.append(CentroidDistance(0, pc->members->at(i)));
+    QList<AverageMetric> events = QList<AverageMetric>();
+    for (QList<ClusterEvent *>::Iterator evt = pc->events->begin(); evt != pc->events->end(); ++evt)
+    {
+        events.append(AverageMetric((*evt)->getMetric() / (*evt)->getCount(), (*evt)->step));
+    }
+
+    int num_events = events.size();
+    for (int i = 0; i < distances.size(); i++)
+    {
+        int index1 = 0, index2 = 0, total_calced_steps = 0;
+        long long int last1 = 0, last2 = 0, total_difference = 0;
+        int process = distances[i].process;
+        Event * evt = partition->events->value(process)->first();
+
+        while (evt && index2 < num_events)
+        {
+            AverageMetric am = events[index2];
+            if (evt->step == am.step) // If they're equal, add their distance
+            {
+                last1 = evt->getMetric(metric);
+                last2 = am.metric;
+                total_difference += (last1 - last2) * (last1 - last2);
+                ++total_calced_steps;
+                // Increment both event lists now
+                ++index2;
+                ++index1;
+                if (index1 < partition->events->value(process)->size())
+                    evt = partition->events->value(process)->at(index1);
+                else
+                    evt = NULL;
+            } else if (evt->step > am.step) { // If not, increment steps until they match
+                // Estimate evt1 lateness
+                last2 = am.metric;
+                if (evt->comm_prev && evt->comm_prev->partition == evt->partition)
+                {
+                    total_difference += (last1 - last2) * (last1 - last2);
+                    ++total_calced_steps;
+                }
+
+                // Move evt2 forward
+                ++index2;
+            } else {
+                last1 = evt->getMetric(metric);
+                if (index2 > 0)
+                {
+                    total_difference += (last1 - last2) * (last1 - last2);
+                    ++total_calced_steps;
+                }
+
+                // Move evt1 forward
+                ++index1;
+                if (index1 < partition->events->value(process)->size())
+                    evt = partition->events->value(process)->at(index1);
+                else
+                    evt = NULL;
+            }
+        }
+        if (total_calced_steps == 0)
+        {
+            distances[i].distance = LLONG_MAX;
+        }
+        else
+        {
+            distances[i].distance = total_difference / total_calced_steps;
+        }
+    }
+    qSort(distances);
+    return distances[0].process;
 }
 
 
@@ -644,5 +740,106 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, Partiti
                                   int barwidth, int barheight, int blockwidth, int blockheight,
                                   int startStep)
 {
-    std::cout << "Base gnome cluster end" << std::endl;
+    // Here blockheight is the maximum height afforded to the block. We actually scale it
+    // based on how many processes are sending or receiving at that point
+    // The first row is send, the second row is recv
+    bool drawMessages = true;
+    if (clusterRect.height() > 2 * clusterMaxHeight)
+    {
+        blockheight = clusterMaxHeight - 25;
+        barheight = blockheight - 3;
+    }
+    else
+    {
+        blockheight = clusterRect.height() / 2;
+        if (blockheight < 40)
+            drawMessages = false;
+        else
+            blockheight -= 20; // For message drawing
+        if (barheight > blockheight - 3)
+            barheight = blockheight;
+    }
+    int base_y = clusterRect.y() + clusterRect.height() / 2 - blockheight;
+    int x, ys, yr, w, hs, hr, xa, wa, ya, ha, nsends, nrecvs;
+    yr = base_y + blockheight;
+    int base_ya = base_y + blockheight / 2 + (blockheight - barheight) / 2;
+    if (options->showAggregateSteps) {
+        startStep -= 1;
+    }
+    //std::cout << "Drawing background " << clusterRect.x() << ", " << clusterRect.y();
+    //std::cout << ", " << clusterRect.width() << ", " << clusterRect.height() << std::endl;
+    if (alternation) {
+        painter->fillRect(clusterRect, QBrush(QColor(217, 217, 217)));
+    } else {
+        painter->fillRect(clusterRect, QBrush(QColor(189, 189, 189)));
+    }
+    alternation = !alternation;
+    painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
+    for (QList<ClusterEvent *>::Iterator evt = pc->events->begin(); evt != pc->events->end(); ++evt)
+    {
+        if (options->showAggregateSteps)
+            x = floor(((*evt)->step - startStep) * blockwidth) + 1 + clusterRect.x();
+        else
+            x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1 + clusterRect.x();
+        w = barwidth;
+        nsends = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND);
+        nrecvs = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::RECV);
+        hs = barheight * nsends / 1.0 / pc->members->size();
+        ys = base_y + barheight - hs;
+        hr = barheight * nrecvs / 1.0 / pc->members->size();
+
+        // Draw the event
+        if ((*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND, ClusterEvent::ALL))
+            painter->fillRect(QRectF(x, ys, w, hs), QBrush(options->colormap->color(
+                                                         (*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::SEND,
+                                                                           ClusterEvent::ALL)
+                                                         / (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND,
+                                                                            ClusterEvent::ALL)
+                                                         )));
+        if ((*evt)->getCount(ClusterEvent::COMM, ClusterEvent::RECV, ClusterEvent::ALL))
+            painter->fillRect(QRectF(x, yr, w, hr), QBrush(options->colormap->color(
+                                                         (*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::RECV,
+                                                                           ClusterEvent::ALL)
+                                                         / (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::RECV,
+                                                                            ClusterEvent::ALL)
+                                                         )));
+
+        // Draw border but only if we're doing spacing, otherwise too messy
+        if (blockwidth != w) {
+            painter->drawRect(QRectF(x,ys,w,hs));
+            painter->drawRect(QRectF(x,yr,w,hr));
+        }
+
+        if (drawMessages) {
+            if (nsends)
+            {
+                painter->setPen(QPen(Qt::black, nsends * 2.0 / pc->members->size(), Qt::SolidLine));
+                painter->drawLine(x + blockwidth / 2, ys, x + barwidth, ys - 20);
+            }
+            if (nrecvs)
+            {
+                painter->setPen(QPen(Qt::black, nrecvs * 2.0 / pc->members->size(), Qt::SolidLine));
+                painter->drawLine(x + blockwidth / 2, yr + barheight, x + 1, yr + barheight + 20);
+            }
+        }
+
+        if (options->showAggregateSteps) {
+            xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + clusterRect.x();
+            wa = barwidth;
+            ha = barheight * (nsends + nrecvs) / 1.0 / pc->members->size();
+            ya = base_ya + (barheight - ha) / 2;
+
+            painter->fillRect(QRectF(xa, ya, wa, ha),
+                              QBrush(options->colormap->color(
+                                                              (*evt)->getMetric(ClusterEvent::AGG, ClusterEvent::BOTH,
+                                                                                ClusterEvent::ALL)
+                                                              / (*evt)->getCount(ClusterEvent::AGG, ClusterEvent::BOTH,
+                                                                                 ClusterEvent::ALL)
+                                                              )));
+            if (blockwidth != w)
+                painter->drawRect(QRectF(xa, ya, wa, ha));
+        }
+
+
+    }
 }

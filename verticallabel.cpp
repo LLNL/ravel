@@ -19,8 +19,6 @@ void VerticalLabel::paintEvent(QPaintEvent*)
 {
     QPainter painter(this);
     painter.setFont(QFont("Helvetica", 9));
-    painter.setPen(Qt::black);
-    painter.setBrush(Qt::Dense1Pattern);
 
     QFontMetrics font_metrics = painter.fontMetrics();
     int labeloffset = 9 * (sizeHint().height() - font_metrics.boundingRect(text()).width()) / 10;

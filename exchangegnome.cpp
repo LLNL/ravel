@@ -179,12 +179,10 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
 
 void ExchangeGnome::generateTopProcesses()
 {
-    top_processes.clear();
-    // From the max_metric_process and the type, get the rest of the processes we draw by default
 
-    std::cout << "Top process is " << max_metric_process << std::endl;
     if (type == SRSR) // Add all partners and then search those partners for the missing strings
     {
+        top_processes.clear();
         QList<Event *> * elist = partition->events->value(max_metric_process);
         QSet<int> add_processes = QSet<int>();
         QSet<int> level_processes = QSet<int>();

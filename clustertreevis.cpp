@@ -4,6 +4,8 @@ ClusterTreeVis::ClusterTreeVis(QWidget *parent, VisOptions * _options)
     : VisWidget(parent, _options),
       gnome(NULL)
 {
+    backgroundColor = palette().color(QPalette::Background);
+    setAutoFillBackground(true);
 }
 
 QSize ClusterTreeVis::sizeHint() const
