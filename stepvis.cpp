@@ -269,6 +269,20 @@ void StepVis::drawNativeGL()
     processheight = height/ processSpan;
     stepwidth = width / effectiveSpan;
 
+    float opacity = 1.0;
+    float xoffset = 0;
+    float yoffset = 0;
+    if (processheight < 1.0)
+    {
+        yoffset = 1.0 / processheight / 2;
+        opacity = 0.2;
+    }
+    if (stepwidth < 1.0)
+    {
+        xoffset = 1.0 / stepwidth / 2;
+        opacity = 0.2;
+    }
+
     // Generate buffers to hold each bar. We don't know how many there will
     // be since we draw one per event.
     QVector<GLfloat> bars = QVector<GLfloat>();
@@ -307,19 +321,20 @@ void StepVis::drawNativeGL()
 
                 color = options->colormap->color((*(*evt)->metrics)[metric]->event);
 
-                bars.append(x);
-                bars.append(y);
-                bars.append(x);
-                bars.append(y + barheight);
-                bars.append(x + barwidth);
-                bars.append(y + barheight);
-                bars.append(x + barwidth);
-                bars.append(y);
+                bars.append(x - xoffset);
+                bars.append(y - yoffset);
+                bars.append(x - xoffset);
+                bars.append(y + barheight + yoffset);
+                bars.append(x + barwidth + xoffset);
+                bars.append(y + barheight + yoffset);
+                bars.append(x + barwidth + xoffset);
+                bars.append(y - yoffset);
                 for (int j = 0; j < 4; ++j)
                 {
                     colors.append(color.red() / 255.0);
                     colors.append(color.green() / 255.0);
                     colors.append(color.blue() / 255.0);
+                    colors.append(opacity);
                 }
 
 
@@ -344,6 +359,7 @@ void StepVis::drawNativeGL()
                         colors.append(color.red() / 255.0);
                         colors.append(color.green() / 255.0);
                         colors.append(color.blue() / 255.0);
+                        colors.append(opacity);
                     }
                 }
 
@@ -354,7 +370,7 @@ void StepVis::drawNativeGL()
     // Draw
     glEnableClientState(GL_COLOR_ARRAY);
     glEnableClientState(GL_VERTEX_ARRAY);
-    glColorPointer(3,GL_FLOAT,0,colors.constData());
+    glColorPointer(4,GL_FLOAT,0,colors.constData());
     glVertexPointer(2,GL_FLOAT,0,bars.constData());
     glDrawArrays(GL_QUADS,0,bars.size()/2);
 }
