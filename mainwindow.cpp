@@ -156,7 +156,6 @@ void MainWindow::selectEvent(Event * event)
 
 void MainWindow::selectProcesses(QList<int> processes, Gnome * gnome)
 {
-    std::cout << "selecting processes pass on " << std::endl;
     for(int i = 0; i < viswidgets.size(); i++)
     {
         viswidgets[i]->selectProcesses(processes, gnome);
@@ -249,10 +248,19 @@ void MainWindow::activeTraceChanged()
         viswidgets[i]->repaint();
     }
     QList<int> splitter_sizes = ui->splitter->sizes();
-    int traditional_height = splitter_sizes[2];
-    splitter_sizes[0] += traditional_height / 2;
-    splitter_sizes[1] += traditional_height / 2;
-    splitter_sizes[2] = 0;
+    if (otfoptions->cluster)
+    {
+        int traditional_height = splitter_sizes[2];
+        splitter_sizes[0] += traditional_height / 2;
+        splitter_sizes[1] += traditional_height / 2;
+        splitter_sizes[2] = 0;
+    }
+    else
+    {
+        splitter_sizes[0] += splitter_sizes[1] + splitter_sizes[2];
+        splitter_sizes[1] = 0;
+        splitter_sizes[2] = 0;
+    }
     ui->splitter->setSizes(splitter_sizes);
     ui->sideSplitter->setSizes(splitter_sizes);
 }

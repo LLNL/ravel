@@ -53,9 +53,7 @@ void ClusterVis::mouseMoveEvent(QMouseEvent * event)
     {
         lastStartStep = startStep;
         int diffx = mousex - event->x();
-        int diffy = mousey - event->y();
         startStep += diffx / 1.0 / stepwidth;
-        startProcess += diffy / 1.0 / processheight;
 
         if (options->showAggregateSteps)
         {
@@ -70,17 +68,11 @@ void ClusterVis::mouseMoveEvent(QMouseEvent * event)
         if (startStep > maxStep)
             startStep = maxStep;
 
-        if (startProcess < 0)
-            startProcess = 0;
-        if (startProcess + processSpan > trace->num_processes)
-            startProcess = trace->num_processes - processSpan;
-
         mousex = event->x();
         mousey = event->y();
 
         repaint();
         changeSource = true;
-        //std::cout << "Emitting " << startStep << ", " << (startStep + stepSpan) << std::endl;
         emit stepsChanged(startStep, startStep + stepSpan, false);
     }
     else // potential hover
@@ -147,7 +139,6 @@ void ClusterVis::mouseDoubleClickEvent(QMouseEvent * event)
             }
             else if (change == Gnome::SELECTION)
             {
-                std::cout << "Emitting signal" << std::endl;
                 changeSource = true;
                 PartitionCluster * pc = g->getSelectedPartitionCluster();
                 if (pc)
@@ -233,7 +224,7 @@ void ClusterVis::qtPaint(QPainter *painter)
         return;
 
     // In this case we haven't already drawn stuff with GL, so we paint it here.
-    if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
+    if (rect().width() / stepSpan >= 3)
       paintEvents(painter);
 
     // Hover is independent of how we drew things
@@ -248,6 +239,8 @@ void ClusterVis::drawNativeGL()
         return;
 
     int effectiveHeight = rect().height();
+    if (rect().width() / stepSpan >= 3)
+        return;
 
     // Setup viewport
     int width = rect().width();
@@ -315,6 +308,7 @@ void ClusterVis::paintEvents(QPainter * painter)
     Partition * part = NULL;
     int topStep = boundStep(startStep + stepSpan) + 1;
     int bottomStep = floor(startStep) - 1;
+    stepwidth = blockwidth;
     //Gnome * leftmost = NULL;
     //Gnome * nextgnome = NULL;
     //std::cout << " Step span is " << bottomStep << " to " << topStep << " and startPartition is ";
@@ -389,4 +383,12 @@ void ClusterVis::changeNeighborRadius(int neighbors)
 {
     treevis->getGnome()->setNeighbors(neighbors);
     repaint();
+}
+
+void ClusterVis::selectEvent(Event * event)
+{
+    if (selected_gnome)
+        selected_gnome->clearSelectedPartitionCluster();
+    TimelineVis::selectEvent(event);
+
 }

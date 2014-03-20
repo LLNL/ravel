@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>412</width>
-    <height>277</height>
+    <height>305</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -164,6 +164,13 @@
       </layout>
      </item>
     </layout>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="clusterCheckbox">
+     <property name="text">
+      <string>Cluster processes</string>
+     </property>
+    </widget>
    </item>
    <item alignment="Qt::AlignBottom">
     <widget class="QDialogButtonBox" name="buttonBox">

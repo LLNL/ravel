@@ -27,6 +27,7 @@ public slots:
     void onLeapSkip(bool skip);
     void onGlobalMerge(bool merge);
     void onFunctionEdit(const QString& text);
+    void onCluster(bool cluster);
 
 
 private:

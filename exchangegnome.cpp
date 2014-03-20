@@ -68,7 +68,6 @@ void ExchangeGnome::preprocess()
 {
     // Possibly determine type
     type = findType();
-    std::cout << "Type is " << type << std::endl;
     if (type != SRSR)
     {
         SRSRmap.clear();
@@ -153,7 +152,6 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
             types[SRSR]++;
             SRSRmap[event_list.key()] = srsr_pattern;
             SRSRpatterns.insert(srsr_pattern);
-            std::cout << "Adding pattern " << srsr_pattern << " on process " << event_list.key() << std::endl;
         }
         if (b_ssrr)
             types[SSRR]++;
@@ -305,12 +303,6 @@ void ExchangeGnome::drawGnomeQtClusterSSRR(QPainter * painter, QRect startxy, Pa
     }
     //std::cout << "Drawing background " << startxy.x() << ", " << startxy.y();
     //std::cout << ", " << startxy.width() << ", " << startxy.height() << std::endl;
-    if (alternation) {
-        painter->fillRect(startxy, QBrush(QColor(217, 217, 217)));
-    } else {
-        painter->fillRect(startxy, QBrush(QColor(189, 189, 189)));
-    }
-    alternation = !alternation;
     painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
     for (QList<ClusterEvent *>::Iterator evt = pc->events->begin(); evt != pc->events->end(); ++evt)
     {
@@ -412,12 +404,6 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy, Pa
     }
     std::cout << "Drawing background " << startxy.x() << ", " << startxy.y();
     std::cout << ", " << startxy.width() << ", " << startxy.height() << std::endl;
-    if (alternation) {
-        painter->fillRect(startxy, QBrush(QColor(217, 217, 217)));
-    } else {
-        painter->fillRect(startxy, QBrush(QColor(189, 189, 189)));
-    }
-    alternation = !alternation;
     painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
     for (QList<ClusterEvent *>::Iterator evt = pc->events->begin(); evt != pc->events->end(); ++evt)
     {
@@ -528,12 +514,6 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, Pa
         startStep -= 1;
         xr *= 2;
     }
-    if (alternation) {
-        painter->fillRect(startxy, QBrush(QColor(217, 217, 217)));
-    } else {
-        painter->fillRect(startxy, QBrush(QColor(189, 189, 189)));
-    }
-    alternation = !alternation;
     painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
     QList<DrawMessage *> msgs = QList<DrawMessage *>();
     ClusterEvent * evt = pc->events->first();

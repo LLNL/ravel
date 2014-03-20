@@ -105,26 +105,26 @@ void TimelineVis::leaveEvent(QEvent *event)
 
 void TimelineVis::selectEvent(Event * event)
 {
+    selected_processes.clear();
+    selected_gnome = NULL;
+    selected_event = event;
     if (changeSource) {
         changeSource = false;
         return;
     }
-    selected_processes.clear();
-    selected_gnome = NULL;
-    selected_event = event;
     if (!closed)
         repaint();
 }
 
 void TimelineVis::selectProcesses(QList<int> processes, Gnome * gnome)
 {
+    selected_processes = processes;
+    selected_gnome = gnome;
+    selected_event = NULL;
     if (changeSource) {
         changeSource = false;
         return;
     }
-    selected_processes = processes;
-    selected_gnome = gnome;
-    selected_event = NULL;
     if (!closed)
         repaint();
 }

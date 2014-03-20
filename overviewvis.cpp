@@ -135,11 +135,26 @@ void OverviewVis::setTrace(Trace * t)
     maxStep = trace->global_max_step;
     minTime = ULLONG_MAX;
     maxTime = 0;
-    unsigned long long init_time = ULLONG_MAX;
-    unsigned long long finalize_time = 0;
+    //unsigned long long init_time = ULLONG_MAX;
+    //unsigned long long finalize_time = 0;
     // Maybe we should have this be by step instead? We'll see. Right now it uses the full events list which seems
     // unnecessary
-    for (QVector<QVector<Event *> *>::Iterator eitr = trace->events->begin(); eitr != trace->events->end(); ++eitr)
+    for (QList<Partition *>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
+    {
+        for (QMap<int, QList<Event *>*>::Iterator elist = (*part)->events->begin(); elist != (*part)->events->end(); ++elist)
+        {
+            for (QList<Event *>::Iterator evt = (elist.value())->begin(); evt != (elist.value())->end(); ++evt)
+            {
+                if ((*evt)->enter < minTime)
+                    minTime = (*evt)->enter;
+                if ((*evt)->exit > maxTime)
+                    maxTime = (*evt)->exit;
+            }
+
+        }
+
+    }
+    /*for (QVector<QVector<Event *> *>::Iterator eitr = trace->events->begin(); eitr != trace->events->end(); ++eitr)
     {
         for (QVector<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr)
         {
@@ -152,12 +167,13 @@ void OverviewVis::setTrace(Trace * t)
             if ((*itr)->exit < init_time && ((*(trace->functions))[(*itr)->function])->name == "MPI_Init")
                 init_time = (*itr)->exit; // Earliest MPI_Init exit
         }
-    }
+    }*/
 
-    if (finalize_time > 0)
+    /*if (finalize_time > 0)
         maxTime = std::min(maxTime, finalize_time);
     if (init_time < ULLONG_MAX)
         minTime = std::max(minTime, init_time);
+        */
 
     startTime = minTime;
     stopTime = minTime;

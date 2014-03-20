@@ -46,7 +46,6 @@ void Gnome::preprocess()
 void Gnome::findClusters()
 {
     // Calculate initial distances
-    std::cout << "Finding clusters..." << std::endl;
     QList<DistancePair> distances;
     QList<int> processes = partition->events->keys();
     top_processes.clear();
@@ -393,10 +392,10 @@ void Gnome::drawGnomeQtCluster(QPainter * painter, QRect extents)
     float barwidth = blockwidth - step_spacing;
     painter->setPen(QPen(QColor(0, 0, 0)));
 
-    QRect top_extents = QRect(extents.x(), effectiveHeight, extents.width(), topHeight);
+    QRect top_extents = QRect(extents.x(), extents.y(), extents.width(), topHeight);
     drawGnomeQtTopProcesses(painter, top_extents, blockwidth, barwidth);
 
-    QRect cluster_extents = QRect(extents.x(), extents.y(), extents.width(), effectiveHeight);
+    QRect cluster_extents = QRect(extents.x(), extents.y() + topHeight, extents.width(), effectiveHeight);
     drawGnomeQtClusterBranch(painter, cluster_extents, cluster_root,
                              blockheight, blockwidth, barheight, barwidth);
 
@@ -578,7 +577,7 @@ void Gnome::drawQtTree(QPainter * painter, QRect extents)
 
     int leafx = branch_length * depth + labelwidth;
 
-    drawTreeBranch(painter, QRect(extents.x(), extents.y(), extents.width(), extents.height() - topHeight),
+    drawTreeBranch(painter, QRect(extents.x(), extents.y() + topHeight, extents.width(), extents.height() - topHeight),
                    cluster_root, branch_length, labelwidth, blockheight, leafx);
 }
 
@@ -648,8 +647,6 @@ void Gnome::drawTreeBranch(QPainter * painter, QRect current, PartitionCluster *
 void Gnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, PartitionCluster * pc,
                                              int blockheight, int blockwidth, int barheight, int barwidth)
 {
-    //std::cout << "Drawing for cluster " << pc->memberString().toStdString().c_str() << std::endl;
-    int pc_size = pc->members->size();
     //std::cout << "PC size is " << pc_size << " and blockheight is " << blockheight << std::endl;
     int my_x = current.x();
     int top_y = current.y();
@@ -683,15 +680,17 @@ void Gnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, Partitio
     {
         painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
         QRect clusterRect = QRect(current.x(), current.y(), current.width(), blockheight * pc->members->size());
+        if (pc == selected_pc) {
+            painter->fillRect(clusterRect, QBrush(QColor(153, 255, 153)));
+        } else if (alternation) {
+            painter->fillRect(clusterRect, QBrush(QColor(217, 217, 217)));
+        } else {
+            painter->fillRect(clusterRect, QBrush(QColor(189, 189, 189)));
+        }
+        alternation = !alternation;
         drawGnomeQtClusterEnd(painter, clusterRect, pc,
                            barwidth, barheight, blockwidth, blockheight,
                            partition->min_global_step);
-        if (pc == selected_pc)
-        {
-            painter->setPen(QPen(Qt::green));
-            painter->drawRect(clusterRect);
-            painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
-        }
         drawnPCs[pc] = clusterRect;
         pc->extents = clusterRect;
     }
@@ -786,11 +785,10 @@ void Gnome::handleTreeDoubleClick(QMouseEvent * event)
 {
     int x = event->x();
     int y = event->y();
-    std::cout << "Clicked was " << x << ", " << y << std::endl;
+
     // Figure out which branch this occurs in, open that branch
     for (QMap<PartitionCluster *, QRect>::Iterator p = drawnNodes.begin(); p != drawnNodes.end(); ++p)
     {
-        std::cout << "Test is " << p.value().x() << ", " << p.value().y() << std::endl;
         if (p.value().contains(x,y))
         {
             PartitionCluster * pc = p.key();
@@ -832,12 +830,6 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, Partiti
     }
     //std::cout << "Drawing background " << clusterRect.x() << ", " << clusterRect.y();
     //std::cout << ", " << clusterRect.width() << ", " << clusterRect.height() << std::endl;
-    if (alternation) {
-        painter->fillRect(clusterRect, QBrush(QColor(217, 217, 217)));
-    } else {
-        painter->fillRect(clusterRect, QBrush(QColor(189, 189, 189)));
-    }
-    alternation = !alternation;
     painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
     for (QList<ClusterEvent *>::Iterator evt = pc->events->begin(); evt != pc->events->end(); ++evt)
     {

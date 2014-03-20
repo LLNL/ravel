@@ -107,7 +107,8 @@ void Trace::preprocess(OTFImportOptions * _options)
     assignSteps();
     if (options.globalMerge)
         mergeGlobalSteps();
-    gnomify();
+    if (options.cluster)
+        gnomify();
 
     qSort(partitions->begin(), partitions->end(), dereferencedLessThan<Partition>);
     addPartitionMetric(); // For debugging
@@ -122,6 +123,10 @@ void Trace::preprocess(OTFImportOptions * _options)
 
 void Trace::gnomify()
 {
+    QElapsedTimer traceTimer;
+    qint64 traceElapsed;
+
+    traceTimer.start();
     metrics->append("Gnome");
     Gnome * gnome;
     for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
@@ -140,6 +145,11 @@ void Trace::gnomify()
             }
         }
     }
+
+    traceElapsed = traceTimer.nsecsElapsed();
+    std::cout << "Gnomification/Clustering: ";
+    gu_printTime(traceElapsed);
+    std::cout << std::endl;
 }
 
 void Trace::setGnomeMetric(Partition * part, int gnome_index)

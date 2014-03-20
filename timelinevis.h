@@ -20,7 +20,7 @@ public:
     void leaveEvent(QEvent * event);
 
 public slots:
-    void selectEvent(Event * event);
+    virtual void selectEvent(Event * event);
     void selectProcesses(QList<int> processes, Gnome *gnome);
 
 protected:

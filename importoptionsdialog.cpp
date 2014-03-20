@@ -18,6 +18,7 @@ ImportOptionsDialog::ImportOptionsDialog(QWidget *parent, OTFImportOptions * _op
     connect(ui->skipCheckbox, SIGNAL(clicked(bool)), this, SLOT(onLeapSkip(bool)));
     connect(ui->globalMergeBox, SIGNAL(clicked(bool)), this, SLOT(onGlobalMerge(bool)));
     connect(ui->functionEdit, SIGNAL(textChanged(QString)), this, SLOT(onFunctionEdit(QString)));
+    connect(ui->clusterCheckbox, SIGNAL(clicked(bool)), this, SLOT(onCluster(bool)));
 
     setUIState();
 }
@@ -76,6 +77,11 @@ void ImportOptionsDialog::onGlobalMerge(bool merge)
     options->globalMerge = merge;
 }
 
+void ImportOptionsDialog::onCluster(bool cluster)
+{
+    options->cluster = cluster;
+}
+
 
 void ImportOptionsDialog::onFunctionEdit(const QString& text)
 {
@@ -117,6 +123,12 @@ void ImportOptionsDialog::setUIState()
         ui->globalMergeBox->setChecked(true);
     else
         ui->globalMergeBox->setChecked(false);
+
+    if (options->cluster)
+        ui->clusterCheckbox->setChecked(true);
+    else
+        ui->clusterCheckbox->setChecked(false);
+
 
 
     ui->functionEdit->setText(options->partitionFunction);

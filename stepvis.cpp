@@ -228,10 +228,10 @@ void StepVis::qtPaint(QPainter *painter)
       paintEvents(painter);
 
     //drawProcessLabels(painter, rect().height() - colorBarHeight, processheight);
-    drawColorBarText(painter);
+    //drawColorBarText(painter);
 
     // Hover is independent of how we drew things
-    drawHover(painter);
+    //drawHover(painter);
 }
 
 
@@ -419,15 +419,6 @@ void StepVis::paintEvents(QPainter * painter)
             bool selected = false;
             if (part->gnome == selected_gnome && selected_processes.contains(proc_to_order[event_list.key()]))
                 selected = true;
-            if (part->gnome == selected_gnome)
-            {
-                std::cout << "Selected processes are: [ ";
-                if (!selected_processes.isEmpty())
-                    std::cout << selected_processes[0];
-                for (int j = 1; j < selected_processes.size(); j++)
-                    std::cout << ", " << selected_processes[j];
-                std::cout << " ]" << std::endl;
-            }
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
                 skipDraw = false;

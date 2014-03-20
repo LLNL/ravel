@@ -17,6 +17,7 @@ public:
     bool leapCollective; // respect collectives -- do not merge through
     bool partitionByFunction;
     bool globalMerge;
+    bool cluster;
     QString partitionFunction;
 };
 

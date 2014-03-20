@@ -30,6 +30,7 @@ public:
     virtual void drawQtTree(QPainter * painter, QRect extents);
     virtual void setNeighbors(int _neighbors);
     PartitionCluster * getSelectedPartitionCluster() { return selected_pc; }
+    void clearSelectedPartitionCluster() { selected_pc = NULL; }
 
 protected:
     Partition * partition;

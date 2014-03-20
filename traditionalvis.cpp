@@ -410,6 +410,9 @@ void TraditionalVis::paintEvents(QPainter *painter)
             break;
         for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin(); event_list != part->events->end(); ++event_list)
         {
+            bool selected = false;
+            if (part->gnome == selected_gnome && selected_processes.contains(proc_to_order[event_list.key()]))
+                selected = true;
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
                 position = proc_to_order[(*evt)->process];
@@ -465,8 +468,8 @@ void TraditionalVis::paintEvents(QPainter *painter)
                     }
                     else
                     {
-                        if (*evt == selected_event)
-                            painter->fillRect(QRectF(x, y, w, h), QBrush(Qt::yellow));
+                        if (*evt == selected_event || selected)
+                            painter->fillRect(QRectF(x, y, w, h), QBrush(Qt::green));
                         else
                             // Draw event
                             painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(200, 200, 255)));
@@ -482,7 +485,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
                     }
 
                     // Revert pen color
-                    if (*evt == selected_event)
+                    if (*evt == selected_event || selected)
                         painter->setPen(QPen(QColor(0, 0, 0)));
 
                     drawnEvents[*evt] = QRect(x, y, w, h);
