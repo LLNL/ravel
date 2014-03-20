@@ -381,8 +381,11 @@ void ClusterVis::paintEvents(QPainter * painter)
 
 void ClusterVis::changeNeighborRadius(int neighbors)
 {
-    treevis->getGnome()->setNeighbors(neighbors);
-    repaint();
+    if (treevis->getGnome())
+    {
+        treevis->getGnome()->setNeighbors(neighbors);
+        repaint();
+    }
 }
 
 void ClusterVis::selectEvent(Event * event)

@@ -382,14 +382,16 @@ void Gnome::drawGnomeQtCluster(QPainter * painter, QRect extents)
         step_spacing = 3;
 
 
-    float blockwidth;
-    float blockheight = floor(effectiveHeight / processSpan);
+    int blockwidth;
+    float blockheight = effectiveHeight / 1.0 / processSpan;
+    if (blockheight >= 1.0)
+        blockheight = floor(blockheight);
     if (options->showAggregateSteps)
         blockwidth = floor(effectiveWidth / stepSpan);
     else
         blockwidth = floor(effectiveWidth / (ceil(stepSpan / 2.0)));
-    float barheight = blockheight - process_spacing;
-    float barwidth = blockwidth - step_spacing;
+    int barheight = blockheight - process_spacing;
+    int barwidth = blockwidth - step_spacing;
     painter->setPen(QPen(QColor(0, 0, 0)));
 
     QRect top_extents = QRect(extents.x(), extents.y(), extents.width(), topHeight);
@@ -411,8 +413,10 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
 {
     int effectiveHeight = extents.height();
 
-    int process_spacing = blockwidth - barwidth;
+    int process_spacing = int(blockwidth) - barwidth;
     int step_spacing = process_spacing;
+    if (blockwidth >= 1.0)
+        blockwidth = floor(blockwidth);
 
     float x, y, w, h, xa, wa;
     float blockheight = floor(effectiveHeight / top_processes.size());
@@ -524,6 +528,8 @@ void Gnome::drawGnomeQtInterMessages(QPainter * painter, int blockwidth, int sta
 {
     if (options->showAggregateSteps)
         startStep -= 1;
+    if (blockwidth >= 1.0)
+        blockwidth = floor(blockwidth);
     painter->setPen(QPen(Qt::black, 1.5, Qt::SolidLine));
     for (QSet<Message *>::Iterator msg = saved_messages.begin(); msg != saved_messages.end(); ++msg)
     {
@@ -573,7 +579,10 @@ void Gnome::drawQtTree(QPainter * painter, QRect extents)
     int topHeight = getTopHeight(extents);
     int effectiveHeight = extents.height() - topHeight;
     int processSpan = partition->events->size();
-    float blockheight = floor(effectiveHeight / processSpan);
+    float blockheight = effectiveHeight / 1.0 / processSpan;
+    std::cout << "First blockheight is " << blockheight << std::endl;
+    if (blockheight >= 1.0)
+        blockheight = floor(blockheight);
 
     int leafx = branch_length * depth + labelwidth;
 
@@ -583,7 +592,7 @@ void Gnome::drawQtTree(QPainter * painter, QRect extents)
 
 
 void Gnome::drawTreeBranch(QPainter * painter, QRect current, PartitionCluster * pc,
-                                             int branch_length, int labelwidth, int blockheight, int leafx)
+                                             int branch_length, int labelwidth, float blockheight, int leafx)
 {
     //std::cout << "Drawing for cluster " << pc->memberString().toStdString().c_str() << std::endl;
     int pc_size = pc->members->size();
@@ -645,7 +654,7 @@ void Gnome::drawTreeBranch(QPainter * painter, QRect current, PartitionCluster *
 }
 
 void Gnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, PartitionCluster * pc,
-                                             int blockheight, int blockwidth, int barheight, int barwidth)
+                                             float blockheight, int blockwidth, int barheight, int barwidth)
 {
     //std::cout << "PC size is " << pc_size << " and blockheight is " << blockheight << std::endl;
     int my_x = current.x();
@@ -678,6 +687,9 @@ void Gnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, Partitio
     }
     else // This is open
     {
+        std::cout << "Drawing a cluster end [ " << current.x() << ", " << current.y();
+        std::cout << ", " << current.width() << ", " << (blockheight * pc->members->size());
+        std::cout << "] where blockheight is " << blockheight << std::endl;
         painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
         QRect clusterRect = QRect(current.x(), current.y(), current.width(), blockheight * pc->members->size());
         if (pc == selected_pc) {

@@ -144,6 +144,14 @@ void Trace::gnomify()
                 break;
             }
         }
+        if ((*part)->gnome == NULL)
+        {
+            (*part)->gnome_type = -1;
+            (*part)->gnome = new Gnome;
+            (*part)->gnome->setPartition(*part);
+            setGnomeMetric(*part, -1);
+            (*part)->gnome->preprocess();
+        }
     }
 
     traceElapsed = traceTimer.nsecsElapsed();
