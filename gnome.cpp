@@ -3,6 +3,8 @@
 Gnome::Gnome()
     : partition(NULL),
       options(NULL),
+      mousex(-1),
+      mousey(-1),
       metric("Lateness"),
       cluster_leaves(NULL),
       cluster_root(NULL),
@@ -560,6 +562,8 @@ void Gnome::drawGnomeQtInterMessages(QPainter * painter, int blockwidth, int sta
 
         painter->drawLine(x1, y1, x2, y2);
     }
+
+    drawHover(painter);
 }
 
 void Gnome::drawQtTree(QPainter * painter, QRect extents)
@@ -692,9 +696,9 @@ void Gnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, Partitio
     }
     else // This is open
     {
-        std::cout << "Drawing a cluster end [ " << current.x() << ", " << current.y();
-        std::cout << ", " << current.width() << ", " << (blockheight * pc->members->size());
-        std::cout << "] where blockheight is " << blockheight << std::endl;
+        //std::cout << "Drawing a cluster end [ " << current.x() << ", " << current.y();
+        //std::cout << ", " << current.width() << ", " << (blockheight * pc->members->size());
+        //std::cout << "] where blockheight is " << blockheight << std::endl;
         painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
         QRect clusterRect = QRect(current.x(), current.y(), current.width(), blockheight * pc->members->size());
         if (pc == selected_pc) {
@@ -919,17 +923,19 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, Partiti
 
 bool Gnome::handleHover(QMouseEvent * event)
 {
-    int mousex = event->x();
-    int mousey = event->y();
+    mousex = event->x();
+    mousey = event->y();
     if (options->showAggregateSteps && hover_event && drawnEvents[hover_event].contains(mousex, mousey))
     {
         if (!hover_aggregate && mousex <= drawnEvents[hover_event].x() + stepwidth)
         {
+            std::cout << "Now on aggregate in gnome" << std::endl;
             hover_aggregate = true;
             return true;
         }
         else if (hover_aggregate && mousex >=  drawnEvents[hover_event].x() + stepwidth)
         {
+            std::cout << "Now on true event in gnome" << std::endl;
             hover_aggregate = false;
             return true;
         }
@@ -940,6 +946,7 @@ bool Gnome::handleHover(QMouseEvent * event)
         for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin(); evt != drawnEvents.end(); ++evt)
             if (evt.value().contains(mousex, mousey))
             {
+                std::cout << "On new event in gnome" << std::endl;
                 hover_aggregate = false;
                 if (options->showAggregateSteps && mousex <= evt.value().x() + stepwidth)
                     hover_aggregate = true;
@@ -949,4 +956,36 @@ bool Gnome::handleHover(QMouseEvent * event)
         return true;
     }
     return false;
+}
+
+void Gnome::drawHover(QPainter * painter)
+{
+    if (hover_event == NULL)
+        return;
+
+    painter->setFont(QFont("Helvetica", 10));
+    QFontMetrics font_metrics = painter->fontMetrics();
+
+    QString text = "";
+    if (hover_aggregate)
+    {
+        text = "Aggregate for now";
+    }
+    else
+    {
+        // Fall through and draw Event
+        text = functions->value(hover_event->function)->name;
+    }
+
+    // Determine bounding box of FontMetrics
+    QRect textRect = font_metrics.boundingRect(text);
+
+    // Draw bounding box
+    painter->setPen(QPen(QColor(255, 255, 0, 150), 1.0, Qt::SolidLine));
+    painter->drawRect(QRectF(mousex, mousey, textRect.width(), textRect.height()));
+    painter->fillRect(QRectF(mousex, mousey, textRect.width(), textRect.height()), QBrush(QColor(255, 255, 144, 150)));
+
+    // Draw text
+    painter->setPen(Qt::black);
+    painter->drawText(mousex + 2, mousey + textRect.height() - 2, text);
 }

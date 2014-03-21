@@ -47,7 +47,7 @@ void ClusterTreeVis::setSteps(float start, float stop, bool jump)
 void ClusterTreeVis::setGnome(Gnome * _gnome)
 {
     gnome = _gnome;
-    repaint();
+    //repaint();
 }
 
 void ClusterTreeVis::qtPaint(QPainter *painter)
@@ -55,7 +55,7 @@ void ClusterTreeVis::qtPaint(QPainter *painter)
     if (!visProcessed)
         return;
 
-    int effectiveHeight = rect().height();
+    /*int effectiveHeight = rect().height();
     int effectiveWidth = rect().width();
 
     int partitionCount = 0;
@@ -108,7 +108,7 @@ void ClusterTreeVis::qtPaint(QPainter *painter)
     if (left_steps < 2)
         gnome = nextgnome;
     else
-        gnome = leftmost;
+        gnome = leftmost;*/
 
     if (gnome)
         gnome->drawQtTree(painter, rect());

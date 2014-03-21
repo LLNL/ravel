@@ -2,6 +2,7 @@
 #define GNOME_H
 
 #include "partition.h"
+#include "function.h"
 #include "visoptions.h"
 #include "partitioncluster.h"
 #include <QMouseEvent>
@@ -22,6 +23,7 @@ public:
     virtual bool detectGnome(Partition * part);
     virtual Gnome * create();
     void setPartition(Partition * part) { partition = part; }
+    void setFunctions(QMap<int, Function *> * _functions) { functions = _functions; }
     virtual void preprocess();
     virtual void drawGnomeQt(QPainter * painter, QRect extents, VisOptions * _options, int blockwidth);
     virtual void drawGnomeGL(QRect extents, VisOptions * _options) { Q_UNUSED(extents); options = _options; }
@@ -32,10 +34,14 @@ public:
     PartitionCluster * getSelectedPartitionCluster() { return selected_pc; }
     void clearSelectedPartitionCluster() { selected_pc = NULL; }
     bool handleHover(QMouseEvent * event);
+    void drawHover(QPainter * painter);
 
 protected:
     Partition * partition;
+    QMap<int, Function *> * functions;
     VisOptions * options;
+    int mousex;
+    int mousey;
 
     QString metric;
     class DistancePair {

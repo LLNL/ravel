@@ -82,6 +82,7 @@ void ClusterVis::mouseMoveEvent(QMouseEvent * event)
         mousey = event->y();
         if (hover_gnome && drawnGnomes[hover_gnome].contains(mousex, mousey))
         {
+            std::cout << "Same hover gnome" << std::endl;
             if (hover_gnome->handleHover(event))
                 repaint();
         }
@@ -91,11 +92,13 @@ void ClusterVis::mouseMoveEvent(QMouseEvent * event)
             for (QMap<Gnome *, QRect>::Iterator grect = drawnGnomes.begin(); grect != drawnGnomes.end(); ++grect)
                 if (grect.value().contains(mousex, mousey))
                 {
+                    std::cout << "new hover gnome" << std::endl;
                     hover_gnome = grect.key();
                     hover_gnome->handleHover(event);
                 }
             repaint();
         }
+        treevis->setGnome(hover_gnome);
     }
 
 }
@@ -316,8 +319,8 @@ void ClusterVis::paintEvents(QPainter * painter)
     int topStep = boundStep(startStep + stepSpan) + 1;
     int bottomStep = floor(startStep) - 1;
     stepwidth = blockwidth;
-    //Gnome * leftmost = NULL;
-    //Gnome * nextgnome = NULL;
+    Gnome * leftmost = NULL;
+    Gnome * nextgnome = NULL;
     //std::cout << " Step span is " << bottomStep << " to " << topStep << " and startPartition is ";
     //std::cout << trace->partitions->at(startPartition)->min_global_step << " to " << trace->partitions->at(startPartition)->max_global_step << std::endl;
     for (int i = startPartition; i < trace->partitions->length(); ++i)
@@ -335,23 +338,26 @@ void ClusterVis::paintEvents(QPainter * painter)
                                     part->events->size() / 1.0 / trace->num_processes * effectiveHeight);
             part->gnome->drawGnomeQt(painter, gnomeRect, options, blockwidth);
             drawnGnomes[part->gnome] = gnomeRect;
-            /*if (!leftmost)
+            if (!leftmost)
                 leftmost = part->gnome;
             else if (!nextgnome)
-                nextgnome = part->gnome;*/
+                nextgnome = part->gnome;
             continue;
         }
 
     }
 
-    /*
-    QRect left = drawnGnomes[leftmost];
-    float left_steps = (std::min(rect().width(), left.x() + left.width()) - std::max(0, left.x())) / 1.0 / blockwidth;
-    if (left_steps < 2)
-        emit focusGnome(nextgnome);
-    else
-        emit focusGnome(leftmost);
+    if (!treevis->getGnome())
+    {
+        QRect left = drawnGnomes[leftmost];
+        float left_steps = (std::min(rect().width(), left.x() + left.width()) - std::max(0, left.x())) / 1.0 / blockwidth;
+        if (left_steps < 2)
+            treevis->setGnome(nextgnome);
+        else
+            treevis->setGnome(leftmost);
+    }
 
+    /*
     QList<Gnome *> max_gnomes = QList<Gnome *>();
     float max_step_portion = 0; // # of steps represented over the total for the partition
     float left_gnome_portion = 0;

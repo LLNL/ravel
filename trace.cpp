@@ -139,6 +139,7 @@ void Trace::gnomify()
                 (*part)->gnome_type = i;
                 (*part)->gnome = gnome->create();
                 (*part)->gnome->setPartition(*part);
+                (*part)->gnome->setFunctions(functions);
                 setGnomeMetric(*part, i);
                 (*part)->gnome->preprocess();
                 break;
@@ -147,8 +148,9 @@ void Trace::gnomify()
         if ((*part)->gnome == NULL)
         {
             (*part)->gnome_type = -1;
-            (*part)->gnome = new Gnome;
+            (*part)->gnome = new Gnome();
             (*part)->gnome->setPartition(*part);
+            (*part)->gnome->setFunctions(functions);
             setGnomeMetric(*part, -1);
             (*part)->gnome->preprocess();
         }
