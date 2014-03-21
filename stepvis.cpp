@@ -396,6 +396,7 @@ void StepVis::drawNativeGL()
 
 void StepVis::paintEvents(QPainter * painter)
 {
+    std::cout << "stepvis repaint" << std::endl;
     //painter->fillRect(rect(), backgroundColor);
 
     int effectiveHeight = rect().height() - colorBarHeight;

@@ -82,7 +82,6 @@ void ClusterVis::mouseMoveEvent(QMouseEvent * event)
         mousey = event->y();
         if (hover_gnome && drawnGnomes[hover_gnome].contains(mousex, mousey))
         {
-            std::cout << "Same hover gnome" << std::endl;
             if (hover_gnome->handleHover(event))
                 repaint();
         }
@@ -92,7 +91,6 @@ void ClusterVis::mouseMoveEvent(QMouseEvent * event)
             for (QMap<Gnome *, QRect>::Iterator grect = drawnGnomes.begin(); grect != drawnGnomes.end(); ++grect)
                 if (grect.value().contains(mousex, mousey))
                 {
-                    std::cout << "new hover gnome" << std::endl;
                     hover_gnome = grect.key();
                     hover_gnome->handleHover(event);
                 }
@@ -138,6 +136,9 @@ void ClusterVis::mouseDoubleClickEvent(QMouseEvent * event)
     int x = event->x();
     int y = event->y();
     for (QMap<Gnome *, QRect>::Iterator gnome = drawnGnomes.begin(); gnome != drawnGnomes.end(); ++gnome)
+        gnome.key()->setSelected(false);
+
+    for (QMap<Gnome *, QRect>::Iterator gnome = drawnGnomes.begin(); gnome != drawnGnomes.end(); ++gnome)
         if (gnome.value().contains(x,y))
         {
             Gnome * g = gnome.key();
@@ -153,12 +154,23 @@ void ClusterVis::mouseDoubleClickEvent(QMouseEvent * event)
                 changeSource = true;
                 PartitionCluster * pc = g->getSelectedPartitionCluster();
                 if (pc)
+                {
+                    changeSource = false;
+                    std::cout << "Select a partition cluster" << std::endl;
+                    g->setSelected(true);
                     emit(processesSelected(*(pc->members), g));
+
+                }
                 else
-                    emit(QList<int>(), NULL);
+                {
+                    std::cout << "Deselect a partition cluster" << std::endl;
+                    emit(processesSelected(QList<int>(), NULL));
+                }
             }
             return;
         }
+
+
 
     // If we get here, fall through to normal behavior
     TimelineVis::mouseDoubleClickEvent(event);
@@ -403,6 +415,7 @@ void ClusterVis::changeNeighborRadius(int neighbors)
 
 void ClusterVis::selectEvent(Event * event)
 {
+    std::cout << "selectEvent being called" << std::endl;
     if (selected_gnome)
         selected_gnome->clearSelectedPartitionCluster();
     TimelineVis::selectEvent(event);

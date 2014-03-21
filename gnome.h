@@ -35,6 +35,7 @@ public:
     void clearSelectedPartitionCluster() { selected_pc = NULL; }
     bool handleHover(QMouseEvent * event);
     void drawHover(QPainter * painter);
+    void setSelected(bool selected) { is_selected = selected; }
 
 protected:
     Partition * partition;
@@ -98,6 +99,7 @@ protected:
     bool alternation;
     int neighbors;
     PartitionCluster * selected_pc;
+    bool is_selected;
 
     QSet<Message *> saved_messages;
     QMap<PartitionCluster *, QRect> drawnPCs;

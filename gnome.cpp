@@ -13,6 +13,7 @@ Gnome::Gnome()
       alternation(true),
       neighbors(-1),
       selected_pc(NULL),
+      is_selected(false),
       saved_messages(QSet<Message *>()),
       drawnPCs(QMap<PartitionCluster *, QRect>()),
       drawnNodes(QMap<PartitionCluster *, QRect>()),
@@ -407,6 +408,8 @@ void Gnome::drawGnomeQtCluster(QPainter * painter, QRect extents, int blockwidth
     // messages which are saved in saved_messages.
     drawGnomeQtInterMessages(painter, blockwidth, partition->min_global_step, extents.x());
 
+    drawHover(painter);
+
 }
 
 
@@ -437,6 +440,9 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
     for (int i = 0; i < top_processes.size(); ++i)
     {
         QList<Event *> * event_list = partition->events->value(top_processes[i]);
+        bool selected = false;
+        if (is_selected && selected_pc && selected_pc->members->contains(top_processes[i]))
+            selected = true;
         y =  floor(extents.y() + i * blockheight) + 1;
         //painter->drawText(extents.x() - 1, y + blockheight / 2, QString::number(top_processes[i]));
         processYs[top_processes[i]] = y;
@@ -453,10 +459,13 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
 
             // Draw border but only if we're doing spacing, otherwise too messy
             if (step_spacing > 0 && process_spacing > 0)
+            {
+                if (selected)
+                    painter->setPen(QPen(Qt::green));
                 painter->drawRect(QRectF(x,y,w,h));
-
-            // For selection
-            // drawnEvents[*evt] = QRect(x, y, w, h);
+                if (selected)
+                    painter->setPen(QPen(QColor(0, 0, 0)));
+            }
 
             for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
             {
@@ -487,7 +496,13 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
                 painter->fillRect(QRectF(xa, y, wa, h), QBrush(options->colormap->color((*evt)->getMetric(metric, true))));
 
                 if (step_spacing > 0 && process_spacing > 0)
+                {
+                    if (selected)
+                        painter->setPen(QPen(Qt::green));
                     painter->drawRect(QRectF(xa, y, wa, h));
+                    if (selected)
+                        painter->setPen(QPen(QColor(0, 0, 0)));
+                }
                 drawnEvents[*evt] = QRect(xa, y, (x - xa) + w, h);
             } else {
                 // For selection
@@ -562,8 +577,6 @@ void Gnome::drawGnomeQtInterMessages(QPainter * painter, int blockwidth, int sta
 
         painter->drawLine(x1, y1, x2, y2);
     }
-
-    drawHover(painter);
 }
 
 void Gnome::drawQtTree(QPainter * painter, QRect extents)
@@ -589,7 +602,6 @@ void Gnome::drawQtTree(QPainter * painter, QRect extents)
     int effectiveHeight = extents.height() - topHeight;
     int processSpan = partition->events->size();
     float blockheight = effectiveHeight / 1.0 / processSpan;
-    std::cout << "First blockheight is " << blockheight << std::endl;
     if (blockheight >= 1.0)
         blockheight = floor(blockheight);
 
@@ -789,9 +801,15 @@ Gnome::ChangeType Gnome::handleDoubleClick(QMouseEvent * event)
             else if (event->button() == Qt::RightButton)
             {
                 if (selected_pc == pc)
+                {
+                    std::cout << "Unselecting" << std::endl;
                     selected_pc = NULL;
+                }
                 else
+                {
+                    std::cout << "Selecting" << std::endl;
                     selected_pc = pc;
+                }
                 return SELECTION;
             }
             else
