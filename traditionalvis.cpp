@@ -346,6 +346,8 @@ void TraditionalVis::drawNativeGL()
     glColorPointer(3,GL_FLOAT,0,colors.constData());
     glVertexPointer(2,GL_FLOAT,0,bars.constData());
     glDrawArrays(GL_QUADS,0,bars.size()/2);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
     stepSpan = stopStep - startStep;
 }
 

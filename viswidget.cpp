@@ -16,6 +16,7 @@ VisWidget::VisWidget(QWidget *parent, VisOptions * _options) :
     selected_gnome(NULL),
     selected_event(NULL),
     hover_event(NULL),
+    hover_aggregate(NULL),
     closed(false)
 {
     // GLWidget options
@@ -113,6 +114,7 @@ void VisWidget::endNativeGL()
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
+
 
     glMatrixMode(GL_MODELVIEW);
     glPopMatrix();

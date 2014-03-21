@@ -23,7 +23,7 @@ public:
     virtual Gnome * create();
     void setPartition(Partition * part) { partition = part; }
     virtual void preprocess();
-    virtual void drawGnomeQt(QPainter * painter, QRect extents, VisOptions * _options);
+    virtual void drawGnomeQt(QPainter * painter, QRect extents, VisOptions * _options, int blockwidth);
     virtual void drawGnomeGL(QRect extents, VisOptions * _options) { Q_UNUSED(extents); options = _options; }
     virtual ChangeType handleDoubleClick(QMouseEvent * event);
     virtual void handleTreeDoubleClick(QMouseEvent * event);
@@ -31,6 +31,7 @@ public:
     virtual void setNeighbors(int _neighbors);
     PartitionCluster * getSelectedPartitionCluster() { return selected_pc; }
     void clearSelectedPartitionCluster() { selected_pc = NULL; }
+    bool handleHover(QMouseEvent * event);
 
 protected:
     Partition * partition;
@@ -95,8 +96,12 @@ protected:
     QSet<Message *> saved_messages;
     QMap<PartitionCluster *, QRect> drawnPCs;
     QMap<PartitionCluster *, QRect> drawnNodes;
+    QMap<Event *, QRect> drawnEvents;
+    Event * hover_event;
+    bool hover_aggregate;
+    int stepwidth;
 
-    void drawGnomeQtCluster(QPainter * painter, QRect extents);
+    void drawGnomeQtCluster(QPainter * painter, QRect extents, int blockwidth);
     void drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
                                  int blockwidth, int barwidth);
     void drawGnomeQtClusterBranch(QPainter * painter, QRect current, PartitionCluster * pc,

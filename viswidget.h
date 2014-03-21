@@ -67,6 +67,7 @@ protected:
     Gnome * selected_gnome;
     Event * selected_event;
     Event * hover_event;
+    bool hover_aggregate;
     bool closed;
 
     static const int initStepSpan = 15;

@@ -123,12 +123,30 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
     {
         mousex = event->x();
         mousey = event->y();
-        if (hover_event == NULL || !drawnEvents[hover_event].contains(mousex, mousey))
+        if (options->showAggregateSteps && hover_event && drawnEvents[hover_event].contains(mousex, mousey))
+        {
+            if (!hover_aggregate && mousex <= drawnEvents[hover_event].x() + stepwidth)
+            {
+                hover_aggregate = true;
+                repaint();
+            }
+            else if (hover_aggregate && mousex >=  drawnEvents[hover_event].x() + stepwidth)
+            {
+                hover_aggregate = false;
+                repaint();
+            }
+        }
+        else if (hover_event == NULL || !drawnEvents[hover_event].contains(mousex, mousey))
         {
             hover_event = NULL;
             for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin(); evt != drawnEvents.end(); ++evt)
                 if (evt.value().contains(mousex, mousey))
+                {
+                    hover_aggregate = false;
+                    if (options->showAggregateSteps && mousex <= evt.value().x() + stepwidth)
+                        hover_aggregate = true;
                     hover_event = evt.key();
+                }
 
             repaint();
         }
@@ -227,11 +245,11 @@ void StepVis::qtPaint(QPainter *painter)
     if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
       paintEvents(painter);
 
-    //drawProcessLabels(painter, rect().height() - colorBarHeight, processheight);
+    drawProcessLabels(painter, rect().height() - colorBarHeight, processheight);
     //drawColorBarText(painter);
 
     // Hover is independent of how we drew things
-    //drawHover(painter);
+    drawHover(painter);
 }
 
 
@@ -250,17 +268,16 @@ void StepVis::drawNativeGL()
     QString metric(options->metric);
 
     // Setup viewport
-    int width = rect().width();
+    int width = rect().width() - labelWidth;
     int height = effectiveHeight;
     float effectiveSpan = stepSpan;
     if (!(options->showAggregateSteps))
         effectiveSpan /= 2.0;
 
-    glViewport(0,
+    glViewport(labelWidth,
                colorBarHeight,
                width,
                height);
-    glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glOrtho(0, effectiveSpan, 0, processSpan, 0, 1);
 
@@ -373,6 +390,8 @@ void StepVis::drawNativeGL()
     glColorPointer(4,GL_FLOAT,0,colors.constData());
     glVertexPointer(2,GL_FLOAT,0,bars.constData());
     glDrawArrays(GL_QUADS,0,bars.size()/2);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
 }
 
 void StepVis::paintEvents(QPainter * painter)
@@ -390,15 +409,11 @@ void StepVis::paintEvents(QPainter * painter)
     if (effectiveWidth / stepSpan > spacingMinimum)
         step_spacing = 3;
 
-
-    int partitionCount = 0;
-    int aggOffset = 0;
     float x, y, w, h, xa, wa, blockwidth;
     float blockheight = floor(effectiveHeight / processSpan);
     if (options->showAggregateSteps)
     {
         blockwidth = floor(effectiveWidth / stepSpan);
-        aggOffset = -1;
     }
     else
     {
@@ -418,7 +433,6 @@ void StepVis::paintEvents(QPainter * painter)
     Partition * part = NULL;
     int topStep = boundStep(startStep + stepSpan) + 1;
     int bottomStep = floor(startStep) - 1;
-    bool skipDraw;
     //std::cout << " Step span is " << bottomStep << " to " << topStep << " and startPartition is ";
     //std::cout << trace->partitions->at(startPartition)->min_global_step << " to " << trace->partitions->at(startPartition)->max_global_step << std::endl;
     for (int i = startPartition; i < trace->partitions->length(); ++i)
@@ -437,7 +451,6 @@ void StepVis::paintEvents(QPainter * painter)
                 selected = true;
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
-                skipDraw = false;
                 position = proc_to_order[(*evt)->process]; // Move this into the out loop!
                 if ((*evt)->step < bottomStep || (*evt)->step > topStep) // Out of span
                 {
@@ -450,9 +463,9 @@ void StepVis::paintEvents(QPainter * painter)
                 // 0 = startStep, rect().width() = stopStep (startStep + stepSpan)
                 y = floor((position - startProcess) * blockheight) + 1;
                 if (options->showAggregateSteps)
-                    x = floor(((*evt)->step - startStep) * blockwidth) + 1 + labelWidth * partitionCount;
+                    x = floor(((*evt)->step - startStep) * blockwidth) + 1 + labelWidth;
                 else
-                    x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1 + labelWidth * partitionCount;
+                    x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1 + labelWidth;
                 w = barwidth;
                 h = barheight;
 
@@ -495,14 +508,13 @@ void StepVis::paintEvents(QPainter * painter)
                 if (*evt == selected_event || selected)
                     painter->setPen(QPen(QColor(0, 0, 0)));
 
-                // For selection
-                drawnEvents[*evt] = QRect(x, y, w, h);
+
 
                 for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
                     drawMessages.insert((*msg));
 
                 if (options->showAggregateSteps) {
-                    xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + labelWidth * partitionCount;
+                    xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + labelWidth;
                     wa = barwidth;
                     if (xa + wa <= 0)
                         continue;
@@ -532,6 +544,12 @@ void StepVis::paintEvents(QPainter * painter)
                             incompleteBox(painter, xa, y, wa, h, &extents);
                     if (selected)
                         painter->setPen(QPen(QColor(0, 0, 0)));
+
+                    // For selection
+                    drawnEvents[*evt] = QRect(xa, y, (x - xa) + w, h);
+                } else {
+                    // For selection
+                    drawnEvents[*evt] = QRect(x, y, w, h);
                 }
 
             }
@@ -558,16 +576,16 @@ void StepVis::paintEvents(QPainter * painter)
             position = proc_to_order[send_event->process];
             y = floor((position - startProcess) * blockheight) + 1;
             if (options->showAggregateSteps)
-                x = floor((send_event->step - startStep) * blockwidth) + 1 + labelWidth * partitionCount;
+                x = floor((send_event->step - startStep) * blockwidth) + 1 + labelWidth;
             else
-                x = floor((send_event->step - startStep) / 2 * blockwidth) + 1 + labelWidth * partitionCount;
+                x = floor((send_event->step - startStep) / 2 * blockwidth) + 1 + labelWidth;
             p1 = QPointF(x + w/2.0, y + h/2.0);
             position = proc_to_order[recv_event->process];
             y = floor((position - startProcess) * blockheight) + 1;
             if (options->showAggregateSteps)
-                x = floor((recv_event->step - startStep) * blockwidth) + 1 + labelWidth * partitionCount;
+                x = floor((recv_event->step - startStep) * blockwidth) + 1 + labelWidth;
             else
-                x = floor((recv_event->step - startStep) / 2 * blockwidth) + 1 + labelWidth * partitionCount;
+                x = floor((recv_event->step - startStep) / 2 * blockwidth) + 1 + labelWidth;
             p2 = QPointF(x + w/2.0, y + h/2.0);
             drawLine(painter, &p1, &p2, effectiveHeight);
         }
@@ -603,6 +621,7 @@ void StepVis::drawColorBarGL()
     // Setup stuff for overlay like the minimaps
     glEnable(GL_SCISSOR_TEST);
     glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
     glLoadIdentity();
     glScissor(0, 0, rect().width(), colorBarHeight);
     glViewport(0, 0, rect().width(), colorBarHeight);
@@ -639,6 +658,8 @@ void StepVis::drawColorBarGL()
     }
     glPopMatrix();
 
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
     glDisable(GL_SCISSOR_TEST);
 }
 

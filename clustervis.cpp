@@ -4,7 +4,8 @@ ClusterVis::ClusterVis(ClusterTreeVis *ctv, QWidget* parent, VisOptions *_option
     : TimelineVis(parent, _options),
       drawnGnomes(QMap<Gnome *, QRect>()),
       selected(NULL),
-      treevis(ctv)
+      treevis(ctv),
+      hover_gnome(NULL)
 {
 }
 
@@ -79,13 +80,20 @@ void ClusterVis::mouseMoveEvent(QMouseEvent * event)
     {
         mousex = event->x();
         mousey = event->y();
-        if (hover_event == NULL || !drawnEvents[hover_event].contains(mousex, mousey))
+        if (hover_gnome && drawnGnomes[hover_gnome].contains(mousex, mousey))
         {
-            hover_event = NULL;
-            for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin(); evt != drawnEvents.end(); ++evt)
-                if (evt.value().contains(mousex, mousey))
-                    hover_event = evt.key();
-
+            if (hover_gnome->handleHover(event))
+                repaint();
+        }
+        else
+        {
+            hover_gnome = NULL;
+            for (QMap<Gnome *, QRect>::Iterator grect = drawnGnomes.begin(); grect != drawnGnomes.end(); ++grect)
+                if (grect.value().contains(mousex, mousey))
+                {
+                    hover_gnome = grect.key();
+                    hover_gnome->handleHover(event);
+                }
             repaint();
         }
     }
@@ -291,7 +299,6 @@ void ClusterVis::paintEvents(QPainter * painter)
     int effectiveHeight = rect().height();
     int effectiveWidth = rect().width();
 
-    int partitionCount = 0;
     int aggOffset = 0;
     float blockwidth;
     if (options->showAggregateSteps)
@@ -323,10 +330,10 @@ void ClusterVis::paintEvents(QPainter * painter)
         if (part->gnome) {
             // The y value here of 0 isn't general... we need another structure to keep track of how much
             // y is used when we're doing the gnome thing.
-            QRect gnomeRect = QRect(partitionCount * labelWidth + blockwidth * (part->min_global_step + aggOffset - startStep), 0,
+            QRect gnomeRect = QRect(labelWidth + blockwidth * (part->min_global_step + aggOffset - startStep), 0,
                                     blockwidth * (part->max_global_step - part->min_global_step - aggOffset + 1),
                                     part->events->size() / 1.0 / trace->num_processes * effectiveHeight);
-            part->gnome->drawGnomeQt(painter, gnomeRect, options);
+            part->gnome->drawGnomeQt(painter, gnomeRect, options, blockwidth);
             drawnGnomes[part->gnome] = gnomeRect;
             /*if (!leftmost)
                 leftmost = part->gnome;

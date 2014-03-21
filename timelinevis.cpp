@@ -133,9 +133,20 @@ void TimelineVis::drawHover(QPainter * painter)
 {
     if (hover_event == NULL)
         return;
+
     painter->setFont(QFont("Helvetica", 10));
     QFontMetrics font_metrics = painter->fontMetrics();
-    QString text = ((*(trace->functions))[hover_event->function])->name;
+
+    QString text = "";
+    if (hover_aggregate)
+    {
+        text = "Aggregate for now";
+    }
+    else
+    {
+        // Fall through and draw Event
+        text = ((*(trace->functions))[hover_event->function])->name;
+    }
 
     // Determine bounding box of FontMetrics
     QRect textRect = font_metrics.boundingRect(text);
@@ -150,17 +161,17 @@ void TimelineVis::drawHover(QPainter * painter)
     painter->drawText(mousex + 2, mousey + textRect.height() - 2, text);
 }
 
-void TimelineVis::drawProcessLabels(QPainter * painter, int effectiveHeight, int barHeight)
+void TimelineVis::drawProcessLabels(QPainter * painter, int effectiveHeight, float barHeight)
 {
     painter->setPen(Qt::black);
     painter->setFont(QFont("Helvetica", 10));
-    painter->fillRect(QRectF(0,0,labelWidth,effectiveHeight), QBrush(QColor(Qt::white)));
+    painter->fillRect(0,0,labelWidth,effectiveHeight, QColor(Qt::white));
     int total_labels = floor(effectiveHeight / labelHeight);
     int y;
     int skip = 1;
-    if (total_labels < trace->num_processes)
+    if (total_labels < processSpan)
     {
-        skip = ceil(float(trace->num_processes) / total_labels);
+        skip = ceil(float(processSpan) / total_labels);
     }
 
     int start = std::max(floor(startProcess), 0.0);

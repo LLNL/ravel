@@ -13,7 +13,11 @@ Gnome::Gnome()
       selected_pc(NULL),
       saved_messages(QSet<Message *>()),
       drawnPCs(QMap<PartitionCluster *, QRect>()),
-      drawnNodes(QMap<PartitionCluster *, QRect>())
+      drawnNodes(QMap<PartitionCluster *, QRect>()),
+      drawnEvents(QMap<Event *, QRect>()),
+      hover_event(NULL),
+      hover_aggregate(false),
+      stepwidth(0)
 {
 }
 
@@ -330,14 +334,15 @@ int Gnome::findCentroidProcess(PartitionCluster * pc)
 }
 
 
-void Gnome::drawGnomeQt(QPainter * painter, QRect extents, VisOptions *_options)
+void Gnome::drawGnomeQt(QPainter * painter, QRect extents, VisOptions *_options, int blockwidth)
 {
     options = _options;
     saved_messages.clear();
     drawnPCs.clear();
     drawnNodes.clear();
+    drawnEvents.clear();
 
-    drawGnomeQtCluster(painter, extents);
+    drawGnomeQtCluster(painter, extents, blockwidth);
 }
 
 // The height allowed to the top processes. This is not the y but the height.
@@ -358,7 +363,7 @@ int Gnome::getTopHeight(QRect extents)
     return topHeight;
 }
 
-void Gnome::drawGnomeQtCluster(QPainter * painter, QRect extents)
+void Gnome::drawGnomeQtCluster(QPainter * painter, QRect extents, int blockwidth)
 {
     alternation = true;
 
@@ -382,14 +387,9 @@ void Gnome::drawGnomeQtCluster(QPainter * painter, QRect extents)
         step_spacing = 3;
 
 
-    int blockwidth;
     float blockheight = effectiveHeight / 1.0 / processSpan;
     if (blockheight >= 1.0)
         blockheight = floor(blockheight);
-    if (options->showAggregateSteps)
-        blockwidth = floor(effectiveWidth / stepSpan);
-    else
-        blockwidth = floor(effectiveWidth / (ceil(stepSpan / 2.0)));
     int barheight = blockheight - process_spacing;
     int barwidth = blockwidth - step_spacing;
     painter->setPen(QPen(QColor(0, 0, 0)));
@@ -426,6 +426,7 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
         startStep -= 1;
     }
     float barheight = blockheight - process_spacing;
+    stepwidth = blockwidth;
 
     QSet<Message *> drawMessages = QSet<Message *>();
     painter->setPen(QPen(QColor(0, 0, 0)));
@@ -485,6 +486,10 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
 
                 if (step_spacing > 0 && process_spacing > 0)
                     painter->drawRect(QRectF(xa, y, wa, h));
+                drawnEvents[*evt] = QRect(xa, y, (x - xa) + w, h);
+            } else {
+                // For selection
+                drawnEvents[*evt] = QRect(x, y, w, h);
             }
 
         }
@@ -910,4 +915,38 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, Partiti
 
 
     }
+}
+
+bool Gnome::handleHover(QMouseEvent * event)
+{
+    int mousex = event->x();
+    int mousey = event->y();
+    if (options->showAggregateSteps && hover_event && drawnEvents[hover_event].contains(mousex, mousey))
+    {
+        if (!hover_aggregate && mousex <= drawnEvents[hover_event].x() + stepwidth)
+        {
+            hover_aggregate = true;
+            return true;
+        }
+        else if (hover_aggregate && mousex >=  drawnEvents[hover_event].x() + stepwidth)
+        {
+            hover_aggregate = false;
+            return true;
+        }
+    }
+    else if (hover_event == NULL || !drawnEvents[hover_event].contains(mousex, mousey))
+    {
+        hover_event = NULL;
+        for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin(); evt != drawnEvents.end(); ++evt)
+            if (evt.value().contains(mousex, mousey))
+            {
+                hover_aggregate = false;
+                if (options->showAggregateSteps && mousex <= evt.value().x() + stepwidth)
+                    hover_aggregate = true;
+                hover_event = evt.key();
+            }
+
+        return true;
+    }
+    return false;
 }

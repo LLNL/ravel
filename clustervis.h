@@ -37,6 +37,7 @@ protected:
     QMap<Gnome *, QRect> drawnGnomes;
     PartitionCluster * selected;
     ClusterTreeVis * treevis;
+    Gnome * hover_gnome;
 
 };
 
