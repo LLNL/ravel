@@ -80,10 +80,17 @@ void ClusterVis::mouseMoveEvent(QMouseEvent * event)
     {
         mousex = event->x();
         mousey = event->y();
+        Gnome * focus_gnome = treevis->getGnome();
+        bool emit_flag = false;
         if (hover_gnome && drawnGnomes[hover_gnome].contains(mousex, mousey))
         {
             if (hover_gnome->handleHover(event))
                 repaint();
+            if (hover_gnome != focus_gnome)
+            {
+                treevis->setGnome(hover_gnome);
+                emit_flag = true;
+            }
         }
         else
         {
@@ -93,10 +100,16 @@ void ClusterVis::mouseMoveEvent(QMouseEvent * event)
                 {
                     hover_gnome = grect.key();
                     hover_gnome->handleHover(event);
+                    if (hover_gnome != focus_gnome)
+                    {
+                        treevis->setGnome(hover_gnome);
+                        emit_flag = true;
+                    }
                 }
             repaint();
         }
-        treevis->setGnome(hover_gnome);
+        if (emit_flag)
+            emit(focusGnome());
     }
 
 }

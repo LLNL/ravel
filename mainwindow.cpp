@@ -79,7 +79,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect((clustervis), SIGNAL(processesSelected(QList<int>, Gnome*)), this, SLOT(selectProcesses(QList<int>, Gnome*)));
 
 
-    connect((clustervis), SIGNAL(focusGnome(Gnome*)), clustertreevis, SLOT(setGnome(Gnome*)));
+    connect((clustervis), SIGNAL(focusGnome()), clustertreevis, SLOT(repaint()));
     connect((clustervis), SIGNAL(clusterChange()), clustertreevis, SLOT(clusterChanged()));
     connect((clustertreevis), SIGNAL(clusterChange()), clustervis, SLOT(clusterChanged()));
     connect((clustervis), SIGNAL(neighborChange()), clustertreevis, SLOT(repaint()));

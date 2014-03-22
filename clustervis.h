@@ -16,7 +16,7 @@ public:
     void wheelEvent(QWheelEvent * event);
 
 signals:
-    void focusGnome(Gnome * gnome);
+    void focusGnome();
     void clusterChange();
     void neighborChange();
 
