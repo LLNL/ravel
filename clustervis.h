@@ -18,6 +18,7 @@ public:
 signals:
     void focusGnome(Gnome * gnome);
     void clusterChange();
+    void neighborChange();
 
 public slots:
     void setSteps(float start, float stop, bool jump = false);

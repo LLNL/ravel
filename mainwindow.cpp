@@ -82,6 +82,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect((clustervis), SIGNAL(focusGnome(Gnome*)), clustertreevis, SLOT(setGnome(Gnome*)));
     connect((clustervis), SIGNAL(clusterChange()), clustertreevis, SLOT(clusterChanged()));
     connect((clustertreevis), SIGNAL(clusterChange()), clustervis, SLOT(clusterChanged()));
+    connect((clustervis), SIGNAL(neighborChange()), clustertreevis, SLOT(repaint()));
 
     viswidgets.push_back(clustervis);
     viswidgets.push_back(clustertreevis);
