@@ -493,7 +493,7 @@ void StepVis::paintEvents(QPainter * painter)
 
                 // Draw the event
                 if ((*evt)->hasMetric(metric))
-                    painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color((*evt)->getMetric(metric))));
+                    painter->fillRect(QRectF(x, y, w, h), Qt::white); // QBrush(options->colormap->color((*evt)->getMetric(metric))));
                 else
                     painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(180, 180, 180)));
                 // Change pen color if selected
@@ -532,9 +532,9 @@ void StepVis::paintEvents(QPainter * painter)
 
                     aggcomplete = aggcomplete && complete;
                     if ((*evt)->hasMetric(metric))
-                        painter->fillRect(QRectF(xa, y, wa, h), QBrush(options->colormap->color((*evt)->getMetric(metric, true))));
+                        painter->fillRect(QRectF(xa, y, wa, h), QColor(217, 217, 217)); // QBrush(options->colormap->color((*evt)->getMetric(metric, true))));
                     else
-                        painter->fillRect(QRectF(xa, y, wa, h), QBrush(QColor(180, 180, 180)));
+                        painter->fillRect(QRectF(xa, y, wa, h), QColor(217, 217, 217)); // QBrush(QColor(180, 180, 180)));
 
                     if (selected)
                         painter->setPen(QPen(Qt::green));
