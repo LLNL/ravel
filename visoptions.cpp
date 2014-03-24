@@ -8,11 +8,11 @@ VisOptions::VisOptions(bool _showAgg,
       showMessages(true),
       topByCentroid(false),
       metric(_metric),
-      maptype(SEQUENTIAL),
+      maptype(DIVERGING),
       divergentmap(new ColorMap(QColor(173, 216, 230), 0)),
       rampmap(new ColorMap(QColor(255, 247, 222), 0)),
       catcolormap(new ColorMap(QColor(31, 119, 180), 0, true)),
-      colormap(rampmap)
+      colormap(divergentmap)
 {
 
     // rampmap from colorbrewer

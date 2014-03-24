@@ -59,7 +59,7 @@ void StepVis::setupMetric()
 
     // For colorbar
     QLocale systemlocale = QLocale::system();
-    maxMetricText = systemlocale.toString(maxMetric);
+    maxMetricText = systemlocale.toString(maxMetric) + " ns";
 }
 
 void StepVis::setSteps(float start, float stop, bool jump)
@@ -246,7 +246,7 @@ void StepVis::qtPaint(QPainter *painter)
       paintEvents(painter);
 
     drawProcessLabels(painter, rect().height() - colorBarHeight, processheight);
-    //drawColorBarText(painter);
+    drawColorBarText(painter);
 
     // Hover is independent of how we drew things
     drawHover(painter);
@@ -493,7 +493,7 @@ void StepVis::paintEvents(QPainter * painter)
 
                 // Draw the event
                 if ((*evt)->hasMetric(metric))
-                    painter->fillRect(QRectF(x, y, w, h), Qt::white); // QBrush(options->colormap->color((*evt)->getMetric(metric))));
+                    painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color((*evt)->getMetric(metric))));
                 else
                     painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(180, 180, 180)));
                 // Change pen color if selected
@@ -501,10 +501,12 @@ void StepVis::paintEvents(QPainter * painter)
                     painter->setPen(QPen(Qt::green));
                 // Draw border but only if we're doing spacing, otherwise too messy
                 if (step_spacing > 0 && process_spacing > 0)
+                {
                     if (complete)
                         painter->drawRect(QRectF(x,y,w,h));
                     else
                         incompleteBox(painter, x, y, w, h, &extents);
+                }
                 // Revert pen color
                 if (*evt == selected_event || selected)
                     painter->setPen(QPen(QColor(0, 0, 0)));
@@ -532,9 +534,9 @@ void StepVis::paintEvents(QPainter * painter)
 
                     aggcomplete = aggcomplete && complete;
                     if ((*evt)->hasMetric(metric))
-                        painter->fillRect(QRectF(xa, y, wa, h), QColor(217, 217, 217)); // QBrush(options->colormap->color((*evt)->getMetric(metric, true))));
+                        painter->fillRect(QRectF(xa, y, wa, h), QBrush(options->colormap->color((*evt)->getMetric(metric, true))));
                     else
-                        painter->fillRect(QRectF(xa, y, wa, h), QColor(217, 217, 217)); // QBrush(QColor(180, 180, 180)));
+                        painter->fillRect(QRectF(xa, y, wa, h), QBrush(QColor(180, 180, 180)));
 
                     if (selected)
                         painter->setPen(QPen(Qt::green));

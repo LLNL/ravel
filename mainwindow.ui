@@ -17,7 +17,7 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>Rug</string>
+   <string>Ravel</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <property name="sizePolicy">

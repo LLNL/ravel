@@ -392,7 +392,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
     painter->setPen(QPen(QColor(0, 0, 0)));
     Partition * part = NULL;
 
-    /*int start = std::max(int(floor(startProcess)), 0);
+    int start = std::max(int(floor(startProcess)), 0);
     int end = std::min(int(ceil(startProcess + processSpan)), trace->num_processes - 1);
     for (int i = start; i <= end; ++i)
     {
@@ -403,9 +403,9 @@ void TraditionalVis::paintEvents(QPainter *painter)
             paintNotStepEvents(painter, *root, position, process_spacing,
                                barheight, blockheight, &extents);
         }
-    }*/
+    }
 
-    for (int i = startProcess; i <= startProcess + processSpan; ++i)
+    /*for (int i = startProcess; i <= startProcess + processSpan; ++i)
     {
         position = proc_to_order[i];
         w = rect().width();
@@ -413,7 +413,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
         y = floor((position - startProcess) * blockheight) + 1;
         x = 0;
         painter->fillRect(x,y,w,h,QColor(217, 217, 217));
-    }
+    }*/
 
     for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
@@ -476,8 +476,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
 
                     if (options->colorTraditionalByMetric && (*evt)->hasMetric(options->metric))
                     {
-                        painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(Qt::white)));
-                            //painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color((*evt)->getMetric(options->metric))));
+                            painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color((*evt)->getMetric(options->metric))));
                     }
                     else
                     {
@@ -485,7 +484,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
                             painter->fillRect(QRectF(x, y, w, h), QBrush(Qt::green));
                         else
                             // Draw event
-                            painter->fillRect(QRectF(x, y, w, h), Qt::white); //QBrush(QColor(200, 200, 255)));
+                            painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(200, 200, 255)));
                     }
 
                     // Draw border
@@ -503,11 +502,11 @@ void TraditionalVis::paintEvents(QPainter *painter)
 
                     drawnEvents[*evt] = QRect(x, y, w, h);
 
-                    /*QString fxnName = ((*(trace->functions))[(*evt)->function])->name;
+                    QString fxnName = ((*(trace->functions))[(*evt)->function])->name;
                     QRect fxnRect = font_metrics.boundingRect(fxnName);
                     if (fxnRect.width() < w && fxnRect.height() < h)
                         painter->drawText(x + 2, y + fxnRect.height(), fxnName);
-                        */
+
                 }
 
                 for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
