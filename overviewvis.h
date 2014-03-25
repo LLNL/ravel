@@ -32,6 +32,9 @@ private:
     int stopCursor;
     unsigned long long startTime;
     unsigned long long stopTime;
+    int startStep;
+    int stopStep;
+    float stepWidth;
     int height;
     bool mousePressed;
     QVector<float> heights;

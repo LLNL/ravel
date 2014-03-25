@@ -46,6 +46,11 @@ void OverviewVis::setSteps(float start, float stop, bool jump)
         startStep = 0;
     if (stopStep > maxStep)
         stopStep = maxStep;
+
+    int width = size().width() - 2*border;
+    startCursor = floor(width * start / 1.0 / maxStep);
+    stopCursor = ceil(width * stop / 1.0 / maxStep);
+    /* PreVis
     startCursor = stepPositions[startStep].first;
     while (startCursor >= rect().width()) // For no-data steps
     {
@@ -61,6 +66,7 @@ void OverviewVis::setSteps(float start, float stop, bool jump)
     startTime = (startCursor / 1.0  / (size().width() - 2 * border)) * (maxTime - minTime) + minTime;
     stopTime = (stopCursor / 1.0  / (size().width() - 2 * border)) * (maxTime - minTime) + minTime;
     //std::cout << startCursor << ", " << stopCursor << std::endl;
+    */
 
     if (!closed)
         repaint();
@@ -97,13 +103,18 @@ void OverviewVis::mouseReleaseEvent(QMouseEvent * event) {
     }
     repaint();
 
-    int timespan = maxTime - minTime;
+    // PreVis int timespan = maxTime - minTime;
     int width = size().width() - 2 * border;
 
+    /* PreVis
     startTime = (startCursor / 1.0 / width) * timespan + minTime;
     stopTime = (stopCursor / 1.0 / width) * timespan + minTime;
+
     int startStep = -1;
     int stopStep = -1 ;
+    */
+    startStep = floor(maxStep * startCursor / 1.0 / width);
+    stopStep = ceil(maxStep * stopCursor / 1.0 / width);
 
     // We know first is always greater than second
     // Each stepPosition is the range of cursor positions for that step
@@ -111,14 +122,14 @@ void OverviewVis::mouseReleaseEvent(QMouseEvent * event) {
     // both are above cursor
     // and stopStep to be the last one where second > cursor or first > cursor
     // and we want to ignore invalid values (where second is -1)
-    for (int i = 0; i < stepPositions.size(); i++) {
+    /* PreVis for (int i = 0; i < stepPositions.size(); i++) {
         if (stepPositions[i].second != -1) {
             if (stepPositions[i].second >= startCursor && startStep == -1)
                 startStep = i;
             if (stepPositions[i].second >= stopCursor && stopStep == -1)
                 stopStep = i;
         }
-    }
+    } */
     if (stopStep < 0)
         stopStep = maxStep;
     //std::cout << startStep << ", " << stopStep << " : " << startCursor << ", " << stopCursor << std::endl;
@@ -139,7 +150,9 @@ void OverviewVis::setTrace(Trace * t)
     //unsigned long long finalize_time = 0;
     // Maybe we should have this be by step instead? We'll see. Right now it uses the full events list which seems
     // unnecessary
-    for (QList<Partition *>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
+
+    // PreVis commented to change
+    /*for (QList<Partition *>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
     {
         for (QMap<int, QList<Event *>*>::Iterator elist = (*part)->events->begin(); elist != (*part)->events->end(); ++elist)
         {
@@ -154,6 +167,8 @@ void OverviewVis::setTrace(Trace * t)
         }
 
     }
+    */
+
     /*for (QVector<QVector<Event *> *>::Iterator eitr = trace->events->begin(); eitr != trace->events->end(); ++eitr)
     {
         for (QVector<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr)
@@ -177,6 +192,10 @@ void OverviewVis::setTrace(Trace * t)
 
     startTime = minTime;
     stopTime = minTime;
+
+    // VIS
+    startStep = 0;
+    stopStep = initStepSpan;
 }
 
 void OverviewVis::processVis()
@@ -184,7 +203,73 @@ void OverviewVis::processVis()
     // Don't do anything if there's no trace available
     if (trace == NULL)
         return;
+    int width = size().width() - 2 * border;
+    heights = QVector<float>(width, 0);
+    int stepspan = maxStep;
+    stepWidth = width / 1.0 / stepspan;
+    int i_step_width = int(stepWidth);
+    int start_int, stop_int;
+    QString metric = options->metric;
+    //stepPositions = QVector<std::pair<int, int> >(maxStep+1, std::pair<int, int>(width + 1, -1));
+    for (QList<Partition *>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
+    {
+        for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list) {
+            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt) {
+                // Accumulate lateness on the overview. We assume overview is real time
+                // Note we're not counting aggregate lateness here. That would require that our vector is
+                // in order and keeping track of the last for each process. We don't want to do that right now.
 
+                // start and stop are the cursor positions
+                float start = (width - 1) * (((*evt)->step) / 1.0 / stepspan);
+                float stop = start + stepWidth;
+                start_int = static_cast<int>(start);
+                stop_int = static_cast<int>(stop); // start_int + i_step_width;
+                //std::cout << start_int << " from " << start << " from enter " << (*evt)->enter;
+                //std::cout << " and mintime " << minTime <<  " over " << width << " and timespan " << timespan << std::endl;
+                //Q_ASSERT((*evt)->metrics->contains(lateness));
+                if ((*evt)->hasMetric(metric) && (*evt)->getMetric(metric)> 0) {
+                    heights[start_int] += (*evt)->getMetric(metric) * (start - start_int);
+                    if (stop_int != start_int) {
+                        heights[stop_int] += (*evt)->getMetric(metric) * (stop - stop_int);
+                    }
+                    for (int i = start_int + 1; i < stop_int; i++) {
+                        heights[i] += (*evt)->getMetric(metric);
+                    }
+
+                }
+
+                // Figure out where the steps fall in width for later
+                // stepPositions maps steps to position in the cursor
+                /*if ((*evt)->step >= 0) {
+                    if (stepPositions[(*evt)->step].second < stop_int)
+                        stepPositions[(*evt)->step].second = stop_int;
+                    if (stepPositions[(*evt)->step].first > start_int)
+                        stepPositions[(*evt)->step].first = start_int;
+                }*/
+            }
+
+        }
+    }
+    float minLateness = FLT_MAX;
+    float maxLateness = 0;
+    for (int i = 0; i < width; i++) {
+        if (heights[i] > maxLateness)
+            maxLateness = heights[i];
+        if (heights[i] < minLateness)
+            minLateness = heights[i];
+    }
+
+    int maxHeight = height - border;
+    for (int i = 0; i < width; i++) {
+        heights[i] = maxHeight * (heights[i] - minLateness) / maxLateness;
+    }
+
+    startCursor = (startStep) / 1.0 / (maxStep) * width;
+    stopCursor = (stopStep) / 1.0 / (maxStep) * width;
+
+    visProcessed = true;
+
+    /* PreVis change to steps
     int width = size().width() - 2 * border;
     heights = QVector<float>(width, 0);
     unsigned long long int timespan = maxTime - minTime;
@@ -246,6 +331,7 @@ void OverviewVis::processVis()
 
     startCursor = (startTime - minTime) / 1.0 / (maxTime - minTime) * width;
     stopCursor = (stopTime - minTime) / 1.0 / (maxTime - minTime) * width;
+    */
 
     visProcessed = true;
 }
@@ -257,13 +343,16 @@ void OverviewVis::qtPaint(QPainter *painter)
     if(!visProcessed)
         return;
 
-    QRectF plotBBox(border, 0,
+    QRectF plotBBox(border, 5,
                       rect().width()-2*border,
-                      rect().height()-timescaleHeight);
+                      rect().height() - 10);
+                      //rect().height()-timescaleHeight);
 
 
     // Draw axes
-    drawTimescale(painter, minTime, maxTime - minTime, border);
+    //drawTimescale(painter, minTime, maxTime - minTime, border);
+    painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
+    painter->drawLine(border, rect().height() - 4, rect().width() - border, rect().height() - 4);
 
     QPointF o = plotBBox.bottomLeft();
     QPointF p1, p2;
