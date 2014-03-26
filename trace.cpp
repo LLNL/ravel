@@ -337,7 +337,7 @@ void Trace::set_global_steps()
                 continue;
 
             // Set steps for the partition
-            std::cout << "Handling new part with max step " << (*part)->max_step << std::endl;
+            //std::cout << "Handling new part with max step " << (*part)->max_step << std::endl;
             (*part)->max_global_step = 2 * ((*part)->max_step) + accumulated_step;
             (*part)->min_global_step = accumulated_step;
             (*part)->mark = false; // Using this to debug again

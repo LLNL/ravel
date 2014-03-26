@@ -72,7 +72,7 @@ void Gnome::findClusters()
     for (int i = 0; i < num_processes; i++)
     {
         p1 = processes[i];
-        //std::cout << "Calculating distances for process " << p1 << std::endl;
+        std::cout << "Calculating distances for process " << p1 << std::endl;
         cluster_leaves->insert(p1, new PartitionCluster(p1, partition->events->value(p1), "Lateness"));
         if (cluster_leaves->value(p1)->max_metric > max_metric)
         {
@@ -816,6 +816,7 @@ Gnome::ChangeType Gnome::handleDoubleClick(QMouseEvent * event)
                 return CLUSTER;
             }
         }
+    return NONE;
 }
 
 void Gnome::handleTreeDoubleClick(QMouseEvent * event)
@@ -845,8 +846,8 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, Partiti
     bool drawMessages = true;
     if (clusterRect.height() > 2 * clusterMaxHeight)
     {
-        blockheight = clusterMaxHeight - 25;
-        barheight = blockheight - 3;
+        blockheight = 2*(clusterMaxHeight - 20);
+        barheight = blockheight; // - 3;
     }
     else
     {
@@ -858,16 +859,14 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, Partiti
         if (barheight > blockheight - 3)
             barheight = blockheight;
     }
-    int base_y = clusterRect.y() + clusterRect.height() / 2 - blockheight;
-    int x, ys, yr, w, hs, hr, xa, wa, ya, ha, nsends, nrecvs;
-    yr = base_y + blockheight;
-    int base_ya = base_y + blockheight / 2 + (blockheight - barheight) / 2;
+    int base_y = clusterRect.y() + clusterRect.height() / 2 - blockheight / 2;
+    int x, ys, yr, w, hs, hr, xa, wa, nsends, nrecvs;
     if (options->showAggregateSteps) {
         startStep -= 1;
     }
     //std::cout << "Drawing background " << clusterRect.x() << ", " << clusterRect.y();
     //std::cout << ", " << clusterRect.width() << ", " << clusterRect.height() << std::endl;
-    painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
+    painter->setPen(QPen(Qt::black, 1.0, Qt::SolidLine));
     for (QList<ClusterEvent *>::Iterator evt = pc->events->begin(); evt != pc->events->end(); ++evt)
     {
         if (options->showAggregateSteps)
@@ -876,31 +875,34 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, Partiti
             x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1 + clusterRect.x();
         w = barwidth;
         nsends = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND);
-        nrecvs = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::RECV);
+        nrecvs = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::RECV) + (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::WAITALL);
         hs = barheight * nsends / 1.0 / pc->members->size();
-        ys = base_y + barheight - hs;
+        ys = base_y; // + barheight - hs;
         hr = barheight * nrecvs / 1.0 / pc->members->size();
+        yr = base_y + blockheight - hr;
 
         // Draw the event
-        if ((*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND, ClusterEvent::ALL))
+        if (nsends)
             painter->fillRect(QRectF(x, ys, w, hs), QBrush(options->colormap->color(
                                                          (*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::SEND,
                                                                            ClusterEvent::ALL)
-                                                         / (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND,
-                                                                            ClusterEvent::ALL)
+                                                         / nsends
                                                          )));
-        if ((*evt)->getCount(ClusterEvent::COMM, ClusterEvent::RECV, ClusterEvent::ALL))
+        if (nrecvs)
             painter->fillRect(QRectF(x, yr, w, hr), QBrush(options->colormap->color(
-                                                         (*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::RECV,
+                                                         ((*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::RECV,
                                                                            ClusterEvent::ALL)
-                                                         / (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::RECV,
-                                                                            ClusterEvent::ALL)
+                                                          + (*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::WAITALL,
+                                                                              ClusterEvent::ALL))
+                                                         / nrecvs
                                                          )));
 
         // Draw border but only if we're doing spacing, otherwise too messy
         if (blockwidth != w) {
-            painter->drawRect(QRectF(x,ys,w,hs));
-            painter->drawRect(QRectF(x,yr,w,hr));
+            //painter->drawRect(QRectF(x,ys,w,hs));
+            //painter->drawRect(QRectF(x,yr,w,hr));
+            painter->setPen(QPen(Qt::black, 1.0, Qt::SolidLine));
+            painter->drawRect(QRect(x, ys, w, blockheight));
         }
 
         if (drawMessages) {
@@ -912,25 +914,35 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, Partiti
             if (nrecvs)
             {
                 painter->setPen(QPen(Qt::black, nrecvs * 2.0 / pc->members->size(), Qt::SolidLine));
-                painter->drawLine(x + blockwidth / 2, yr + barheight, x + 1, yr + barheight + 20);
+                painter->drawLine(x + blockwidth / 2, ys + blockheight, x + 1, ys + blockheight + 20);
             }
         }
 
         if (options->showAggregateSteps) {
             xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + clusterRect.x();
             wa = barwidth;
-            ha = barheight * (nsends + nrecvs) / 1.0 / pc->members->size();
-            ya = base_ya + (barheight - ha) / 2;
 
-            painter->fillRect(QRectF(xa, ya, wa, ha),
+            if (nsends)
+                painter->fillRect(QRectF(xa, ys, wa, hs),
+                                  QBrush(options->colormap->color(
+                                                                  (*evt)->getMetric(ClusterEvent::AGG, ClusterEvent::SEND,
+                                                                                    ClusterEvent::ALL)
+                                                                  / nsends
+                                                                  )));
+            if (nrecvs)
+                painter->fillRect(QRectF(xa, yr, wa, hr),
                               QBrush(options->colormap->color(
-                                                              (*evt)->getMetric(ClusterEvent::AGG, ClusterEvent::BOTH,
+                                                              ((*evt)->getMetric(ClusterEvent::AGG, ClusterEvent::RECV,
                                                                                 ClusterEvent::ALL)
-                                                              / (*evt)->getCount(ClusterEvent::AGG, ClusterEvent::BOTH,
-                                                                                 ClusterEvent::ALL)
+                                                               + (*evt)->getMetric(ClusterEvent::AGG, ClusterEvent::WAITALL,
+                                                                                   ClusterEvent::ALL))
+                                                              / nrecvs
                                                               )));
             if (blockwidth != w)
-                painter->drawRect(QRectF(xa, ya, wa, ha));
+            {
+                painter->setPen(QPen(Qt::black, 1.0, Qt::SolidLine));
+                painter->drawRect(QRectF(xa, ys, wa, blockheight));
+            }
         }
 
 
