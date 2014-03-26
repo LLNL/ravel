@@ -182,7 +182,7 @@ void TimelineVis::drawHover(QPainter * painter)
     else
     {
         // Fall through and draw Event
-        text = ((*(trace->functions))[hover_event->function])->name;
+        text = ((*(trace->functions))[hover_event->function])->name + ", " + QString::number(hover_event->step).toStdString().c_str();
     }
 
     // Determine bounding box of FontMetrics

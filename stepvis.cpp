@@ -289,7 +289,7 @@ void StepVis::drawNativeGL()
     float opacity = 1.0;
     float xoffset = 0;
     float yoffset = 0;
-    if (processheight < 1.0)
+    /*if (processheight < 1.0)
     {
         yoffset = 1.0 / processheight / 2;
         opacity = 0.4;
@@ -298,7 +298,7 @@ void StepVis::drawNativeGL()
     {
         xoffset = 1.0 / stepwidth / 2;
         opacity = 0.4;
-    }
+    }*/
 
     // Generate buffers to hold each bar. We don't know how many there will
     // be since we draw one per event.

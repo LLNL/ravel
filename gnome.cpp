@@ -990,7 +990,7 @@ void Gnome::drawHover(QPainter * painter)
     else
     {
         // Fall through and draw Event
-        text = functions->value(hover_event->function)->name;
+        text = functions->value(hover_event->function)->name + ", " + QString::number(hover_event->step).toStdString().c_str();
     }
 
     // Determine bounding box of FontMetrics

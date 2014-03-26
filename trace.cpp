@@ -337,6 +337,7 @@ void Trace::set_global_steps()
                 continue;
 
             // Set steps for the partition
+            std::cout << "Handling new part with max step " << (*part)->max_step << std::endl;
             (*part)->max_global_step = 2 * ((*part)->max_step) + accumulated_step;
             (*part)->min_global_step = accumulated_step;
             (*part)->mark = false; // Using this to debug again
@@ -1459,6 +1460,13 @@ void Trace::partitionByPhase()
         for (QList<Event *>::Iterator evt = (*event_list)->begin(); evt != (*event_list)->end(); ++evt)
             if ((*evt)->messages->size() > 0)
             {
+                for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
+                {
+                    if ((*msg)->sender->phase > (*evt)->phase)
+                        (*evt)->phase = (*msg)->sender->phase;
+                    if ((*msg)->receiver->phase > (*evt)->phase)
+                        (*evt)->phase = (*msg)->receiver->phase;
+                }
                 if (!partition_dict->contains((*evt)->phase))
                     (*partition_dict)[(*evt)->phase] = new Partition();
                 ((*partition_dict)[(*evt)->phase])->addEvent(*evt);
