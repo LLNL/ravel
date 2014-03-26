@@ -242,7 +242,7 @@ void StepVis::qtPaint(QPainter *painter)
         return;
 
     // In this case we haven't already drawn stuff with GL, so we paint it here.
-    if (rect().height() / processSpan >= 3 && rect().width() / stepSpan >= 3)
+    if ((rect().height() - colorBarHeight) / processSpan >= 3 && rect().width() / stepSpan >= 3)
       paintEvents(painter);
 
     drawProcessLabels(painter, rect().height() - colorBarHeight, processheight);
@@ -292,12 +292,12 @@ void StepVis::drawNativeGL()
     if (processheight < 1.0)
     {
         yoffset = 1.0 / processheight / 2;
-        opacity = 0.2;
+        opacity = 0.4;
     }
     if (stepwidth < 1.0)
     {
         xoffset = 1.0 / stepwidth / 2;
-        opacity = 0.2;
+        opacity = 0.4;
     }
 
     // Generate buffers to hold each bar. We don't know how many there will
@@ -349,6 +349,8 @@ void StepVis::drawNativeGL()
                 else
                     myopacity = opacity * opacity_multiplier;
 
+                //std::cout << "Opacity is..." << myopacity << std::endl;
+
                 bars.append(x - xoffset);
                 bars.append(y - yoffset);
                 bars.append(x - xoffset);
@@ -360,7 +362,7 @@ void StepVis::drawNativeGL()
                 for (int j = 0; j < 4; ++j)
                 {
                     colors.append(color.red() / 255.0);
-                    colors.append(color.yellow() / 255.0);
+                    colors.append(color.green() / 255.0);
                     colors.append(color.blue() / 255.0);
                     colors.append(myopacity);
                 }
@@ -385,7 +387,7 @@ void StepVis::drawNativeGL()
                     for (int j = 0; j < 4; ++j)
                     {
                         colors.append(color.red() / 255.0);
-                        colors.append(color.yellow() / 255.0);
+                        colors.append(color.green() / 255.0);
                         colors.append(color.blue() / 255.0);
                         colors.append(myopacity);
                     }

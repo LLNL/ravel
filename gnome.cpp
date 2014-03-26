@@ -495,7 +495,7 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
                 xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + extents.x();
                 wa = barwidth;
 
-                painter->fillRect(QRectF(xa, y, wa, h), QBrush(options->colormap->color((*evt)->getMetric(metric, true))));
+                painter->fillRect(QRectF(xa, y, wa, h), QBrush(options->colormap->color((*evt)->getMetric(metric, true), myopacity)));
 
                 if (step_spacing > 0 && process_spacing > 0)
                 {
