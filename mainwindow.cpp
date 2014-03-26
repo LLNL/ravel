@@ -49,7 +49,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->logicalLabelWidget->layout()->addWidget(new VerticalLabel("Logical", ui->logicalLabelWidget));
 
     connect((stepvis), SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
-    connect((stepvis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
+    connect((stepvis), SIGNAL(eventClicked(Event *, bool)), this, SLOT(selectEvent(Event *, bool)));
     viswidgets.push_back(stepvis);
 
     TraditionalVis* timevis = new TraditionalVis(ui->traditionalContainer, visoptions);
@@ -59,7 +59,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->traditionalLabelWidget->layout()->addWidget(new VerticalLabel("Physical", ui->traditionalLabelWidget));
 
     connect((timevis), SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
-    connect((timevis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
+    connect((timevis), SIGNAL(eventClicked(Event *, bool)), this, SLOT(selectEvent(Event *, bool)));
     viswidgets.push_back(timevis);
 
 
@@ -75,7 +75,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->clusterLabelWidget->layout()->addWidget(new VerticalLabel("Clusters", ui->clusterLabelWidget));
 
     connect((clustervis), SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
-    connect((clustervis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
+    connect((clustervis), SIGNAL(eventClicked(Event *, bool)), this, SLOT(selectEvent(Event *, bool)));
     connect((clustervis), SIGNAL(processesSelected(QList<int>, Gnome*)), this, SLOT(selectProcesses(QList<int>, Gnome*)));
 
 
@@ -147,11 +147,11 @@ void MainWindow::pushSteps(float start, float stop, bool jump)
     }
 }
 
-void MainWindow::selectEvent(Event * event)
+void MainWindow::selectEvent(Event * event, bool aggregate)
 {
     for(int i = 0; i < viswidgets.size(); i++)
     {
-        viswidgets[i]->selectEvent(event);
+        viswidgets[i]->selectEvent(event, aggregate);
     }
 }
 

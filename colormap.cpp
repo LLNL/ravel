@@ -52,14 +52,14 @@ void ColorMap::addColor(QColor color, float stop)
     }
 }
 
-QColor ColorMap::color(double value)
+QColor ColorMap::color(double value, double opacity)
 {
     // Do something else if we're categorical
     if (categorical)
         return categorical_color(value);
 
-    ColorValue base1 = ColorValue(QColor(0,0,0), 0);
-    ColorValue base2 = ColorValue(QColor(0,0,0), 1);
+    ColorValue base1 = ColorValue(QColor(0,0,0,opacity), 0);
+    ColorValue base2 = ColorValue(QColor(0,0,0,opacity), 1);
     ColorValue* low = &base1;
     ColorValue* high = &base2;
     double norm_value = (value - minValue) / (maxValue - minValue);

@@ -86,6 +86,33 @@ void TraditionalVis::setTrace(Trace * t)
 
 }
 
+void TraditionalVis::mouseDoubleClickEvent(QMouseEvent * event)
+{
+    if (!visProcessed)
+        return;
+
+    int x = event->x();
+    int y = event->y();
+    for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin(); evt != drawnEvents.end(); ++evt)
+        if (evt.value().contains(x,y))
+        {
+            if (evt.key() == selected_event)
+            {
+                selected_event = NULL;
+            }
+            else
+            {
+                selected_aggregate = false;
+                selected_event = evt.key();
+            }
+            break;
+        }
+
+    changeSource = true;
+    emit eventClicked(selected_event, false);
+    repaint();
+}
+
 void TraditionalVis::mouseMoveEvent(QMouseEvent * event)
 {
     if (!visProcessed)
@@ -332,7 +359,7 @@ void TraditionalVis::drawNativeGL()
                 for (int j = 0; j < 4; ++j)
                 {
                     colors.append(color.red() / 255.0);
-                    colors.append(color.green() / 255.0);
+                    colors.append(color.yellow() / 255.0);
                     colors.append(color.blue() / 255.0);
                 }
 
@@ -471,7 +498,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
 
 
                     // Change pen color if selected
-                    if (*evt == selected_event)
+                    if (*evt == selected_event && !selected_aggregate)
                         painter->setPen(QPen(Qt::yellow));
 
                     if (options->colorTraditionalByMetric && (*evt)->hasMetric(options->metric))
@@ -480,8 +507,8 @@ void TraditionalVis::paintEvents(QPainter *painter)
                     }
                     else
                     {
-                        if (*evt == selected_event || selected)
-                            painter->fillRect(QRectF(x, y, w, h), QBrush(Qt::green));
+                        if (*evt == selected_event && !selected_aggregate)
+                            painter->fillRect(QRectF(x, y, w, h), QBrush(Qt::yellow));
                         else
                             // Draw event
                             painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(200, 200, 255)));
@@ -497,7 +524,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
                     }
 
                     // Revert pen color
-                    if (*evt == selected_event || selected)
+                    if (*evt == selected_event && !selected_aggregate)
                         painter->setPen(QPen(QColor(0, 0, 0)));
 
                     drawnEvents[*evt] = QRect(x, y, w, h);
@@ -506,6 +533,18 @@ void TraditionalVis::paintEvents(QPainter *painter)
                     QRect fxnRect = font_metrics.boundingRect(fxnName);
                     if (fxnRect.width() < w && fxnRect.height() < h)
                         painter->drawText(x + 2, y + fxnRect.height(), fxnName);
+
+                    // Selected aggregate
+                    if (*evt == selected_event && selected_aggregate)
+                    {
+                        int xa = labelWidth;
+                        if ((*evt)->comm_prev)
+                            xa = floor(static_cast<long long>((*evt)->comm_prev->exit - startTime) / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
+                        int wa = x - xa;
+                        painter->setPen(QPen(Qt::yellow));
+                        painter->drawRect(xa, y, wa, h);
+                        painter->setPen(QPen(QColor(0, 0, 0)));
+                    }
 
                 }
 

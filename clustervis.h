@@ -24,7 +24,7 @@ public slots:
     void setSteps(float start, float stop, bool jump = false);
     void clusterChanged();
     void changeNeighborRadius(int neighbors);
-    void selectEvent(Event * event);
+    void selectEvent(Event * event, bool aggregate);
 
 protected:
     void qtPaint(QPainter *painter);

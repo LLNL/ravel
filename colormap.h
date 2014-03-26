@@ -11,7 +11,7 @@ public:
     ~ColorMap();
     ColorMap(const ColorMap& copy);
     void addColor(QColor color, float stop);
-    QColor color(double value);
+    QColor color(double value, double opacity = 1.0);
     void setRange(double low, double high);
 
 private:

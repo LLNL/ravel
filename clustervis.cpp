@@ -427,11 +427,10 @@ void ClusterVis::changeNeighborRadius(int neighbors)
     }
 }
 
-void ClusterVis::selectEvent(Event * event)
+void ClusterVis::selectEvent(Event * event, bool aggregate)
 {
-    std::cout << "selectEvent being called" << std::endl;
     if (selected_gnome)
         selected_gnome->clearSelectedPartitionCluster();
-    TimelineVis::selectEvent(event);
+    TimelineVis::selectEvent(event, aggregate);
 
 }

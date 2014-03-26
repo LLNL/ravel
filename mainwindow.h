@@ -31,7 +31,7 @@ public slots:
     void launchVisOptions();
     void importOTFbyGUI();
     void pushSteps(float start, float stop, bool jump = false);
-    void selectEvent(Event * event);
+    void selectEvent(Event * event, bool aggregate);
     void selectProcesses(QList<int> processes, Gnome *gnome);
     void handleSplitter(int pos, int index);
     void handleSideSplitter(int pos, int index);

@@ -16,11 +16,11 @@ public:
 
     void mousePressEvent(QMouseEvent * event);
     void mouseReleaseEvent(QMouseEvent * event);
-    void mouseDoubleClickEvent(QMouseEvent * event);
+    virtual void mouseDoubleClickEvent(QMouseEvent * event);
     void leaveEvent(QEvent * event);
 
 public slots:
-    virtual void selectEvent(Event * event);
+    virtual void selectEvent(Event * event, bool aggregate);
     void selectProcesses(QList<int> processes, Gnome *gnome);
 
 protected:

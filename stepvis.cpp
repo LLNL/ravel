@@ -349,7 +349,7 @@ void StepVis::drawNativeGL()
                 for (int j = 0; j < 4; ++j)
                 {
                     colors.append(color.red() / 255.0);
-                    colors.append(color.green() / 255.0);
+                    colors.append(color.yellow() / 255.0);
                     colors.append(color.blue() / 255.0);
                     colors.append(opacity);
                 }
@@ -374,7 +374,7 @@ void StepVis::drawNativeGL()
                     for (int j = 0; j < 4; ++j)
                     {
                         colors.append(color.red() / 255.0);
-                        colors.append(color.green() / 255.0);
+                        colors.append(color.yellow() / 255.0);
                         colors.append(color.blue() / 255.0);
                         colors.append(opacity);
                     }
@@ -496,8 +496,8 @@ void StepVis::paintEvents(QPainter * painter)
                 else
                     painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(180, 180, 180)));
                 // Change pen color if selected
-                if (*evt == selected_event || selected)
-                    painter->setPen(QPen(Qt::green));
+                if (*evt == selected_event && !selected_aggregate)
+                    painter->setPen(QPen(Qt::yellow));
                 // Draw border but only if we're doing spacing, otherwise too messy
                 if (step_spacing > 0 && process_spacing > 0)
                 {
@@ -507,7 +507,7 @@ void StepVis::paintEvents(QPainter * painter)
                         incompleteBox(painter, x, y, w, h, &extents);
                 }
                 // Revert pen color
-                if (*evt == selected_event || selected)
+                if (*evt == selected_event && !selected_aggregate)
                     painter->setPen(QPen(QColor(0, 0, 0)));
 
 
@@ -537,14 +537,14 @@ void StepVis::paintEvents(QPainter * painter)
                     else
                         painter->fillRect(QRectF(xa, y, wa, h), QBrush(QColor(180, 180, 180)));
 
-                    if (selected)
-                        painter->setPen(QPen(Qt::green));
+                    if (*evt == selected_event && selected_aggregate)
+                        painter->setPen(QPen(Qt::yellow));
                     if (step_spacing > 0 && process_spacing > 0)
                         if (aggcomplete)
                             painter->drawRect(QRectF(xa, y, wa, h));
                         else
                             incompleteBox(painter, xa, y, wa, h, &extents);
-                    if (selected)
+                    if (*evt == selected_event && selected_aggregate)
                         painter->setPen(QPen(QColor(0, 0, 0)));
 
                     // For selection

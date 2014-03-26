@@ -16,6 +16,7 @@ VisWidget::VisWidget(QWidget *parent, VisOptions * _options) :
     selected_gnome(NULL),
     selected_event(NULL),
     hover_event(NULL),
+    selected_aggregate(false),
     hover_aggregate(NULL),
     closed(false)
 {
@@ -47,9 +48,10 @@ void VisWidget::setSteps(float start, float stop, bool jump)
     Q_UNUSED(jump);
 }
 
-void VisWidget::selectEvent(Event * evt)
+void VisWidget::selectEvent(Event * evt, bool aggregate)
 {
     Q_UNUSED(evt);
+    Q_UNUSED(aggregate);
 }
 
 void VisWidget::selectProcesses(QList<int> processes, Gnome *gnome)

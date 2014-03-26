@@ -30,12 +30,12 @@ public:
 signals:
     void repaintAll();
     void stepsChanged(float start, float stop, bool jump);
-    void eventClicked(Event * evt);
+    void eventClicked(Event * evt, bool aggregate);
     void processesSelected(QList<int> processes, Gnome * gnome);
 
 public slots:
     virtual void setSteps(float start, float stop, bool jump = false);
-    virtual void selectEvent(Event *);
+    virtual void selectEvent(Event *, bool);
     virtual void selectProcesses(QList<int> processes, Gnome * gnome);
 
 protected:
@@ -66,6 +66,7 @@ protected:
     QList<int> selected_processes;
     Gnome * selected_gnome;
     Event * selected_event;
+    bool selected_aggregate;
     Event * hover_event;
     bool hover_aggregate;
     bool closed;

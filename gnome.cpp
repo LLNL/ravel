@@ -461,7 +461,7 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
             if (step_spacing > 0 && process_spacing > 0)
             {
                 if (selected)
-                    painter->setPen(QPen(Qt::green));
+                    painter->setPen(QPen(Qt::yellow));
                 painter->drawRect(QRectF(x,y,w,h));
                 if (selected)
                     painter->setPen(QPen(QColor(0, 0, 0)));
@@ -498,7 +498,7 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
                 if (step_spacing > 0 && process_spacing > 0)
                 {
                     if (selected)
-                        painter->setPen(QPen(Qt::green));
+                        painter->setPen(QPen(Qt::yellow));
                     painter->drawRect(QRectF(xa, y, wa, h));
                     if (selected)
                         painter->setPen(QPen(QColor(0, 0, 0)));

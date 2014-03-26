@@ -67,14 +67,50 @@ void TimelineVis::mouseDoubleClickEvent(QMouseEvent * event)
         if (evt.value().contains(x,y))
         {
             if (evt.key() == selected_event)
-                selected_event = NULL;
+            {
+                if (options->showAggregateSteps)
+                {
+                    if (x < evt.value().x() + evt.value().width() / 2) // we're in the aggregate event
+                    {
+                        if (selected_aggregate)
+                        {
+                            selected_event = NULL;
+                            selected_aggregate = false;
+                        }
+                        else
+                        {
+                            selected_aggregate = true;
+                        }
+                    }
+                    else // We're in the normal event
+                    {
+                        if (selected_aggregate)
+                        {
+                            selected_aggregate = false;
+                        }
+                        else
+                        {
+                            selected_event = NULL;
+                        }
+                    }
+                }
+                else
+                    selected_event = NULL;
+            }
             else
+            {
+                if (options->showAggregateSteps && x < evt.value().x() + evt.value().width() / 2) // we're in the aggregate event
+                {
+                    selected_aggregate = true;
+                }
+                selected_aggregate = false;
                 selected_event = evt.key();
+            }
             break;
         }
 
     changeSource = true;
-    emit eventClicked(selected_event);
+    emit eventClicked(selected_event, selected_aggregate);
     repaint();
 }
 
@@ -103,11 +139,12 @@ void TimelineVis::leaveEvent(QEvent *event)
 }
 
 
-void TimelineVis::selectEvent(Event * event)
+void TimelineVis::selectEvent(Event * event, bool aggregate)
 {
     selected_processes.clear();
     selected_gnome = NULL;
     selected_event = event;
+    selected_aggregate = aggregate;
     if (changeSource) {
         changeSource = false;
         return;
