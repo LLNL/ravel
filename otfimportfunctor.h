@@ -18,10 +18,14 @@ public slots:
     void finishInitialRead();
     void updateMatching(int portion, QString msg);
     void updatePreprocess(int portion, QString msg);
+    void updateClustering(int portion);
+    void switchProgress();
 
 signals:
+    void switching();
     void done(Trace *);
     void reportProgress(int, QString);
+    void reportClusterProgress(int, QString);
 
 private:
     OTFImportOptions * options;

@@ -18,7 +18,7 @@ public:
 signals:
     void focusGnome();
     void clusterChange();
-    void neighborChange();
+    void neighborChange(int);
 
 public slots:
     void setSteps(float start, float stop, bool jump = false);

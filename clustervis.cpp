@@ -422,7 +422,7 @@ void ClusterVis::changeNeighborRadius(int neighbors)
     if (treevis->getGnome())
     {
         treevis->getGnome()->setNeighbors(neighbors);
-        emit(neighborChange());
+        emit(neighborChange(neighbors));
         repaint();
     }
 }

@@ -51,6 +51,8 @@ public:
 
 signals:
     void updatePreprocess(int, QString);
+    void updateClustering(int);
+    void startClustering();
 
 private:
     // Link the comm events together by order

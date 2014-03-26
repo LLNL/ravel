@@ -41,6 +41,7 @@ public slots:
     void toggleClusteredSteps();
     void togglePhysicalTime();
     void toggleMetricOverview();
+    void traceSwitch();
 
 
 signals:

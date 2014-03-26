@@ -22,6 +22,8 @@ void OTFImportFunctor::doImport(QString dataFileName)
     Trace* trace = importer->importOTF(dataFileName, options);
     delete importer;
     connect(trace, SIGNAL(updatePreprocess(int, QString)), this, SLOT(updatePreprocess(int, QString)));
+    connect(trace, SIGNAL(updateClustering(int)), this, SLOT(updateClustering(int)));
+    connect(trace, SIGNAL(startClustering()), this, SLOT(switchProgress()));
     trace->preprocess(options);
 
     traceElapsed = traceTimer.nsecsElapsed();
@@ -46,4 +48,14 @@ void OTFImportFunctor::updateMatching(int portion, QString msg)
 void OTFImportFunctor::updatePreprocess(int portion, QString msg)
 {
     emit(reportProgress(50 + portion / 2.0, msg));
+}
+
+void OTFImportFunctor::updateClustering(int portion)
+{
+    emit(reportClusterProgress(portion, "Clustering..."));
+}
+
+void OTFImportFunctor::switchProgress()
+{
+    emit(switching());
 }

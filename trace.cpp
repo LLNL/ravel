@@ -107,6 +107,7 @@ void Trace::preprocess(OTFImportOptions * _options)
     assignSteps();
     if (options.globalMerge)
         mergeGlobalSteps();
+    emit(startClustering());
     if (options.cluster)
         gnomify();
 
@@ -129,8 +130,11 @@ void Trace::gnomify()
     traceTimer.start();
     metrics->append("Gnome");
     Gnome * gnome;
+    float stepPortion = 100.0 / global_max_step;
+    int total = 0;
     for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
     {
+        int num_steps = (*part)->max_global_step - (*part)->min_global_step;
         for (int i = 0; i < gnomes->size(); i++)
         {
             gnome = gnomes->at(i);
@@ -154,6 +158,8 @@ void Trace::gnomify()
             setGnomeMetric(*part, -1);
             (*part)->gnome->preprocess();
         }
+        total += stepPortion * num_steps;
+        emit(updateClustering(total));
     }
 
     traceElapsed = traceTimer.nsecsElapsed();

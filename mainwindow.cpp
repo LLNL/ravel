@@ -208,16 +208,27 @@ void MainWindow::importOTF(QString dataFileName){
     progress->setCancelButton(0);
     progress->show();
 
-    delete importThread;
     importThread = new QThread();
     importWorker = new OTFImportFunctor(otfoptions);
     importWorker->moveToThread(importThread);
     connect(this, SIGNAL(operate(QString)), importWorker, SLOT(doImport(QString)));
+    connect(importWorker, SIGNAL(switching()), this, SLOT(traceSwitch()));
     connect(importWorker, SIGNAL(done(Trace *)), this, SLOT(traceFinished(Trace *)));
     connect(importWorker, SIGNAL(reportProgress(int, QString)), this, SLOT(updateProgress(int, QString)));
 
     importThread->start();
     emit(operate(dataFileName));
+}
+
+void MainWindow::traceSwitch()
+{
+    progress->close();
+    delete progress;
+
+    progress = new QProgressDialog("Clustering...","",0,0,this);
+    progress->setWindowTitle("Clustering Progress");
+    progress->setCancelButton(0);
+    progress->show();
 }
 
 void MainWindow::traceFinished(Trace * trace)
@@ -229,6 +240,7 @@ void MainWindow::traceFinished(Trace * trace)
 
     delete importWorker;
     delete progress;
+    delete importThread;
 
     activeTraceChanged();
 }
