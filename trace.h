@@ -49,6 +49,24 @@ public:
     QList<Partition * > * dag_entries; // Leap 0 in the dag
     QMap<int, QSet<Partition *> *> * dag_step_dict; // Map from leap to partition
 
+    class FunctionPair {
+    public:
+        FunctionPair(int _f, long long int _t)
+            : fxn(_f), time(_t) {}
+        FunctionPair()
+            : fxn(0), time(0) {}
+        FunctionPair(const FunctionPair &fp)
+        {
+            fxn = fp.fxn;
+            time = fp.time;
+        }
+        bool operator<(const FunctionPair &fp) const { return time > fp.time; } // Backwards for greatest to lease
+
+        int fxn;
+        long long int time;
+    };
+    QList<FunctionPair> getAggregateFunctions(Event * evt);
+
 signals:
     void updatePreprocess(int, QString);
     void updateClustering(int);
@@ -92,6 +110,9 @@ private:
 
     void setGnomeMetric(Partition * part, int gnome_index);
     void addPartitionMetric();
+
+
+    long long int getAggregateFunctionRecurse(Event * evt, QMap<int, FunctionPair> * fpMap, unsigned long long start, unsigned long long stop);
 
     bool isProcessed; // Partitions exist
     QString collectives_string;

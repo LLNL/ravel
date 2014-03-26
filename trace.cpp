@@ -1654,6 +1654,54 @@ void Trace::initializePartitionsWaitall()
     } // End event loop for one process
 }
 
+QList<Trace::FunctionPair> Trace::getAggregateFunctions(Event * evt)
+{
+    unsigned long long int stoptime = evt->enter;
+    unsigned long long int starttime = 0;
+    if (evt->comm_prev)
+        starttime = evt->comm_prev->exit;
+
+    int process = evt->process;
+    QVector<Event *> * proots = roots->at(process);
+    QMap<int, FunctionPair> * fpMap = new QMap<int, FunctionPair>();
+
+    for (QVector<Event *>::Iterator root = proots->begin(); root != proots->end(); ++root)
+    {
+        getAggregateFunctionRecurse(*root, fpMap, starttime, stoptime);
+    }
+
+    QList<FunctionPair> fpList = fpMap->values();
+    delete fpMap;
+    return fpList;
+}
+
+long long int Trace::getAggregateFunctionRecurse(Event * evt, QMap<int, FunctionPair> * fpMap, unsigned long long start, unsigned long long stop)
+{
+    if (evt->enter > stop || evt->exit < start)
+        return 0;
+
+    unsigned long long overlap_stop = std::min(stop, evt->exit);
+    unsigned long long overlap_start = std::max(start, evt->enter);
+    long long overlap = overlap_stop - overlap_start;
+    long long child_overlap;
+    for (QVector<Event *>::Iterator child = evt->children->begin(); child != evt->children->end(); ++child)
+    {
+        child_overlap = getAggregateFunctionRecurse(*child, fpMap, start, stop);
+        overlap -= child_overlap;
+    }
+
+    if (fpMap->contains(evt->function))
+    {
+        FunctionPair oldfp = fpMap->value(evt->function);
+        (*fpMap)[evt->function] = FunctionPair(evt->function, oldfp.time + overlap);
+    }
+    else
+    {
+        (*fpMap)[evt->function] = FunctionPair(evt->function, overlap);
+    }
+    return overlap;
+}
+
 void Trace::output_graph(QString filename, bool byparent)
 {
     std::ofstream graph;
