@@ -26,7 +26,7 @@ private:
         float value;
     };
 
-    QColor average(ColorValue * low, ColorValue * high, double norm);
+    QColor average(ColorValue * low, ColorValue * high, double norm, double opacity = 1.0);
     QColor categorical_color(double value);
 
     double minValue;

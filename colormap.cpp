@@ -58,15 +58,15 @@ QColor ColorMap::color(double value, double opacity)
     if (categorical)
         return categorical_color(value);
 
-    ColorValue base1 = ColorValue(QColor(0,0,0,opacity), 0);
-    ColorValue base2 = ColorValue(QColor(0,0,0,opacity), 1);
+    ColorValue base1 = ColorValue(QColor(0,0,0,opacity*255), 0);
+    ColorValue base2 = ColorValue(QColor(0,0,0,opacity*255), 1);
     ColorValue* low = &base1;
     ColorValue* high = &base2;
     double norm_value = (value - minValue) / (maxValue - minValue);
     for (QVector<ColorValue* >::Iterator itr = colors->begin(); itr != colors->end(); itr++) {
         if ((*itr)->value > norm_value) {
             high = (*itr);
-            return average(low, high, norm_value);
+            return average(low, high, norm_value, opacity);
         } else {
             low = (*itr);
         }
@@ -82,13 +82,14 @@ QColor ColorMap::categorical_color(double value)
     return colors->at(cat_value)->color;
 }
 
-QColor ColorMap::average(ColorValue * low, ColorValue * high, double norm)
+QColor ColorMap::average(ColorValue * low, ColorValue * high, double norm, double opacity)
 {
     int r, g, b, a;
     float alpha = (norm - low->value) / (high->value - low->value);
     r = (1 - alpha) * low->color.red() + alpha * high->color.red();
     g = (1 - alpha) * low->color.green() + alpha * high->color.green();
     b = (1 - alpha) * low->color.blue() + alpha * high->color.blue();
-    a = (1 - alpha) * low->color.alpha() + alpha * high->color.alpha();
+    //a = (1 - alpha) * low->color.alpha() + alpha * high->color.alpha();
+    a = opacity * 255;
     return QColor(r, g, b, a);
 }

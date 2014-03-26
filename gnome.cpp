@@ -436,7 +436,9 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
     QSet<Message *> drawMessages = QSet<Message *>();
     painter->setPen(QPen(QColor(0, 0, 0)));
     QMap<int, int> processYs = QMap<int, int>();
-
+    float myopacity, opacity = 1.0;
+    if (is_selected && selected_pc)
+        opacity = 0.5;
     for (int i = 0; i < top_processes.size(); ++i)
     {
         QList<Event *> * event_list = partition->events->value(top_processes[i]);
@@ -455,16 +457,16 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
             w = barwidth;
             h = barheight;
 
-            painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color((*evt)->getMetric(metric))));
+            myopacity = opacity;
+            if (selected)
+                myopacity = 1.0;
+            painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color((*evt)->getMetric(metric), myopacity)));
 
             // Draw border but only if we're doing spacing, otherwise too messy
+            painter->setPen(QPen(QColor(0, 0, 0, myopacity * 255)));
             if (step_spacing > 0 && process_spacing > 0)
             {
-                if (selected)
-                    painter->setPen(QPen(Qt::yellow));
                 painter->drawRect(QRectF(x,y,w,h));
-                if (selected)
-                    painter->setPen(QPen(QColor(0, 0, 0)));
             }
 
             for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
@@ -497,11 +499,7 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
 
                 if (step_spacing > 0 && process_spacing > 0)
                 {
-                    if (selected)
-                        painter->setPen(QPen(Qt::yellow));
                     painter->drawRect(QRectF(xa, y, wa, h));
-                    if (selected)
-                        painter->setPen(QPen(QColor(0, 0, 0)));
                 }
                 drawnEvents[*evt] = QRect(xa, y, (x - xa) + w, h);
             } else {

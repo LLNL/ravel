@@ -313,6 +313,9 @@ void StepVis::drawNativeGL()
     int bottomStep = floor(startStep) - 1;
     QColor color;
     float maxProcess = processSpan + startProcess;
+    float myopacity, opacity_multiplier = 1.0;
+    if (selected_gnome && !selected_processes.isEmpty())
+        opacity_multiplier = 0.50;
     for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
         part = trace->partitions->at(i);
@@ -320,7 +323,11 @@ void StepVis::drawNativeGL()
             break;
         else if (part->max_global_step < bottomStep)
             continue;
-        for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin(); event_list != part->events->end(); ++event_list) {
+        for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin(); event_list != part->events->end(); ++event_list)
+        {
+            bool selected = false;
+            if (part->gnome == selected_gnome && selected_processes.contains(proc_to_order[event_list.key()]))
+                selected = true;
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
                 position = proc_to_order[(*evt)->process];
@@ -337,6 +344,10 @@ void StepVis::drawNativeGL()
                     x = ((*evt)->step - startStep) / 2 * barwidth;
 
                 color = options->colormap->color((*(*evt)->metrics)[metric]->event);
+                if (selected)
+                    myopacity = opacity;
+                else
+                    myopacity = opacity * opacity_multiplier;
 
                 bars.append(x - xoffset);
                 bars.append(y - yoffset);
@@ -351,7 +362,7 @@ void StepVis::drawNativeGL()
                     colors.append(color.red() / 255.0);
                     colors.append(color.yellow() / 255.0);
                     colors.append(color.blue() / 255.0);
-                    colors.append(opacity);
+                    colors.append(myopacity);
                 }
 
 
@@ -376,7 +387,7 @@ void StepVis::drawNativeGL()
                         colors.append(color.red() / 255.0);
                         colors.append(color.yellow() / 255.0);
                         colors.append(color.blue() / 255.0);
-                        colors.append(opacity);
+                        colors.append(myopacity);
                     }
                 }
 
@@ -435,6 +446,9 @@ void StepVis::paintEvents(QPainter * painter)
     int bottomStep = floor(startStep) - 1;
     //std::cout << " Step span is " << bottomStep << " to " << topStep << " and startPartition is ";
     //std::cout << trace->partitions->at(startPartition)->min_global_step << " to " << trace->partitions->at(startPartition)->max_global_step << std::endl;
+    float myopacity, opacity = 1.0;
+    if (selected_gnome && !selected_processes.isEmpty())
+        opacity = 0.50;
     for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
         part = trace->partitions->at(i);
@@ -490,9 +504,13 @@ void StepVis::paintEvents(QPainter * painter)
                     complete = false;
                 }
 
+                myopacity = opacity;
+                if (selected)
+                    myopacity = 1.0;
+                painter->setPen(QPen(QColor(0, 0, 0, myopacity*255)));
                 // Draw the event
                 if ((*evt)->hasMetric(metric))
-                    painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color((*evt)->getMetric(metric))));
+                    painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color((*evt)->getMetric(metric), myopacity)));
                 else
                     painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(180, 180, 180)));
                 // Change pen color if selected
@@ -533,7 +551,7 @@ void StepVis::paintEvents(QPainter * painter)
 
                     aggcomplete = aggcomplete && complete;
                     if ((*evt)->hasMetric(metric))
-                        painter->fillRect(QRectF(xa, y, wa, h), QBrush(options->colormap->color((*evt)->getMetric(metric, true))));
+                        painter->fillRect(QRectF(xa, y, wa, h), QBrush(options->colormap->color((*evt)->getMetric(metric, true), myopacity)));
                     else
                         painter->fillRect(QRectF(xa, y, wa, h), QBrush(QColor(180, 180, 180)));
 
