@@ -205,9 +205,8 @@ void OverviewVis::processVis()
         return;
     int width = size().width() - 2 * border;
     heights = QVector<float>(width, 0);
-    int stepspan = maxStep;
+    int stepspan = maxStep + 1;
     stepWidth = width / 1.0 / stepspan;
-    int i_step_width = int(stepWidth);
     int start_int, stop_int;
     QString metric = options->metric;
     //stepPositions = QVector<std::pair<int, int> >(maxStep+1, std::pair<int, int>(width + 1, -1));
@@ -224,7 +223,8 @@ void OverviewVis::processVis()
                 float stop = start + stepWidth;
                 start_int = static_cast<int>(start);
                 stop_int = static_cast<int>(stop); // start_int + i_step_width;
-                //std::cout << start_int << " from " << start << " from enter " << (*evt)->enter;
+
+                //std::cout << start_int << " from " << start << " from enter " << (*evt)->step << " and width " << width << std::endl;
                 //std::cout << " and mintime " << minTime <<  " over " << width << " and timespan " << timespan << std::endl;
                 //Q_ASSERT((*evt)->metrics->contains(lateness));
                 if ((*evt)->hasMetric(metric) && (*evt)->getMetric(metric)> 0) {
