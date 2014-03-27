@@ -22,6 +22,8 @@ Partition::Partition()
       gvid(""),
       gnome(NULL),
       gnome_type(0),
+      cluster_vectors(new QMap<int, QVector<long long int> *>()),
+      cluster_step_starts(new QMap<int, int>()),
       free_recvs(NULL)
 {
     group->insert(this);
@@ -43,6 +45,14 @@ Partition::~Partition()
     delete old_parents;
     delete old_children;
     delete gnome;
+
+    for (QMap<int, QVector<long long int> *>::Iterator itr =  cluster_vectors->begin();
+         itr != cluster_vectors->end(); ++itr)
+    {
+        delete itr.value();
+    }
+    delete cluster_vectors;
+    delete cluster_step_starts;
 }
 
 // Call when we are sure we want to delete events held in this partition
@@ -381,6 +391,48 @@ void Partition::finalize_steps()
         max_step = std::max((event_list.value())->last()->step, max_step);
         //for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
         //    (*evt)->debug_step = (*evt)->step;
+    }
+}
+
+void Partition::makeClusterVectors(QString metric)
+{
+    //cluster_vectors(new QMap<int, QVector<long long int> *>()),
+    //cluster_step_starts(new QMap<int, QVector<long long int> *>());
+
+    // Clean up old
+    for (QMap<int, QVector<long long int> *>::Iterator itr =  cluster_vectors->begin();
+         itr != cluster_vectors->end(); ++itr)
+    {
+        delete itr.value();
+    }
+    cluster_vectors->clear();
+    cluster_step_starts->clear();
+
+
+    for (QMap<int, QList<Event *> *>::Iterator event_list = events->begin(); event_list != events->end(); ++event_list)
+    {
+        QVector<long long int> * metric_vector = new QVector<long long int>();
+        (*cluster_vectors)[event_list.key()] = metric_vector;
+        long long int last_value = 0;
+        int last_step = (event_list.value())->at(0)->step;
+        (*cluster_step_starts)[event_list.key()] = last_step;
+        for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
+        {
+            while ((*evt)->step > last_step + 2)
+            {
+                metric_vector->append(last_value);
+                last_step += 2;
+            }
+
+            last_step = (*evt)->step;
+            last_value = (*evt)->getMetric(metric);
+            metric_vector->append(last_value);
+        }
+        while (last_step <= max_global_step)
+        {
+            metric_vector->append(last_value);
+            last_step += 2;
+        }
     }
 }
 

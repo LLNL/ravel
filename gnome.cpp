@@ -83,8 +83,10 @@ void Gnome::findClusters()
         {
             p2 = processes[j];
             //std::cout << "     Calculating between " << p1 << " and " << p2 << std::endl;
-            distance = calculateMetricDistance(partition->events->value(p1),
-                                               partition->events->value(p2));
+            //distance = calculateMetricDistance(partition->events->value(p1),
+            //                                   partition->events->value(p2));
+            distance = calculateMetricDistance(p1,
+                                               p2);
             distances.append(DistancePair(distance, p1, p2));
             //std::cout << "    distance between " << p1 << " and " << p2 << " is " << distance << std::endl;
         }
@@ -113,11 +115,38 @@ void Gnome::findClusters()
     // but I'm going to retain the information for now and see how it goes
 }
 
+long long int Gnome::calculateMetricDistance(int p1, int p2)
+{
+    int start1 = partition->cluster_step_starts->value(p1);
+    int start2 = partition->cluster_step_starts->value(p2);
+    QVector<long long int> * events1 = partition->cluster_vectors->value(p1);
+    QVector<long long int> * events2 = partition->cluster_vectors->value(p2);
+    int num_matches = events1->size();
+    long long int total_difference = 0;
+    int offset = 0;
+    if (start1 < start2)
+    {
+        num_matches = events2->size();
+        offset = events1->size() - events2->size();
+        for (int i = 0; i < events2->size(); i++)
+            total_difference += (events1->at(offset + i) - events2->at(i)) * (events1->at(offset + i) - events2->at(i));
+    }
+    else
+    {
+        offset = events2->size() - events1->size();
+        for (int i = 0; i < events1->size(); i++)
+            total_difference += (events2->at(offset + i) - events1->at(i)) * (events2->at(offset + i) - events1->at(i));
+    }
+    if (num_matches <= 0)
+        return LLONG_MAX;
+    return total_difference / num_matches;
+}
+
 // When calculating distance between two event lists. When one is missing a step, we
 // estimate the lateness of that missing step via the average of the two adjacent steps
 // No wait, for now lets estimate the lateness as the step that came before it if available
 // and only if not we estimate as the one afterwards or perhaps skip?
-long long int Gnome::calculateMetricDistance(QList<Event *> * list1, QList<Event *> * list2)
+long long int Gnome::calculateMetricDistance2(QList<Event *> * list1, QList<Event *> * list2)
 {
     int index1 = 0, index2 = 0, total_calced_steps = 0;
     Event * evt1 = list1->at(0), * evt2 = list2->at(0);

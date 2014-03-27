@@ -64,6 +64,9 @@ public:
 
     Gnome * gnome;
     int gnome_type;
+    void makeClusterVectors(QString metric);
+    QMap<int, QVector<long long int> *> * cluster_vectors;
+    QMap<int, int> * cluster_step_starts;
 
 private:
     void step_receive(Message * msg);

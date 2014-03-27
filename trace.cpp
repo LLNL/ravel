@@ -134,6 +134,7 @@ void Trace::gnomify()
     int total = 0;
     for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
     {
+        (*part)->makeClusterVectors("Lateness");
         int num_steps = (*part)->max_global_step - (*part)->min_global_step;
         for (int i = 0; i < gnomes->size(); i++)
         {

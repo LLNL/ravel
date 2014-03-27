@@ -73,7 +73,8 @@ protected:
         int step;
     };
 
-    long long int calculateMetricDistance(QList<Event *> * list1, QList<Event *> * list2);
+    long long int calculateMetricDistance(int p1, int p2);
+    long long int calculateMetricDistance2(QList<Event *> * list1, QList<Event *> * list2);
     void findClusters();
     virtual void generateTopProcesses(PartitionCluster * pc = NULL);
     void generateTopProcessesWorker(int process);
