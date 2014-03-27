@@ -78,11 +78,14 @@ void Gnome::findMusters()
     if (options)
         cmetric = options->metric;
 
-    int num_clusters = std::min(100, partition->events->size());
+    int num_clusters = std::min(20, partition->events->size());
     kmedoids clara;
+    std::cout << "Beginning clara..." << std::endl;
     clara.clara(partition->cluster_processes->toStdVector(), process_distance(), num_clusters);
+    std::cout << "Ending clara..." << std::endl;
     // Set up clusters
     cluster_leaves = new QMap<int, PartitionCluster *>();
+    std::cout << "Creating partition clusters..." << std::endl;
     for (int i = 0; i < num_clusters; i++) // TODO: Make cluster_leaves a list
         cluster_leaves->insert(i, new PartitionCluster(partition->max_global_step - partition->min_global_step + 2, partition->min_global_step));
     for (int i = 0; i < clara.cluster_ids.size(); i++)
@@ -100,6 +103,7 @@ void Gnome::findMusters()
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "Musterizing: ";
     gu_printTime(traceElapsed);
+    std::cout << std::endl;
 }
 
 void Gnome::hierarchicalMusters()
@@ -114,7 +118,6 @@ void Gnome::hierarchicalMusters()
     long long int distance;
     for (int i = 0; i < cluster_leaves->size(); i++)
     {
-        std::cout << "Calculating distances for cluster " << i << std::endl;
         for (int j = i + 1; j < cluster_leaves->size(); j++)
         {
             distance = cluster_leaves->value(i)->distance(cluster_leaves->value(j));
@@ -141,6 +144,7 @@ void Gnome::hierarchicalMusters()
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "Hierarchical mustering: ";
     gu_printTime(traceElapsed);
+    std::cout << std::endl;
     // From here we could now compress the ClusterEvent metrics (doing the four divides ahead of time)
     // but I'm going to retain the information for now and see how it goes
 }
@@ -1081,13 +1085,11 @@ bool Gnome::handleHover(QMouseEvent * event)
     {
         if (!hover_aggregate && mousex <= drawnEvents[hover_event].x() + stepwidth)
         {
-            std::cout << "Now on aggregate in gnome" << std::endl;
             hover_aggregate = true;
             return true;
         }
         else if (hover_aggregate && mousex >=  drawnEvents[hover_event].x() + stepwidth)
         {
-            std::cout << "Now on true event in gnome" << std::endl;
             hover_aggregate = false;
             return true;
         }
