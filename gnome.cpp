@@ -1,4 +1,5 @@
 #include "gnome.h"
+using namespace cluster;
 
 Gnome::Gnome()
     : partition(NULL),
@@ -46,8 +47,22 @@ Gnome * Gnome::create()
 
 void Gnome::preprocess()
 {
+    findMusters();
     findClusters();
     generateTopProcesses();
+}
+
+void Gnome::findMusters()
+{
+    kmedoids clara;
+    clara.clara(partition->cluster_processes->toStdVector(), process_distance(), 3);
+    std::vector<size_t> foo = clara.cluster_ids;
+    std::cout << "Medoids for partition at " << partition->min_global_step << " : ";
+    for (int i = 0; i < clara.cluster_ids.size(); i++)
+    {
+        std::cout << "( " << foo[i] << " for " << partition->cluster_processes->at(i)->process << " ) ";
+    }
+    std::cout << "done" << std::endl;
 }
 
 void Gnome::findClusters()
@@ -1003,7 +1018,6 @@ bool Gnome::handleHover(QMouseEvent * event)
         for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin(); evt != drawnEvents.end(); ++evt)
             if (evt.value().contains(mousex, mousey))
             {
-                std::cout << "On new event in gnome" << std::endl;
                 hover_aggregate = false;
                 if (options->showAggregateSteps && mousex <= evt.value().x() + stepwidth)
                     hover_aggregate = true;

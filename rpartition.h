@@ -1,8 +1,9 @@
-#ifndef PARTITION_H
-#define PARTITION_H
+#ifndef RPARTITION_H
+#define RPARTITION_H
 
 #include "event.h"
 #include "general_util.h"
+#include "clusterprocess.h"
 #include <QList>
 #include <QSet>
 #include <QVector>
@@ -64,6 +65,7 @@ public:
 
     Gnome * gnome;
     int gnome_type;
+    QVector<ClusterProcess *> * cluster_processes;
     void makeClusterVectors(QString metric);
     QMap<int, QVector<long long int> *> * cluster_vectors;
     QMap<int, int> * cluster_step_starts;
@@ -77,4 +79,4 @@ private:
 
 };
 
-#endif // PARTITION_H
+#endif // RPARTITION_H

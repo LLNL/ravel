@@ -3,7 +3,7 @@
 
 #include "event.h"
 #include "function.h"
-#include "partition.h"
+#include "rpartition.h"
 #include "otfimportoptions.h"
 #include "gnome.h"
 #include <QMap>

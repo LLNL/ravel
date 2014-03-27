@@ -1,16 +1,19 @@
 #ifndef GNOME_H
 #define GNOME_H
 
-#include "partition.h"
+#include "rpartition.h"
 #include "function.h"
 #include "visoptions.h"
 #include "partitioncluster.h"
+#include "clusterprocess.h"
 #include <QMouseEvent>
 #include <QPainter>
 #include <QRect>
 #include <iostream>
 #include <climits>
 #include <cmath>
+
+#include "kmedoids.h"
 
 class Gnome
 {
@@ -36,6 +39,13 @@ public:
     bool handleHover(QMouseEvent * event);
     void drawHover(QPainter * painter);
     void setSelected(bool selected) { is_selected = selected; }
+
+
+    struct process_distance {
+        double operator()(ClusterProcess * cp1, ClusterProcess * cp2) const {
+            return cp1->calculateMetricDistance(*cp2);
+        }
+    };
 
 protected:
     Partition * partition;
@@ -75,6 +85,7 @@ protected:
 
     long long int calculateMetricDistance(int p1, int p2);
     long long int calculateMetricDistance2(QList<Event *> * list1, QList<Event *> * list2);
+    void findMusters();
     void findClusters();
     virtual void generateTopProcesses(PartitionCluster * pc = NULL);
     void generateTopProcessesWorker(int process);

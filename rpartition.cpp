@@ -1,4 +1,4 @@
-#include "partition.h"
+#include "rpartition.h"
 #include <iostream>
 
 Partition::Partition()
@@ -22,6 +22,7 @@ Partition::Partition()
       gvid(""),
       gnome(NULL),
       gnome_type(0),
+      cluster_processes(new QVector<ClusterProcess *>()),
       cluster_vectors(new QMap<int, QVector<long long int> *>()),
       cluster_step_starts(new QMap<int, int>()),
       free_recvs(NULL)
@@ -405,6 +406,11 @@ void Partition::makeClusterVectors(QString metric)
     {
         delete itr.value();
     }
+    for (QVector<ClusterProcess *>::Iterator itr = cluster_processes->begin(); itr != cluster_processes->end(); ++itr)
+    {
+        delete *itr;
+    }
+    cluster_processes->clear();
     cluster_vectors->clear();
     cluster_step_starts->clear();
 
@@ -416,21 +422,26 @@ void Partition::makeClusterVectors(QString metric)
         long long int last_value = 0;
         int last_step = (event_list.value())->at(0)->step;
         (*cluster_step_starts)[event_list.key()] = last_step;
+        ClusterProcess * cp = new ClusterProcess(event_list.key(), last_step);
+        cluster_processes->append(cp);
         for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
         {
             while ((*evt)->step > last_step + 2)
             {
                 metric_vector->append(last_value);
+                cp->metric_events->append(last_value);
                 last_step += 2;
             }
 
             last_step = (*evt)->step;
             last_value = (*evt)->getMetric(metric);
             metric_vector->append(last_value);
+            cp->metric_events->append(last_value);
         }
         while (last_step <= max_global_step)
         {
             metric_vector->append(last_value);
+            cp->metric_events->append(last_value);
             last_step += 2;
         }
     }

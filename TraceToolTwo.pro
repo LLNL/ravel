@@ -20,7 +20,6 @@ SOURCES  += main.cpp \
     rawtrace.cpp \
     otfconverter.cpp \
     function.cpp \
-    partition.cpp \
     importoptionsdialog.cpp \
     otfimportoptions.cpp \
     timelinevis.cpp \
@@ -35,7 +34,9 @@ SOURCES  += main.cpp \
     clusterevent.cpp \
     clustervis.cpp \
     clustertreevis.cpp \
-    verticallabel.cpp
+    verticallabel.cpp \
+    rpartition.cpp \
+    clusterprocess.cpp
 
 
 HEADERS += \
@@ -53,7 +54,6 @@ HEADERS += \
     rawtrace.h \
     otfconverter.h \
     function.h \
-    partition.h \
     general_util.h \
     importoptionsdialog.h \
     otfimportoptions.h \
@@ -69,7 +69,9 @@ HEADERS += \
     clusterevent.h \
     clustervis.h \
     clustertreevis.h \
-    verticallabel.h
+    verticallabel.h \
+    rpartition.h \
+    clusterprocess.h
 
 
 FORMS += \
@@ -87,3 +89,8 @@ macx: LIBS += -L$$PWD/../../libs/lib/ -lopen-trace-format
 
 INCLUDEPATH += $$PWD/../../libs/include/open-trace-format/
 DEPENDPATH += $$PWD/../../libs/include/open-trace-format/
+
+unix:!macx: LIBS += -L$$PWD/../../../../../opt/muster/lib/ -lmuster
+
+INCLUDEPATH += $$PWD/../../../../../opt/muster/include
+DEPENDPATH += $$PWD/../../../../../opt/muster/include
