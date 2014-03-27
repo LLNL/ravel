@@ -59,6 +59,15 @@ void ClusterEvent::setMetric(int count, long long value,
     counts[etype][ctype][thresh] = count;
 }
 
+void ClusterEvent::addMetric(int count, long long value,
+                              EventType etype,
+                              CommType ctype,
+                              Threshhold thresh)
+{
+    metric[etype][ctype][thresh] += value;
+    counts[etype][ctype][thresh] += count;
+}
+
 long long int ClusterEvent::getMetric(EventType etype,
                         CommType ctype,
                         Threshhold thresh)

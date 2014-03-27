@@ -17,6 +17,10 @@ public:
                    EventType etype = COMM,
                    CommType ctype = SEND,
                    Threshhold thresh = LOW);
+    void addMetric(int count, long long int value,
+                   EventType etype = COMM,
+                   CommType ctype = SEND,
+                   Threshhold thresh = LOW);
     long long int getMetric(EventType etype = COMM,
                             CommType ctype = BOTH,
                             Threshhold thresh = ALL);

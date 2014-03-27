@@ -1,16 +1,146 @@
 #include "partitioncluster.h"
 #include <iostream>
 
-PartitionCluster::PartitionCluster(int member, QList<Event *> * elist, QString metric, long long int divider)
-    : open(false),
+PartitionCluster::PartitionCluster(int num_steps, int start, long long int _divider)
+    : startStep(start),
+      max_process(-1),
+      open(false),
       drawnOut(false),
       max_distance(0),
       max_metric(LLONG_MIN),
+      divider(_divider),
       parent(NULL),
       children(new QList<PartitionCluster *>()),
       members(new QList<int>()),
       events(new QList<ClusterEvent *>()),
-      extents(QRect())
+      extents(QRect()),
+      cluster_vector(new QVector<long long int>()),
+      clusterStart(-1)
+{
+    for (int i = 0; i < num_steps; i+= 2)
+        events->append(new ClusterEvent(startStep + i));
+}
+
+long long int PartitionCluster::distance(PartitionCluster * other)
+{
+
+    int num_matches = cluster_vector->size() - clusterStart;
+    long long int total_difference = 0;
+    if (clusterStart < other->clusterStart)
+    {
+        num_matches = other->cluster_vector->size() - other->clusterStart;
+        for (int i = 0; i < other->cluster_vector->size(); i++)
+            total_difference += (cluster_vector->at(i) - other->cluster_vector->at(i)) * (cluster_vector->at(i) - other->cluster_vector->at(i));
+    }
+    else
+    {
+        for (int i = 0; i < cluster_vector->size(); i++)
+            total_difference += (other->cluster_vector->at(i) - cluster_vector->at(i)) * (other->cluster_vector->at(i) - cluster_vector->at(i));
+    }
+    if (num_matches <= 0)
+        return LLONG_MAX;
+    return total_difference / num_matches;
+}
+
+void PartitionCluster::makeClusterVectors()
+{
+    cluster_vector->clear();
+    long long int value, last_value = -1;
+    for (int i = 0; i < events->size(); i++)
+    {
+        ClusterEvent * ce = events->at(i);
+        if (ce->getCount() == 0 && last_value >= 0)
+        {
+            cluster_vector->append(last_value);
+        }
+        else if (ce->getCount() > 0)
+        {
+            value = ce->getMetric() / ce->getCount();
+            last_value = value;
+            cluster_vector->append(value);
+            if (clusterStart < 0)
+                clusterStart = i;
+        }
+    }
+}
+
+long long int PartitionCluster::addMember(ClusterProcess * cp, QList<Event *> * elist, QString metric)
+{
+    members->append(cp->process);
+    long long int max_evt_metric = 0;
+    for (QList<Event *>::Iterator evt = elist->begin(); evt != elist->end(); ++evt)
+    {
+        long long evt_metric = (*evt)->getMetric(metric);
+        long long agg_metric = (*evt)->getMetric(metric, true);
+        if (evt_metric > max_metric)
+        {
+            max_metric = evt_metric;
+            max_process = cp->process;
+        }
+        if (evt_metric > max_evt_metric)
+            max_evt_metric = evt_metric;
+        int nsend = 0, nrecv = 0;
+        ClusterEvent * ce = events->at(((*evt)->step - startStep) / 2);
+
+        for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
+            if ((*msg)->sender == *evt)
+                nsend += 1;
+            else
+                nrecv += 1;
+
+        if (evt_metric < divider)
+        {
+            if (nsend)
+                ce->addMetric(nsend, evt_metric, ClusterEvent::COMM, ClusterEvent::SEND, ClusterEvent::LOW);
+            if (nrecv > 1)
+            {
+                ce->addMetric(1, evt_metric, ClusterEvent::COMM, ClusterEvent::WAITALL, ClusterEvent::LOW);
+                ce->waitallrecvs += nrecv;
+            }
+            else if (nrecv)
+                ce->addMetric(nrecv, evt_metric, ClusterEvent::COMM, ClusterEvent::RECV, ClusterEvent::LOW);
+        }
+        else
+        {
+            if (nsend)
+                ce->addMetric(nsend, evt_metric, ClusterEvent::COMM, ClusterEvent::SEND, ClusterEvent::HIGH);
+            if (nrecv > 1)
+            {
+                ce->addMetric(1, evt_metric, ClusterEvent::COMM, ClusterEvent::WAITALL, ClusterEvent::HIGH);
+                ce->waitallrecvs += nrecv;
+            }
+            else if (nrecv)
+                ce->addMetric(nrecv, evt_metric, ClusterEvent::COMM, ClusterEvent::RECV, ClusterEvent::HIGH);
+
+        }
+        if (agg_metric < divider)
+        {
+            ce->addMetric(1, agg_metric, ClusterEvent::AGG, ClusterEvent::SEND, ClusterEvent::LOW);
+        }
+        else
+        {
+            ce->addMetric(1, agg_metric, ClusterEvent::AGG, ClusterEvent::SEND, ClusterEvent::HIGH);
+        }
+    }
+
+    return max_evt_metric;
+}
+
+PartitionCluster::PartitionCluster(int member, QList<Event *> * elist, QString metric, long long int _divider)
+    : startStep(elist->at(0)->step),
+      max_process(member),
+      open(false),
+      drawnOut(false),
+      max_distance(0),
+      max_metric(LLONG_MIN),
+      divider(_divider),
+      parent(NULL),
+      children(new QList<PartitionCluster *>()),
+      members(new QList<int>()),
+      events(new QList<ClusterEvent *>()),
+      extents(QRect()),
+      cluster_vector(new QVector<long long int>()),
+      clusterStart(-1)
 {
     members->append(member);
     for (QList<Event *>::Iterator evt = elist->begin(); evt != elist->end(); ++evt)
@@ -67,19 +197,27 @@ PartitionCluster::PartitionCluster(int member, QList<Event *> * elist, QString m
 }
 
 PartitionCluster::PartitionCluster(long long int distance, PartitionCluster * c1, PartitionCluster * c2)
-    : open(false),
+    : startStep(std::min(c1->startStep, c2->startStep)),
+      max_process(c1->max_process),
+      open(false),
       max_distance(distance),
       max_metric(std::max(c1->max_metric, c2->max_metric)),
+      divider(c1->divider),
       parent(NULL),
       children(new QList<PartitionCluster *>()),
       members(new QList<int>()),
       events(new QList<ClusterEvent *>()),
-      extents(QRect())
+      extents(QRect()),
+      cluster_vector(new QVector<long long int>()),
+      clusterStart(-1)
 {
     c1->parent = this;
     c2->parent = this;
     members->append(*(c1->members));
     members->append(*(c2->members));
+    if (c2->max_metric > c1->max_metric)
+        max_process = c2->max_process;
+
     // Children are ordered by their max_metric
     if (c1->max_metric > c2->max_metric)
     {
@@ -159,6 +297,7 @@ PartitionCluster::~PartitionCluster()
         *evt = NULL;
     }
     delete events;
+    delete cluster_vector;
 }
 
 void PartitionCluster::delete_tree()

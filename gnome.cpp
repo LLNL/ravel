@@ -1,4 +1,6 @@
 #include "gnome.h"
+#include <QElapsedTimer>
+
 using namespace cluster;
 
 Gnome::Gnome()
@@ -48,21 +50,99 @@ Gnome * Gnome::create()
 void Gnome::preprocess()
 {
     findMusters();
-    findClusters();
+    for (QMap<int, PartitionCluster *>::Iterator pc = cluster_leaves->begin(); pc != cluster_leaves->end(); ++pc)
+    {
+        (pc.value())->makeClusterVectors();
+    }
+    hierarchicalMusters();
+    //findClusters();
     generateTopProcesses();
 }
 
 void Gnome::findMusters()
 {
+    QElapsedTimer traceTimer;
+    qint64 traceElapsed;
+
+    traceTimer.start();
+    top_processes.clear();
+    if (cluster_root)
+    {
+        cluster_root->delete_tree();
+        delete cluster_root;
+        delete cluster_leaves;
+    }
+    long long int metric, max_metric = LLONG_MIN;
+    max_metric_process = -1;
+    QString cmetric = "Lateness";
+    if (options)
+        cmetric = options->metric;
+
+    int num_clusters = std::min(100, partition->events->size());
     kmedoids clara;
-    clara.clara(partition->cluster_processes->toStdVector(), process_distance(), 3);
-    std::vector<size_t> foo = clara.cluster_ids;
-    std::cout << "Medoids for partition at " << partition->min_global_step << " : ";
+    clara.clara(partition->cluster_processes->toStdVector(), process_distance(), num_clusters);
+    // Set up clusters
+    cluster_leaves = new QMap<int, PartitionCluster *>();
+    for (int i = 0; i < num_clusters; i++) // TODO: Make cluster_leaves a list
+        cluster_leaves->insert(i, new PartitionCluster(partition->max_global_step - partition->min_global_step + 2, partition->min_global_step));
     for (int i = 0; i < clara.cluster_ids.size(); i++)
     {
-        std::cout << "( " << foo[i] << " for " << partition->cluster_processes->at(i)->process << " ) ";
+        int process = partition->cluster_processes->at(i)->process;
+        metric = cluster_leaves->value(clara.cluster_ids[i])->addMember(partition->cluster_processes->at(i),
+                                                                        partition->events->value(process),
+                                                                        cmetric);
+        if (metric > max_metric)
+        {
+            max_metric = metric;
+            max_metric_process = process;
+        }
     }
-    std::cout << "done" << std::endl;
+    traceElapsed = traceTimer.nsecsElapsed();
+    std::cout << "Musterizing: ";
+    gu_printTime(traceElapsed);
+}
+
+void Gnome::hierarchicalMusters()
+{
+    QElapsedTimer traceTimer;
+    qint64 traceElapsed;
+
+    traceTimer.start();
+    // Calculate initial distances
+    QList<DistancePair> distances;
+
+    long long int distance;
+    for (int i = 0; i < cluster_leaves->size(); i++)
+    {
+        std::cout << "Calculating distances for cluster " << i << std::endl;
+        for (int j = i + 1; j < cluster_leaves->size(); j++)
+        {
+            distance = cluster_leaves->value(i)->distance(cluster_leaves->value(j));
+            distances.append(DistancePair(distance, i, j));
+        }
+    }
+    qSort(distances);
+
+    int lastp = distances[0].p1;
+    PartitionCluster * pc = NULL;
+    for (int i = 0; i < distances.size(); i++)
+    {
+        DistancePair current = distances[i];
+        if (cluster_leaves->value(current.p1)->get_root() != cluster_leaves->value(current.p2)->get_root())
+        {
+            pc = new PartitionCluster(current.distance,
+                                      cluster_leaves->value(current.p1)->get_root(),
+                                      cluster_leaves->value(current.p2)->get_root());
+            lastp = current.p1;
+        }
+    }
+    cluster_root = cluster_leaves->value(lastp)->get_root();
+
+    traceElapsed = traceTimer.nsecsElapsed();
+    std::cout << "Hierarchical mustering: ";
+    gu_printTime(traceElapsed);
+    // From here we could now compress the ClusterEvent metrics (doing the four divides ahead of time)
+    // but I'm going to retain the information for now and see how it goes
 }
 
 void Gnome::findClusters()
@@ -739,7 +819,7 @@ void Gnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, Partitio
             used_y += child_size * blockheight;
         }
     }
-    else if (pc->children->isEmpty())
+    else if (pc->children->isEmpty() && pc->members->size() == 1)
     {
         int process = pc->members->at(0);
         painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));

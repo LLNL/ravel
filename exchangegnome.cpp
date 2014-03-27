@@ -535,7 +535,7 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, Pa
         if (((i - startStep + 2) / 4) % 2)
             y += blockheight;
 
-        if (evt->step == i)
+        if (evt->step == i && evt->getCount())
         {
             // We know it will be complete in this view because we're not doing scrolling or anything here.
 
