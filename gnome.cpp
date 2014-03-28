@@ -375,18 +375,7 @@ void Gnome::generateTopProcessesWorker(int process)
 
 int Gnome::findMaxMetricProcess(PartitionCluster * pc)
 {
-    int p1, max_process;
-    long long int max_metric = 0;
-    for (int i = 0; i < pc->members->size(); i++)
-    {
-        p1 = pc->members->at(i);
-        if (cluster_leaves->value(p1)->max_metric > max_metric)
-        {
-            max_metric = cluster_leaves->value(p1)->max_metric;
-            max_process = p1;
-        }
-    }
-    return max_process;
+    return pc->max_process;
 }
 
 int Gnome::findCentroidProcess(PartitionCluster * pc)
@@ -397,7 +386,8 @@ int Gnome::findCentroidProcess(PartitionCluster * pc)
     QList<AverageMetric> events = QList<AverageMetric>();
     for (QList<ClusterEvent *>::Iterator evt = pc->events->begin(); evt != pc->events->end(); ++evt)
     {
-        events.append(AverageMetric((*evt)->getMetric() / (*evt)->getCount(), (*evt)->step));
+        if ((*evt)->getCount())
+            events.append(AverageMetric((*evt)->getMetric() / (*evt)->getCount(), (*evt)->step));
     }
 
     int num_events = events.size();
