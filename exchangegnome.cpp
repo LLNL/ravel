@@ -382,8 +382,8 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy, Pa
     bool drawMessages = true;
     if (startxy.height() > 2 * clusterMaxHeight)
     {
-        blockheight = clusterMaxHeight - 25;
-        barheight = blockheight - 3;
+        blockheight = 2*(clusterMaxHeight - 20);
+        barheight = blockheight; // - 3;
     }
     else
     {
@@ -395,16 +395,12 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy, Pa
         if (barheight > blockheight - 3)
             barheight = blockheight;
     }
-    int x, ys, yw, w, hs, hw, xa, wa, ya, ha, nsends, nwaits;
-    int base_y = startxy.y() + startxy.height() / 2 - blockheight;
-    int base_ya = base_y + blockheight / 2;
-    yw = base_y + blockheight;
+    int x, ys, yw, w, hs, hw, xa, wa, nsends, nwaits;
+    int base_y = startxy.y() + startxy.height() / 2 - blockheight / 2;
     if (options->showAggregateSteps) {
         startStep -= 1;
     }
-    std::cout << "Drawing background " << startxy.x() << ", " << startxy.y();
-    std::cout << ", " << startxy.width() << ", " << startxy.height() << std::endl;
-    painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
+    painter->setPen(QPen(Qt::black, 1.0, Qt::SolidLine));
     for (QList<ClusterEvent *>::Iterator evt = pc->events->begin(); evt != pc->events->end(); ++evt)
     {
         if (options->showAggregateSteps)
@@ -414,11 +410,14 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy, Pa
         w = barwidth;
         nsends = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND);
         nwaits = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::WAITALL);
-        std::cout << "Num waits is " << nwaits << std::endl;
+        int divisor = pc->members->size();
+        if (!options->showInactiveSteps)
+            divisor = nsends + nwaits;
 
-        hs = barheight * nsends / 1.0 / pc->members->size();
-        ys = base_y + barheight - hs;
-        hw = barheight * nwaits / 1.0 / pc->members->size();
+        hs = blockheight * nsends / 1.0 / divisor;
+        ys = base_y; // + barheight - hs;
+        hw = blockheight * nwaits / 1.0 / divisor;
+        yw = base_y + blockheight - hw;
 
         // Draw the event
         if (nsends) {
@@ -437,16 +436,19 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy, Pa
 
         // Draw border but only if we're doing spacing, otherwise too messy
         if (blockwidth != w) {
-            if (nsends)
+            painter->setPen(QPen(Qt::black, 1.0, Qt::SolidLine));
+            painter->drawRect(QRect(x, ys, w, blockheight));
+            /*if (nsends)
                 painter->drawRect(QRectF(x,ys,w,hs));
             if (nwaits)
                 painter->drawRect(QRectF(x,yw,w,hw));
+                */
         }
 
         if (drawMessages) {
             if (nsends)
             {
-                painter->setPen(QPen(Qt::black, nsends * 2.0 / pc->members->size(), Qt::SolidLine));
+                painter->setPen(QPen(Qt::black, nsends * 2.0 / divisor, Qt::SolidLine));
                 painter->drawLine(x + blockwidth / 2, ys, x + barwidth, ys - 20);
             }
             if (nwaits)
@@ -459,29 +461,39 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy, Pa
                 //painter->drawPie(x + blockwidth * 3 / 4, yw + blockwidth / 4,
                 //                 blockwidth / 4, blockwidth / 2,
                 //                 start, angle);
-                painter->drawPie(x + blockwidth - 16, yw + hw - 12, 25, 25, start, angle);
-                painter->drawText(x + blockwidth / 4 - 12, yw + hw + 15, QString::number(avg_recvs, 'g', 2));
+                painter->drawPie(x + blockwidth - 16, base_y + blockheight - 12, 25, 25, start, angle);
+                painter->drawText(x + blockwidth / 4 - 12, base_y + blockheight + 15, QString::number(avg_recvs, 'g', 2));
                 painter->setBrush(QBrush());
-                painter->drawPie(x + blockwidth - 16, yw + hw - 12, 25, 25, start, 90 * 16);
-                painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
+                painter->drawPie(x + blockwidth - 16, base_y + blockheight - 12, 25, 25, start, 90 * 16);
+                painter->setPen(QPen(Qt::black, 1.0, Qt::SolidLine));
             }
         }
 
         if (options->showAggregateSteps) {
             xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + startxy.x();
             wa = barwidth;
-            ha = barheight * (nsends + nwaits) / 1.0 / pc->members->size();
-            ya = base_ya + (barheight - ha) / 2;
 
-            painter->fillRect(QRectF(xa, ya, wa, ha),
+            if (nsends)
+                painter->fillRect(QRectF(xa, ys, wa, hs),
                               QBrush(options->colormap->color(
-                                                              (*evt)->getMetric(ClusterEvent::AGG, ClusterEvent::BOTH,
+                                                              (*evt)->getMetric(ClusterEvent::AGG, ClusterEvent::SEND,
                                                                                 ClusterEvent::ALL)
-                                                              / (*evt)->getCount(ClusterEvent::AGG, ClusterEvent::BOTH,
-                                                                                 ClusterEvent::ALL)
+                                                              / nsends
                                                               )));
+
+            if (nwaits)
+                painter->fillRect(QRectF(xa, yw, wa, hw),
+                              QBrush(options->colormap->color(
+                                                              (*evt)->getMetric(ClusterEvent::AGG, ClusterEvent::WAITALL,
+                                                                                ClusterEvent::ALL)
+                                                              / nwaits
+                                                              )));
+
             if (blockwidth != w)
-                painter->drawRect(QRectF(xa, ya, wa, ha));
+            {
+                painter->setPen(QPen(Qt::black, 1.0, Qt::SolidLine));
+                painter->drawRect(QRect(xa, ys, wa, blockheight));
+            }
         }
 
 
@@ -616,8 +628,8 @@ void ExchangeGnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect,
 {
     if (type == SRSR)
         drawGnomeQtClusterSRSR(painter, clusterRect, pc, barwidth, barheight, blockwidth, blockheight, startStep);
-    else if (type == SSRR)
-        drawGnomeQtClusterSSRR(painter, clusterRect, pc, barwidth, barheight, blockwidth, blockheight, startStep);
+    //else if (type == SSRR)
+    //    drawGnomeQtClusterSSRR(painter, clusterRect, pc, barwidth, barheight, blockwidth, blockheight, startStep);
     else if (type == SSWA)
         drawGnomeQtClusterSSWA(painter, clusterRect, pc, barwidth, barheight, blockwidth, blockheight, startStep);
     else

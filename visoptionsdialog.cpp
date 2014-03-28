@@ -18,6 +18,7 @@ VisOptionsDialog::VisOptionsDialog(QWidget *parent, VisOptions * _options, Trace
     connect(ui->metricComboBox, SIGNAL(currentIndexChanged(QString)), this, SLOT(onMetric(QString)));
     connect(ui->showAggregateCheckBox, SIGNAL(clicked(bool)), this, SLOT(onShowAggregate(bool)));
     connect(ui->showMessagesCheckBox, SIGNAL(clicked(bool)), this, SLOT(onShowMessages(bool)));
+    connect(ui->inactiveCheckBox, SIGNAL(clicked(bool)), this, SLOT(onShowInactive(bool)));
     connect(ui->colorComboBox, SIGNAL(currentIndexChanged(QString)), this, SLOT(onColorCombo(QString)));
 
 
@@ -73,6 +74,11 @@ void VisOptionsDialog::onShowMessages(bool showMessages)
     options->showMessages = showMessages;
 }
 
+void VisOptionsDialog::onShowInactive(bool showInactive)
+{
+    options->showInactiveSteps = showInactive;
+}
+
 void VisOptionsDialog::onColorCombo(QString type)
 {
     if (!isSet)
@@ -106,6 +112,12 @@ void VisOptionsDialog::setUIState()
         ui->showMessagesCheckBox->setChecked(true);
     else
         ui->showMessagesCheckBox->setChecked(false);
+
+    if (options->showInactiveSteps)
+        ui->inactiveCheckBox->setChecked(true);
+    else
+        ui->inactiveCheckBox->setChecked(false);
+
 
     if (trace)
     {

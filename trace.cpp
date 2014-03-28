@@ -1463,6 +1463,8 @@ void Trace::partitionByPhase()
             {
                 for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
                 {
+                    if (!msg)
+                        continue;
                     if ((*msg)->sender->phase > (*evt)->phase)
                         (*evt)->phase = (*msg)->sender->phase;
                     if ((*msg)->receiver->phase > (*evt)->phase)

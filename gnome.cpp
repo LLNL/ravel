@@ -487,7 +487,7 @@ int Gnome::getTopHeight(QRect extents)
     else
         topHeight = std::max(fair_portion, min_size);
 
-    int max_cluster_leftover = extents.height() - cluster_root->visible_clusters() * (3 * clusterMaxHeight);
+    int max_cluster_leftover = extents.height() - cluster_root->visible_clusters() * (2 * clusterMaxHeight);
     if (topHeight < max_cluster_leftover)
         topHeight = max_cluster_leftover;
 
@@ -968,9 +968,6 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, Partiti
                                   int barwidth, int barheight, int blockwidth, int blockheight,
                                   int startStep)
 {
-    // Here blockheight is the maximum height afforded to the block. We actually scale it
-    // based on how many processes are sending or receiving at that point
-    // The first row is send, the second row is recv
     bool drawMessages = true;
     if (clusterRect.height() > 2 * clusterMaxHeight)
     {
@@ -1004,9 +1001,14 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, Partiti
         w = barwidth;
         nsends = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND);
         nrecvs = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::RECV) + (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::WAITALL);
-        hs = barheight * nsends / 1.0 / pc->members->size();
+
+        int divisor = pc->members->size();
+        if (!options->showInactiveSteps)
+            divisor = nsends + nrecvs;
+
+        hs = blockheight * nsends / 1.0 / divisor;
         ys = base_y; // + barheight - hs;
-        hr = barheight * nrecvs / 1.0 / pc->members->size();
+        hr = blockheight * nrecvs / 1.0 / divisor;
         yr = base_y + blockheight - hr;
 
         // Draw the event
@@ -1036,12 +1038,12 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, Partiti
         if (drawMessages) {
             if (nsends)
             {
-                painter->setPen(QPen(Qt::black, nsends * 2.0 / pc->members->size(), Qt::SolidLine));
+                painter->setPen(QPen(Qt::black, nsends * 2.0 / divisor, Qt::SolidLine));
                 painter->drawLine(x + blockwidth / 2, ys, x + barwidth, ys - 20);
             }
             if (nrecvs)
             {
-                painter->setPen(QPen(Qt::black, nrecvs * 2.0 / pc->members->size(), Qt::SolidLine));
+                painter->setPen(QPen(Qt::black, nrecvs * 2.0 / divisor, Qt::SolidLine));
                 painter->drawLine(x + blockwidth / 2, ys + blockheight, x + 1, ys + blockheight + 20);
             }
         }

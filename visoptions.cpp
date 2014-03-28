@@ -7,6 +7,7 @@ VisOptions::VisOptions(bool _showAgg,
       colorTraditionalByMetric(_metricTraditional),
       showMessages(true),
       topByCentroid(false),
+      showInactiveSteps(true),
       metric(_metric),
       maptype(DIVERGING),
       divergentmap(new ColorMap(QColor(173, 216, 230), 0)),
@@ -49,6 +50,8 @@ VisOptions::VisOptions(const VisOptions& copy)
     showAggregateSteps = copy.showAggregateSteps;
     colorTraditionalByMetric = copy.colorTraditionalByMetric;
     showMessages = copy.showMessages;
+    showInactiveSteps = copy.showInactiveSteps;
+    topByCentroid = copy.topByCentroid;
     metric = copy.metric;
     maptype = copy.maptype;
     divergentmap = new ColorMap(*(copy.divergentmap));

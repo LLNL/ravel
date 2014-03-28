@@ -25,6 +25,7 @@ public slots:
     void onShowAggregate(bool showAggregate);
     void onShowMessages(bool showMessages);
     void onColorCombo(QString type);
+    void onShowInactive(bool showInactive);
 
 private:
     int mapMetricToIndex(QString metric);

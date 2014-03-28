@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>340</width>
-    <height>199</height>
+    <height>227</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -22,16 +22,23 @@
     </widget>
    </item>
    <item>
-    <widget class="QCheckBox" name="metricColorTraditionalCheckBox">
+    <widget class="QCheckBox" name="showMessagesCheckBox">
      <property name="text">
-      <string>color traditional view with structure metric</string>
+      <string>show messages</string>
      </property>
     </widget>
    </item>
    <item>
-    <widget class="QCheckBox" name="showMessagesCheckBox">
+    <widget class="QCheckBox" name="inactiveCheckBox">
      <property name="text">
-      <string>show message lines</string>
+      <string>show inactive proportion in cluster steps</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="metricColorTraditionalCheckBox">
+     <property name="text">
+      <string>color traditional view with structure metric</string>
      </property>
     </widget>
    </item>

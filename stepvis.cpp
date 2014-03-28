@@ -695,4 +695,8 @@ void StepVis::drawColorBarText(QPainter * painter)
     painter->drawText(rect().width() - colorbar_offset + 3,
                       rect().height() - colorBarHeight/2 + font_metrics.xHeight()/2,
                       maxMetricText);
+    int metricWidth = font_metrics.width(options->metric);
+    painter->drawText(colorbar_offset - metricWidth - 3,
+                      rect().height() - colorBarHeight/2 + font_metrics.xHeight()/2,
+                      options->metric);
 }
