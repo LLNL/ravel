@@ -286,19 +286,41 @@ void StepVis::drawNativeGL()
     processheight = height/ processSpan;
     stepwidth = width / effectiveSpan;
 
+
+    float num_events = 0;
+    Partition * part = NULL;
+    int topStep = boundStep(startStep + stepSpan) + 1;
+    int bottomStep = floor(startStep) - 1;
+    for (int i = startPartition; i < trace->partitions->length(); ++i)
+    {
+        part = trace->partitions->at(i);
+        if (part->min_global_step > topStep)
+            break;
+        else if (part->max_global_step < bottomStep)
+            continue;
+        // Twice (each event is both it and its aggregate) of the
+        // step overlap with the view, divided by how many steps are
+        // spanned by the partition
+        float overlap = 2 * (part->max_global_step - part->min_global_step + 2
+                - std::max(0, part->max_global_step - topStep)
+                - std::max(0, bottomStep - part->min_global_step))
+                / (part->max_global_step - part->min_global_step + 2);
+        num_events += part->num_events() * overlap;
+    }
+    float density =num_events / (stepSpan * processSpan); // 1 if an event at every step, small if less.
     float opacity = 1.0;
     float xoffset = 0;
     float yoffset = 0;
-    /*if (processheight < 1.0)
+    if (processheight < 1.0)
     {
-        yoffset = 1.0 / processheight / 2;
-        opacity = 0.4;
+        yoffset = 1.0 / processheight / 2 / (5 * density);
+        //opacity = 0.4;
     }
     if (stepwidth < 1.0)
     {
-        xoffset = 1.0 / stepwidth / 2;
-        opacity = 0.4;
-    }*/
+        xoffset = 1.0 / stepwidth / 2 / (5 * density);
+        //opacity = 0.4;
+    }
 
     // Generate buffers to hold each bar. We don't know how many there will
     // be since we draw one per event.
@@ -308,9 +330,6 @@ void StepVis::drawNativeGL()
     // Process events for values
     float x, y; // true position
     float position; // placement of process
-    Partition * part = NULL;
-    int topStep = boundStep(startStep + stepSpan) + 1;
-    int bottomStep = floor(startStep) - 1;
     QColor color;
     float maxProcess = processSpan + startProcess;
     float myopacity, opacity_multiplier = 1.0;
