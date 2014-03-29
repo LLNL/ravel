@@ -13,6 +13,7 @@ public:
 
     void mouseMoveEvent(QMouseEvent * event);
     void wheelEvent(QWheelEvent * event);
+    void mouseDoubleClickEvent(QMouseEvent * event);
 
 public slots:
     void setSteps(float start, float stop, bool jump = false);

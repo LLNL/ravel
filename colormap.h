@@ -13,6 +13,7 @@ public:
     void addColor(QColor color, float stop);
     QColor color(double value, double opacity = 1.0);
     void setRange(double low, double high);
+    void setClamp(double clamp);
 
 private:
     class ColorValue {
@@ -31,6 +32,7 @@ private:
 
     double minValue;
     double maxValue;
+    double maxClamp;
     bool categorical;
     QVector<ColorValue *> * colors;
 };

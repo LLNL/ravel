@@ -719,3 +719,22 @@ void StepVis::drawColorBarText(QPainter * painter)
                       rect().height() - colorBarHeight/2 + font_metrics.xHeight()/2,
                       options->metric);
 }
+
+void StepVis::mouseDoubleClickEvent(QMouseEvent * event)
+{
+    if (!visProcessed)
+        return;
+
+    if (event->y() >= rect().height() - colorBarHeight)
+    {
+        if (event->x() < rect().width() - colorbar_offset && event->x() > colorbar_offset)
+        {
+            options->colormap->setClamp(maxMetric * (event->x() - colorbar_offset) / (rect().width() - 2 * colorbar_offset));
+            repaint();
+        }
+    }
+    else
+    {
+        TimelineVis::mouseDoubleClickEvent(event);
+    }
+}

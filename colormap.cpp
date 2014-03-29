@@ -4,6 +4,7 @@
 ColorMap::ColorMap(QColor color, float value, bool _categorical)
     : minValue(0),
       maxValue(1),
+      maxClamp(1),
       categorical(_categorical),
       colors(new QVector<ColorValue *>())
 {
@@ -23,6 +24,7 @@ ColorMap::ColorMap(const ColorMap & copy)
 {
     minValue = copy.minValue;
     maxValue = copy.maxValue;
+    maxClamp = copy.maxClamp;
     categorical = copy.categorical;
     colors = new QVector<ColorValue *>();
     for (QVector<ColorValue *>::Iterator itr = copy.colors->begin(); itr != copy.colors->end(); ++itr)
@@ -35,6 +37,12 @@ void ColorMap::setRange(double low, double high)
 {
     minValue = low;
     maxValue = high;
+    maxClamp = high;
+}
+
+void ColorMap::setClamp(double clamp)
+{
+    maxClamp = clamp;
 }
 
 void ColorMap::addColor(QColor color, float stop)
@@ -62,7 +70,7 @@ QColor ColorMap::color(double value, double opacity)
     ColorValue base2 = ColorValue(QColor(0,0,0,opacity*255), 1);
     ColorValue* low = &base1;
     ColorValue* high = &base2;
-    double norm_value = (value - minValue) / (maxValue - minValue);
+    double norm_value = (value - minValue) / (maxClamp - minValue);
     for (QVector<ColorValue* >::Iterator itr = colors->begin(); itr != colors->end(); itr++) {
         if ((*itr)->value > norm_value) {
             high = (*itr);
