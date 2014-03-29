@@ -185,6 +185,7 @@ void TimelineVis::drawHover(QPainter * painter)
     QString text = "";
     if (hover_aggregate)
     {
+        return;
         text = "Aggregate for now";
     }
     else

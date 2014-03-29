@@ -359,7 +359,7 @@ void StepVis::drawNativeGL()
     stepwidth = width / effectiveSpan;
 
 
-    float num_events = 0;
+    double num_events = 0;
     Partition * part = NULL;
     int topStep = boundStep(startStep + stepSpan) + 1;
     int bottomStep = floor(startStep) - 1;
@@ -373,13 +373,13 @@ void StepVis::drawNativeGL()
         // Twice (each event is both it and its aggregate) of the
         // step overlap with the view, divided by how many steps are
         // spanned by the partition
-        float overlap = 2 * (part->max_global_step - part->min_global_step + 2
+        double overlap = 2 * (part->max_global_step - part->min_global_step + 2
                 - std::max(0, part->max_global_step - topStep)
                 - std::max(0, bottomStep - part->min_global_step))
                 / (part->max_global_step - part->min_global_step + 2);
         num_events += part->num_events() * overlap;
     }
-    float density = num_events / 1.0 / (stepSpan * processSpan); // 1 if an event at every step, small if less.
+    double density = num_events / 1.0 / (stepSpan * processSpan); // 1 if an event at every step, small if less.
     float opacity = 1.0;
     float xoffset = 0;
     float yoffset = 0;

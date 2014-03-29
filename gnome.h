@@ -34,6 +34,7 @@ public:
     virtual void handleTreeDoubleClick(QMouseEvent * event);
     virtual void drawQtTree(QPainter * painter, QRect extents);
     virtual void setNeighbors(int _neighbors);
+    void drawTopLabels(QPainter * painter, QRect extents);
     PartitionCluster * getSelectedPartitionCluster() { return selected_pc; }
     void clearSelectedPartitionCluster() { selected_pc = NULL; }
     bool handleHover(QMouseEvent * event);

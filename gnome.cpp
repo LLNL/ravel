@@ -1,5 +1,6 @@
 #include "gnome.h"
 #include <QElapsedTimer>
+#include <QLocale>
 
 using namespace cluster;
 
@@ -530,6 +531,38 @@ void Gnome::drawGnomeQtCluster(QPainter * painter, QRect extents, int blockwidth
 
 }
 
+void Gnome::drawTopLabels(QPainter * painter, QRect extents)
+{
+    int topHeight = getTopHeight(extents);
+    int processSpan = top_processes.size();
+
+    float blockheight = floor(topHeight / processSpan);
+
+    QLocale systemlocale = QLocale::system();
+    QFontMetrics font_metrics = painter->fontMetrics();
+    QString testString = systemlocale.toString(top_processes.last());
+    int labelWidth = font_metrics.width(testString);
+    int labelHeight = font_metrics.height();
+
+    int x = extents.width() - labelWidth - 2;
+
+    painter->setPen(Qt::black);
+    painter->setFont(QFont("Helvetica", 10));
+    int total_labels = floor(topHeight / labelHeight);
+    int y;
+    int skip = 1;
+    if (total_labels < processSpan)
+    {
+        skip = ceil(float(processSpan) / total_labels);
+    }
+
+    for (int i = 0; i < top_processes.size(); i+= skip) // Do this by order
+    {
+        y = floor(i * blockheight) + (blockheight + labelHeight) / 2 + 1;
+        if (y < topHeight)
+            painter->drawText(x, y, QString::number(top_processes[i]));
+    }
+}
 
 void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
                                             int blockwidth, int barwidth)
@@ -1114,6 +1147,7 @@ void Gnome::drawHover(QPainter * painter)
     QString text = "";
     if (hover_aggregate)
     {
+        return;
         text = "Aggregate for now";
     }
     else

@@ -111,7 +111,11 @@ void ClusterTreeVis::qtPaint(QPainter *painter)
         gnome = leftmost;*/
 
     if (gnome)
+    {
+        gnome->drawTopLabels(painter, rect());
         gnome->drawQtTree(painter, rect());
+    }
+
 }
 
 void ClusterTreeVis::mouseDoubleClickEvent(QMouseEvent * event)
