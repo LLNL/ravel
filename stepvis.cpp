@@ -379,19 +379,22 @@ void StepVis::drawNativeGL()
                 / (part->max_global_step - part->min_global_step + 2);
         num_events += part->num_events() * overlap;
     }
-    float density =num_events / (stepSpan * processSpan); // 1 if an event at every step, small if less.
+    float density = num_events / 1.0 / (stepSpan * processSpan); // 1 if an event at every step, small if less.
     float opacity = 1.0;
     float xoffset = 0;
     float yoffset = 0;
-    if (processheight < 1.0)
+    if (density)
     {
-        yoffset = 1.0 / processheight / 2 / (5 * density);
-        //opacity = 0.4;
-    }
-    if (stepwidth < 1.0)
-    {
-        xoffset = 1.0 / stepwidth / 2 / (5 * density);
-        //opacity = 0.4;
+        if (processheight < 1.0)
+        {
+            yoffset = 1.0 / processheight / 2 / (5 * density);
+            //opacity = 0.4;
+        }
+        if (stepwidth < 1.0)
+        {
+            xoffset = 1.0 / stepwidth / 2 / (5 * density);
+            //opacity = 0.4;
+        }
     }
 
     // Generate buffers to hold each bar. We don't know how many there will
