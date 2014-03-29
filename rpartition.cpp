@@ -224,6 +224,11 @@ void Partition::step()
     for (QList<Message *>::Iterator msg = message_list->begin(); msg != message_list->end(); ++msg)
         step_receive(*msg);
 
+    // I suppose we should do this until everything settles, otherwise get stepping problem in pf3d comm
+    // Need to think about this further.
+    for (QList<Message *>::Iterator msg = message_list->begin(); msg != message_list->end(); ++msg)
+        step_receive(*msg);
+
     finalize_steps();
 
     // Delete the last_recvs from all the events here
