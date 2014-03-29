@@ -14,6 +14,7 @@ public:
     QColor color(double value, double opacity = 1.0);
     void setRange(double low, double high);
     void setClamp(double clamp);
+    double getMax() { return maxValue; }
 
 private:
     class ColorValue {

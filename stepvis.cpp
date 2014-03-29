@@ -3,9 +3,11 @@
 
 StepVis::StepVis(QWidget* parent, VisOptions * _options)
     : TimelineVis(parent = parent, _options),
+      metricdialog(NULL),
     maxMetric(0),
     cacheMetric(""),
     maxMetricText(""),
+    hoverText(""),
     maxMetricTextWidth(0),
     colorbar_offset(0)
 {
@@ -60,6 +62,19 @@ void StepVis::setupMetric()
     // For colorbar
     QLocale systemlocale = QLocale::system();
     maxMetricText = systemlocale.toString(maxMetric) + " ns";
+
+    delete metricdialog;
+    metricdialog = new MetricRangeDialog(this, maxMetric, maxMetric);
+    connect(metricdialog, SIGNAL(valueChanged(long long int)), this, SLOT(setMaxMetric(long long int)));
+    metricdialog->hide();
+}
+
+void StepVis::setMaxMetric(long long int new_max)
+{
+    options->setRange(0, new_max);
+    QLocale systemlocale = QLocale::system();
+    maxMetricText = systemlocale.toString(new_max) + " ns";
+    repaint();
 }
 
 void StepVis::setSteps(float start, float stop, bool jump)
@@ -123,7 +138,17 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
     {
         mousex = event->x();
         mousey = event->y();
-        if (options->showAggregateSteps && hover_event && drawnEvents[hover_event].contains(mousex, mousey))
+        hoverText = "";
+        if (mousey >= rect().height() - colorBarHeight)
+        {
+            if (event->x() < rect().width() - colorbar_offset && event->x() > colorbar_offset)
+            {
+                long long int colormax = options->colormap->getMax();
+                hoverText = QString::number(int(colormax * (event->x() - colorbar_offset) / (rect().width() - 2 * colorbar_offset)));
+                repaint();
+            }
+        }
+        else if (options->showAggregateSteps && hover_event && drawnEvents[hover_event].contains(mousex, mousey))
         {
             if (!hover_aggregate && mousex <= drawnEvents[hover_event].x() + stepwidth)
             {
@@ -250,6 +275,7 @@ void StepVis::qtPaint(QPainter *painter)
 
     // Hover is independent of how we drew things
     drawHover(painter);
+    drawColorValue(painter);
 }
 
 
@@ -732,9 +758,35 @@ void StepVis::mouseDoubleClickEvent(QMouseEvent * event)
             options->colormap->setClamp(maxMetric * (event->x() - colorbar_offset) / (rect().width() - 2 * colorbar_offset));
             repaint();
         }
+        else if (event->x() > rect().width() - colorbar_offset + 3 && event->x() < rect().width() - colorbar_offset + 3 + maxMetricTextWidth)
+        {
+            metricdialog->show();
+
+        }
     }
     else
     {
         TimelineVis::mouseDoubleClickEvent(event);
     }
+}
+
+void StepVis::drawColorValue(QPainter * painter)
+{
+    if (!visProcessed || hoverText.length() < 1)
+        return;
+
+    painter->setFont(QFont("Helvetica", 10));
+    QFontMetrics font_metrics = painter->fontMetrics();
+
+    // Determine bounding box of FontMetrics
+    QRect textRect = font_metrics.boundingRect(hoverText);
+
+    // Draw bounding box
+    painter->setPen(QPen(QColor(255, 255, 0, 150), 1.0, Qt::SolidLine));
+    painter->drawRect(QRectF(mousex, mousey - 20, textRect.width(), textRect.height()));
+    painter->fillRect(QRectF(mousex, mousey - 20, textRect.width(), textRect.height()), QBrush(QColor(255, 255, 144, 150)));
+
+    // Draw text
+    painter->setPen(Qt::black);
+    painter->drawText(mousex + 2, mousey + textRect.height() - 2 - 20, hoverText);
 }

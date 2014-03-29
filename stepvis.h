@@ -2,6 +2,7 @@
 #define STEPVIS_H
 
 #include "timelinevis.h"
+#include "metricrangedialog.h"
 
 class StepVis : public TimelineVis
 {
@@ -15,8 +16,11 @@ public:
     void wheelEvent(QWheelEvent * event);
     void mouseDoubleClickEvent(QMouseEvent * event);
 
+    MetricRangeDialog * metricdialog;
+
 public slots:
     void setSteps(float start, float stop, bool jump = false);
+    void setMaxMetric(long long int new_max);
 
 protected:
     void qtPaint(QPainter *painter);
@@ -27,11 +31,13 @@ protected:
     void drawColorBarText(QPainter * painter);
     void drawLine(QPainter * painter, QPointF * p1, QPointF * p2, int effectiveHeight);
     void setupMetric();
+    void drawColorValue(QPainter * painter);
 
 private:
     long long maxMetric;
     QString cacheMetric;
     QString maxMetricText;
+    QString hoverText;
     int maxMetricTextWidth;
     float colorbar_offset;
 

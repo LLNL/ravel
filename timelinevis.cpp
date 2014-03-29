@@ -168,7 +168,7 @@ void TimelineVis::selectProcesses(QList<int> processes, Gnome * gnome)
 
 void TimelineVis::drawHover(QPainter * painter)
 {
-    if (hover_event == NULL)
+    if (!visProcessed || hover_event == NULL)
         return;
 
     painter->setFont(QFont("Helvetica", 10));

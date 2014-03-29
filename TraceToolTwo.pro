@@ -36,7 +36,8 @@ SOURCES  += main.cpp \
     clustertreevis.cpp \
     verticallabel.cpp \
     rpartition.cpp \
-    clusterprocess.cpp
+    clusterprocess.cpp \
+    metricrangedialog.cpp
 
 
 HEADERS += \
@@ -71,13 +72,15 @@ HEADERS += \
     clustertreevis.h \
     verticallabel.h \
     rpartition.h \
-    clusterprocess.h
+    clusterprocess.h \
+    metricrangedialog.h
 
 
 FORMS += \
     mainwindow.ui \
     importoptionsdialog.ui \
-    visoptionsdialog.ui
+    visoptionsdialog.ui \
+    metricrangedialog.ui
 
 unix:!macx: LIBS += -L$$PWD/../../../../../../../usr/local/lib/ -lotf
 
