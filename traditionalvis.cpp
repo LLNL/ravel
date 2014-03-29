@@ -359,7 +359,7 @@ void TraditionalVis::drawNativeGL()
                 for (int j = 0; j < 4; ++j)
                 {
                     colors.append(color.red() / 255.0);
-                    colors.append(color.yellow() / 255.0);
+                    colors.append(color.green() / 255.0);
                     colors.append(color.blue() / 255.0);
                 }
 

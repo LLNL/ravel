@@ -9,7 +9,8 @@ StepVis::StepVis(QWidget* parent, VisOptions * _options)
     maxMetricText(""),
     hoverText(""),
     maxMetricTextWidth(0),
-    colorbar_offset(0)
+    colorbar_offset(0),
+    lassoRect(QRect())
 {
 
 }
@@ -95,12 +96,44 @@ void StepVis::setSteps(float start, float stop, bool jump)
         repaint();
 }
 
+void StepVis::rightDrag(QMouseEvent * event)
+{
+    if (!visProcessed)
+        return;
+
+    if (pressx < event->x())
+    {
+        startStep = startStep + stepSpan * pressx / rect().width();
+        stepSpan = stepSpan * (event->x() - pressx) / rect().width();
+    }
+    else
+    {
+        startStep = startStep + stepSpan * event->x() / rect().width();
+        stepSpan = stepSpan * (pressx - event->x()) / rect().width();
+    }
+
+    if (pressy < event->y())
+    {
+        startProcess = startProcess + processSpan * pressy / (rect().height() - colorBarHeight);
+        processSpan = processSpan * (event->y() - pressy) / (rect().height() - colorBarHeight);
+    }
+    else
+    {
+        startProcess = startProcess + processSpan * event->y() / (rect().height() - colorBarHeight);
+        processSpan = processSpan * (pressy - event->y()) / (rect().height() - colorBarHeight);
+    }
+    repaint();
+    changeSource = true;
+    emit stepsChanged(startStep, startStep + stepSpan, false);
+}
+
 void StepVis::mouseMoveEvent(QMouseEvent * event)
 {
     if (!visProcessed)
         return;
 
-    if (mousePressed)
+    lassoRect = QRect();
+    if (mousePressed && !rightPressed)
     {
         lastStartStep = startStep;
         int diffx = mousex - event->x();
@@ -133,6 +166,12 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
         changeSource = true;
         //std::cout << "Emitting " << startStep << ", " << (startStep + stepSpan) << std::endl;
         emit stepsChanged(startStep, startStep + stepSpan, false);
+    }
+    else if (mousePressed && rightPressed)
+    {
+        lassoRect = QRect(std::min(pressx, event->x()), std::min(pressy, event->y()),
+                     abs(pressx - event->x()), abs(pressy - event->y()));
+        repaint();
     }
     else // potential hover
     {
@@ -276,6 +315,13 @@ void StepVis::qtPaint(QPainter *painter)
     // Hover is independent of how we drew things
     drawHover(painter);
     drawColorValue(painter);
+
+    if (!lassoRect.isNull())
+    {
+        painter->setPen(Qt::yellow);
+        painter->drawRect(lassoRect);
+        painter->fillRect(lassoRect, QBrush(QColor(255, 255, 144, 150)));
+    }
 }
 
 

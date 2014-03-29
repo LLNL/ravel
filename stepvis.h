@@ -15,6 +15,7 @@ public:
     void mouseMoveEvent(QMouseEvent * event);
     void wheelEvent(QWheelEvent * event);
     void mouseDoubleClickEvent(QMouseEvent * event);
+    void rightDrag(QMouseEvent * event);
 
     MetricRangeDialog * metricdialog;
 
@@ -40,6 +41,7 @@ private:
     QString hoverText;
     int maxMetricTextWidth;
     float colorbar_offset;
+    QRect lassoRect;
 
     static const int colorBarHeight = 24;
 };

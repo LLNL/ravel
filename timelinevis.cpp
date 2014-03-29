@@ -5,6 +5,7 @@ TimelineVis::TimelineVis(QWidget* parent, VisOptions * _options)
     : VisWidget(parent = parent, _options),
       jumped(false),
       mousePressed(false),
+      rightPressed(false),
       mousex(0),
       mousey(0),
       pressx(0),
@@ -117,6 +118,9 @@ void TimelineVis::mouseDoubleClickEvent(QMouseEvent * event)
 void TimelineVis::mousePressEvent(QMouseEvent * event)
 {
     mousePressed = true;
+    rightPressed = false;
+    if (event->button() == Qt::RightButton)
+        rightPressed = true;
     mousex = event->x();
     mousey = event->y();
     pressx = mousex;
@@ -126,10 +130,14 @@ void TimelineVis::mousePressEvent(QMouseEvent * event)
 void TimelineVis::mouseReleaseEvent(QMouseEvent * event)
 {
     mousePressed = false;
-
     // Treat single click as double for now
     if (event->x() == pressx && event->y() == pressy)
         mouseDoubleClickEvent(event);
+    else if (rightPressed)
+    {
+        rightPressed = false;
+        rightDrag(event);
+    }
 }
 
 void TimelineVis::leaveEvent(QEvent *event)
