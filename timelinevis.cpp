@@ -104,7 +104,10 @@ void TimelineVis::mouseDoubleClickEvent(QMouseEvent * event)
                 {
                     selected_aggregate = true;
                 }
-                selected_aggregate = false;
+                else
+                {
+                    selected_aggregate = false;
+                }
                 selected_event = evt.key();
             }
             break;
@@ -176,6 +179,7 @@ void TimelineVis::selectProcesses(QList<int> processes, Gnome * gnome)
 
 void TimelineVis::drawHover(QPainter * painter)
 {
+    //return;
     if (!visProcessed || hover_event == NULL)
         return;
 
@@ -191,7 +195,7 @@ void TimelineVis::drawHover(QPainter * painter)
     else
     {
         // Fall through and draw Event
-        text = ((*(trace->functions))[hover_event->function])->name + ", " + QString::number(hover_event->step).toStdString().c_str();
+        text = ((*(trace->functions))[hover_event->function])->name; // + ", " + QString::number(hover_event->step).toStdString().c_str();
     }
 
     // Determine bounding box of FontMetrics

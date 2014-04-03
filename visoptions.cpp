@@ -5,7 +5,7 @@ VisOptions::VisOptions(bool _showAgg,
                  QString _metric)
     : showAggregateSteps(_showAgg),
       colorTraditionalByMetric(_metricTraditional),
-      showMessages(true),
+      showMessages(TRUE),
       topByCentroid(false),
       showInactiveSteps(true),
       metric(_metric),

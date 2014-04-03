@@ -470,14 +470,14 @@ void StepVis::drawNativeGL()
 
                     color = options->colormap->color((*(*evt)->metrics)[metric]->aggregate);
 
-                    bars.append(x);
-                    bars.append(y);
-                    bars.append(x);
-                    bars.append(y + barheight);
-                    bars.append(x + barwidth);
-                    bars.append(y + barheight);
-                    bars.append(x + barwidth);
-                    bars.append(y);
+                    bars.append(x - xoffset);
+                    bars.append(y - yoffset);
+                    bars.append(x - xoffset);
+                    bars.append(y + barheight + yoffset);
+                    bars.append(x + barwidth + xoffset);
+                    bars.append(y + barheight + yoffset);
+                    bars.append(x + barwidth + xoffset);
+                    bars.append(y - yoffset);
                     for (int j = 0; j < 4; ++j)
                     {
                         colors.append(color.red() / 255.0);
@@ -675,7 +675,7 @@ void StepVis::paintEvents(QPainter * painter)
         // Messages
         // We need to do all of the message drawing after the event drawing
         // for overlap purposes
-    if (options->showMessages)
+    if (options->showMessages != VisOptions::NONE)
     {
         if (processSpan <= 32)
             painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
@@ -695,14 +695,24 @@ void StepVis::paintEvents(QPainter * painter)
                 x = floor((send_event->step - startStep) * blockwidth) + 1 + labelWidth;
             else
                 x = floor((send_event->step - startStep) / 2 * blockwidth) + 1 + labelWidth;
-            p1 = QPointF(x + w/2.0, y + h/2.0);
-            position = proc_to_order[recv_event->process];
-            y = floor((position - startProcess) * blockheight) + 1;
-            if (options->showAggregateSteps)
-                x = floor((recv_event->step - startStep) * blockwidth) + 1 + labelWidth;
+            if (options->showMessages == VisOptions::TRUE)
+            {
+                p1 = QPointF(x + w/2.0, y + h/2.0);
+                position = proc_to_order[recv_event->process];
+                y = floor((position - startProcess) * blockheight) + 1;
+                if (options->showAggregateSteps)
+                    x = floor((recv_event->step - startStep) * blockwidth) + 1 + labelWidth;
+                else
+                    x = floor((recv_event->step - startStep) / 2 * blockwidth) + 1 + labelWidth;
+                p2 = QPointF(x + w/2.0, y + h/2.0);
+            }
             else
-                x = floor((recv_event->step - startStep) / 2 * blockwidth) + 1 + labelWidth;
-            p2 = QPointF(x + w/2.0, y + h/2.0);
+            {
+                p1 = QPointF(x, y + h/2.0);
+                position = proc_to_order[recv_event->process];
+                y = floor((position - startProcess) * blockheight) + 1;
+                p2 = QPointF(x + w, y + h/2.0);
+            }
             drawLine(painter, &p1, &p2, effectiveHeight);
         }
     }
@@ -821,6 +831,7 @@ void StepVis::mouseDoubleClickEvent(QMouseEvent * event)
 
 void StepVis::drawColorValue(QPainter * painter)
 {
+    return;
     if (!visProcessed || hoverText.length() < 1)
         return;
 

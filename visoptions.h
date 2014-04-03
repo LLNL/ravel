@@ -13,10 +13,11 @@ public:
     void setRange(double low, double high);
 
     enum ColorMapType { SEQUENTIAL, DIVERGING, CATEGORICAL };
+    enum MessageType { NONE, TRUE, SINGLE };
 
     bool showAggregateSteps;
     bool colorTraditionalByMetric;
-    bool showMessages;
+    MessageType showMessages;
     bool topByCentroid;
     bool showInactiveSteps;
     QString metric;

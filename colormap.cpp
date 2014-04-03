@@ -79,7 +79,7 @@ QColor ColorMap::color(double value, double opacity)
             low = (*itr);
         }
     }
-    return low->color;
+    return QColor(low->color.red(), low->color.green(), low->color.blue(), opacity*255);
 }
 
 // In categorical, we only take the minValue into account and the number of input colors

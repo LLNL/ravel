@@ -664,7 +664,7 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
         // Messages
         // We need to do all of the message drawing after the event drawing
         // for overlap purposes
-    if (options->showMessages)
+    if (options->showMessages != VisOptions::NONE)
     {
         if (top_processes.size() <= 32)
             painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
@@ -683,13 +683,22 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
                 x = floor((send_event->step - startStep) * blockwidth) + 1 + extents.x();
             else
                 x = floor((send_event->step - startStep) / 2 * blockwidth) + 1 + extents.x();
-            p1 = QPointF(x + w/2.0, y + h/2.0);
-            y = processYs[recv_event->process];
-            if (options->showAggregateSteps)
-                x = floor((recv_event->step - startStep) * blockwidth) + 1 + extents.x();
+            if (options->showMessages == VisOptions::TRUE)
+            {
+                p1 = QPointF(x + w/2.0, y + h/2.0);
+                y = processYs[recv_event->process];
+                if (options->showAggregateSteps)
+                    x = floor((recv_event->step - startStep) * blockwidth) + 1 + extents.x();
+                else
+                    x = floor((recv_event->step - startStep) / 2 * blockwidth) + 1 + extents.x();
+                p2 = QPointF(x + w/2.0, y + h/2.0);
+            }
             else
-                x = floor((recv_event->step - startStep) / 2 * blockwidth) + 1 + extents.x();
-            p2 = QPointF(x + w/2.0, y + h/2.0);
+            {
+                p1 = QPointF(x, y + h/2.0);
+                y = processYs[recv_event->process];
+                p2 = QPointF(x + w, y + h/2.0);
+            }
             painter->drawLine(p1, p2);
         }
     }
@@ -1104,6 +1113,7 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, Partiti
 
 bool Gnome::handleHover(QMouseEvent * event)
 {
+    return false;
     mousex = event->x();
     mousey = event->y();
     if (options->showAggregateSteps && hover_event && drawnEvents[hover_event].contains(mousex, mousey))
@@ -1153,7 +1163,7 @@ void Gnome::drawHover(QPainter * painter)
     else
     {
         // Fall through and draw Event
-        text = functions->value(hover_event->function)->name + ", " + QString::number(hover_event->step).toStdString().c_str();
+        text = functions->value(hover_event->function)->name; // + ", " + QString::number(hover_event->step).toStdString().c_str();
     }
 
     // Determine bounding box of FontMetrics

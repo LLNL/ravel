@@ -12,12 +12,19 @@ VisOptionsDialog::VisOptionsDialog(QWidget *parent, VisOptions * _options, Trace
 {
     ui->setupUi(this);
 
+    ui->colorComboBox->addItem("Sequential");
+    ui->colorComboBox->addItem("Diverging");
+    ui->colorComboBox->addItem("Categorical");
+    ui->messageComboBox->addItem("No Messages");
+    ui->messageComboBox->addItem("Across Steps");
+    ui->messageComboBox->addItem("Within Step");
+
     connect(ui->buttonBox, SIGNAL(accepted()), this, SLOT(onOK()));
     connect(ui->buttonBox, SIGNAL(rejected()), this, SLOT(onCancel()));
     connect(ui->metricColorTraditionalCheckBox, SIGNAL(clicked(bool)), this, SLOT(onMetricColorTraditional(bool)));
     connect(ui->metricComboBox, SIGNAL(currentIndexChanged(QString)), this, SLOT(onMetric(QString)));
     connect(ui->showAggregateCheckBox, SIGNAL(clicked(bool)), this, SLOT(onShowAggregate(bool)));
-    connect(ui->showMessagesCheckBox, SIGNAL(clicked(bool)), this, SLOT(onShowMessages(bool)));
+    connect(ui->messageComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onShowMessages(int)));
     connect(ui->inactiveCheckBox, SIGNAL(clicked(bool)), this, SLOT(onShowInactive(bool)));
     connect(ui->colorComboBox, SIGNAL(currentIndexChanged(QString)), this, SLOT(onColorCombo(QString)));
 
@@ -26,9 +33,6 @@ VisOptionsDialog::VisOptionsDialog(QWidget *parent, VisOptions * _options, Trace
     {
         for (QList<QString>::Iterator metric = trace->metrics->begin(); metric != trace->metrics->end(); ++metric)
             ui->metricComboBox->addItem(*metric);
-        ui->colorComboBox->addItem("Sequential");
-        ui->colorComboBox->addItem("Diverging");
-        ui->colorComboBox->addItem("Categorical");
     }
 
     setUIState();
@@ -69,9 +73,14 @@ void VisOptionsDialog::onShowAggregate(bool showAggregate)
     options->showAggregateSteps = showAggregate;
 }
 
-void VisOptionsDialog::onShowMessages(bool showMessages)
+void VisOptionsDialog::onShowMessages(int showMessages)
 {
-    options->showMessages = showMessages;
+    if (showMessages == 0)
+        options->showMessages = VisOptions::NONE;
+    else if (showMessages == 1)
+        options->showMessages = VisOptions::TRUE;
+    else if (showMessages == 2)
+        options->showMessages = VisOptions::SINGLE;
 }
 
 void VisOptionsDialog::onShowInactive(bool showInactive)
@@ -108,15 +117,24 @@ void VisOptionsDialog::setUIState()
     else
         ui->showAggregateCheckBox->setChecked(false);
 
-    if (options->showMessages)
-        ui->showMessagesCheckBox->setChecked(true);
-    else
-        ui->showMessagesCheckBox->setChecked(false);
-
     if (options->showInactiveSteps)
         ui->inactiveCheckBox->setChecked(true);
     else
         ui->inactiveCheckBox->setChecked(false);
+
+    if (options->maptype == VisOptions::SEQUENTIAL)
+        ui->colorComboBox->setCurrentIndex(0);
+    else if (options->maptype == VisOptions::CATEGORICAL)
+        ui->colorComboBox->setCurrentIndex(2);
+    else
+        ui->colorComboBox->setCurrentIndex(1);
+
+    if (options->showMessages == VisOptions::NONE)
+        ui->messageComboBox->setCurrentIndex(0);
+    else if (options->showMessages == VisOptions::TRUE)
+        ui->messageComboBox->setCurrentIndex(1);
+    else
+        ui->messageComboBox->setCurrentIndex(2);
 
 
     if (trace)
@@ -124,12 +142,6 @@ void VisOptionsDialog::setUIState()
         int metric_index = mapMetricToIndex(options->metric);
         ui->metricComboBox->setCurrentIndex(metric_index);
         options->metric = ui->metricComboBox->itemText(metric_index); // In case we're stuck at the default
-        if (options->maptype == VisOptions::SEQUENTIAL)
-            ui->colorComboBox->setCurrentIndex(0);
-        else if (options->maptype == VisOptions::CATEGORICAL)
-            ui->colorComboBox->setCurrentIndex(2);
-        else
-            ui->colorComboBox->setCurrentIndex(1);
     }
 }
 

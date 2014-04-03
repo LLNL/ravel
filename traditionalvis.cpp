@@ -557,7 +557,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
         // Messages
         // We need to do all of the message drawing after the event drawing
         // for overlap purposes
-    if (options->showMessages)
+    if (options->showMessages != VisOptions::NONE)
     {
         if (processSpan <= 32)
             painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
