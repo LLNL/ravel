@@ -309,7 +309,8 @@ void ClusterVis::drawNativeGL()
             break;
         else if (part->max_global_step < bottomStep)
             continue;
-        if (part->gnome) {
+        if (part->gnome)
+        {
             // The y value here of 0 isn't general... we need another structure to keep track of how much
             // y is used when we're doing the gnome thing.
             part->gnome->drawGnomeGL(QRect(barwidth * (part->min_global_step - startStep), 0,
@@ -346,6 +347,8 @@ void ClusterVis::paintEvents(QPainter * painter)
     stepwidth = blockwidth;
     Gnome * leftmost = NULL;
     Gnome * nextgnome = NULL;
+    float drawSpan;
+    float drawStart;
     //std::cout << " Step span is " << bottomStep << " to " << topStep << " and startPartition is ";
     //std::cout << trace->partitions->at(startPartition)->min_global_step << " to " << trace->partitions->at(startPartition)->max_global_step << std::endl;
     for (int i = startPartition; i < trace->partitions->length(); ++i)
@@ -358,8 +361,15 @@ void ClusterVis::paintEvents(QPainter * painter)
         if (part->gnome) {
             // The y value here of 0 isn't general... we need another structure to keep track of how much
             // y is used when we're doing the gnome thing.
-            QRect gnomeRect = QRect(labelWidth + blockwidth * (part->min_global_step + aggOffset - startStep), 0,
-                                    blockwidth * (part->max_global_step - part->min_global_step - aggOffset + 1),
+            drawSpan = part->max_global_step - part->min_global_step - aggOffset + 1;
+            drawStart = part->min_global_step + aggOffset - startStep;
+            if (!options->showAggregateSteps)
+            {
+                drawSpan = (part->max_global_step - part->min_global_step) / 2 + 1;
+                drawStart = (part->min_global_step - startStep) / 2;
+            }
+            QRect gnomeRect = QRect(labelWidth + blockwidth * drawStart, 0,
+                                    blockwidth * (drawSpan),
                                     part->events->size() / 1.0 / trace->num_processes * effectiveHeight);
             part->gnome->drawGnomeQt(painter, gnomeRect, options, blockwidth);
             drawnGnomes[part->gnome] = gnomeRect;
