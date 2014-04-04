@@ -14,6 +14,7 @@ TimelineVis::TimelineVis(QWidget* parent, VisOptions * _options)
       processheight(0),
       labelWidth(0),
       labelHeight(0),
+      labelDescent(0),
       maxStep(0),
       startPartition(0),
       startStep(0),
@@ -51,6 +52,7 @@ void TimelineVis::processVis()
     QString testString = systemlocale.toString(max_process);
     labelWidth = font_metrics.width(testString);
     labelHeight = font_metrics.height();
+    labelDescent = font_metrics.descent();
     painter->end();
     delete painter;
 
@@ -228,7 +230,7 @@ void TimelineVis::drawProcessLabels(QPainter * painter, int effectiveHeight, flo
     int end = std::min(ceil(startProcess + processSpan), trace->num_processes - 1.0);
     for (int i = start; i <= end; i+= skip) // Do this by order
     {
-        y = floor((i - startProcess) * barHeight) + 1 + (barHeight + labelHeight) / 2;
+        y = floor((i - startProcess) * barHeight) + 1 + barHeight / 2 + labelDescent;
         if (y < effectiveHeight)
             painter->drawText(1, y, QString::number(order_to_proc[i]));
     }

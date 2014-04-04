@@ -39,6 +39,7 @@ protected:
     float processheight;
     int labelWidth;
     int labelHeight;
+    int labelDescent;
 
     int maxStep;
     int startPartition;
