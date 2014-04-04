@@ -311,14 +311,19 @@ void TraditionalVis::drawNativeGL()
         part = trace->partitions->at(i);
         if (part->min_global_step > upperStep)
             break;
-        for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin(); event_list != part->events->end(); ++event_list) {
+
+        for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin(); event_list != part->events->end(); ++event_list)
+        {
+            position = proc_to_order[event_list.key()];
+            if (position < floor(startProcess) || position > ceil(startProcess + processSpan)) // Out of span
+                continue;
+            y = (maxProcess - position) * barheight - 1;
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
-                position = proc_to_order[(*evt)->process];
+
                 if ((*evt)->exit < startTime || (*evt)->enter > stopTime) // Out of time span
                     continue;
-                if (position < floor(startProcess) || position > ceil(startProcess + processSpan)) // Out of span
-                    continue;
+
 
                 // save step information for emitting
                 step = (*evt)->step;
@@ -330,7 +335,6 @@ void TraditionalVis::drawNativeGL()
 
                 // Calculate position of this bar in float space
                 w = (*evt)->exit - (*evt)->enter;
-                y = maxProcess - (position - startProcess) * barheight - 1;
                 x = 0;
                 if ((*evt)->enter >= startTime)
                     x = (*evt)->enter - startTime;

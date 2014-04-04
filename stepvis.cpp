@@ -229,9 +229,11 @@ void StepVis::wheelEvent(QWheelEvent * event)
     scale = 1 + clicks * 0.05;
     if (Qt::MetaModifier && event->modifiers()) {
         // Vertical
+        std::cout << " old span " << processSpan << " old start " << startProcess << std::endl;
         float avgProc = startProcess + processSpan / 2.0;
         processSpan *= scale;
         startProcess = avgProc - processSpan / 2.0;
+        std::cout << "Avg proc " << avgProc << " new process span " << processSpan << " and new start " << startProcess << std::endl;
     } else {
         // Horizontal
         lastStartStep = startStep;
@@ -422,16 +424,17 @@ void StepVis::drawNativeGL()
             bool selected = false;
             if (part->gnome == selected_gnome && selected_processes.contains(proc_to_order[event_list.key()]))
                 selected = true;
+            position = proc_to_order[event_list.key()];
+            if (position < floor(startProcess) || position > ceil(startProcess + processSpan)) // Out of span
+                 continue;
+            y = (maxProcess - position) * barheight - 1;
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
-                position = proc_to_order[(*evt)->process];
+
                 if ((*evt)->step < bottomStep || (*evt)->step > topStep) // Out of span
-                    continue;
-                if (position < floor(startProcess) || position > ceil(startProcess + processSpan)) // Out of span
                     continue;
 
                 // Calculate position of this bar in float space
-                y = maxProcess - (position - startProcess) * barheight - 1;
                 if (options->showAggregateSteps)
                     x = ((*evt)->step - startStep) * barwidth;
                 else
