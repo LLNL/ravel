@@ -459,6 +459,11 @@ int Gnome::findCentroidProcess(PartitionCluster * pc)
 void Gnome::drawGnomeQt(QPainter * painter, QRect extents, VisOptions *_options, int blockwidth)
 {
     options = _options;
+    if (options->metric != metric)
+    {
+        metric = options->metric;
+        preprocess();
+    }
     saved_messages.clear();
     drawnPCs.clear();
     drawnNodes.clear();
