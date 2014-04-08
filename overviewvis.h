@@ -25,6 +25,7 @@ protected:
 private:
     int roundeven(float step);
 
+    QString cacheMetric;
     unsigned long long minTime;
     unsigned long long maxTime;
     int maxStep;
