@@ -105,6 +105,7 @@ private:
     QList<QList<Partition *> *> * tarjan();
     void set_global_steps();
     void calculate_lateness();
+    void calculate_differential_lateness();
     void output_graph(QString filename, bool byparent = false);
 
 

@@ -368,6 +368,37 @@ void Trace::set_global_steps()
     delete current_leap;
 }
 
+void Trace::calculate_differential_lateness()
+{
+    QString dlateness = "D. Lateness";
+    metrics->append(dlateness);
+
+    long long int max_parent;
+    long long int max_agg_parent;
+    for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
+    {
+        for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
+        {
+            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
+            {
+                max_parent = (*evt)->getMetric("Lateness", true);
+                max_agg_parent = 0;
+                if ((*evt)->comm_prev)
+                    max_agg_parent = ((*evt)->comm_prev->getMetric("Lateness"));
+                for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
+                {
+                    if ((*msg)->receiver == *evt && (*msg)->sender->getMetric("Lateness") > max_parent)
+                        max_parent = (*msg)->sender->getMetric("Lateness");
+                }
+
+                (*evt)->addMetric(dlateness, std::max(0LL, (*evt)->getMetric("Lateness") - max_parent),
+                                  std::max(0LL, (*evt)->getMetric("Lateness", true) - max_agg_parent));
+            }
+        }
+    }
+
+}
+
 void Trace::calculate_lateness()
 {
     metrics->append("Lateness");
@@ -545,6 +576,7 @@ void Trace::assignSteps()
     traceTimer.start();
 
     calculate_lateness();
+    calculate_differential_lateness();
 
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "Lateness Calculation: ";
