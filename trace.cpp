@@ -108,6 +108,7 @@ void Trace::preprocess(OTFImportOptions * _options)
     if (options.globalMerge)
         mergeGlobalSteps();
     emit(startClustering());
+    std::cout << "Gnomifying..." << std::endl;
     if (options.cluster)
         gnomify();
 
@@ -131,9 +132,11 @@ void Trace::gnomify()
     metrics->append("Gnome");
     Gnome * gnome;
     float stepPortion = 100.0 / global_max_step;
-    int total = 0;
+    int total = 0, count = 0;
     for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
     {
+        std::cout << "Handling cluster " << count << std::endl;
+        count++;
         (*part)->makeClusterVectors("Lateness");
         int num_steps = (*part)->max_global_step - (*part)->min_global_step;
         for (int i = 0; i < gnomes->size(); i++)

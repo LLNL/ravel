@@ -102,13 +102,13 @@ RawTrace * OTFImporter::importOTF(const char* otf_file)
     for (QVector<QLinkedList<CommRecord *> *>::Iterator eitr = unmatched_recvs->begin(); eitr != unmatched_recvs->end(); ++eitr) {
         for (QLinkedList<CommRecord *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
             unmatched_recv_count++;
-            std::cout << "Unmatched recv " << (*itr)->sender << "->" << (*itr)->receiver << " (" << (*itr)->send_time << ", " << (*itr)->recv_time << ")" << std::endl;
+            std::cout << "Unmatched RECV " << (*itr)->sender << "->" << (*itr)->receiver << " (" << (*itr)->send_time << ", " << (*itr)->recv_time << ")" << std::endl;
         }
     }
     int unmatched_send_count = 0;
     for (QVector<QLinkedList<CommRecord *> *>::Iterator eitr = unmatched_sends->begin(); eitr != unmatched_sends->end(); ++eitr) {
         for (QLinkedList<CommRecord *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
-            unmatched_recv_count++;
+            unmatched_send_count++;
             std::cout << "Unmatched SEND " << (*itr)->sender << "->" << (*itr)->receiver << " (" << (*itr)->send_time << ", " << (*itr)->recv_time << ")" << std::endl;
         }
     }
