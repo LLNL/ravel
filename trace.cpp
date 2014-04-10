@@ -1555,6 +1555,7 @@ void Trace::initializePartitionsWaitall()
     QVector<int> * collective_ids = new QVector<int>(16);
     int collective_index = 0;
     int waitall_index = -1;
+    int testall_index = -1;
     for (QMap<int, Function * >::Iterator function = functions->begin(); function != functions->end(); ++function)
     {
         if (function.value()->group == mpi_group)
@@ -1566,6 +1567,8 @@ void Trace::initializePartitionsWaitall()
             }
             if (function.value()->name == "MPI_Waitall")
                 waitall_index = function.key();
+            if (function.value()->name == "MPI_Testall")
+                testall_index = function.key();
         }
     }
 
@@ -1633,7 +1636,7 @@ void Trace::initializePartitionsWaitall()
                 }
 
                 // 2. Due to non-recv/non-comm waitall or collective
-                else if ((*evt)->function == waitall_index || collective_ids->contains((*evt)->function))
+                else if ((*evt)->function == waitall_index || (*evt)->function == testall_index || collective_ids->contains((*evt)->function))
                 {
                     // Do partition for aggregated stuff
                     if (aggregation->size() > 0)
@@ -1657,7 +1660,7 @@ void Trace::initializePartitionsWaitall()
             else // We are not aggregating
             {
                 // Is this an event that should cause aggregation?
-                if ((*evt)->function == waitall_index)
+                if ((*evt)->function == waitall_index || (*evt)->function == testall_index)
                 {
                     aggregating = true;
                     aggregation = new QList<Event *>();
