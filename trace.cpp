@@ -671,10 +671,13 @@ void Trace::mergeByLeap()
                 unsigned long long int child_distance = ULLONG_MAX;
                 // If we're doing leapCollectives and we might not be able to merge all parents, do not do parent_distance
                 // calculation because we absolutely will not back merge.
-                if (!options.leapCollective || (*partition)->parents->subtract((*(*partition)->mergable_parents)).size() == 0)
+                if (!options.leapCollective || ((*partition)->parents->size() - (*(*partition)->mergable_parents).size() == 0 && (*partition)->parents->size() != 0))
+                {
+                    //std::cout << "Calculating parent distance..." << std::endl;
                     for (QSet<Partition *>::Iterator parent = (*partition)->parents->begin(); parent != (*partition)->parents->end(); ++parent)
                         if ((*parent)->dag_leap == (*partition)->dag_leap - 1)
                             parent_distance = std::min(parent_distance, (*partition)->distance(*parent));
+                }
                 for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++child)
                 {
                     (*child)->calculate_dag_leap(); // Recalculate, maybe have changed in previous iteration
@@ -685,6 +688,7 @@ void Trace::mergeByLeap()
                 // If we are sufficiently close to the parent, back merge
                 if (child_distance > 10 * parent_distance)
                 {
+                    std::cout << "back merge " << std::endl;
                     for (QSet<Partition *>::Iterator parent = (*partition)->parents->begin(); parent != (*partition)->parents->end(); ++parent)
                         if ((*parent)->dag_leap == (*partition)->dag_leap - 1)
                         {
@@ -703,13 +707,14 @@ void Trace::mergeByLeap()
                 }
                 else // merge children in
                 {
-                    if (options.leapCollective && (*partition)->children->subtract((*(*partition)->mergable_children)).size() > 0)
+                    if (options.leapCollective && (*partition)->children->size() - (*(*partition)->mergable_children).size() > 0)
                         blockMergeAll = true;
                     for (QSet<Partition *>::Iterator child = (*partition)->mergable_children->begin();
                          child != (*partition)->mergable_children->end(); ++child)
                         if ((*child)->dag_leap == (*partition)->dag_leap + 1
                                 && ((QSet<int>::fromList((*child)->events->keys()) - processes)).size() > 0)
                         {
+                            //std::cout << "Adding child..." << std::endl;
                             added_processes += (QSet<int>::fromList((*child)->events->keys()) - processes);
                             (*partition)->group->unite(*((*child)->group));
                             for (QSet<Partition *>::Iterator group_member = (*partition)->group->begin(); group_member != (*partition)->group->end(); ++group_member)
@@ -727,8 +732,10 @@ void Trace::mergeByLeap()
             }
 
             if (!back_merge && added_processes.size() <= 0)
+            {
                 if (options.leapSkip || blockMergeAll) // Skip leap if we didn't add anything
                 {
+                    //std::cout << "Skipping leap" << std::endl;
                     for (QSet<Partition *>::Iterator partition = current_leap->begin(); partition != current_leap->end(); ++partition)
                     {
                         new_partitions->insert(*partition);
@@ -746,10 +753,16 @@ void Trace::mergeByLeap()
                 }
                 else // Merge everything if we didn't add anything
                 {
+                    //std::cout << "Merging everything" << std::endl;
                     for (QSet<Partition *>::Iterator partition = current_leap->begin(); partition != current_leap->end(); ++partition)
+                    {
+                        //std::cout << "Has a partition..." << std::endl;
                         for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++child)
+                        {
+                            //std::cout << "Has a child..." << std::endl;
                             if ((*child)->dag_leap == leap + 1)
                             {
+                                //std::cout << "Adding child to everything..." << std::endl;
                                 (*partition)->group->unite(*((*child)->group));
                                 for (QSet<Partition *>::Iterator group_member = (*partition)->group->begin(); group_member != (*partition)->group->end(); ++group_member)
                                 {
@@ -761,7 +774,10 @@ void Trace::mergeByLeap()
                                     }
                                 }
                             }
+                        }
+                    }
                 }
+            }
             // Handled no merger case
 
             // Now do the merger - we go through the leap and look at each partition's group
@@ -800,6 +816,7 @@ void Trace::mergeByLeap()
                     for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++child)
                         if (!((*group)->group->contains(*child)))
                         {
+                            //std::cout << "Inserting child into group" << std::endl;
                             p->children->insert(*child);
                             for (QSet<Partition *>::Iterator group_member = (*group)->group->begin(); group_member != (*group)->group->end(); ++group_member)
                                 if ((*child)->parents->contains(*group_member))
