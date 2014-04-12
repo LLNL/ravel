@@ -136,7 +136,7 @@ unsigned long long int Partition::distance(Partition * other)
 
 void Partition::setMergables(bool considerCollectives)
 {
-    std::cout << "Find mergables of " << parents->size() << " parents and " << children->size() << " children." << std::endl;
+    //std::cout << "Find mergables of " << parents->size() << " parents and " << children->size() << " children." << std::endl;
     mergable_parents->clear();
     mergable_children->clear();
     if (considerCollectives)
@@ -173,8 +173,8 @@ void Partition::setMergables(bool considerCollectives)
         mergable_parents->unite(*parents);
         mergable_children->unite(*children);
     }
-    std::cout << "Mergable is " << mergable_parents->size() << " of " << parents->size() << " parents and ";
-    std::cout << mergable_children->size() << " of " << children->size() << " children." << std::endl;
+    //std::cout << "Mergable is " << mergable_parents->size() << " of " << parents->size() << " parents and ";
+    //std::cout << mergable_children->size() << " of " << children->size() << " children." << std::endl;
 }
 
 void Partition::calculate_dag_leap()

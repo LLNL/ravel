@@ -8,7 +8,8 @@ TraditionalVis::TraditionalVis(QWidget * parent, VisOptions * _options)
     maxTime(0),
     startTime(0),
     timeSpan(0),
-    stepToTime(new QVector<TimePair *>())
+    stepToTime(new QVector<TimePair *>()),
+    lassoRect(QRect())
 {
 
 }
@@ -113,12 +114,57 @@ void TraditionalVis::mouseDoubleClickEvent(QMouseEvent * event)
     repaint();
 }
 
+void TraditionalVis::rightDrag(QMouseEvent * event)
+{
+    if (!visProcessed)
+        return;
+
+    mousex = event->x();
+    mousey = event->y();
+    if (pressx < event->x())
+    {
+        startTime = startTime + timeSpan * pressx / rect().width();
+        timeSpan = timeSpan * (event->x() - pressx) / rect().width();
+    }
+    else
+    {
+        startTime = startTime + timeSpan * event->x() / rect().width();
+        timeSpan = timeSpan * (pressx - event->x()) / rect().width();
+    }
+    if (startTime < minTime)
+        startTime = minTime;
+    if (startTime > maxTime)
+        startTime = maxTime;
+
+    if (pressy < event->y())
+    {
+        startProcess = startProcess + processSpan * pressy / (rect().height() - timescaleHeight);
+        processSpan = processSpan * (event->y() - pressy) / (rect().height() - timescaleHeight);
+    }
+    else
+    {
+        startProcess = startProcess + processSpan * event->y() / (rect().height() - timescaleHeight);
+        processSpan = processSpan * (pressy - event->y()) / (rect().height() - timescaleHeight);
+    }
+    if (startProcess + processSpan > trace->num_processes)
+        startProcess = trace->num_processes - processSpan;
+    if (startProcess < 0)
+        startProcess = 0;
+
+
+    repaint();
+    changeSource = true;
+    emit stepsChanged(startStep, startStep + stepSpan, false);
+}
+
+
 void TraditionalVis::mouseMoveEvent(QMouseEvent * event)
 {
     if (!visProcessed)
         return;
 
-    if (mousePressed) {
+    lassoRect = QRect();
+    if (mousePressed && !rightPressed) {
         lastStartStep = startStep;
         int diffx = mousex - event->x();
         int diffy = mousey - event->y();
@@ -139,6 +185,12 @@ void TraditionalVis::mouseMoveEvent(QMouseEvent * event)
 
         mousex = event->x();
         mousey = event->y();
+        repaint();
+    }
+    else if (mousePressed && rightPressed)
+    {
+        lassoRect = QRect(std::min(pressx, event->x()), std::min(pressy, event->y()),
+                     abs(pressx - event->x()), abs(pressy - event->y()));
         repaint();
     }
     else // potential hover
@@ -394,6 +446,13 @@ void TraditionalVis::qtPaint(QPainter *painter)
     drawProcessLabels(painter, rect().height() - timescaleHeight, processheight);
     drawTimescale(painter, startTime, timeSpan);
     drawHover(painter);
+
+    if (!lassoRect.isNull())
+    {
+        painter->setPen(Qt::yellow);
+        painter->drawRect(lassoRect);
+        painter->fillRect(lassoRect, QBrush(QColor(255, 255, 144, 150)));
+    }
 }
 
 void TraditionalVis::paintEvents(QPainter *painter)

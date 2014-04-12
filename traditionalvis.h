@@ -14,6 +14,7 @@ public:
     void mouseMoveEvent(QMouseEvent * event);
     void wheelEvent(QWheelEvent * event);
     void mouseDoubleClickEvent(QMouseEvent * event);
+    void rightDrag(QMouseEvent * event);
 
 public slots:
     void setSteps(float start, float stop, bool jump = false);
@@ -41,6 +42,7 @@ private:
     unsigned long long startTime;
     unsigned long long timeSpan;
     QVector<TimePair* > * stepToTime;
+    QRect lassoRect;
 };
 
 #endif // TRADITIONALVIS_H
