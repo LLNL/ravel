@@ -63,6 +63,7 @@ public:
     int step;
     int depth;
     int phase;
+    int orig_phase;
 };
 
 #endif // EVENT_H

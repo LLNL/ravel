@@ -964,6 +964,8 @@ void Trace::mergeGlobalSteps()
 
     while (!working_set->isEmpty())
     {
+        //TODO: Fix bug when partitions have imperfect overlap
+        //std::cout << "Top o' the while..." << std::endl;
         // Find all the overlapping partitions
         bool addFlag = true;
         while (addFlag)
@@ -972,6 +974,7 @@ void Trace::mergeGlobalSteps()
             addFlag = false;
             for (QSet<Partition *>::Iterator partition = working_set->begin(); partition != working_set->end(); ++partition)
             {
+                //std::cout << "   Current working set includes " << (*partition)->min_global_step << " to " << (*partition)->max_global_step << std::endl;
                 for (QSet<Partition *>::Iterator child = (*partition)->children->begin(); child != (*partition)->children->end(); ++child)
                 {
                     if ((*child)->min_global_step <= spanMax) {
@@ -1510,23 +1513,33 @@ void Trace::partitionByPhase()
 {
     QMap<int, Partition *> * partition_dict = new QMap<int, Partition *>();
     for (QVector<QList<Event *> *>::Iterator event_list = mpi_events->begin(); event_list != mpi_events->end(); ++event_list)
-        for (QList<Event *>::Iterator evt = (*event_list)->begin(); evt != (*event_list)->end(); ++evt)
-            if ((*evt)->messages->size() > 0)
+        //for (QList<Event *>::Iterator evt = (*event_list)->begin(); evt != (*event_list)->end(); ++evt)
+        for (int i = (*event_list)->size() - 1; i >= 0; i--)
+        {
+            Event * evt = (*event_list)->at(i);
+            if ((evt)->messages->size() > 0)
             {
-                for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
+                if ((evt)->comm_prev && (evt)->comm_prev->phase > (evt)->phase)
+                    (evt)->phase = (evt)->comm_prev->phase;
+                for (QVector<Message *>::Iterator msg = (evt)->messages->begin(); msg != (evt)->messages->end(); ++msg)
                 {
                     if (!msg)
                         continue;
-                    if ((*msg)->sender->phase > (*evt)->phase)
-                        (*evt)->phase = (*msg)->sender->phase;
-                    if ((*msg)->receiver->phase > (*evt)->phase)
-                        (*evt)->phase = (*msg)->receiver->phase;
+                    if ((*msg)->sender->phase > (evt)->phase)
+                        (evt)->phase = (*msg)->sender->phase;
+                    else if ((*msg)->sender->phase < (evt)->phase)
+                        (*msg)->sender->phase = (evt)->phase;
+                    if ((*msg)->receiver->phase > (evt)->phase)
+                        (evt)->phase = (*msg)->receiver->phase;
+                    else if ((*msg)->receiver->phase < (evt)->phase)
+                        (*msg)->receiver->phase = (evt)->phase;
                 }
-                if (!partition_dict->contains((*evt)->phase))
-                    (*partition_dict)[(*evt)->phase] = new Partition();
-                ((*partition_dict)[(*evt)->phase])->addEvent(*evt);
-                (*evt)->partition = (*partition_dict)[(*evt)->phase];
+                if (!partition_dict->contains((evt)->phase))
+                    (*partition_dict)[(evt)->phase] = new Partition();
+                ((*partition_dict)[(evt)->phase])->addEvent(evt);
+                (evt)->partition = (*partition_dict)[(evt)->phase];
             }
+        }
 
     for (QMap<int, Partition *>::Iterator partition = partition_dict->begin(); partition != partition_dict->end(); ++partition)
     {

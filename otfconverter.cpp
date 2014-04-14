@@ -127,6 +127,7 @@ void OTFConverter::matchEvents()
                 if (options->partitionByFunction && (*evt)->value == phaseFunction)
                     ++phase;
                 e->phase = phase;
+                e->orig_phase = phase;
 
                 e->depth = depth;
                 if (depth == 0)
