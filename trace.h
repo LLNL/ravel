@@ -105,7 +105,8 @@ private:
     QList<QList<Partition *> *> * tarjan();
     void set_global_steps();
     void calculate_lateness();
-    void calculate_differential_lateness();
+    void calculate_differential_lateness(QString metric_name, QString base_name);
+    void calculate_partition_lateness();
     void output_graph(QString filename, bool byparent = false);
 
 

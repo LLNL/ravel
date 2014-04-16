@@ -32,7 +32,7 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    std::cout << "overview" << std::endl;
+    //std::cout << "overview" << std::endl;
     OverviewVis* overview = new OverviewVis(ui->overviewContainer, visoptions);
     //ui->overviewLayout->addWidget(overview);
     //ui->overviewLayout->setStretchFactor(overview, 1);
@@ -44,7 +44,7 @@ MainWindow::MainWindow(QWidget *parent) :
     //connect(overview, SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
     viswidgets.push_back(overview);
 
-    std::cout << "step" << std::endl;
+    //std::cout << "step" << std::endl;
     StepVis* stepvis = new StepVis(ui->stepContainer, visoptions);
     ui->stepContainer->layout()->addWidget(stepvis);
     ui->logicalLabelWidget->setLayout(new QVBoxLayout());
@@ -54,7 +54,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect((stepvis), SIGNAL(eventClicked(Event *, bool)), this, SLOT(selectEvent(Event *, bool)));
     viswidgets.push_back(stepvis);
 
-    std::cout << "time" << std::endl;
+    //std::cout << "time" << std::endl;
     TraditionalVis* timevis = new TraditionalVis(ui->traditionalContainer, visoptions);
     timevis->setClosed(true);
     ui->traditionalContainer->layout()->addWidget(timevis);
@@ -66,14 +66,14 @@ MainWindow::MainWindow(QWidget *parent) :
     viswidgets.push_back(timevis);
 
 
-    std::cout << "tree" << std::endl;
+    //std::cout << "tree" << std::endl;
     ClusterTreeVis* clustertreevis = new ClusterTreeVis(ui->stepContainer, visoptions);
     ui->treeContainer->layout()->addWidget(clustertreevis);
 
     //connect((clustertreevis), SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
     //connect((clustertreevis), SIGNAL(eventClicked(Event *)), this, SLOT(selectEvent(Event *)));
 
-    std::cout << "cluster" << std::endl;
+    //std::cout << "cluster" << std::endl;
     ClusterVis* clustervis = new ClusterVis(clustertreevis, ui->stepContainer, visoptions);
     ui->clusterContainer->layout()->addWidget(clustervis);
     ui->clusterLabelWidget->setLayout(new QVBoxLayout());
@@ -92,12 +92,12 @@ MainWindow::MainWindow(QWidget *parent) :
     viswidgets.push_back(clustervis);
     viswidgets.push_back(clustertreevis);
 
-    std::cout << "slider" << std::endl;
+    //std::cout << "slider" << std::endl;
     connect(ui->verticalSlider, SIGNAL(valueChanged(int)), clustervis, SLOT(changeNeighborRadius(int)));
     connect((clustervis), SIGNAL(neighborChange(int)), ui->verticalSlider, SLOT(setValue(int)));
 
 
-    std::cout << "menus" << std::endl;
+    //std::cout << "menus" << std::endl;
     connect(ui->actionOpen_OTF, SIGNAL(triggered()),this,SLOT(importOTFbyGUI()));
     ui->actionOpen_OTF->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_O));
 
@@ -123,13 +123,13 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionQuit, SIGNAL(triggered()), this, SLOT(close()));
     ui->actionQuit->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Q));
 
-    std::cout << "splitters" << std::endl;
+    //std::cout << "splitters" << std::endl;
     connect(ui->splitter, SIGNAL(splitterMoved(int, int)), this, SLOT(handleSplitter(int, int)));
     connect(ui->sideSplitter, SIGNAL(splitterMoved(int, int)), this, SLOT(handleSideSplitter(int, int)));
     ui->splitter->setStyleSheet("QSplitter::handle { background-color: black; }");
     ui->sideSplitter->setStyleSheet("QSplitter::handle { background-color: black; }");
 
-    std::cout << "set splitters" << std::endl;
+    //std::cout << "set splitters" << std::endl;
 
     // for testing
     //importOTF("/Users/kate/Documents/trace_files/sdissbinom16/nbc-test.otf");t

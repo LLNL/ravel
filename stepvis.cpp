@@ -389,12 +389,12 @@ void StepVis::drawNativeGL()
     {
         if (processheight < 1.0)
         {
-            yoffset = 1.0 / processheight / 2 / (5 * density);
+            yoffset = 1.0 / processheight / 2 / (10 * density);
             //opacity = 0.4;
         }
         if (stepwidth < 1.0)
         {
-            xoffset = 1.0 / stepwidth / 2 / (5 * density);
+            xoffset = 1.0 / stepwidth / 2 / (10 * density);
             //opacity = 0.4;
         }
     }

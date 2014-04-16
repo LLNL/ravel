@@ -371,10 +371,9 @@ void Trace::set_global_steps()
     delete current_leap;
 }
 
-void Trace::calculate_differential_lateness()
+void Trace::calculate_differential_lateness(QString metric_name, QString base_name)
 {
-    QString dlateness = "D. Lateness";
-    metrics->append(dlateness);
+    metrics->append(metric_name);
 
     long long int max_parent;
     long long int max_agg_parent;
@@ -384,19 +383,75 @@ void Trace::calculate_differential_lateness()
         {
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
-                max_parent = (*evt)->getMetric("Lateness", true);
+                max_parent = (*evt)->getMetric(base_name, true);
                 max_agg_parent = 0;
                 if ((*evt)->comm_prev)
-                    max_agg_parent = ((*evt)->comm_prev->getMetric("Lateness"));
+                    max_agg_parent = ((*evt)->comm_prev->getMetric(base_name));
                 for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
                 {
-                    if ((*msg)->receiver == *evt && (*msg)->sender->getMetric("Lateness") > max_parent)
-                        max_parent = (*msg)->sender->getMetric("Lateness");
+                    if ((*msg)->receiver == *evt && (*msg)->sender->getMetric(base_name) > max_parent)
+                        max_parent = (*msg)->sender->getMetric(base_name);
                 }
 
-                (*evt)->addMetric(dlateness, std::max(0LL, (*evt)->getMetric("Lateness") - max_parent),
-                                  std::max(0LL, (*evt)->getMetric("Lateness", true) - max_agg_parent));
+                (*evt)->addMetric(metric_name, std::max(0LL, (*evt)->getMetric(base_name) - max_parent),
+                                  std::max(0LL, (*evt)->getMetric(base_name, true) - max_agg_parent));
             }
+        }
+    }
+
+}
+
+void Trace::calculate_partition_lateness()
+{
+
+    QString p_late = "P. Lateness";
+    metrics->append(p_late);
+
+    unsigned long long int mintime, aggmintime;
+
+
+    for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
+    {
+
+        for (int i = (*part)->min_global_step; i <= (*part)->max_global_step; i += 2)
+        {
+
+            //std::cout << "Handling step " << i << std::endl;
+            QList<Event *> * i_list = new QList<Event *>();
+
+            //std::cout << "     Active partition: " << (*part)->generate_process_string().toStdString().c_str() << " : ";
+            //std::cout << (*part)->min_global_step << " - " << (*part)->max_global_step << std::endl;
+            for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
+            {
+                //std::cout << "       p = " << event_list.key() << std::endl;
+                for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
+                {
+                    if ((*evt)->step == i)
+                        i_list->append(*evt);
+                    //std::cout << "          Event p = " << (*evt)->process << ", s = " << (*evt)->step << std::endl;
+                }
+            }
+
+            // Find min leave time
+            mintime = ULLONG_MAX;
+            aggmintime = ULLONG_MAX;
+            for (QList<Event *>::Iterator evt = i_list->begin(); evt != i_list->end(); ++evt)
+            {
+                if ((*evt)->exit < mintime)
+                    mintime = (*evt)->exit;
+                if ((*evt)->enter < aggmintime)
+                    aggmintime = (*evt)->enter;
+            }
+
+            // Set lateness
+            //std::cout << "*****STEP***** " << i << std::endl;
+            for (QList<Event *>::Iterator evt = i_list->begin(); evt != i_list->end(); ++evt)
+            {
+                (*evt)->addMetric(p_late, (*evt)->exit - mintime, (*evt)->enter - aggmintime);
+                //std::cout << "Adding lateness to process " << (*evt)->process << std::endl;
+            }
+            delete i_list;
+            //std::cout << "*****END*****" << std::endl;
         }
     }
 
@@ -579,7 +634,9 @@ void Trace::assignSteps()
     traceTimer.start();
 
     calculate_lateness();
-    calculate_differential_lateness();
+    calculate_differential_lateness("D. Lateness", "Lateness");
+    calculate_partition_lateness();
+    calculate_differential_lateness("DP Lateness", "P. Lateness");
 
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "Lateness Calculation: ";
@@ -688,7 +745,7 @@ void Trace::mergeByLeap()
                 // If we are sufficiently close to the parent, back merge
                 if (child_distance > 10 * parent_distance)
                 {
-                    std::cout << "back merge " << std::endl;
+                    //std::cout << "back merge " << std::endl;
                     for (QSet<Partition *>::Iterator parent = (*partition)->parents->begin(); parent != (*partition)->parents->end(); ++parent)
                         if ((*parent)->dag_leap == (*partition)->dag_leap - 1)
                         {
@@ -948,6 +1005,7 @@ void Trace::mergeByLeap()
 // Any partition with overlapping steps will get merged
 void Trace::mergeGlobalSteps()
 {
+    std::cout << "Merging global steps..." << std::endl;
     int spanMin = 0;
     int spanMax = 0;
     QSet<Partition *> * new_partitions = new QSet<Partition *>();
