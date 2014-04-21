@@ -12,8 +12,8 @@ public:
     ~ClusterProcess();
 
     int process;
-    int startStep;
-    QVector<long long int> * metric_events;
+    int startStep; // What step our metric_events starts at
+    QVector<long long int> * metric_events; // Representative vector of events for clustering
 
     ClusterProcess& operator+(const ClusterProcess &);
     ClusterProcess& operator/(const int);

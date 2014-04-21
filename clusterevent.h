@@ -29,10 +29,9 @@ public:
                  Threshhold thresh = ALL);
 
     int step;
-    int waitallrecvs;
-    // On the way up, use metrics as total, then once the root, go back down and average them
-    long long int metric[2][3][2]; // [COMM/AGG] [SEND/RECV] [LOW/HIGH]
-    int counts[2][3][2];
+    int waitallrecvs; // How many individual receives there are
+    long long int metric[2][3][2]; // [COMM/AGG] [SEND/RECV/WAITALL] [LOW/HIGH]
+    int counts[2][3][2]; // This counts a waitall as a single event rather than all the receives
 };
 
 #endif // CLUSTEREVENT_H
