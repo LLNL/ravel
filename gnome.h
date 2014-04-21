@@ -48,6 +48,12 @@ public:
         }
     };
 
+    struct process_distance_np {
+        double operator()(const ClusterProcess& cp1, const ClusterProcess& cp2) const {
+            return cp1.calculateMetricDistance(cp2);
+        }
+    };
+
 protected:
     Partition * partition;
     QMap<int, Function *> * functions;

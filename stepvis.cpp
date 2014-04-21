@@ -60,6 +60,27 @@ void StepVis::setupMetric()
     options->setRange(0, maxMetric);
     cacheMetric = options->metric;
 
+    long long int thresh_metric = maxMetric * 0.5;
+    int comm_count = 0, comp_count = 0;
+    for (QList<Partition *>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
+    {
+        for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
+        {
+            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
+            {
+                if ((*evt)->hasMetric(metric))
+                {
+                    if ((*evt)->getMetric(metric) > thresh_metric)
+                        comm_count++;
+                    if ((*evt)->getMetric(metric, true) > thresh_metric)
+                        comp_count++;
+                }
+            }
+        }
+    }
+    std::cout << "For " << options->metric.toStdString().c_str() << " above threshhold are "
+              << comm_count << " comm events and " << comp_count << " comp events." << std::endl;
+
     // For colorbar
     QLocale systemlocale = QLocale::system();
     maxMetricText = systemlocale.toString(maxMetric) + " ns";

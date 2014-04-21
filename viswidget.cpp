@@ -21,7 +21,7 @@ VisWidget::VisWidget(QWidget *parent, VisOptions * _options) :
     closed(false)
 {
     // GLWidget options
-    setMinimumSize(50, 50);
+    setMinimumSize(30, 50);
     setAutoFillBackground(false);
     setWindowTitle("");
 }
@@ -32,7 +32,7 @@ VisWidget::~VisWidget()
 
 QSize VisWidget::sizeHint() const
 {
-    return QSize(50, 50);
+    return QSize(30, 50);
 }
 
 void VisWidget::initializeGL()

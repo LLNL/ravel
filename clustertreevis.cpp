@@ -10,7 +10,7 @@ ClusterTreeVis::ClusterTreeVis(QWidget *parent, VisOptions * _options)
 
 QSize ClusterTreeVis::sizeHint() const
 {
-    return QSize(50, 50);
+    return QSize(30, 50);
 }
 
 

@@ -50,13 +50,19 @@ Gnome * Gnome::create()
 
 void Gnome::preprocess()
 {
-    findMusters();
-    for (QMap<int, PartitionCluster *>::Iterator pc = cluster_leaves->begin(); pc != cluster_leaves->end(); ++pc)
+    if (partition && partition->events->size() > 20)
     {
-        (pc.value())->makeClusterVectors();
+        findMusters();
+        for (QMap<int, PartitionCluster *>::Iterator pc = cluster_leaves->begin(); pc != cluster_leaves->end(); ++pc)
+        {
+            (pc.value())->makeClusterVectors();
+        }
+        hierarchicalMusters();
     }
-    hierarchicalMusters();
-    //findClusters();
+    else
+    {
+        findClusters();
+    }
     generateTopProcesses();
 }
 
@@ -80,8 +86,15 @@ void Gnome::findMusters()
         cmetric = options->metric;
 
     int num_clusters = std::min(20, partition->events->size());
+    int dim = (partition->max_global_step - partition->min_global_step)/2 + 1;
     kmedoids clara;
     std::cout << "Beginning clara..." << std::endl;
+    /*std::vector<ClusterProcess> * xvector = new std::vector<ClusterProcess>();
+    for (int i = 0; i < partition->cluster_processes->size(); i++)
+        xvector->push_back(*(partition->cluster_processes->at(i)));
+    clara.xclara(*xvector, process_distance_np(), num_clusters, dim);
+    std::cout << "XClara found " << clara.medoid_ids.size() << " clusters" << std::endl;
+    */
     clara.clara(partition->cluster_processes->toStdVector(), process_distance(), num_clusters);
     std::cout << "Ending clara..." << std::endl;
     // Set up clusters
