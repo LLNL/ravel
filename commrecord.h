@@ -1,8 +1,7 @@
 #ifndef COMMRECORD_H
 #define COMMRECORD_H
 
-// Holder of OTF Info
-
+// Holder of OTF Comm Info
 class CommRecord
 {
 public:

@@ -3,6 +3,7 @@
 
 #include <QString>
 
+// Information about function calls from OTF
 class Function
 {
 public:

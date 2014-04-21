@@ -31,9 +31,13 @@ private:
     QColor average(ColorValue * low, ColorValue * high, double norm, double opacity = 1.0);
     QColor categorical_color(double value);
 
+    // metric value range
     double minValue;
     double maxValue;
+
+    // temporary maximum for colormap
     double maxClamp;
+
     bool categorical;
     QVector<ColorValue *> * colors;
 };

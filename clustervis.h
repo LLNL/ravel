@@ -16,14 +16,14 @@ public:
     void wheelEvent(QWheelEvent * event);
 
 signals:
-    void focusGnome();
-    void clusterChange();
-    void neighborChange(int);
+    void focusGnome(); // used by clustertreevis
+    void clusterChange(); // for cluster selection
+    void neighborChange(int); // change neighborhood radius for top processes
 
 public slots:
     void setSteps(float start, float stop, bool jump = false);
-    void clusterChanged();
-    void changeNeighborRadius(int neighbors);
+    void clusterChanged(); // for cluster selection
+    void changeNeighborRadius(int neighbors); // neighborhood radius for top processes
     void selectEvent(Event * event, bool aggregate);
 
 protected:
@@ -31,8 +31,6 @@ protected:
     void drawNativeGL();
     void paintEvents(QPainter *painter);
     void prepaint();
-    //void drawLine(QPainter * painter, QPointF * p1, QPointF * p2, int effectiveHeight);
-    //void setupMetric();
     void mouseDoubleClickEvent(QMouseEvent * event);
 
     QMap<Gnome *, QRect> drawnGnomes;

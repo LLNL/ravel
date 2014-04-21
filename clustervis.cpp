@@ -9,6 +9,7 @@ ClusterVis::ClusterVis(ClusterTreeVis *ctv, QWidget* parent, VisOptions *_option
 {
 }
 
+// Standard initialization
 void ClusterVis::setTrace(Trace * t)
 {
     VisWidget::setTrace(t);
@@ -25,6 +26,7 @@ void ClusterVis::setTrace(Trace * t)
     maxStep = trace->global_max_step;
 }
 
+// Just like stepvis
 void ClusterVis::setSteps(float start, float stop, bool jump)
 {
     if (!visProcessed)
@@ -45,11 +47,13 @@ void ClusterVis::setSteps(float start, float stop, bool jump)
     }
 }
 
+// Handle dragging and hovering
 void ClusterVis::mouseMoveEvent(QMouseEvent * event)
 {
     if (!visProcessed)
         return;
 
+    // We only drag in the horizontal for this vis
     if (mousePressed)
     {
         lastStartStep = startStep;
@@ -76,7 +80,7 @@ void ClusterVis::mouseMoveEvent(QMouseEvent * event)
         changeSource = true;
         emit stepsChanged(startStep, startStep + stepSpan, false);
     }
-    else // potential hover
+    else // potential hover - forward to appropriate gnome & possibly change focus gnome to match hover
     {
         mousex = event->x();
         mousey = event->y();
@@ -114,33 +118,39 @@ void ClusterVis::mouseMoveEvent(QMouseEvent * event)
 
 }
 
-// zooms, but which zoom?
+// Zoom, but only in the step direction
 void ClusterVis::wheelEvent(QWheelEvent * event)
 {
     if (!visProcessed)
         return;
 
-    float scale = 1;
-    int clicks = event->delta() / 8 / 15;
-    scale = 1 + clicks * 0.05;
     if (Qt::MetaModifier && event->modifiers()) {
-        // Vertical
-        float avgProc = startProcess + processSpan / 2.0;
-        processSpan *= scale;
-        startProcess = avgProc - processSpan / 2.0;
+        // Vertical - Doesn't make sense here so do nothing
+        // so that it doesn't behave differently from the other vis
+        //float avgProc = startProcess + processSpan / 2.0;
+        //processSpan *= scale;
+        //startProcess = avgProc - processSpan / 2.0;
     } else {
         // Horizontal
+        float scale = 1;
+        int clicks = event->delta() / 8 / 15;
+        scale = 1 + clicks * 0.05;
+
         lastStartStep = startStep;
         float avgStep = startStep + stepSpan / 2.0;
         stepSpan *= scale;
         startStep = avgStep - stepSpan / 2.0;
+
+        repaint();
+        changeSource = true;
+        emit stepsChanged(startStep, startStep + stepSpan, false);
     }
-    repaint();
-    changeSource = true;
-    emit stepsChanged(startStep, startStep + stepSpan, false);
+
 }
 
 
+// Forward click to gnome. Based on return value of gnome, possibly
+// signal.
 void ClusterVis::mouseDoubleClickEvent(QMouseEvent * event)
 {
     if (!visProcessed)
@@ -148,6 +158,11 @@ void ClusterVis::mouseDoubleClickEvent(QMouseEvent * event)
 
     int x = event->x();
     int y = event->y();
+
+    // Reset selection for other gnomes -- the gnomes can't tell if one is selected and another is
+    // not, so this effectively clears the selection in the old gnome when a different one has
+    // become selected. We should probably just save the one that's currently selected, but this
+    // list is fairly short and we need it anyway for other interactions.
     for (QMap<Gnome *, QRect>::Iterator gnome = drawnGnomes.begin(); gnome != drawnGnomes.end(); ++gnome)
         gnome.key()->setSelected(false);
 
@@ -157,26 +172,24 @@ void ClusterVis::mouseDoubleClickEvent(QMouseEvent * event)
             Gnome * g = gnome.key();
             Gnome::ChangeType change = g->handleDoubleClick(event);
             repaint();
-            if (change == Gnome::CLUSTER)
+            if (change == Gnome::CLUSTER) // Clicked to open Cluster
             {
                 changeSource = true;
                 emit(clusterChange());
             }
-            else if (change == Gnome::SELECTION)
+            else if (change == Gnome::SELECTION) // Selected a cluster
             {
                 changeSource = true;
                 PartitionCluster * pc = g->getSelectedPartitionCluster();
                 if (pc)
                 {
                     changeSource = false;
-                    std::cout << "Select a partition cluster" << std::endl;
                     g->setSelected(true);
                     emit(processesSelected(*(pc->members), g));
 
                 }
                 else
                 {
-                    std::cout << "Deselect a partition cluster" << std::endl;
                     emit(processesSelected(QList<int>(), NULL));
                 }
             }
@@ -200,9 +213,16 @@ void ClusterVis::clusterChanged()
     repaint();
 }
 
+
+// Called before drawing begins
 void ClusterVis::prepaint()
 {
     drawnGnomes.clear();
+
+    // Figure out what partitions we need to search in hopefully a more
+    // efficient manner than iterating through them all by making use of
+    // where we were before and the fact we probably haven't moved that much.
+
     if (jumped) // We have to redo the active_partitions
     {
         // We know this list is in order, so we only have to go so far
@@ -223,7 +243,7 @@ void ClusterVis::prepaint()
     {
         int bottomStep = floor(startStep) - 1;
         Partition * part = NULL;
-        if (startStep < lastStartStep) // check earlier partitions
+        if (startStep < lastStartStep) // check earlier partitions to move the start back
         {
             for (int i = startPartition; i >= 0; --i) // Keep setting the one before until its right
             {
@@ -240,7 +260,7 @@ void ClusterVis::prepaint()
         }
         else if (startStep > lastStartStep) // check current partitions up
         {
-            for (int i = startPartition; i < trace->partitions->length(); ++i) // As soon as we find one, we're good
+            for (int i = startPartition; i < trace->partitions->length(); ++i) // See if we've advanced the start forward
             {
                 part = trace->partitions->at(i);
                 if (part->max_global_step >= bottomStep)
@@ -261,13 +281,13 @@ void ClusterVis::qtPaint(QPainter *painter)
 
     // In this case we haven't already drawn stuff with GL, so we paint it here.
     if (rect().width() / stepSpan >= 3)
-      paintEvents(painter);
+        paintEvents(painter);
 
     // Hover is independent of how we drew things
     drawHover(painter);
 }
 
-
+// If there are too many objects, use GL
 void ClusterVis::drawNativeGL()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -322,12 +342,15 @@ void ClusterVis::drawNativeGL()
 
 }
 
+// If there are few enough objects, use Qt
 void ClusterVis::paintEvents(QPainter * painter)
 {
 
     int effectiveHeight = rect().height();
     int effectiveWidth = rect().width();
 
+    // Figure out blockwidth to be observed across gnomes, if we're in Qt land,
+    // that should be greater than 1.
     int aggOffset = 0;
     float blockwidth;
     if (options->showAggregateSteps)
@@ -345,12 +368,16 @@ void ClusterVis::paintEvents(QPainter * painter)
     int topStep = boundStep(startStep + stepSpan) + 1;
     int bottomStep = floor(startStep) - 1;
     stepwidth = blockwidth;
+
+    // In case there's no hover-gnome this gets used
     Gnome * leftmost = NULL;
     Gnome * nextgnome = NULL;
+
+    // Given for each gnome
     float drawSpan;
     float drawStart;
-    //std::cout << " Step span is " << bottomStep << " to " << topStep << " and startPartition is ";
-    //std::cout << trace->partitions->at(startPartition)->min_global_step << " to " << trace->partitions->at(startPartition)->max_global_step << std::endl;
+
+    // Draw active partitions gnomes
     for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
         part = trace->partitions->at(i);
@@ -392,41 +419,9 @@ void ClusterVis::paintEvents(QPainter * painter)
             treevis->setGnome(leftmost);
     }
 
-    /*
-    QList<Gnome *> max_gnomes = QList<Gnome *>();
-    float max_step_portion = 0; // # of steps represented over the total for the partition
-    float left_gnome_portion = 0;
-    int steps, start, stop;
-    float display_steps, portion;
-    for (QMap<Gnome*, QRect>::Iterator gr = drawnGnomes->begin(); gr != drawnGnomes.end(); ++gr)
-    {
-        QRect grect = gr.value();
-        Gnome * gnome = gr.key();
-        steps = gnome->partition->max_global_step - gnome->partition->min_global_step + 1;
-        start = grect.x();
-        stop = grect.x() + grect.width();
-        if (start < 0)
-            start = 0;
-        if (stop > rect().width())
-            stop = rect().width();
-        display_steps = (stop - start) / 1.0 / blockwidth;
-        portion = display_steps / steps;
-        if (portion > max_step_portion)
-        {
-            max_gnomes.clear();
-            max_gnomes.append(gnome);
-            max_step_portion = portion;
-        }
-        else if (fabs(max_step_portion - portion) < 1e-6)
-        {
-            max_gnomes.append(gnome);
-        }
-        if (gnome == leftmost)
-            left_gnome_portion = portion;
-    }
-    */
 }
 
+// When the neighborhood slider changes, this is called
 void ClusterVis::changeNeighborRadius(int neighbors)
 {
     if (treevis->getGnome())
@@ -437,6 +432,7 @@ void ClusterVis::changeNeighborRadius(int neighbors)
     }
 }
 
+// Selected event comes from other vis
 void ClusterVis::selectEvent(Event * event, bool aggregate)
 {
     if (selected_gnome)

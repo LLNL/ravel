@@ -15,6 +15,9 @@
 
 #include "kmedoids.h"
 
+// Our unit of clustering and drawing. The idea is the inheritance hierarchy will allow
+// customization. However, this design with both a detector and a drawing style needs
+// to be factored in some other way. The design right now is suspect.
 class Gnome
 {
 public:
@@ -135,11 +138,11 @@ protected:
     void drawGnomeQtClusterBranch(QPainter * painter, QRect current, PartitionCluster * pc,
                                   float blockheight, int blockwidth, int barheight, int barwidth);
     void drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy, QList<Event *> * elist,
-                                int blockwidth, int startStep); // Doesn't use blockheight
-    void drawGnomeQtInterMessages(QPainter * painter, int blockwidth, int startStep, int startx); // Doesn't use blockheight
+                                int blockwidth, int startStep);
+    void drawGnomeQtInterMessages(QPainter * painter, int blockwidth, int startStep, int startx);
     virtual void drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, PartitionCluster * pc,
                                     int barwidth, int barheight, int blockwidth, int blockheight,
-                                    int startStep); // At this point, blockheight will just get recalculated anyway probably
+                                    int startStep); // This probably just recalculated blockheight...
     void drawTreeBranch(QPainter * painter, QRect current, PartitionCluster * pc,
                         int branch_length, int labelwidth, float blockheight, int leafx);
     int getTopHeight(QRect extents);

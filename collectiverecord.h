@@ -1,6 +1,7 @@
 #ifndef COLLECTIVERECORD_H
 #define COLLECTIVERECORD_H
 
+// Information we get from OTF about collectives
 class CollectiveRecord
 {
 public:

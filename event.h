@@ -31,15 +31,20 @@ public:
         MetricPair(long long _e, long long _a)
             : event(_e), aggregate(_a) {}
 
-        long long event;
-        long long aggregate;
+        long long event; // value at event
+        long long aggregate; // value at prev. aggregate event
     };
 
+    // Logical parents/children
     QVector<Event *> * parents;
     QVector<Event *> * children;
+
+    // Messages involved wiht this event
     QVector<Message *> * messages;
+
     QMap<QString, MetricPair *> * metrics; // Lateness or Counters etc
 
+    // Call tree info
     Event * caller;
     QVector<Event *> * callees;
 
@@ -63,7 +68,6 @@ public:
     int step;
     int depth;
     int phase;
-    int orig_phase;
 };
 
 #endif // EVENT_H

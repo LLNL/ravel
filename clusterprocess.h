@@ -13,7 +13,11 @@ public:
 
     int process;
     int startStep; // What step our metric_events starts at
-    QVector<long long int> * metric_events; // Representative vector of events for clustering
+
+    // Representative vector of events for clustering. This is contiguous
+    // so all missing steps should be filled in with their previous lateness
+    // value by whoever builds this ClusterProcess
+    QVector<long long int> * metric_events;
 
     ClusterProcess& operator+(const ClusterProcess &);
     ClusterProcess& operator/(const int);

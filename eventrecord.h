@@ -1,8 +1,7 @@
 #ifndef EVENTRECORD_H
 #define EVENTRECORD_H
 
-// Holder for OTF info
-
+// Holder for OTF Event info
 class EventRecord
 {
 public:

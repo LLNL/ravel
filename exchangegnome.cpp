@@ -19,6 +19,9 @@ ExchangeGnome::~ExchangeGnome()
 
 }
 
+// Check that the send-to processes and receive-from processes are the same.
+// Note right now this doesn't check number, only identity, so it could false positive
+// if you send-to a process twice but only receive from it once.
 bool ExchangeGnome::detectGnome(Partition * part)
 {
     bool gnome = true;
@@ -32,12 +35,6 @@ bool ExchangeGnome::detectGnome(Partition * part)
         for (QList<Event *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
         {
-            /*Message * msg = (*evt)->messages->at(0); // For now only first matters, rest will be the same... NOT FOR RECVS
-            if (msg->sender == (*evt))
-                recvs.insert(msg->receiver->process);
-            else
-                sends.insert(msg->sender->process);
-                */
             for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
                  msg != (*evt)->messages->end(); ++msg)
             {
@@ -77,7 +74,6 @@ void ExchangeGnome::preprocess()
     Gnome::preprocess();
 }
 
-// Need to add even/odd check so we can tell if we have somethign essentially srsr
 ExchangeGnome::ExchangeType ExchangeGnome::findType()
 {
     int types[UNKNOWN + 1];
@@ -86,8 +82,19 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
     for (QMap<int, QList<Event *> *>::Iterator event_list = partition->events->begin();
          event_list != partition->events->end(); ++event_list)
     {
+        // Odd keeps track of whether the step in the SRSR order is even or odd. We need to
+        // keep track of pairs which can be SR or RS, so we use odd to keep track of where
+        // we were in the pair.
+        // Note this could be kind of off in pF3D because some processes only send or only recv
+        // in a pair... but when they do that, in that pair of pairs they tend to form an SR or an RS,
+        // so it works for now.
         bool b_ssrr = true, b_srsr = true, b_sswa = true, first = true, sentlast = true, odd = true;
         int recv_dist_2 = 0, recv_dist_not_2 = 0;
+
+        // srsr_pattern compresses the send/recv steps into a single number to be looked at in
+        // top process generation. It puts a 1 where each send is. It doesn't however place
+        // where the receives are so again, this might do something odd for the pair of pairs, which
+        // is why this isn't in use yet or maybe ever.
         int srsr_pattern = 0;
         for (QList<Event *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
@@ -99,7 +106,8 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
                 if (msg->receiver == *evt) // Receive
                 {
                     sentlast = false;
-                    // Can't be these patterns
+                    // Can't be these patterns since a process starts on a receive
+                    // and we know it must have a send since this is an exchange
                     b_ssrr = false;
                     b_sswa = false;
                 }
@@ -115,17 +123,17 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
                         b_ssrr = false;
                     sentlast = false;
 
-                    if ((*evt)->messages->size() > maxWAsize)
+                    if ((*evt)->messages->size() > maxWAsize) // Keep track of largest Waitall
                         maxWAsize = (*evt)->messages->size();
                 }
                 else // Send
                 {
-                    if (!sentlast)
+                    if (!sentlast) // send hapepening after receive
                     {
                         b_ssrr = false;
                         b_sswa = false;
                     }
-                    else if (sentlast && !odd)
+                    else if (sentlast && !odd) // multiple sends in a row without switching
                     {
                         b_srsr = false;
                     }
@@ -139,15 +147,15 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
                 }
                 odd = !odd;
             }
-            if (!(b_ssrr || b_sswa || b_srsr)) { // Unknown
+            if (!(b_ssrr || b_sswa || b_srsr)) { // Unknown, we can stop now
                 types[UNKNOWN]++;
                 break;
             }
         }
-        if (b_srsr && recv_dist_not_2 > recv_dist_2)
+
+
+        if (b_srsr && recv_dist_not_2 > recv_dist_2) // Only SRSR if really tight back and forth
             b_srsr = false;
-        //std::cout << "Process " << event_list.key() << " with SRSR: " << b_srsr << ", SSRR ";
-        //std::cout << b_ssrr << ", SSWA " << b_sswa << std::endl;
         if (b_srsr) {
             types[SRSR]++;
             SRSRmap[event_list.key()] = srsr_pattern;
@@ -160,25 +168,33 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
         if (!(b_ssrr || b_sswa || b_srsr))
             types[UNKNOWN]++;
     }
-    //std::cout << "Types are SRSR " << types[SRSR] << ", SSRR " << types[SSRR] << ", SSWA ";
-   // std::cout << types[SSWA] << ", UNKNOWN " << types[UNKNOWN] << std::endl;
 
-    if (types[SRSR] > 0 && (types[SSRR] > 0 || types[SSWA] > 0)) // If we have this going on, really confusing
+    \// If we made it down here, we do the final checks to figure out what patterns we have based on all processes
+    if (types[SRSR] > 0 && (types[SSRR] > 0 || types[SSWA] > 0))
+        // If we have this going on, too confusing to pick one
         return UNKNOWN;
     else if (types[UNKNOWN] > types[SRSR] && types[UNKNOWN] > types[SSRR] && types[UNKNOWN] > types[SSWA])
+        // Mostly unknown
         return UNKNOWN;
     else if (types[SRSR] > 0)
+        // If we make it to here and have SRSR, then the others are 0 (based on first if) so we pick it
         return SRSR;
-    else if (types[SSWA] > types[SSRR]) // Some SSWA might look like SSRR and thus be double counted
+    else if (types[SSWA] > types[SSRR])
+        // Some SSWA might look like SSRR and thus be double counted, so we give precedence to SSWA
         return SSWA;
     else
         return SSRR;
 }
 
+
+// We have a special generator for top processes for SRSR based on trying to find which number of neighbors
+// best represents the different patterns.
+// We add all neighbors and then search those partners for the missing strings
+// We only do this when the neighbor number has not been otherwise set (e.g. by the slider)
 void ExchangeGnome::generateTopProcesses()
 {
 
-    if (type == SRSR && neighbors < 0) // Add all partners and then search those partners for the missing strings
+    if (type == SRSR && neighbors < 0)
     {
         top_processes.clear();
         QList<Event *> * elist = partition->events->value(max_metric_process);
@@ -187,6 +203,7 @@ void ExchangeGnome::generateTopProcesses()
         QSet<int> patterns = QSet<int>();
         patterns.insert(SRSRmap[max_metric_process]);
         add_processes.insert(max_metric_process);
+        // Always add the 1-neighborhood:
         for (QList<Event *>::Iterator evt = elist->begin(); evt != elist->end(); ++evt)
         {
             for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
@@ -198,7 +215,6 @@ void ExchangeGnome::generateTopProcesses()
                         add_processes.insert((*msg)->receiver->process);
                         level_processes.insert((*msg)->receiver->process);
                         patterns.insert(SRSRmap[(*msg)->receiver->process]);
-                        std::cout << "  Adding neighbor " << (*msg)->receiver->process << std::endl;
                     }
                 }
                 else
@@ -208,13 +224,12 @@ void ExchangeGnome::generateTopProcesses()
                         add_processes.insert((*msg)->sender->process);
                         level_processes.insert((*msg)->sender->process);
                         patterns.insert(SRSRmap[(*msg)->sender->process]);
-                        std::cout << "  Adding neighbor " << (*msg)->sender->process << std::endl;
                     }
                 }
             }
         }
 
-        // Now check, do we have all patterns?
+        // Now check, do we have most of the patterns?
         int neighbor_depth = 1;
         while (patterns.size() / 1.0 / SRSRpatterns.size() < 0.5)
         {
@@ -222,7 +237,7 @@ void ExchangeGnome::generateTopProcesses()
             level_processes.clear();
             qSort(check_group); // Future, possibly sort by something else than process id, like metric
 
-            // Now see about adding things from the check group
+            // Now see about adding things from the check group, as long as they haven't already been added
             for (QList<int>::Iterator proc = check_group.begin(); proc != check_group.end(); ++proc)
             {
                 elist = partition->events->value(*proc);
@@ -237,7 +252,6 @@ void ExchangeGnome::generateTopProcesses()
                                 add_processes.insert((*msg)->receiver->process);
                                 level_processes.insert((*msg)->receiver->process);
                                 patterns.insert(SRSRmap[(*msg)->receiver->process]);
-                                std::cout << "  Adding " << (*msg)->receiver->process << std::endl;
                             }
                         }
                         else
@@ -247,7 +261,6 @@ void ExchangeGnome::generateTopProcesses()
                                 add_processes.insert((*msg)->sender->process);
                                 level_processes.insert((*msg)->sender->process);
                                 patterns.insert(SRSRmap[(*msg)->sender->process]);
-                                std::cout << "  Adding " << (*msg)->sender->process << std::endl;
                             }
                         }
                     }
@@ -258,8 +271,10 @@ void ExchangeGnome::generateTopProcesses()
             neighbor_depth++;
         }
         top_processes += add_processes.toList();
-        std::cout << "Neighbor depth: " << neighbor_depth << std::endl;
         qSort(top_processes);
+        // We need to somehow get the neighbor_depth (neighbor_radius) set on this gnome
+        // and known by the tree vis
+        neighbors = neighbor_depth;
     }
     else
     {
@@ -268,111 +283,7 @@ void ExchangeGnome::generateTopProcesses()
 }
 
 
-
-
-
-void ExchangeGnome::drawGnomeQtClusterSSRR(QPainter * painter, QRect startxy, PartitionCluster * pc,
-                                           int barwidth, int barheight, int blockwidth, int blockheight,
-                                           int startStep)
-{
-    // Here blockheight is the maximum height afforded to the block. We actually scale it
-    // based on how many processes are sending or receiving at that point
-    // The first row is send, the second row is recv
-    bool drawMessages = true;
-    if (startxy.height() > 2 * clusterMaxHeight)
-    {
-        blockheight = clusterMaxHeight - 25;
-        barheight = blockheight - 3;
-    }
-    else
-    {
-        blockheight = startxy.height() / 2;
-        if (blockheight < 40)
-            drawMessages = false;
-        else
-            blockheight -= 20; // For message drawing
-        if (barheight > blockheight - 3)
-            barheight = blockheight;
-    }
-    int base_y = startxy.y() + startxy.height() / 2 - blockheight;
-    int x, ys, yr, w, hs, hr, xa, wa, ya, ha, nsends, nrecvs;
-    yr = base_y + blockheight;
-    int base_ya = base_y + blockheight / 2 + (blockheight - barheight) / 2;
-    if (options->showAggregateSteps) {
-        startStep -= 1;
-    }
-    //std::cout << "Drawing background " << startxy.x() << ", " << startxy.y();
-    //std::cout << ", " << startxy.width() << ", " << startxy.height() << std::endl;
-    painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
-    for (QList<ClusterEvent *>::Iterator evt = pc->events->begin(); evt != pc->events->end(); ++evt)
-    {
-        if (options->showAggregateSteps)
-            x = floor(((*evt)->step - startStep) * blockwidth) + 1 + startxy.x();
-        else
-            x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1 + startxy.x();
-        w = barwidth;
-        nsends = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND);
-        nrecvs = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::RECV);
-        hs = barheight * nsends / 1.0 / pc->members->size();
-        ys = base_y + barheight - hs;
-        hr = barheight * nrecvs / 1.0 / pc->members->size();
-
-        // Draw the event
-        if ((*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND, ClusterEvent::ALL))
-            painter->fillRect(QRectF(x, ys, w, hs), QBrush(options->colormap->color(
-                                                         (*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::SEND,
-                                                                           ClusterEvent::ALL)
-                                                         / (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND,
-                                                                            ClusterEvent::ALL)
-                                                         )));
-        if ((*evt)->getCount(ClusterEvent::COMM, ClusterEvent::RECV, ClusterEvent::ALL))
-            painter->fillRect(QRectF(x, yr, w, hr), QBrush(options->colormap->color(
-                                                         (*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::RECV,
-                                                                           ClusterEvent::ALL)
-                                                         / (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::RECV,
-                                                                            ClusterEvent::ALL)
-                                                         )));
-
-        // Draw border but only if we're doing spacing, otherwise too messy
-        if (blockwidth != w) {
-            painter->drawRect(QRectF(x,ys,w,hs));
-            painter->drawRect(QRectF(x,yr,w,hr));
-        }
-
-        if (drawMessages) {
-            if (nsends)
-            {
-                painter->setPen(QPen(Qt::black, nsends * 2.0 / pc->members->size(), Qt::SolidLine));
-                painter->drawLine(x + blockwidth / 2, ys, x + barwidth, ys - 20);
-            }
-            if (nrecvs)
-            {
-                painter->setPen(QPen(Qt::black, nrecvs * 2.0 / pc->members->size(), Qt::SolidLine));
-                painter->drawLine(x + blockwidth / 2, yr + barheight, x + 1, yr + barheight + 20);
-            }
-        }
-
-        if (options->showAggregateSteps) {
-            xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + startxy.x();
-            wa = barwidth;
-            ha = barheight * (nsends + nrecvs) / 1.0 / pc->members->size();
-            ya = base_ya + (barheight - ha) / 2;
-
-            painter->fillRect(QRectF(xa, ya, wa, ha),
-                              QBrush(options->colormap->color(
-                                                              (*evt)->getMetric(ClusterEvent::AGG, ClusterEvent::BOTH,
-                                                                                ClusterEvent::ALL)
-                                                              / (*evt)->getCount(ClusterEvent::AGG, ClusterEvent::BOTH,
-                                                                                 ClusterEvent::ALL)
-                                                              )));
-            if (blockwidth != w)
-                painter->drawRect(QRectF(xa, ya, wa, ha));
-        }
-
-
-    }
-}
-
+// Replace the receive line with a pie indicating the size of the waitall
 void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy, PartitionCluster * pc,
                                            int barwidth, int barheight, int blockwidth, int blockheight,
                                            int startStep)
@@ -391,7 +302,7 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy, Pa
         if (blockheight < 40)
             drawMessages = false;
         else
-            blockheight -= 20; // For message drawing
+            blockheight -= 20; // Room for message drawing
         if (barheight > blockheight - 3)
             barheight = blockheight;
     }
@@ -415,7 +326,7 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy, Pa
             divisor = nsends + nwaits;
 
         hs = blockheight * nsends / 1.0 / divisor;
-        ys = base_y; // + barheight - hs;
+        ys = base_y;
         hw = blockheight * nwaits / 1.0 / divisor;
         yw = base_y + blockheight - hw;
 
@@ -423,14 +334,12 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy, Pa
         if (nsends) {
             QColor sendColor = options->colormap->color((*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::SEND,
                                           ClusterEvent::ALL) / nsends);
-            //painter->setBrush(sendColor);
             painter->fillRect(QRectF(x, ys, w, hs), QBrush(sendColor));
         }
          if (nwaits)
          {
             QColor waitColor = options->colormap->color((*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::WAITALL, ClusterEvent::ALL)
                         / nwaits );
-            //painter->setBrush(waitColor);
             painter->fillRect(QRectF(x, yw, w, hw), QBrush(waitColor));
          }
 
@@ -438,13 +347,10 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy, Pa
         if (blockwidth != w) {
             painter->setPen(QPen(Qt::black, 1.0, Qt::SolidLine));
             painter->drawRect(QRect(x, ys, w, blockheight));
-            /*if (nsends)
-                painter->drawRect(QRectF(x,ys,w,hs));
-            if (nwaits)
-                painter->drawRect(QRectF(x,yw,w,hw));
-                */
         }
 
+        // Draw the sends as normal, draw the waitalls as a partially filled pie and a number label
+        // Maybe we want to move the number label inside some day?
         if (drawMessages) {
             if (nsends)
             {
@@ -458,9 +364,6 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy, Pa
                 int start = 180 * 16;
                 painter->setPen(QPen(Qt::black, 1.0, Qt::SolidLine));
                 painter->setBrush(QBrush(Qt::black));
-                //painter->drawPie(x + blockwidth * 3 / 4, yw + blockwidth / 4,
-                //                 blockwidth / 4, blockwidth / 2,
-                //                 start, angle);
                 painter->drawPie(x + blockwidth - 16, base_y + blockheight - 12, 25, 25, start, angle);
                 painter->drawText(x + blockwidth / 4 - 12, base_y + blockheight + 15, QString::number(avg_recvs, 'g', 2));
                 painter->setBrush(QBrush());
@@ -469,6 +372,7 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy, Pa
             }
         }
 
+        // Repeat for aggregate step which has no messages of course
         if (options->showAggregateSteps) {
             xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + startxy.x();
             wa = barwidth;
@@ -500,10 +404,15 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy, Pa
     }
 }
 
+// For SRSR instead of doing a single combined box for each step, we divide in half and draw each half
+// as either the active or waiting process. All active processes are aggregated onto the active step
+// in the drawing, regardless of what they are doing. This is the most distoring because it is showing
+// a simplified diagram of what is not going on to give the general idea.
 void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, PartitionCluster * pc,
                                            int barwidth, int barheight, int blockwidth, int blockheight,
                                            int startStep)
 {
+    // Unlike others, this doesn't need to leave room for outer messages
     if (startxy.height() > 2 * clusterMaxHeight)
     {
         blockheight = clusterMaxHeight;
@@ -517,7 +426,8 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, Pa
         else
             barheight = blockheight - 3;
     }
-    // Rest of these should not be blockheight now that we've changed blockheight
+
+
     int base_y = startxy.y() + startxy.height() / 2 - blockheight;
     int x, y, w, h, xa, wa, xr, yr;
     xr = blockwidth;
@@ -530,7 +440,10 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, Pa
     QList<DrawMessage *> msgs = QList<DrawMessage *>();
     ClusterEvent * evt = pc->events->first();
     int events_index = 0;
-    //for (QList<ClusterEvent *>::Iterator evt = pc->events->begin(); evt != pc->events->end(); ++evt)
+
+    // Unlike our other drawing methods, we walk through based on steps and advance the
+    // ClusterEvent separately. This isn't particularly functionally different but puts
+    // the emphasis on the step over the event. At least that's what I assume I was thinking.
     for (int i = starti; i < partition->max_global_step; i += 2)
     {
         if (options->showAggregateSteps)
@@ -544,12 +457,12 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, Pa
         w = barwidth;
         h = barheight;
         y = base_y;
-        if (((i - startStep + 2) / 4) % 2)
+        if (((i - startStep + 2) / 4) % 2) // Every other set is in the second lane
             y += blockheight;
 
+        // If we have an event at this space, otherwise draw a dummy
         if (evt->step == i && evt->getCount())
         {
-            // We know it will be complete in this view because we're not doing scrolling or anything here.
 
             // Draw the event
             painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color(
@@ -563,6 +476,7 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, Pa
             if (blockwidth != w)
                 painter->drawRect(QRectF(x,y,w,h));
 
+            // Draw the aggregate & border too if necessary
             if (options->showAggregateSteps) {
                 painter->fillRect(QRectF(xa, y, wa, h), QBrush(options->colormap->color(
                                                                        evt->getMetric(ClusterEvent::AGG, ClusterEvent::BOTH,
@@ -574,8 +488,8 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, Pa
                     painter->drawRect(QRectF(xa, y, wa, h));
             }
 
-            // Need to draw messages after this, or at least keep track of messages...
-            // Maybe check num_sends here?
+            // Save message info here to be drawn later. We get its weight as well as its
+            // start and end positions
             if (evt->getCount(ClusterEvent::COMM, ClusterEvent::SEND) > 0)
             {
                 if (y == base_y)
@@ -622,13 +536,15 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, Pa
         delete *dm;
 }
 
+
+// Special drawing styles for exchange types
 void ExchangeGnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, PartitionCluster * pc,
                                           int barwidth, int barheight, int blockwidth, int blockheight,
                                           int startStep)
 {
     if (type == SRSR)
         drawGnomeQtClusterSRSR(painter, clusterRect, pc, barwidth, barheight, blockwidth, blockheight, startStep);
-    //else if (type == SSRR)
+    //else if (type == SSRR) // No special drawing for this
     //    drawGnomeQtClusterSSRR(painter, clusterRect, pc, barwidth, barheight, blockwidth, blockheight, startStep);
     else if (type == SSWA)
         drawGnomeQtClusterSSWA(painter, clusterRect, pc, barwidth, barheight, blockwidth, blockheight, startStep);

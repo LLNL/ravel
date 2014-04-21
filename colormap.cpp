@@ -1,6 +1,7 @@
 #include "colormap.h"
 #include <iostream>
 
+// Initial color/value pair in constructor
 ColorMap::ColorMap(QColor color, float value, bool _categorical)
     : minValue(0),
       maxValue(1),
@@ -49,6 +50,7 @@ void ColorMap::addColor(QColor color, float stop)
 {
     bool added = false;
     colors->begin();
+    // Keep colors in order by value
     for (QVector<ColorValue *>::Iterator itr = colors->begin(); itr != colors->end(); ++itr) {
         if (stop < (*itr)->value) {
             colors->insert(itr, new ColorValue(color, stop));
@@ -66,6 +68,7 @@ QColor ColorMap::color(double value, double opacity)
     if (categorical)
         return categorical_color(value);
 
+    // Find the colors at either end of the given value and blend them them
     ColorValue base1 = ColorValue(QColor(0,0,0,opacity*255), 0);
     ColorValue base2 = ColorValue(QColor(0,0,0,opacity*255), 1);
     ColorValue* low = &base1;
@@ -90,6 +93,7 @@ QColor ColorMap::categorical_color(double value)
     return colors->at(cat_value)->color;
 }
 
+// Weighted average of two color values based on where norm falls
 QColor ColorMap::average(ColorValue * low, ColorValue * high, double norm, double opacity)
 {
     int r, g, b, a;
