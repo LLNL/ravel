@@ -86,7 +86,8 @@ Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
     return trace;
 }
 
-// Determine events as blocks of matching enter and exit
+// Determine events as blocks of matching enter and exit,
+// link them into a call tree
 void OTFConverter::matchEvents()
 {
     // We can handle each set of events separately
@@ -157,12 +158,6 @@ void OTFConverter::matchEvents()
             depth--;
         }
 
-        /*std::cout << "Process " << process << " has " << stack->size() << " left on the stack out of ";
-        std::cout << ((*event_list)->size()/2) << " total functions." << std::endl;
-        for (QStack<Event *>::Iterator itr = stack->begin(); itr != stack->end(); ++itr)
-        {
-            std::cout << "   Left function " << (((*(trace->functions))[(*itr)->function])->name).toStdString().c_str() << " at " << (*itr)->enter << std::endl;
-        }*/
         stack->clear();
     }
     delete stack;
@@ -218,6 +213,7 @@ void OTFConverter::matchMessages()
 
         }
     }
+    // Report
     std::cout << "Total messages: " << messages << " with " << unmatched_sends << " unmatched sends and " << unmatched_recvs << " unmatched_recvs." << std::endl;
 }
 
@@ -229,24 +225,21 @@ Event * OTFConverter::search_child_ranges(QVector<Event *> * children, unsigned 
     while (imax >= imin)
     {
         imid = (imin + imax) / 2;
-        //std::cout << "child loop for " << time << " looking at " << ((*(children))[imid])->enter << " to " << ((*(children))[imid])->exit << std::endl;
         if (((*(children))[imid])->exit < time)
         {
             imin = imid + 1;
-            //std::cout << "      increase min " << std::endl;
         }
         else if (((*(children))[imid])->enter > time)
         {
             imax = imid - 1;
-            //std::cout << "      decrease max " << std::endl;
         }
         else
             return (*children)[imid];
     }
 
-    //std::cout << "Returning null in child ranges" << std::endl;
     return NULL;
 }
+
 
 // Find event containing this comm
 Event * OTFConverter::find_comm_event(Event * evt, unsigned long long int time)

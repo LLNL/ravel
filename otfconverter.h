@@ -9,6 +9,10 @@
 #include <QSet>
 #include <cmath>
 
+// Uses the raw records read from the OTF:
+// - switches point events into durational events
+// - builds call tree
+// - matches messages to durational events
 class OTFConverter : public QObject
 {
     Q_OBJECT

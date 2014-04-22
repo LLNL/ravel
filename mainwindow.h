@@ -18,6 +18,8 @@ namespace Ui {
 class MainWindow;
 }
 
+// Mostly GUI handling. Right now also maintains all open traces
+// forever, but we need something better to do with that
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -29,19 +31,26 @@ public:
 public slots:
     void launchOTFOptions();
     void launchVisOptions();
-    void importOTFbyGUI();
+
+
+    // Signal relays
     void pushSteps(float start, float stop, bool jump = false);
     void selectEvent(Event * event, bool aggregate);
     void selectProcesses(QList<int> processes, Gnome *gnome);
-    void handleSplitter(int pos, int index);
-    void handleSideSplitter(int pos, int index);
+
+    // Importing & Progress Bar
+    void importOTFbyGUI();
     void traceFinished(Trace * trace);
     void updateProgress(int portion, QString msg);
+    void traceSwitch();
+
+    // High level GUI update
+    void handleSplitter(int pos, int index);
+    void handleSideSplitter(int pos, int index);
     void toggleLogicalSteps();
     void toggleClusteredSteps();
     void togglePhysicalTime();
     void toggleMetricOverview();
-    void traceSwitch();
 
 
 signals:
@@ -55,11 +64,13 @@ private:
     void linkMainSplitter();
     void setVisWidgetState();
 
+    // Saving traces & vis
     QVector<Trace *> traces;
     QVector<VisWidget *> viswidgets;
     QList<QAction *> visactions;
     int activeTrace;
 
+    // For progress bar
     OTFImportFunctor * importWorker;
     QThread * importThread;
     QProgressDialog * progress;

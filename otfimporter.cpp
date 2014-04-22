@@ -28,7 +28,6 @@ OTFImporter::OTFImporter()
 
 OTFImporter::~OTFImporter()
 {
-    //delete rawtrace;
 
     for (QVector<QLinkedList<CommRecord *> *>::Iterator eitr = unmatched_recvs->begin(); eitr != unmatched_recvs->end(); ++eitr) {
         for (QLinkedList<CommRecord *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
@@ -40,8 +39,12 @@ OTFImporter::~OTFImporter()
     }
     delete unmatched_recvs;
 
-    // Don't delete the CommRecords as they are now part of messages in the raw trace
     for (QVector<QLinkedList<CommRecord *> *>::Iterator eitr = unmatched_sends->begin(); eitr != unmatched_sends->end(); ++eitr) {
+        // I don't think we delete these yet, but we should -- just remove them from the messages
+        /*for (QLinkedList<CommRecord *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
+            delete *itr;
+            *itr = NULL;
+        }*/
         delete *eitr;
         *eitr = NULL;
     }
@@ -217,6 +220,7 @@ void OTFImporter::setHandlers()
     */
 }
 
+// Find timescale
 uint64_t OTFImporter::convertTime(void* userData, uint64_t time) {
     return (uint64_t) ((double) time) * ((OTFImporter *) userData)->time_conversion_factor;
 }
@@ -234,6 +238,7 @@ int OTFImporter::handleDefTimerResolution(void* userData, uint32_t stream, uint6
     return 0;
 }
 
+// Function Names & Groups pretty easy
 int OTFImporter::handleDefFunctionGroup(void * userData, uint32_t stream, uint32_t funcGroup,
                                         const char * name)
 {
@@ -264,7 +269,6 @@ int OTFImporter::handleDefProcess(void * userData, uint32_t stream, uint32_t pro
     Q_UNUSED(name);
     Q_UNUSED(process);
 
-    //std::cout << process << " : " << name << std::endl;
     ((OTFImporter*) userData)->num_processes++;
     return 0;
 }
@@ -281,8 +285,6 @@ int OTFImporter::handleEnter(void * userData, uint64_t time, uint32_t function,
 {
     Q_UNUSED(source);
     ((*((((OTFImporter*) userData)->rawtrace)->events))[process - 1])->append(new EventRecord(process - 1, convertTime(userData, time), function));
-    //((OTFImporter*) userData)->entercount++;
-    //std::cout << "Enter " << ((OTFImporter*) userData)->entercount << std::endl;
     return 0;
 }
 
@@ -291,11 +293,10 @@ int OTFImporter::handleLeave(void * userData, uint64_t time, uint32_t function,
 {
     Q_UNUSED(source);
     ((*((((OTFImporter*) userData)->rawtrace)->events))[process - 1])->append(new EventRecord(process - 1, convertTime(userData, time), function));
-    //((OTFImporter*) userData)->exitcount++;
-    //std::cout << "Exit " << ((OTFImporter*) userData)->exitcount << " with time " <<  convertTime(userData, time) << std::endl;
     return 0;
 }
 
+// Check if two comm records match (one that already is a record, one that is just parts)
 bool OTFImporter::compareComms(CommRecord * comm, unsigned int sender, unsigned int receiver,
                          unsigned int tag, unsigned int size)
 {
@@ -313,6 +314,7 @@ int OTFImporter::handleSend(void * userData, uint64_t time, uint32_t sender, uin
     Q_UNUSED(group);
 
 
+    // Every time we find a send, check the unmatched recvs to see if it has a match
     time = convertTime(userData, time);
     CommRecord * cr = NULL;
     QLinkedList<CommRecord *> * unmatched = (*(((OTFImporter *) userData)->unmatched_recvs))[sender - 1];
@@ -327,9 +329,9 @@ int OTFImporter::handleSend(void * userData, uint64_t time, uint32_t sender, uin
         }
     }
 
-    //((OTFImporter*) userData)->sendcount++;
-    //std::cout << "Send " << ((OTFImporter*) userData)->sendcount << std::endl;
 
+    // If we did find a match, remove it from the unmatched.
+    // Otherwise, create a new unmatched send record
     if (cr)
     {
         (*(((OTFImporter *) userData)->unmatched_recvs))[sender - 1]->removeOne(cr);
@@ -350,6 +352,7 @@ int OTFImporter::handleRecv(void * userData, uint64_t time, uint32_t receiver, u
     Q_UNUSED(source);
     Q_UNUSED(group);
 
+    // Look for match in unmatched_sends
     time = convertTime(userData, time);
     CommRecord * cr = NULL;
     QLinkedList<CommRecord *> * unmatched = (*(((OTFImporter*) userData)->unmatched_sends))[sender - 1];
@@ -361,6 +364,7 @@ int OTFImporter::handleRecv(void * userData, uint64_t time, uint32_t receiver, u
         }
     }
 
+    // If match is found, remove it from unmatched_sends, otherwise create a new unmatched recv record
     if (cr)
     {
         (*(((OTFImporter *) userData)->unmatched_sends))[sender - 1]->removeOne(cr);
@@ -369,9 +373,6 @@ int OTFImporter::handleRecv(void * userData, uint64_t time, uint32_t receiver, u
     {
         ((*(((OTFImporter*) userData)->unmatched_recvs))[sender - 1])->append(new CommRecord(sender - 1, 0, receiver - 1, time, length, type));
     }
-
-    //((OTFImporter*) userData)->recvcount++;
-    //std::cout << "Recv " << ((OTFImporter*) userData)->recvcount << std::endl;
 
     return 0;
 }
@@ -382,6 +383,7 @@ int OTFImporter::handleCounter(void * userData, uint64_t time, uint32_t process,
     return 0;
 }
 
+// These are for collectives
 int OTFImporter::handleDefProcessGroup(void * userData, uint32_t stream, uint32_t procGroup,
                                        const char * name, uint32_t numberOfProcs, const uint32_t * procs)
 {

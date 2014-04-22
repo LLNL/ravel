@@ -6,6 +6,7 @@
 #include "otfimportoptions.h"
 #include <QObject>
 
+// Handle signaling for progress bar
 class OTFImportFunctor : public QObject
 {
     Q_OBJECT

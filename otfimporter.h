@@ -8,6 +8,7 @@
 #include "otf.h"
 #include <QLinkedList>
 
+// Use OTF API to get records
 class OTFImporter
 {
 public:
@@ -15,6 +16,7 @@ public:
     ~OTFImporter();
     RawTrace * importOTF(const char* otf_file);
 
+    // Handlers per OTF
     static int handleDefTimerResolution(void * userData, uint32_t stream, uint64_t ticksPerSecond);
     static int handleDefFunctionGroup(void * userData, uint32_t stream, uint32_t funcGroup,
                                       const char * name);
@@ -50,8 +52,11 @@ public:
     static int handleEndCollectiveOperation(void * userData, uint64_t time, uint32_t process,
                                             uint64_t matchingId, OTF_KeyValueList * list);
 
+    // Match comm record of sender and receiver to find both times
     static bool compareComms(CommRecord * comm, unsigned int sender, unsigned int receiver,
                              unsigned int tag, unsigned int size);
+
+
     static uint64_t convertTime(void* userData, uint64_t time);
 
     unsigned long long int ticks_per_second;

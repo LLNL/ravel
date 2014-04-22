@@ -28,23 +28,28 @@ public:
 
     virtual bool detectGnome(Partition * part);
     virtual Gnome * create();
+    virtual void preprocess();
     void setPartition(Partition * part) { partition = part; }
     void setFunctions(QMap<int, Function *> * _functions) { functions = _functions; }
-    virtual void preprocess();
-    virtual void drawGnomeQt(QPainter * painter, QRect extents, VisOptions * _options, int blockwidth);
-    virtual void drawGnomeGL(QRect extents, VisOptions * _options) { Q_UNUSED(extents); options = _options; }
-    virtual ChangeType handleDoubleClick(QMouseEvent * event);
-    virtual void handleTreeDoubleClick(QMouseEvent * event);
+
+    // Tree GUI
     virtual void drawQtTree(QPainter * painter, QRect extents);
     virtual void setNeighbors(int _neighbors);
     void drawTopLabels(QPainter * painter, QRect extents);
+    virtual void handleTreeDoubleClick(QMouseEvent * event);
+
+    // Main GUI
+    virtual void drawGnomeQt(QPainter * painter, QRect extents, VisOptions * _options, int blockwidth);
+    virtual void drawGnomeGL(QRect extents, VisOptions * _options) { Q_UNUSED(extents); options = _options; }
+    virtual ChangeType handleDoubleClick(QMouseEvent * event);
     PartitionCluster * getSelectedPartitionCluster() { return selected_pc; }
+    void setSelected(bool selected) { is_selected = selected; }
     void clearSelectedPartitionCluster() { selected_pc = NULL; }
     bool handleHover(QMouseEvent * event);
     void drawHover(QPainter * painter);
-    void setSelected(bool selected) { is_selected = selected; }
 
 
+    // For clusterings
     struct process_distance {
         double operator()(ClusterProcess * cp1, ClusterProcess * cp2) const {
             return cp1->calculateMetricDistance(*cp2);
@@ -118,16 +123,16 @@ protected:
     QMap<int, PartitionCluster * > * cluster_leaves;
     PartitionCluster * cluster_root;
     int max_metric_process;
-    QList<int> top_processes;
-    bool alternation;
-    int neighbors;
-    PartitionCluster * selected_pc;
-    bool is_selected;
+    QList<int> top_processes; // focus processes really
+    bool alternation; // cluster background
+    int neighbors; // neighbor radius
 
     QSet<Message *> saved_messages;
     QMap<PartitionCluster *, QRect> drawnPCs;
     QMap<PartitionCluster *, QRect> drawnNodes;
     QMap<Event *, QRect> drawnEvents;
+    PartitionCluster * selected_pc;
+    bool is_selected;
     Event * hover_event;
     bool hover_aggregate;
     int stepwidth;

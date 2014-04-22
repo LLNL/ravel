@@ -88,7 +88,9 @@ void ImportOptionsDialog::onFunctionEdit(const QString& text)
     options->partitionFunction = text;
 }
 
-
+// Based on currently operational options, set the UI state to
+// something consistent (e.g., in certain modes other options are
+// unavailable)
 void ImportOptionsDialog::setUIState()
 {
     if (options->waitallMerge)
@@ -106,6 +108,7 @@ void ImportOptionsDialog::setUIState()
     else
         ui->leapCollectiveCheckbox->setChecked(false);
 
+    // Make available leap merge options
     if (options->leapMerge)
     {
         ui->leapCheckbox->setChecked(true);
@@ -133,6 +136,7 @@ void ImportOptionsDialog::setUIState()
 
     ui->functionEdit->setText(options->partitionFunction);
 
+    // Enable or Disable heuristic v. given partition
     if (options->partitionByFunction)
     {
         ui->heuristicRadioButton->setChecked(false);

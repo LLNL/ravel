@@ -3,6 +3,7 @@
 
 class Event;
 
+// Holder of message info
 class Message
 {
 public:

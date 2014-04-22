@@ -4,6 +4,7 @@
 #include <QDialog>
 #include <QAbstractButton>
 
+// Dialog for changing colorbar range
 namespace Ui {
 class MetricRangeDialog;
 }
