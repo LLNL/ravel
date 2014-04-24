@@ -17,6 +17,7 @@ public:
     bool hasMetric(QString name);
     long long getMetric(QString name, bool aggregate = false);
 
+    // Based on enter time
     bool operator<(const Event &);
     bool operator>(const Event &);
     bool operator<=(const Event &);

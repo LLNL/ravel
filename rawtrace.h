@@ -8,8 +8,7 @@
 #include <QMap>
 #include <QVector>
 
-// Trace from OTF
-
+// Trace from OTF without processing
 class RawTrace
 {
 public:

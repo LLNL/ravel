@@ -39,6 +39,7 @@ void StepVis::setTrace(Trace * t)
 
 void StepVis::setupMetric()
 {
+    // Find the maximum of a metric -- TODO: Move this into trace as a lookup some day before we do tiling
     maxMetric = 0;
     QString metric(options->metric);
     for (QList<Partition *>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
@@ -60,6 +61,7 @@ void StepVis::setupMetric()
     options->setRange(0, maxMetric);
     cacheMetric = options->metric;
 
+    /* Statistics on metrics -- used in SC submission but not really part of algorithm
     long long int thresh_metric = maxMetric * 0.5;
     int comm_count = 0, comp_count = 0;
     for (QList<Partition *>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
@@ -80,17 +82,20 @@ void StepVis::setupMetric()
     }
     std::cout << "For " << options->metric.toStdString().c_str() << " above threshhold are "
               << comm_count << " comm events and " << comp_count << " comp events." << std::endl;
+    */
 
     // For colorbar
     QLocale systemlocale = QLocale::system();
     maxMetricText = systemlocale.toString(maxMetric) + " ns";
 
+    // For colorbar range
     delete metricdialog;
     metricdialog = new MetricRangeDialog(this, maxMetric, maxMetric);
     connect(metricdialog, SIGNAL(valueChanged(long long int)), this, SLOT(setMaxMetric(long long int)));
     metricdialog->hide();
 }
 
+// TODO: Fix unit - should be part of something global
 void StepVis::setMaxMetric(long long int new_max)
 {
     options->setRange(0, new_max);
@@ -99,6 +104,7 @@ void StepVis::setMaxMetric(long long int new_max)
     repaint();
 }
 
+// SLOT for coordinated step changing
 void StepVis::setSteps(float start, float stop, bool jump)
 {
     if (!visProcessed)
@@ -117,6 +123,7 @@ void StepVis::setSteps(float start, float stop, bool jump)
         repaint();
 }
 
+// Rectangle selection graphic
 void StepVis::rightDrag(QMouseEvent * event)
 {
     if (!visProcessed)
@@ -154,7 +161,7 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
         return;
 
     lassoRect = QRect();
-    if (mousePressed && !rightPressed)
+    if (mousePressed && !rightPressed) // For panning
     {
         lastStartStep = startStep;
         int diffx = mousex - event->x();
@@ -185,16 +192,15 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
 
         repaint();
         changeSource = true;
-        //std::cout << "Emitting " << startStep << ", " << (startStep + stepSpan) << std::endl;
         emit stepsChanged(startStep, startStep + stepSpan, false);
     }
-    else if (mousePressed && rightPressed)
+    else if (mousePressed && rightPressed) // For rectangle selection
     {
         lassoRect = QRect(std::min(pressx, event->x()), std::min(pressy, event->y()),
                      abs(pressx - event->x()), abs(pressy - event->y()));
         repaint();
     }
-    else // potential hover
+    else // potential hover - check event versus aggregate event versus colorbar area
     {
         mousex = event->x();
         mousey = event->y();
@@ -239,7 +245,7 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
 
 }
 
-// zooms, but which zoom?
+// Zoom
 void StepVis::wheelEvent(QWheelEvent * event)
 {
     if (!visProcessed)
@@ -250,11 +256,9 @@ void StepVis::wheelEvent(QWheelEvent * event)
     scale = 1 + clicks * 0.05;
     if (Qt::MetaModifier && event->modifiers()) {
         // Vertical
-        std::cout << " old span " << processSpan << " old start " << startProcess << std::endl;
         float avgProc = startProcess + processSpan / 2.0;
         processSpan *= scale;
         startProcess = avgProc - processSpan / 2.0;
-        std::cout << "Avg proc " << avgProc << " new process span " << processSpan << " and new start " << startProcess << std::endl;
     } else {
         // Horizontal
         lastStartStep = startStep;
@@ -319,6 +323,7 @@ void StepVis::prepaint()
         }
     }
 
+    // If the metric has changed, we have to redo this
     if (trace && options->metric.compare(cacheMetric) != 0)
         setupMetric();
 }
@@ -332,6 +337,7 @@ void StepVis::qtPaint(QPainter *painter)
     if ((rect().height() - colorBarHeight) / processSpan >= 3 && rect().width() / stepSpan >= 3)
       paintEvents(painter);
 
+    // Always done by qt
     drawProcessLabels(painter, rect().height() - colorBarHeight, processheight);
     drawColorBarText(painter);
 
@@ -339,6 +345,7 @@ void StepVis::qtPaint(QPainter *painter)
     drawHover(painter);
     drawColorValue(painter);
 
+    // Lasso drawing is on top
     if (!lassoRect.isNull())
     {
         painter->setPen(Qt::yellow);
@@ -386,6 +393,8 @@ void StepVis::drawNativeGL()
     Partition * part = NULL;
     int topStep = boundStep(startStep + stepSpan) + 1;
     int bottomStep = floor(startStep) - 1;
+
+    // Based on the number of events, determine how much overplotting we should do
     for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
         part = trace->partitions->at(i);
@@ -406,6 +415,7 @@ void StepVis::drawNativeGL()
     float opacity = 1.0;
     float xoffset = 0;
     float yoffset = 0;
+    // How we use density is by feel, we should improve this
     if (density)
     {
         if (processheight < 1.0)
@@ -525,10 +535,11 @@ void StepVis::drawNativeGL()
     glDisableClientState(GL_COLOR_ARRAY);
 }
 
+
+// Qt Event painting
 void StepVis::paintEvents(QPainter * painter)
 {
-    //painter->fillRect(rect(), backgroundColor);
-
+    // Figure out block sizes... force them to integers to be even with each othre
     int effectiveHeight = rect().height() - colorBarHeight;
     int effectiveWidth = rect().width();
 
@@ -564,11 +575,11 @@ void StepVis::paintEvents(QPainter * painter)
     Partition * part = NULL;
     int topStep = boundStep(startStep + stepSpan) + 1;
     int bottomStep = floor(startStep) - 1;
-    //std::cout << " Step span is " << bottomStep << " to " << topStep << " and startPartition is ";
-    //std::cout << trace->partitions->at(startPartition)->min_global_step << " to " << trace->partitions->at(startPartition)->max_global_step << std::endl;
     float myopacity, opacity = 1.0;
     if (selected_gnome && !selected_processes.isEmpty())
         opacity = 0.50;
+
+    // Only do partitions in our range
     for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
         part = trace->partitions->at(i);
@@ -577,22 +588,21 @@ void StepVis::paintEvents(QPainter * painter)
         else if (part->max_global_step < bottomStep)
             continue;
 
-
+        // Go through events in partition
         for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin(); event_list != part->events->end(); ++event_list)
         {
             bool selected = false;
             if (part->gnome == selected_gnome && selected_processes.contains(proc_to_order[event_list.key()]))
                 selected = true;
+            position = proc_to_order[event_list.key()];
+            if (position < floor(startProcess) || position > ceil(startProcess + processSpan)) // Out of span
+                continue;
             for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
             {
-                position = proc_to_order[(*evt)->process]; // Move this into the out loop!
                 if ((*evt)->step < bottomStep || (*evt)->step > topStep) // Out of span
                 {
-                    //std::cout << (*evt)->step << ", " << startStep << ", " << boundStep(startStep + stepSpan) << std::endl;
                     continue;
                 }
-                if (position < floor(startProcess) || position > ceil(startProcess + processSpan)) // Out of span
-                    continue;
                 // 0 = startProcess, effectiveHeight = stopProcess (startProcess + processSpan)
                 // 0 = startStep, rect().width() = stopStep (startStep + stepSpan)
                 y = floor((position - startProcess) * blockheight) + 1;
@@ -649,10 +659,11 @@ void StepVis::paintEvents(QPainter * painter)
                     painter->setPen(QPen(QColor(0, 0, 0)));
 
 
-
+                // Save messages for the end since they draw on top
                 for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
                     drawMessages.insert((*msg));
 
+                // Draw aggregate events if necessary
                 if (options->showAggregateSteps) {
                     xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + labelWidth;
                     wa = barwidth;
@@ -696,9 +707,9 @@ void StepVis::paintEvents(QPainter * painter)
         }
     }
 
-        // Messages
-        // We need to do all of the message drawing after the event drawing
-        // for overlap purposes
+    // Messages
+    // We need to do all of the message drawing after the event drawing
+    // for overlap purposes
     if (options->showMessages != VisOptions::NONE)
     {
         if (processSpan <= 32)
@@ -742,6 +753,9 @@ void StepVis::paintEvents(QPainter * painter)
     }
 }
 
+// This is for drawing the message lines. It determines whether the line will exceed
+// the drawing area on the bottom and thus potentially overwrite the color bar.
+// If so, it shortens the line while maintaining its slope.
 void StepVis::drawLine(QPainter * painter, QPointF * p1, QPointF * p2, int effectiveHeight)
 {
     if (p1->y() > effectiveHeight && p2->y() > effectiveHeight)
@@ -813,6 +827,7 @@ void StepVis::drawColorBarGL()
     glDisable(GL_SCISSOR_TEST);
 }
 
+// Labels for colorbar
 void StepVis::drawColorBarText(QPainter * painter)
 {
     // Based on metric
@@ -829,6 +844,8 @@ void StepVis::drawColorBarText(QPainter * painter)
                       options->metric);
 }
 
+
+// This may change the colorbar
 void StepVis::mouseDoubleClickEvent(QMouseEvent * event)
 {
     if (!visProcessed)
@@ -853,6 +870,7 @@ void StepVis::mouseDoubleClickEvent(QMouseEvent * event)
     }
 }
 
+// Hover on colorbar to see color value
 void StepVis::drawColorValue(QPainter * painter)
 {
     return;

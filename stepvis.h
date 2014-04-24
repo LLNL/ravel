@@ -4,6 +4,7 @@
 #include "timelinevis.h"
 #include "metricrangedialog.h"
 
+// Logical timeline vis
 class StepVis : public TimelineVis
 {
     Q_OBJECT
@@ -17,6 +18,7 @@ public:
     void mouseDoubleClickEvent(QMouseEvent * event);
     void rightDrag(QMouseEvent * event);
 
+    // Saves colorbar range information
     MetricRangeDialog * metricdialog;
 
 public slots:

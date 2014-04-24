@@ -3,6 +3,7 @@
 
 #include <QString>
 
+// Container for all the structure extraction options
 class OTFImportOptions
 {
 public:
@@ -11,13 +12,13 @@ public:
                      bool _partition = false, QString _fxn = "");
     OTFImportOptions(const OTFImportOptions& copy);
 
-    bool waitallMerge;
-    bool leapMerge;
-    bool leapSkip;
-    bool leapCollective; // respect collectives -- do not merge through
-    bool partitionByFunction;
-    bool globalMerge;
-    bool cluster;
+    bool waitallMerge; // use waitall heuristic
+    bool leapMerge; // merge to complete leaps
+        bool leapSkip; // but skip if you can't gain processes
+        bool leapCollective; // but respect collectives -- do not merge through
+    bool partitionByFunction; // partitions based on functions
+    bool globalMerge; // merge across steps
+    bool cluster; // clustering on gnomes should be done
     QString partitionFunction;
 };
 

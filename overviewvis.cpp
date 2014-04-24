@@ -18,6 +18,9 @@ OverviewVis::OverviewVis(QWidget *parent, VisOptions * _options)
     mousePressed = false;
 }
 
+// When you click that maps to a global step, but we
+// find things every other step due to aggregated events,
+// so we have to get the event step
 int OverviewVis::roundeven(float step)
 {
     int rounded = floor(step);
@@ -50,7 +53,7 @@ void OverviewVis::setSteps(float start, float stop, bool jump)
     int width = size().width() - 2*border;
     startCursor = floor(width * start / 1.0 / maxStep);
     stopCursor = ceil(width * stop / 1.0 / maxStep);
-    /* PreVis
+    /* Pre-VIS when this was done with time rather than steps
     startCursor = stepPositions[startStep].first;
     while (startCursor >= rect().width()) // For no-data steps
     {
@@ -79,6 +82,7 @@ void OverviewVis::resizeEvent(QResizeEvent * event) {
     repaint();
 }
 
+// Functions for brushing
 void OverviewVis::mousePressEvent(QMouseEvent * event) {
     startCursor = event->x() - border;
     stopCursor = startCursor;
@@ -199,6 +203,10 @@ void OverviewVis::setTrace(Trace * t)
     stopStep = initStepSpan;
 }
 
+
+// Calculate what the heights should be for the metrics
+// TODO: Save this stuff per step somewhere and have that be accessed as needed rather
+// than iterating through everything
 void OverviewVis::processVis()
 {
     // Don't do anything if there's no trace available
@@ -210,21 +218,21 @@ void OverviewVis::processVis()
     stepWidth = width / 1.0 / stepspan;
     int start_int, stop_int;
     QString metric = options->metric;
-    std::cout << "Redo metric " << metric.toStdString().c_str() << std::endl;
     //stepPositions = QVector<std::pair<int, int> >(maxStep+1, std::pair<int, int>(width + 1, -1));
     for (QList<Partition *>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
     {
-        for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list) {
-            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt) {
+        for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
+        {
+            // For each event, we figure out which steps it spans and then we accumulate height over those
+            // steps based on the event's metric value
+            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
+            {
                 // start and stop are the cursor positions
                 float start = (width - 1) * (((*evt)->step) / 1.0 / stepspan);
                 float stop = start + stepWidth;
                 start_int = static_cast<int>(start);
-                stop_int = static_cast<int>(stop); // start_int + i_step_width;
+                stop_int = static_cast<int>(stop);
 
-                //std::cout << start_int << " from " << start << " from enter " << (*evt)->step << " and width " << width << std::endl;
-                //std::cout << " and mintime " << minTime <<  " over " << width << " and timespan " << timespan << std::endl;
-                //Q_ASSERT((*evt)->metrics->contains(lateness));
                 if ((*evt)->hasMetric(metric) && (*evt)->getMetric(metric)> 0) {
                     heights[start_int] += (*evt)->getMetric(metric) * (start - start_int);
                     if (stop_int != start_int) {
@@ -278,7 +286,7 @@ void OverviewVis::processVis()
 
     visProcessed = true;
 
-    /* PreVis change to steps
+    /* Pre-VIS does this bye time rather than by step and does not do aggregate
     int width = size().width() - 2 * border;
     heights = QVector<float>(width, 0);
     unsigned long long int timespan = maxTime - minTime;

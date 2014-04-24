@@ -1,6 +1,8 @@
 #include "partitioncluster.h"
 #include <iostream>
 
+
+// Start an empty cluster
 PartitionCluster::PartitionCluster(int num_steps, int start, long long int _divider)
     : startStep(start),
       max_process(-1),
@@ -21,6 +23,8 @@ PartitionCluster::PartitionCluster(int num_steps, int start, long long int _divi
         events->append(new ClusterEvent(startStep + i));
 }
 
+// cluster_vectors already have previous metric in steps not represented in this cluster,
+// so they can be used directly from their starting points to calculate distance
 long long int PartitionCluster::distance(PartitionCluster * other)
 {
 
@@ -42,6 +46,8 @@ long long int PartitionCluster::distance(PartitionCluster * other)
     return total_difference / num_matches;
 }
 
+// Using the events that may skip steps, this makes the continuous
+// cluster_vector. We may want to remove this for memory concerns
 void PartitionCluster::makeClusterVectors()
 {
     cluster_vector->clear();
@@ -64,6 +70,9 @@ void PartitionCluster::makeClusterVectors()
     }
 }
 
+
+// Add another process to this cluster using the events in elist, the given metric and
+// the process encapsulated by ClusterProcess
 long long int PartitionCluster::addMember(ClusterProcess * cp, QList<Event *> * elist, QString metric)
 {
     members->append(cp->process);
@@ -126,6 +135,7 @@ long long int PartitionCluster::addMember(ClusterProcess * cp, QList<Event *> * 
     return max_evt_metric;
 }
 
+// Start a cluster with a single member
 PartitionCluster::PartitionCluster(int member, QList<Event *> * elist, QString metric, long long int _divider)
     : startStep(elist->at(0)->step),
       max_process(member),
@@ -196,6 +206,7 @@ PartitionCluster::PartitionCluster(int member, QList<Event *> * elist, QString m
     }
 }
 
+// Create a new cluster as a merger of two existing clusters
 PartitionCluster::PartitionCluster(long long int distance, PartitionCluster * c1, PartitionCluster * c2)
     : startStep(std::min(c1->startStep, c2->startStep)),
       max_process(c1->max_process),
@@ -286,6 +297,8 @@ PartitionCluster::PartitionCluster(long long int distance, PartitionCluster * c1
     }
 }
 
+// delete_tree() should be called from the root and then only the
+// root needs to be deleted directly.
 PartitionCluster::~PartitionCluster()
 {
     delete children;
@@ -333,6 +346,7 @@ int PartitionCluster::max_depth()
     return max;
 }
 
+// Max tree depth counting only open nodes
 int PartitionCluster::max_open_depth()
 {
     if (!open)
@@ -345,6 +359,8 @@ int PartitionCluster::max_open_depth()
 
 }
 
+// Check if children are true leaves since they might not be
+// if we're doing hierarchical clusters on pre-clustered data
 bool PartitionCluster::leaf_open()
 {
     if (members->size() == 1)
@@ -356,6 +372,7 @@ bool PartitionCluster::leaf_open()
     return leaf;
 }
 
+// How many clusters under me (including myself) are open/visible
 int PartitionCluster::visible_clusters()
 {
     if (!open)
@@ -388,6 +405,7 @@ void PartitionCluster::print(QString indent)
         (*child)->print(myindent);
 }
 
+// Collapse this cluster and all its children from the vis
 void PartitionCluster::close()
 {
     open = false;

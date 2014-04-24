@@ -27,16 +27,14 @@ Partition::Partition()
       cluster_step_starts(new QMap<int, int>()),
       free_recvs(NULL)
 {
-    group->insert(this);
+    group->insert(this); // We are always in our own group
 }
 
 Partition::~Partition()
 {
-    for (QMap<int, QList<Event *> *>::Iterator eitr = events->begin(); eitr != events->end(); ++eitr) {
-        /*for (QList<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
-            delete *itr;
-            *itr = NULL;
-        }*/ // Don't necessarily delete events due to merging
+    for (QMap<int, QList<Event *> *>::Iterator eitr = events->begin(); eitr != events->end(); ++eitr)
+    {
+        // Don't necessarily delete events as they are saved by merging
         delete eitr.value();
     }
     delete events;
@@ -57,6 +55,7 @@ Partition::~Partition()
 }
 
 // Call when we are sure we want to delete events held in this partition
+// (e.g. destroying the trace)
 void Partition::deleteEvents()
 {
     for (QMap<int, QList<Event *> *>::Iterator eitr = events->begin(); eitr != events->end(); ++eitr) {
@@ -93,6 +92,7 @@ bool Partition::operator==(const Partition &partition)
 }
 
 
+// Does not order, just places them at the end
 void Partition::addEvent(Event * e)
 {
     if (events->contains(e->process))
@@ -112,6 +112,9 @@ void Partition::sortEvents(){
     }
 }
 
+
+// The minimum over all processes of the time difference between the last event
+// in one partition and the first event in another, per process
 unsigned long long int Partition::distance(Partition * other)
 {
     unsigned long long int dist = ULLONG_MAX;
@@ -134,9 +137,11 @@ unsigned long long int Partition::distance(Partition * other)
     return dist;
 }
 
+// Creates sets of mergable parents and children. If we don't consider collectives,
+// this is the same as the parents and children. If we do consider them, it is a
+// subset based on whether we are divided by a collective.
 void Partition::setMergables(bool considerCollectives)
 {
-    //std::cout << "Find mergables of " << parents->size() << " parents and " << children->size() << " children." << std::endl;
     mergable_parents->clear();
     mergable_children->clear();
     if (considerCollectives)
@@ -173,10 +178,9 @@ void Partition::setMergables(bool considerCollectives)
         mergable_parents->unite(*parents);
         mergable_children->unite(*children);
     }
-    //std::cout << "Mergable is " << mergable_parents->size() << " of " << parents->size() << " parents and ";
-    //std::cout << mergable_children->size() << " of " << children->size() << " children." << std::endl;
 }
 
+// Requires parent's dag leaps to be up to date
 void Partition::calculate_dag_leap()
 {
     dag_leap = 0;
@@ -185,20 +189,28 @@ void Partition::calculate_dag_leap()
 
 }
 
+// Figure out step assignments for everything in partition
+// TODO: Rewrite this so it is cleaner and closer to the paper
 void Partition::step()
 {
     free_recvs = new QList<Event *>();
     QList<Message *> * message_list = new QList<Message *>();
 
+    // Setup strides
     int stride;
     Event * last_send;
     QList<Event *> * last_recvs;
-    for (QMap<int, QList<Event *> *>::Iterator event_list = events->begin(); event_list != events->end(); ++event_list) {
+    for (QMap<int, QList<Event *> *>::Iterator event_list = events->begin(); event_list != events->end(); ++event_list)
+    {
+        // For each process, start at the beginning
         last_recvs = new QList<Event *>();
         stride = 0;
         last_send = NULL;
-        for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt) {
+        for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
+        {
+            // Initially set the step to the stride
             (*evt)->step = stride;
+            // Determine whether the event is a send or a receive
             for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
                 if ((*evt) == (*msg)->sender)
                     message_list->append(*msg);
@@ -206,44 +218,54 @@ void Partition::step()
                     (*evt)->is_recv = true;
             if ((*evt)->is_recv)
             {
+                // Recv points back to its previous send
                 (*evt)->last_send = last_send;
+
+                // Store in last_recvs for now
                 last_recvs->append(*evt);
             }
             else
             {
+                // Sends increase the stride, reset the last_send, and take on the last_recvs
                 ++stride;
                 last_send = *evt;
                 (*evt)->last_recvs = last_recvs;
+                // Update recvs with their next send
                 for (QList<Event *>::Iterator recv = (*evt)->last_recvs->begin(); recv != (*evt)->last_recvs->end(); ++recv)
                     (*recv)->next_send = *evt;
+                // Restart last_recvs
                 last_recvs = new QList<Event *>();
             }
         }
+        // Leftover last_recvs are free
         if (last_recvs->size() > 0)
             free_recvs->append(last_recvs[0]);
     }
 
+    // In message order, do the step_recvs
     qSort(message_list->begin(), message_list->end(), dereferencedLessThan<Message>);
     for (QList<Message *>::Iterator msg = message_list->begin(); msg != message_list->end(); ++msg)
         step_receive(*msg);
 
-    // I suppose we should do this until everything settles, otherwise get stepping problem in pf3d comm
-    // Need to think about this further.
+    // TODO: Fix Me: For some reason in pf3d, some of the recvs are not ending up ahead of their sends.
+    // This must be an ordering issue. For now redoing the step_recv works. We may need to run multiple
+    // times to make sure it is okay.
     for (QList<Message *>::Iterator msg = message_list->begin(); msg != message_list->end(); ++msg)
         step_receive(*msg);
 
     finalize_steps();
-
-    // Delete the last_recvs from all the events here
 
     delete message_list;
     delete free_recvs;
     delete last_recvs;
 }
 
+// In the message, make sure receive happens after send. If not,
+// nudge to be after send and nudge everything else forwrad as well
+// This is still done using steps in stride-space rather than logical steps,
+// so many recvs are essentially in the same place
 void Partition::step_receive(Message * msg)
 {
-    //std::cout << "Step receive called" << std::endl;
     int previous_step;
     Event * previous_event, * next_event;
     if (msg->receiver->step <= msg->sender->step)
@@ -266,6 +288,7 @@ void Partition::step_receive(Message * msg)
     }
 }
 
+// Here we expand the receives so they no longer occupy the same place as their following send
 void Partition::restep()
 {
     // Setup step dict
@@ -383,6 +406,7 @@ void Partition::restep()
     delete step_dict;
 }
 
+// Find true logical steps, not just strides
 void Partition::finalize_steps()
 {
     // Unlike the Python version, this does nothing for waitall
@@ -398,16 +422,11 @@ void Partition::finalize_steps()
     for (QMap<int, QList<Event *> *>::Iterator event_list = events->begin(); event_list != events->end(); ++event_list)
     {
         max_step = std::max((event_list.value())->last()->step, max_step);
-        //for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
-        //    (*evt)->debug_step = (*evt)->step;
     }
 }
 
 void Partition::makeClusterVectors(QString metric)
 {
-    //cluster_vectors(new QMap<int, QVector<long long int> *>()),
-    //cluster_step_starts(new QMap<int, QVector<long long int> *>());
-
     // Clean up old
     for (QMap<int, QVector<long long int> *>::Iterator itr =  cluster_vectors->begin();
          itr != cluster_vectors->end(); ++itr)
@@ -423,6 +442,8 @@ void Partition::makeClusterVectors(QString metric)
     cluster_step_starts->clear();
 
 
+    // Create a ClusterProcess for each process and in each set metric_events so it fills in the missing
+    // steps with the previous metric value.
     for (QMap<int, QList<Event *> *>::Iterator event_list = events->begin(); event_list != events->end(); ++event_list)
     {
         QVector<long long int> * metric_vector = new QVector<long long int>();
@@ -436,11 +457,13 @@ void Partition::makeClusterVectors(QString metric)
         {
             while ((*evt)->step > last_step + 2)
             {
+                // Fill in the previous known value
                 metric_vector->append(last_value);
                 cp->metric_events->append(last_value);
                 last_step += 2;
             }
 
+            // Fill in our value
             last_step = (*evt)->step;
             last_value = (*evt)->getMetric(metric);
             metric_vector->append(last_value);
@@ -448,6 +471,7 @@ void Partition::makeClusterVectors(QString metric)
         }
         while (last_step <= max_global_step)
         {
+            // We're out of steps but fill in the rest
             metric_vector->append(last_value);
             cp->metric_events->append(last_value);
             last_step += 2;
@@ -470,6 +494,7 @@ QString Partition::generate_process_string()
     return ps;
 }
 
+
 int Partition::num_events()
 {
     int count = 0;
@@ -478,6 +503,7 @@ int Partition::num_events()
     return count;
 }
 
+// Find what partition this one has been merged into
 Partition * Partition::newest_partition()
 {
     Partition * p = this;
