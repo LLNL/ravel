@@ -82,11 +82,7 @@ FORMS += \
     visoptionsdialog.ui \
     metricrangedialog.ui
 
-unix:!macx: LIBS += -L$$PWD/../../../../../../../usr/local/lib/ -lotf
-
-INCLUDEPATH += $$PWD/../../../../../../../usr/local/include
-DEPENDPATH += $$PWD/../../../../../../../usr/local/include
-
+unix:!macx: LIBS += -lotf
 
 macx: LIBS += -L$$PWD/../../libs/lib/ -lopen-trace-format
 
