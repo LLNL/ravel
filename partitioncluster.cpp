@@ -3,7 +3,8 @@
 
 
 // Start an empty cluster
-PartitionCluster::PartitionCluster(int num_steps, int start, long long int _divider)
+PartitionCluster::PartitionCluster(int num_steps, int start,
+                                   long long int _divider)
     : startStep(start),
       max_process(-1),
       open(false),
@@ -23,8 +24,9 @@ PartitionCluster::PartitionCluster(int num_steps, int start, long long int _divi
         events->append(new ClusterEvent(startStep + i));
 }
 
-// cluster_vectors already have previous metric in steps not represented in this cluster,
-// so they can be used directly from their starting points to calculate distance
+// cluster_vectors already have previous metric in steps not represented in
+// this cluster, so they can be used directly from their starting points to
+// calculate distance
 long long int PartitionCluster::distance(PartitionCluster * other)
 {
 
@@ -34,12 +36,18 @@ long long int PartitionCluster::distance(PartitionCluster * other)
     {
         num_matches = other->cluster_vector->size() - other->clusterStart;
         for (int i = 0; i < other->cluster_vector->size(); i++)
-            total_difference += (cluster_vector->at(i) - other->cluster_vector->at(i)) * (cluster_vector->at(i) - other->cluster_vector->at(i));
+            total_difference += (cluster_vector->at(i)
+                                 - other->cluster_vector->at(i))
+                                * (cluster_vector->at(i)
+                                   - other->cluster_vector->at(i));
     }
     else
     {
         for (int i = 0; i < cluster_vector->size(); i++)
-            total_difference += (other->cluster_vector->at(i) - cluster_vector->at(i)) * (other->cluster_vector->at(i) - cluster_vector->at(i));
+            total_difference += (other->cluster_vector->at(i)
+                                 - cluster_vector->at(i))
+                                * (other->cluster_vector->at(i)
+                                   - cluster_vector->at(i));
     }
     if (num_matches <= 0)
         return LLONG_MAX;
@@ -71,13 +79,16 @@ void PartitionCluster::makeClusterVectors()
 }
 
 
-// Add another process to this cluster using the events in elist, the given metric and
-// the process encapsulated by ClusterProcess
-long long int PartitionCluster::addMember(ClusterProcess * cp, QList<Event *> * elist, QString metric)
+// Add another process to this cluster using the events in elist, the given
+// metric and the process encapsulated by ClusterProcess
+long long int PartitionCluster::addMember(ClusterProcess * cp,
+                                          QList<Event *> * elist,
+                                          QString metric)
 {
     members->append(cp->process);
     long long int max_evt_metric = 0;
-    for (QList<Event *>::Iterator evt = elist->begin(); evt != elist->end(); ++evt)
+    for (QList<Event *>::Iterator evt = elist->begin();
+         evt != elist->end(); ++evt)
     {
         long long evt_metric = (*evt)->getMetric(metric);
         long long agg_metric = (*evt)->getMetric(metric, true);
@@ -91,7 +102,8 @@ long long int PartitionCluster::addMember(ClusterProcess * cp, QList<Event *> * 
         int nsend = 0, nrecv = 0;
         ClusterEvent * ce = events->at(((*evt)->step - startStep) / 2);
 
-        for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
+        for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
+             msg != (*evt)->messages->end(); ++msg)
             if ((*msg)->sender == *evt)
                 nsend += 1;
             else
@@ -100,35 +112,59 @@ long long int PartitionCluster::addMember(ClusterProcess * cp, QList<Event *> * 
         if (evt_metric < divider)
         {
             if (nsend)
-                ce->addMetric(nsend, evt_metric, ClusterEvent::COMM, ClusterEvent::SEND, ClusterEvent::LOW);
+                ce->addMetric(nsend, evt_metric,
+                              ClusterEvent::COMM,
+                              ClusterEvent::SEND,
+                              ClusterEvent::LOW);
             if (nrecv > 1)
             {
-                ce->addMetric(1, evt_metric, ClusterEvent::COMM, ClusterEvent::WAITALL, ClusterEvent::LOW);
+                ce->addMetric(1, evt_metric,
+                              ClusterEvent::COMM,
+                              ClusterEvent::WAITALL,
+                              ClusterEvent::LOW);
                 ce->waitallrecvs += nrecv;
             }
             else if (nrecv)
-                ce->addMetric(nrecv, evt_metric, ClusterEvent::COMM, ClusterEvent::RECV, ClusterEvent::LOW);
+                ce->addMetric(nrecv, evt_metric,
+                              ClusterEvent::COMM,
+                              ClusterEvent::RECV,
+                              ClusterEvent::LOW);
         }
         else
         {
             if (nsend)
-                ce->addMetric(nsend, evt_metric, ClusterEvent::COMM, ClusterEvent::SEND, ClusterEvent::HIGH);
+                ce->addMetric(nsend, evt_metric,
+                              ClusterEvent::COMM,
+                              ClusterEvent::SEND,
+                              ClusterEvent::HIGH);
             if (nrecv > 1)
             {
-                ce->addMetric(1, evt_metric, ClusterEvent::COMM, ClusterEvent::WAITALL, ClusterEvent::HIGH);
+                ce->addMetric(1, evt_metric,
+                              ClusterEvent::COMM,
+                              ClusterEvent::WAITALL,
+                              ClusterEvent::HIGH);
                 ce->waitallrecvs += nrecv;
             }
             else if (nrecv)
-                ce->addMetric(nrecv, evt_metric, ClusterEvent::COMM, ClusterEvent::RECV, ClusterEvent::HIGH);
+                ce->addMetric(nrecv, evt_metric,
+                              ClusterEvent::COMM,
+                              ClusterEvent::RECV,
+                              ClusterEvent::HIGH);
 
         }
         if (agg_metric < divider)
         {
-            ce->addMetric(1, agg_metric, ClusterEvent::AGG, ClusterEvent::SEND, ClusterEvent::LOW);
+            ce->addMetric(1, agg_metric,
+                          ClusterEvent::AGG,
+                          ClusterEvent::SEND,
+                          ClusterEvent::LOW);
         }
         else
         {
-            ce->addMetric(1, agg_metric, ClusterEvent::AGG, ClusterEvent::SEND, ClusterEvent::HIGH);
+            ce->addMetric(1, agg_metric,
+                          ClusterEvent::AGG,
+                          ClusterEvent::SEND,
+                          ClusterEvent::HIGH);
         }
     }
 
@@ -136,7 +172,8 @@ long long int PartitionCluster::addMember(ClusterProcess * cp, QList<Event *> * 
 }
 
 // Start a cluster with a single member
-PartitionCluster::PartitionCluster(int member, QList<Event *> * elist, QString metric, long long int _divider)
+PartitionCluster::PartitionCluster(int member, QList<Event *> * elist,
+                                   QString metric, long long int _divider)
     : startStep(elist->at(0)->step),
       max_process(member),
       open(false),
@@ -153,7 +190,8 @@ PartitionCluster::PartitionCluster(int member, QList<Event *> * elist, QString m
       clusterStart(-1)
 {
     members->append(member);
-    for (QList<Event *>::Iterator evt = elist->begin(); evt != elist->end(); ++evt)
+    for (QList<Event *>::Iterator evt = elist->begin();
+         evt != elist->end(); ++evt)
     {
         long long evt_metric = (*evt)->getMetric(metric);
         long long agg_metric = (*evt)->getMetric(metric, true);
@@ -162,44 +200,71 @@ PartitionCluster::PartitionCluster(int member, QList<Event *> * elist, QString m
         int nsend = 0, nrecv = 0;
         ClusterEvent * ce = new ClusterEvent((*evt)->step);
 
-        for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
+        for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
+             msg != (*evt)->messages->end(); ++msg)
+        {
             if ((*msg)->sender == *evt)
                 nsend += 1;
             else
                 nrecv += 1;
+        }
 
         if (evt_metric < divider)
         {
             if (nsend)
-                ce->setMetric(nsend, evt_metric, ClusterEvent::COMM, ClusterEvent::SEND, ClusterEvent::LOW);
+                ce->setMetric(nsend, evt_metric,
+                              ClusterEvent::COMM,
+                              ClusterEvent::SEND,
+                              ClusterEvent::LOW);
             if (nrecv > 1)
             {
-                ce->setMetric(1, evt_metric, ClusterEvent::COMM, ClusterEvent::WAITALL, ClusterEvent::LOW);
+                ce->setMetric(1, evt_metric,
+                              ClusterEvent::COMM,
+                              ClusterEvent::WAITALL,
+                              ClusterEvent::LOW);
                 ce->waitallrecvs = nrecv;
             }
             else if (nrecv)
-                ce->setMetric(nrecv, evt_metric, ClusterEvent::COMM, ClusterEvent::RECV, ClusterEvent::LOW);
+                ce->setMetric(nrecv, evt_metric,
+                              ClusterEvent::COMM,
+                              ClusterEvent::RECV,
+                              ClusterEvent::LOW);
         }
         else
         {
             if (nsend)
-                ce->setMetric(nsend, evt_metric, ClusterEvent::COMM, ClusterEvent::SEND, ClusterEvent::HIGH);
+                ce->setMetric(nsend, evt_metric,
+                              ClusterEvent::COMM,
+                              ClusterEvent::SEND,
+                              ClusterEvent::HIGH);
             if (nrecv > 1)
             {
-                ce->setMetric(1, evt_metric, ClusterEvent::COMM, ClusterEvent::WAITALL, ClusterEvent::HIGH);
+                ce->setMetric(1, evt_metric,
+                              ClusterEvent::COMM,
+                              ClusterEvent::WAITALL,
+                              ClusterEvent::HIGH);
                 ce->waitallrecvs = nrecv;
             }
             else if (nrecv)
-                ce->setMetric(nrecv, evt_metric, ClusterEvent::COMM, ClusterEvent::RECV, ClusterEvent::HIGH);
+                ce->setMetric(nrecv, evt_metric,
+                              ClusterEvent::COMM,
+                              ClusterEvent::RECV,
+                              ClusterEvent::HIGH);
 
         }
         if (agg_metric < divider)
         {
-            ce->setMetric(1, agg_metric, ClusterEvent::AGG, ClusterEvent::SEND, ClusterEvent::LOW);
+            ce->setMetric(1, agg_metric,
+                          ClusterEvent::AGG,
+                          ClusterEvent::SEND,
+                          ClusterEvent::LOW);
         }
         else
         {
-            ce->setMetric(1, agg_metric, ClusterEvent::AGG, ClusterEvent::SEND, ClusterEvent::HIGH);
+            ce->setMetric(1, agg_metric,
+                          ClusterEvent::AGG,
+                          ClusterEvent::SEND,
+                          ClusterEvent::HIGH);
         }
 
         events->append(ce);
@@ -207,7 +272,9 @@ PartitionCluster::PartitionCluster(int member, QList<Event *> * elist, QString m
 }
 
 // Create a new cluster as a merger of two existing clusters
-PartitionCluster::PartitionCluster(long long int distance, PartitionCluster * c1, PartitionCluster * c2)
+PartitionCluster::PartitionCluster(long long int distance,
+                                   PartitionCluster * c1,
+                                   PartitionCluster * c2)
     : startStep(std::min(c1->startStep, c2->startStep)),
       max_process(c1->max_process),
       open(false),
@@ -304,7 +371,8 @@ PartitionCluster::~PartitionCluster()
     delete children;
     delete members;
 
-    for (QList<ClusterEvent *>::Iterator evt = events->begin(); evt != events->end(); ++evt)
+    for (QList<ClusterEvent *>::Iterator evt = events->begin();
+         evt != events->end(); ++evt)
     {
         delete *evt;
         *evt = NULL;
@@ -315,7 +383,8 @@ PartitionCluster::~PartitionCluster()
 
 void PartitionCluster::delete_tree()
 {
-    for (QList<PartitionCluster *>::Iterator child = children->begin(); child != children->end(); ++child)
+    for (QList<PartitionCluster *>::Iterator child = children->begin();
+         child != children->end(); ++child)
     {
         (*child)->delete_tree();
         delete *child;
@@ -341,8 +410,11 @@ PartitionCluster * PartitionCluster::get_closed_root()
 int PartitionCluster::max_depth()
 {
     int max = 0;
-    for (QList<PartitionCluster *>::Iterator child = children->begin(); child != children->end(); ++child)
+    for (QList<PartitionCluster *>::Iterator child = children->begin();
+         child != children->end(); ++child)
+    {
         max = std::max(max, (*child)->max_depth() + 1);
+    }
     return max;
 }
 
@@ -353,8 +425,11 @@ int PartitionCluster::max_open_depth()
         return 0;
 
     int max = 0;
-    for (QList<PartitionCluster *>::Iterator child = children->begin(); child != children->end(); ++child)
+    for (QList<PartitionCluster *>::Iterator child = children->begin();
+         child != children->end(); ++child)
+    {
         max = std::max(max, (*child)->max_open_depth() + 1);
+    }
     return max;
 
 }
@@ -367,8 +442,11 @@ bool PartitionCluster::leaf_open()
         return true;
 
     bool leaf = false;
-    for (QList<PartitionCluster *>::Iterator child = children->begin(); child != children->end(); ++child)
+    for (QList<PartitionCluster *>::Iterator child = children->begin();
+         child != children->end(); ++child)
+    {
         leaf = leaf || (*child)->leaf_open();
+    }
     return leaf;
 }
 
@@ -379,8 +457,11 @@ int PartitionCluster::visible_clusters()
         return 1;
 
     int visible = 0;
-    for (QList<PartitionCluster *>::Iterator child = children->begin(); child != children->end(); ++child)
+    for (QList<PartitionCluster *>::Iterator child = children->begin();
+         child != children->end(); ++child)
+    {
         visible += (*child)->visible_clusters();
+    }
     return visible;
 }
 
@@ -399,16 +480,23 @@ QString PartitionCluster::memberString()
 
 void PartitionCluster::print(QString indent)
 {
-    std::cout << indent.toStdString().c_str() << memberString().toStdString().c_str() << std::endl;
+    std::cout << indent.toStdString().c_str()
+              << memberString().toStdString().c_str() << std::endl;
     QString myindent = indent + "   ";
-    for (QList<PartitionCluster *>::Iterator child = children->begin(); child != children->end(); ++child)
+    for (QList<PartitionCluster *>::Iterator child = children->begin();
+         child != children->end(); ++child)
+    {
         (*child)->print(myindent);
+    }
 }
 
 // Collapse this cluster and all its children from the vis
 void PartitionCluster::close()
 {
     open = false;
-    for (QList<PartitionCluster *>::Iterator child = children->begin(); child != children->end(); ++child)
+    for (QList<PartitionCluster *>::Iterator child = children->begin();
+         child != children->end(); ++child)
+    {
         (*child)->close();
+    }
 }

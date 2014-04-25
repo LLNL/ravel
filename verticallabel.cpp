@@ -2,8 +2,8 @@
 
 #include <QPainter>
 
-// Adapted from http://stackoverflow.com/questions/9183050/vertical-qlabel-or-the-equivalent
-
+// Adapted from
+// http://stackoverflow.com/questions/9183050/vertical-qlabel-or-the-equivalent
 VerticalLabel::VerticalLabel(QWidget *parent)
     : QLabel(parent)
 {
@@ -20,10 +20,14 @@ void VerticalLabel::paintEvent(QPaintEvent*)
     QPainter painter(this);
     painter.setFont(QFont("Helvetica", 9));
 
+    // The offsets here are kind of magical. Perhaps a better understanding of
+    // boundingRect is needed so we don't need to do this.
     QFontMetrics font_metrics = painter.fontMetrics();
-    int labeloffset = 9 * (sizeHint().height() - font_metrics.boundingRect(text()).width()) / 10;
+    int labeloffset = 9 * (sizeHint().height()
+                           - font_metrics.boundingRect(text()).width()) / 10;
 
-    painter.translate( sizeHint().width() - 8, sizeHint().height() - labeloffset);
+    painter.translate( sizeHint().width() - 8,
+                       sizeHint().height() - labeloffset);
     painter.rotate(270);
 
     painter.drawText(0,0, text());

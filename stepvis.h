@@ -32,7 +32,8 @@ protected:
     void prepaint();
     void drawColorBarGL();
     void drawColorBarText(QPainter * painter);
-    void drawLine(QPainter * painter, QPointF * p1, QPointF * p2, int effectiveHeight);
+    void drawLine(QPainter * painter, QPointF * p1, QPointF * p2,
+                  int effectiveHeight);
     void setupMetric();
     void drawColorValue(QPainter * painter);
 

@@ -36,74 +36,102 @@ MainWindow::MainWindow(QWidget *parent) :
     OverviewVis* overview = new OverviewVis(ui->overviewContainer, visoptions);
     ui->overviewContainer->layout()->addWidget(overview);
     ui->overviewLabelWidget->setLayout(new QVBoxLayout());
-    ui->overviewLabelWidget->layout()->addWidget(new VerticalLabel("Overview", ui->overviewLabelWidget));
+    ui->overviewLabelWidget->layout()->addWidget(new VerticalLabel("Overview",
+                                                                   ui->overviewLabelWidget));
 
-    connect(overview, SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
+    connect(overview, SIGNAL(stepsChanged(float, float, bool)), this,
+            SLOT(pushSteps(float, float, bool)));
     viswidgets.push_back(overview);
 
     // Logical Timeline
     StepVis* stepvis = new StepVis(ui->stepContainer, visoptions);
     ui->stepContainer->layout()->addWidget(stepvis);
     ui->logicalLabelWidget->setLayout(new QVBoxLayout());
-    ui->logicalLabelWidget->layout()->addWidget(new VerticalLabel("Logical", ui->logicalLabelWidget));
+    ui->logicalLabelWidget->layout()->addWidget(new VerticalLabel("Logical",
+                                                                  ui->logicalLabelWidget));
 
-    connect((stepvis), SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
-    connect((stepvis), SIGNAL(eventClicked(Event *, bool)), this, SLOT(selectEvent(Event *, bool)));
+    connect((stepvis), SIGNAL(stepsChanged(float, float, bool)), this,
+            SLOT(pushSteps(float, float, bool)));
+    connect((stepvis), SIGNAL(eventClicked(Event *, bool)), this,
+            SLOT(selectEvent(Event *, bool)));
     viswidgets.push_back(stepvis);
 
     // Physical Timeline
-    TraditionalVis* timevis = new TraditionalVis(ui->traditionalContainer, visoptions);
+    TraditionalVis* timevis = new TraditionalVis(ui->traditionalContainer,
+                                                 visoptions);
     timevis->setClosed(true);
     ui->traditionalContainer->layout()->addWidget(timevis);
     ui->traditionalLabelWidget->setLayout(new QVBoxLayout());
-    ui->traditionalLabelWidget->layout()->addWidget(new VerticalLabel("Physical", ui->traditionalLabelWidget));
+    ui->traditionalLabelWidget->layout()->addWidget(new VerticalLabel("Physical",
+                                                                      ui->traditionalLabelWidget));
 
-    connect((timevis), SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
-    connect((timevis), SIGNAL(eventClicked(Event *, bool)), this, SLOT(selectEvent(Event *, bool)));
+    connect((timevis), SIGNAL(stepsChanged(float, float, bool)), this,
+            SLOT(pushSteps(float, float, bool)));
+    connect((timevis), SIGNAL(eventClicked(Event *, bool)), this,
+            SLOT(selectEvent(Event *, bool)));
     viswidgets.push_back(timevis);
 
     // Cluster View
-    ClusterTreeVis* clustertreevis = new ClusterTreeVis(ui->stepContainer, visoptions);
+    ClusterTreeVis* clustertreevis = new ClusterTreeVis(ui->stepContainer,
+                                                        visoptions);
     ui->treeContainer->layout()->addWidget(clustertreevis);
 
-    ClusterVis* clustervis = new ClusterVis(clustertreevis, ui->stepContainer, visoptions);
+    ClusterVis* clustervis = new ClusterVis(clustertreevis, ui->stepContainer,
+                                            visoptions);
     ui->clusterContainer->layout()->addWidget(clustervis);
     ui->clusterLabelWidget->setLayout(new QVBoxLayout());
-    ui->clusterLabelWidget->layout()->addWidget(new VerticalLabel("Clusters", ui->clusterLabelWidget));
+    ui->clusterLabelWidget->layout()->addWidget(new VerticalLabel("Clusters",
+                                                                  ui->clusterLabelWidget));
 
-    connect((clustervis), SIGNAL(stepsChanged(float, float, bool)), this, SLOT(pushSteps(float, float, bool)));
-    connect((clustervis), SIGNAL(eventClicked(Event *, bool)), this, SLOT(selectEvent(Event *, bool)));
-    connect((clustervis), SIGNAL(processesSelected(QList<int>, Gnome*)), this, SLOT(selectProcesses(QList<int>, Gnome*)));
+    connect((clustervis), SIGNAL(stepsChanged(float, float, bool)), this,
+            SLOT(pushSteps(float, float, bool)));
+    connect((clustervis), SIGNAL(eventClicked(Event *, bool)), this,
+            SLOT(selectEvent(Event *, bool)));
+    connect((clustervis), SIGNAL(processesSelected(QList<int>, Gnome*)), this,
+            SLOT(selectProcesses(QList<int>, Gnome*)));
 
-    connect((clustervis), SIGNAL(focusGnome()), clustertreevis, SLOT(repaint()));
-    connect((clustervis), SIGNAL(clusterChange()), clustertreevis, SLOT(clusterChanged()));
-    connect((clustertreevis), SIGNAL(clusterChange()), clustervis, SLOT(clusterChanged()));
-    connect((clustervis), SIGNAL(neighborChange(int)), clustertreevis, SLOT(repaint()));
+    connect((clustervis), SIGNAL(focusGnome()), clustertreevis,
+            SLOT(repaint()));
+    connect((clustervis), SIGNAL(clusterChange()), clustertreevis,
+            SLOT(clusterChanged()));
+    connect((clustertreevis), SIGNAL(clusterChange()), clustervis,
+            SLOT(clusterChanged()));
+    connect((clustervis), SIGNAL(neighborChange(int)), clustertreevis,
+            SLOT(repaint()));
 
     viswidgets.push_back(clustervis);
     viswidgets.push_back(clustertreevis);
 
     // Sliders
-    connect(ui->verticalSlider, SIGNAL(valueChanged(int)), clustervis, SLOT(changeNeighborRadius(int)));
-    connect((clustervis), SIGNAL(neighborChange(int)), ui->verticalSlider, SLOT(setValue(int)));
+    connect(ui->verticalSlider, SIGNAL(valueChanged(int)), clustervis,
+            SLOT(changeNeighborRadius(int)));
+    connect((clustervis), SIGNAL(neighborChange(int)), ui->verticalSlider,
+            SLOT(setValue(int)));
 
     // Menus
-    connect(ui->actionOpen_OTF, SIGNAL(triggered()),this,SLOT(importOTFbyGUI()));
+    connect(ui->actionOpen_OTF, SIGNAL(triggered()),this,
+            SLOT(importOTFbyGUI()));
     ui->actionOpen_OTF->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_O));
 
-    connect(ui->actionOTF_Importing, SIGNAL(triggered()), this, SLOT(launchOTFOptions()));
+    connect(ui->actionOTF_Importing, SIGNAL(triggered()), this,
+            SLOT(launchOTFOptions()));
     ui->actionOTF_Importing->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_I));
-    connect(ui->actionVisualization, SIGNAL(triggered()), this, SLOT(launchVisOptions()));
+    connect(ui->actionVisualization, SIGNAL(triggered()), this,
+            SLOT(launchVisOptions()));
     ui->actionVisualization->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_V));
 
 
-    connect(ui->actionLogical_Steps, SIGNAL(triggered()), this, SLOT(toggleLogicalSteps()));
+    connect(ui->actionLogical_Steps, SIGNAL(triggered()), this,
+            SLOT(toggleLogicalSteps()));
     ui->actionLogical_Steps->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_L));
-    connect(ui->actionClustered_Logical_Steps, SIGNAL(triggered()), this, SLOT(toggleClusteredSteps()));
+    connect(ui->actionClustered_Logical_Steps, SIGNAL(triggered()), this,
+            SLOT(toggleClusteredSteps()));
     ui->actionClustered_Logical_Steps->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_C));
-    connect(ui->actionPhysical_Time, SIGNAL(triggered()), this, SLOT(togglePhysicalTime()));
+    connect(ui->actionPhysical_Time, SIGNAL(triggered()), this,
+            SLOT(togglePhysicalTime()));
     ui->actionPhysical_Time->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_P));
-    connect(ui->actionMetric_Overview, SIGNAL(triggered()), this, SLOT(toggleMetricOverview()));
+    connect(ui->actionMetric_Overview, SIGNAL(triggered()), this,
+            SLOT(toggleMetricOverview()));
     ui->actionMetric_Overview->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_M));
     visactions.append(ui->actionLogical_Steps);
     visactions.append(ui->actionClustered_Logical_Steps);
@@ -114,8 +142,10 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionQuit->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Q));
 
     // Splitters
-    connect(ui->splitter, SIGNAL(splitterMoved(int, int)), this, SLOT(handleSplitter(int, int)));
-    connect(ui->sideSplitter, SIGNAL(splitterMoved(int, int)), this, SLOT(handleSideSplitter(int, int)));
+    connect(ui->splitter, SIGNAL(splitterMoved(int, int)), this,
+            SLOT(handleSplitter(int, int)));
+    connect(ui->sideSplitter, SIGNAL(splitterMoved(int, int)), this,
+            SLOT(handleSideSplitter(int, int)));
     ui->splitter->setStyleSheet("QSplitter::handle { background-color: black; }");
     ui->sideSplitter->setStyleSheet("QSplitter::handle { background-color: black; }");
 
@@ -136,8 +166,8 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-// The following functions relay a signal from one vis (hooked up in the constructor)
-// to all of the rest
+// The following functions relay a signal from one vis (hooked up in the
+// constructor) to all of the rest
 void MainWindow::pushSteps(float start, float stop, bool jump)
 {
     for(int i = 0; i < viswidgets.size(); i++)
@@ -173,7 +203,8 @@ void MainWindow::launchVisOptions()
 {
     delete visdialog;
     if (activeTrace >= 0)
-        visdialog = new VisOptionsDialog(this, visoptions, traces[activeTrace]);
+        visdialog = new VisOptionsDialog(this, visoptions,
+                                         traces[activeTrace]);
     else
         visdialog = new VisOptionsDialog(this, visoptions);
     visdialog->show();
@@ -185,11 +216,10 @@ void MainWindow::launchVisOptions()
 void MainWindow::importOTFbyGUI()
 {
     // Now get the OTF File
-    QString dataFileName = QFileDialog::getOpenFileName(this, tr("Import OTF Data"),
+    QString dataFileName = QFileDialog::getOpenFileName(this,
+                                                        tr("Import OTF Data"),
                                                         "",
-                                                        tr("Files (*.otf)")); /*,
-                                                        0,
-                                                        QFileDialog::DontUseNativeDialog);*/
+                                                        tr("Files (*.otf)"));
     qApp->processEvents();
 
     // Guard against Cancel
@@ -210,10 +240,13 @@ void MainWindow::importOTF(QString dataFileName){
     importThread = new QThread();
     importWorker = new OTFImportFunctor(otfoptions);
     importWorker->moveToThread(importThread);
-    connect(this, SIGNAL(operate(QString)), importWorker, SLOT(doImport(QString)));
+    connect(this, SIGNAL(operate(QString)), importWorker,
+            SLOT(doImport(QString)));
     connect(importWorker, SIGNAL(switching()), this, SLOT(traceSwitch()));
-    connect(importWorker, SIGNAL(done(Trace *)), this, SLOT(traceFinished(Trace *)));
-    connect(importWorker, SIGNAL(reportProgress(int, QString)), this, SLOT(updateProgress(int, QString)));
+    connect(importWorker, SIGNAL(done(Trace *)), this,
+            SLOT(traceFinished(Trace *)));
+    connect(importWorker, SIGNAL(reportProgress(int, QString)), this,
+            SLOT(updateProgress(int, QString)));
 
     importThread->start();
     emit(operate(dataFileName));
@@ -317,12 +350,14 @@ void MainWindow::setVisWidgetState()
 {
     for (int i = 0; i < viswidgets.size() - 1; i++)
     {
-        if (viswidgets[i]->container->height() == 0 && !viswidgets[i]->isClosed())
+        if (viswidgets[i]->container->height() == 0
+            && !viswidgets[i]->isClosed())
         {
             viswidgets[i]->setClosed(true);
             visactions[i]->setChecked(false);
         }
-        else if (viswidgets[i]->container->height() != 0 && viswidgets[i]->isClosed())
+        else if (viswidgets[i]->container->height() != 0
+                 && viswidgets[i]->isClosed())
         {
             viswidgets[i]->setClosed(false);
             visactions[i]->setChecked(true);

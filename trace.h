@@ -47,8 +47,10 @@ public:
 
     int global_max_step; // largest global step
     QList<Partition * > * dag_entries; // Leap 0 in the dag
-    QMap<int, QSet<Partition *> *> * dag_step_dict; // Map from leap to partition
+    QMap<int, QSet<Partition *> *> * dag_step_dict; // Map leap to partition
 
+    // This is for aggregate event reporting... lists all functions
+    // and how much time was spent in each
     class FunctionPair {
     public:
         FunctionPair(int _f, long long int _t)
@@ -60,7 +62,9 @@ public:
             fxn = fp.fxn;
             time = fp.time;
         }
-        bool operator<(const FunctionPair &fp) const { return time > fp.time; } // Backwards for greatest to lease
+
+        // Backwards for greatest to lease
+        bool operator<(const FunctionPair &fp) const { return time > fp.time; }
 
         int fxn;
         long long int time;
@@ -68,6 +72,7 @@ public:
     QList<FunctionPair> getAggregateFunctions(Event * evt);
 
 signals:
+    // This is for progress bars
     void updatePreprocess(int, QString);
     void updateClustering(int);
     void startClustering();
@@ -76,15 +81,20 @@ private:
     // Link the comm events together by order
     void chainCommEvents();
 
+    // Partition Dag
+    void set_partition_dag();
+    void set_dag_steps();
+
     // Partitioning process
     void partitionByPhase();
     void initializePartitions();
     void initializePartitionsWaitall();
     void mergeForMessages();
-    void mergeForMessagesHelper(Partition * part, QSet<Partition *> * to_merge, QQueue<Partition *> * to_process);
+    void mergeForMessagesHelper(Partition * part, QSet<Partition *> * to_merge,
+                                QQueue<Partition *> * to_process);
     void mergeCycles();
     void mergeByLeap();
-    void mergeGlobalSteps();
+    void mergeGlobalSteps(); // Use after global steps are set, needs fixing
     class RecurseInfo {  // For Tarjan
     public:
         RecurseInfo(Partition * p, Partition * c, QList<Partition *> * cc, int i)
@@ -94,27 +104,35 @@ private:
         QList<Partition *> * children;
         int cIndex;
     };
-    void set_partition_dag();
-    void set_dag_steps();
+
+    // Tarjan
     void mergePartitions(QList<QList<Partition *> *> * components);
     void strong_connect_loop(Partition * part, QStack<Partition *> * stack,
                             QList<Partition *> * children, int cIndex,
-                            QStack<RecurseInfo *> * recurse, QList<QList<Partition *> *> * components);
+                            QStack<RecurseInfo *> * recurse,
+                             QList<QList<Partition *> *> * components);
     int strong_connect_iter(Partition * partition, QStack<Partition *> * stack,
                             QList<QList<Partition *> *> * components, int index);
     QList<QList<Partition *> *> * tarjan();
+
+    // Steps and metrics
     void set_global_steps();
     void calculate_lateness();
     void calculate_differential_lateness(QString metric_name, QString base_name);
     void calculate_partition_lateness();
+
+    // For debugging
     void output_graph(QString filename, bool byparent = false);
 
-
+    // Extra metrics somewhat for debugging
     void setGnomeMetric(Partition * part, int gnome_index);
     void addPartitionMetric();
 
-
-    long long int getAggregateFunctionRecurse(Event * evt, QMap<int, FunctionPair> * fpMap, unsigned long long start, unsigned long long stop);
+    // Find functions inside aggregate function
+    long long int getAggregateFunctionRecurse(Event * evt,
+                                              QMap<int, FunctionPair> * fpMap,
+                                              unsigned long long start,
+                                              unsigned long long stop);
 
     bool isProcessed; // Partitions exist
     QString collectives_string;

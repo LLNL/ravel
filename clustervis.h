@@ -8,7 +8,8 @@ class ClusterVis : public TimelineVis
 {
     Q_OBJECT
 public:
-    ClusterVis(ClusterTreeVis * ctv, QWidget* parent = 0, VisOptions *_options = new VisOptions());
+    ClusterVis(ClusterTreeVis * ctv, QWidget* parent = 0,
+               VisOptions *_options = new VisOptions());
     ~ClusterVis() {}
     void setTrace(Trace * t);
 
@@ -23,7 +24,7 @@ signals:
 public slots:
     void setSteps(float start, float stop, bool jump = false);
     void clusterChanged(); // for cluster selection
-    void changeNeighborRadius(int neighbors); // neighborhood radius for top processes
+    void changeNeighborRadius(int neighbors); // neighborhood radius of top processes
     void selectEvent(Event * event, bool aggregate);
 
 protected:

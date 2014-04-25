@@ -14,7 +14,8 @@ class MetricRangeDialog : public QDialog
     Q_OBJECT
     
 public:
-    explicit MetricRangeDialog(QWidget *parent = 0, long long int current = 0, long long int original = 0);
+    explicit MetricRangeDialog(QWidget *parent = 0, long long int current = 0,
+                               long long int original = 0);
     ~MetricRangeDialog();
     void setCurrent(long long int current);
     

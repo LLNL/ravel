@@ -56,7 +56,8 @@ void Gnome::preprocess()
     if (partition && partition->events->size() > 20)
     {
         findMusters();
-        for (QMap<int, PartitionCluster *>::Iterator pc = cluster_leaves->begin(); pc != cluster_leaves->end(); ++pc)
+        for (QMap<int, PartitionCluster *>::Iterator pc
+             = cluster_leaves->begin(); pc != cluster_leaves->end(); ++pc)
         {
             (pc.value())->makeClusterVectors();
         }
@@ -91,7 +92,8 @@ void Gnome::findMusters()
 
     int num_clusters = std::min(20, partition->events->size());
     kmedoids clara;
-    clara.clara(partition->cluster_processes->toStdVector(), process_distance(), num_clusters);
+    clara.clara(partition->cluster_processes->toStdVector(),
+                process_distance(), num_clusters);
 
     /* // (Fail to) generate optimal cluster number
     int dim = (partition->max_global_step - partition->min_global_step)/2 + 1;
@@ -99,13 +101,18 @@ void Gnome::findMusters()
     for (int i = 0; i < partition->cluster_processes->size(); i++)
         xvector->push_back(*(partition->cluster_processes->at(i)));
     clara.xclara(*xvector, process_distance_np(), num_clusters, dim);
-    std::cout << "XClara found " << clara.medoid_ids.size() << " clusters" << std::endl;
+    std::cout << "XClara found " << clara.medoid_ids.size()
+              << " clusters" << std::endl;
     */
 
     // Set up clusters structures
     cluster_leaves = new QMap<int, PartitionCluster *>();
     for (int i = 0; i < num_clusters; i++) // TODO: Make cluster_leaves a list
-        cluster_leaves->insert(i, new PartitionCluster(partition->max_global_step - partition->min_global_step + 2, partition->min_global_step));
+        cluster_leaves->insert(i,
+                               new PartitionCluster(partition->max_global_step
+                                                    - partition->min_global_step
+                                                    + 2,
+                                                    partition->min_global_step));
     for (int i = 0; i < clara.cluster_ids.size(); i++)
     {
         int process = partition->cluster_processes->at(i)->process;
@@ -153,7 +160,8 @@ void Gnome::hierarchicalMusters()
     for (int i = 0; i < distances.size(); i++)
     {
         DistancePair current = distances[i];
-        if (cluster_leaves->value(current.p1)->get_root() != cluster_leaves->value(current.p2)->get_root())
+        if (cluster_leaves->value(current.p1)->get_root()
+            != cluster_leaves->value(current.p2)->get_root())
         {
             pc = new PartitionCluster(current.distance,
                                       cluster_leaves->value(current.p1)->get_root(),
@@ -168,8 +176,9 @@ void Gnome::hierarchicalMusters()
     gu_printTime(traceElapsed);
     std::cout << std::endl;
 
-    // From here we could now compress the ClusterEvent metrics (doing the four divides ahead of time)
-    // but I'm going to retain the information for now and see how it goes
+    // From here we could now compress the ClusterEvent metrics (doing the four
+    // divides ahead of time)but I'm going to retain the information for now
+    // and see how it goes
 }
 
 // Straigth SLINK hierarchy, can take a long time for large #processes or #steps
@@ -197,7 +206,9 @@ void Gnome::findClusters()
     for (int i = 0; i < num_processes; i++)
     {
         p1 = processes[i];
-        cluster_leaves->insert(p1, new PartitionCluster(p1, partition->events->value(p1), "Lateness"));
+        cluster_leaves->insert(p1, new PartitionCluster(p1,
+                                                        partition->events->value(p1),
+                                                        "Lateness"));
         if (cluster_leaves->value(p1)->max_metric > max_metric)
         {
             max_metric = cluster_leaves->value(p1)->max_metric;
@@ -220,7 +231,8 @@ void Gnome::findClusters()
     for (int i = 0; i < distances.size(); i++)
     {
         DistancePair current = distances[i];
-        if (cluster_leaves->value(current.p1)->get_root() != cluster_leaves->value(current.p2)->get_root())
+        if (cluster_leaves->value(current.p1)->get_root()
+                != cluster_leaves->value(current.p2)->get_root())
         {
             pc = new PartitionCluster(current.distance,
                                       cluster_leaves->value(current.p1)->get_root(),
@@ -231,12 +243,13 @@ void Gnome::findClusters()
     }
     cluster_root = cluster_leaves->value(lastp)->get_root();
 
-    // From here we could now compress the ClusterEvent metrics (doing the four divides ahead of time)
-    // but I'm going to retain the information for now and see how it goes
+    // From here we could now compress the ClusterEvent metrics (doing the four
+    // divides ahead of time) but I'm going to retain the information for now
+    // and see how it goes
 }
 
-// When calculating distance between two event lists. When one is missing a step, we
-// estimate the lateness as the step that came before it if available
+// When calculating distance between two event lists. When one is missing a step,
+// webbestimate the lateness as the step that came before it if available
 // and only if not we skip
 long long int Gnome::calculateMetricDistance(int p1, int p2)
 {
@@ -252,22 +265,26 @@ long long int Gnome::calculateMetricDistance(int p1, int p2)
         num_matches = events2->size();
         offset = events1->size() - events2->size();
         for (int i = 0; i < events2->size(); i++)
-            total_difference += (events1->at(offset + i) - events2->at(i)) * (events1->at(offset + i) - events2->at(i));
+            total_difference += (events1->at(offset + i) - events2->at(i))
+                                * (events1->at(offset + i) - events2->at(i));
     }
     else
     {
         offset = events2->size() - events1->size();
         for (int i = 0; i < events1->size(); i++)
-            total_difference += (events2->at(offset + i) - events1->at(i)) * (events2->at(offset + i) - events1->at(i));
+            total_difference += (events2->at(offset + i) - events1->at(i))
+                                * (events2->at(offset + i) - events1->at(i));
     }
     if (num_matches <= 0)
         return LLONG_MAX;
     return total_difference / num_matches;
 }
 
-// Old distance metric where we skip any non-matching steps. Also this was done before
-// cluster_vectors were written in so the indexing is a little more complicated
-long long int Gnome::calculateMetricDistance2(QList<Event *> * list1, QList<Event *> * list2)
+// Old distance metric where we skip any non-matching steps. Also this was done
+// before cluster_vectors were written in so the indexing is a little more
+// complicated
+long long int Gnome::calculateMetricDistance2(QList<Event *> * list1,
+                                              QList<Event *> * list2)
 {
     int index1 = 0, index2 = 0, total_calced_steps = 0;
     Event * evt1 = list1->at(0), * evt2 = list2->at(0);
@@ -358,7 +375,7 @@ void Gnome::generateTopProcesses(PartitionCluster *pc)
     qSort(top_processes);
 }
 
-// Generates a list of process and its neighbors-hop neighborhood in top_processes
+// Sets top_processes to a list w/process and its neighbors-hop neighborhood
 void Gnome::generateTopProcessesWorker(int process)
 {
     QList<Event *> * elist = NULL;
@@ -369,12 +386,16 @@ void Gnome::generateTopProcessesWorker(int process)
     current_processes.insert(process);
     for (int i = 0; i < neighbors; i++)
     {
-        for (QSet<int>::Iterator proc = current_processes.begin(); proc != current_processes.end(); ++proc)
+        for (QSet<int>::Iterator proc = current_processes.begin();
+             proc != current_processes.end(); ++proc)
         {
             elist = partition->events->value(*proc);
-            for (QList<Event *>::Iterator evt = elist->begin(); evt != elist->end(); ++evt)
+            for (QList<Event *>::Iterator evt = elist->begin();
+                 evt != elist->end(); ++evt)
             {
-                for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
+                for (QVector<Message *>::Iterator msg
+                     = (*evt)->messages->begin();
+                     msg != (*evt)->messages->end(); ++msg)
                 {
                     if (*evt == (*msg)->sender)
                     {
@@ -402,8 +423,8 @@ int Gnome::findMaxMetricProcess(PartitionCluster * pc)
     return pc->max_process;
 }
 
-// Calculates the centroid of a partition cluster by first finding the average and
-// then finding the closest member to the average
+// Calculates the centroid of a partition cluster by first finding the average
+// and then finding the closest member to the average
 int Gnome::findCentroidProcess(PartitionCluster * pc)
 {
     // Init
@@ -413,14 +434,16 @@ int Gnome::findCentroidProcess(PartitionCluster * pc)
 
     // Take the average from the top
     QList<AverageMetric> events = QList<AverageMetric>();
-    for (QList<ClusterEvent *>::Iterator evt = pc->events->begin(); evt != pc->events->end(); ++evt)
+    for (QList<ClusterEvent *>::Iterator evt = pc->events->begin();
+         evt != pc->events->end(); ++evt)
     {
         if ((*evt)->getCount())
-            events.append(AverageMetric((*evt)->getMetric() / (*evt)->getCount(), (*evt)->step));
+            events.append(AverageMetric((*evt)->getMetric()
+                                        / (*evt)->getCount(), (*evt)->step));
     }
 
-    // Find the distances, note there may be a cleaner way to write this now that more
-    // structures have been added
+    // Find the distances, note there may be a cleaner way to write this now
+    // that more structures have been added
     int num_events = events.size();
     for (int i = 0; i < distances.size(); i++)
     {
@@ -486,7 +509,8 @@ int Gnome::findCentroidProcess(PartitionCluster * pc)
 }
 
 
-void Gnome::drawGnomeQt(QPainter * painter, QRect extents, VisOptions *_options, int blockwidth)
+void Gnome::drawGnomeQt(QPainter * painter, QRect extents,
+                        VisOptions *_options, int blockwidth)
 {
     options = _options;
     if (options->metric != metric)
@@ -508,25 +532,34 @@ void Gnome::drawGnomeQt(QPainter * painter, QRect extents, VisOptions *_options,
 int Gnome::getTopHeight(QRect extents)
 {
     int topHeight = 0;
-    int fair_portion = top_processes.size() / 1.0 / cluster_root->members->size() * extents.height();
+    int fair_portion = top_processes.size() / 1.0
+                       / cluster_root->members->size() * extents.height();
     int min_size = 12 * top_processes.size();
-    if (min_size > extents.height()) // If we don't have enough for 12 pixels each process, go with the fair portion
+
+    // If we don't have enough for 12 pixels each process,
+    // go with the fair portion
+    if (min_size > extents.height())
         topHeight = fair_portion;
     else // but if we do, go with whatever is bigger
         topHeight = std::max(fair_portion, min_size);
 
-    // Max cluster leftover tries the other way - seeing how much room we need for our clusters and then
-    // choosing the size based on them. Note however that this is not how the clusters will actually be
-    // allotted in terms of size (since they're shown relative to how many they contain), so
+    // Max cluster leftover tries the other way - seeing how much room we need
+    // for our clusters and then choosing the size based on them. Note however
+    // that this is not how the clusters will actually be allotted in terms of
+    // size (since they're shown relative to how many they contain), so
     // this may not make sense. Perhaps we need a non-linear cluster scale.
-    int max_cluster_leftover = extents.height() - cluster_root->visible_clusters() * (2 * clusterMaxHeight);
+    int max_cluster_leftover = extents.height()
+                               - cluster_root->visible_clusters()
+                               * (2 * clusterMaxHeight);
     if (topHeight < max_cluster_leftover)
         topHeight = max_cluster_leftover;
 
     return topHeight;
 }
 
-void Gnome::drawGnomeQtCluster(QPainter * painter, QRect extents, int blockwidth)
+void Gnome::drawGnomeQtCluster(QPainter * painter,
+                               QRect extents,
+                               int blockwidth)
 {
     alternation = true;
 
@@ -558,17 +591,20 @@ void Gnome::drawGnomeQtCluster(QPainter * painter, QRect extents, int blockwidth
     painter->setPen(QPen(QColor(0, 0, 0)));
 
     // Draw the Focus processes
-    QRect top_extents = QRect(extents.x(), extents.y(), extents.width(), topHeight);
+    QRect top_extents = QRect(extents.x(), extents.y(),
+                              extents.width(), topHeight);
     drawGnomeQtTopProcesses(painter, top_extents, blockwidth, barwidth);
 
     // Draw the clusters
-    QRect cluster_extents = QRect(extents.x(), extents.y() + topHeight, extents.width(), effectiveHeight);
+    QRect cluster_extents = QRect(extents.x(), extents.y() + topHeight,
+                                  extents.width(), effectiveHeight);
     drawGnomeQtClusterBranch(painter, cluster_extents, cluster_root,
                              blockheight, blockwidth, barheight, barwidth);
 
-    // Now that we have drawn all the events, we need to draw the leaf-cluster messages or the leaf-leaf
-    // messages which are saved in saved_messages.
-    drawGnomeQtInterMessages(painter, blockwidth, partition->min_global_step, extents.x());
+    // Now that we have drawn all the events, we need to draw the leaf-cluster
+    // messages or the leaf-leaf messages which are saved in saved_messages.
+    drawGnomeQtInterMessages(painter, blockwidth,
+                             partition->min_global_step, extents.x());
 
     drawHover(painter);
 
@@ -640,24 +676,32 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
     {
         QList<Event *> * event_list = partition->events->value(top_processes[i]);
         bool selected = false;
-        if (is_selected && selected_pc && selected_pc->members->contains(top_processes[i]))
+        if (is_selected && selected_pc
+            && selected_pc->members->contains(top_processes[i]))
+        {
             selected = true;
+        }
         y =  floor(extents.y() + i * blockheight) + 1;
-        //painter->drawText(extents.x() - 1, y + blockheight / 2, QString::number(top_processes[i]));
+
         processYs[top_processes[i]] = y;
-        for (QList<Event *>::Iterator evt = event_list->begin(); evt != event_list->end(); ++evt)
+        for (QList<Event *>::Iterator evt = event_list->begin();
+             evt != event_list->end(); ++evt)
         {
             if (options->showAggregateSteps)
-                x = floor(((*evt)->step - startStep) * blockwidth) + 1 + extents.x();
+                x = floor(((*evt)->step - startStep) * blockwidth) + 1
+                    + extents.x();
             else
-                x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1 + extents.x();
+                x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1
+                    + extents.x();
             w = barwidth;
             h = barheight;
 
             myopacity = opacity;
             if (selected)
                 myopacity = 1.0;
-            painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color((*evt)->getMetric(metric), myopacity)));
+            painter->fillRect(QRectF(x, y, w, h),
+                              QBrush(options->colormap->color((*evt)->getMetric(metric),
+                                                              myopacity)));
 
             // Draw border but only if we're doing spacing, otherwise too messy
             painter->setPen(QPen(QColor(0, 0, 0, myopacity * 255)));
@@ -666,10 +710,14 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
                 painter->drawRect(QRectF(x,y,w,h));
             }
 
-            for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
+            for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
+                 msg != (*evt)->messages->end(); ++msg)
             {
-                if (top_processes.contains((*msg)->sender->process) && top_processes.contains((*msg)->receiver->process))
+                if (top_processes.contains((*msg)->sender->process)
+                        && top_processes.contains((*msg)->receiver->process))
+                {
                     drawMessages.insert((*msg));
+                }
                 else if (*evt == (*msg)->sender)
                 {
                     // send
@@ -692,7 +740,10 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
                 xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + extents.x();
                 wa = barwidth;
 
-                painter->fillRect(QRectF(xa, y, wa, h), QBrush(options->colormap->color((*evt)->getMetric(metric, true), myopacity)));
+                painter->fillRect(QRectF(xa, y, wa, h),
+                                  QBrush(options->colormap->color((*evt)->getMetric(metric,
+                                                                                    true),
+                                                                  myopacity)));
 
                 if (step_spacing > 0 && process_spacing > 0)
                 {
@@ -721,22 +772,27 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
         QPointF p1, p2;
         w = barwidth;
         h = barheight;
-        for (QSet<Message *>::Iterator msg = drawMessages.begin(); msg != drawMessages.end(); ++msg) {
+        for (QSet<Message *>::Iterator msg = drawMessages.begin();
+             msg != drawMessages.end(); ++msg) {
             send_event = (*msg)->sender;
             recv_event = (*msg)->receiver;
             y = processYs[send_event->process];
             if (options->showAggregateSteps)
-                x = floor((send_event->step - startStep) * blockwidth) + 1 + extents.x();
+                x = floor((send_event->step - startStep) * blockwidth) + 1
+                    + extents.x();
             else
-                x = floor((send_event->step - startStep) / 2 * blockwidth) + 1 + extents.x();
+                x = floor((send_event->step - startStep) / 2 * blockwidth) + 1
+                    + extents.x();
             if (options->showMessages == VisOptions::TRUE)
             {
                 p1 = QPointF(x + w/2.0, y + h/2.0);
                 y = processYs[recv_event->process];
                 if (options->showAggregateSteps)
-                    x = floor((recv_event->step - startStep) * blockwidth) + 1 + extents.x();
+                    x = floor((recv_event->step - startStep) * blockwidth) + 1
+                        + extents.x();
                 else
-                    x = floor((recv_event->step - startStep) / 2 * blockwidth) + 1 + extents.x();
+                    x = floor((recv_event->step - startStep) / 2 * blockwidth)
+                        + 1 + extents.x();
                 p2 = QPointF(x + w/2.0, y + h/2.0);
             }
             else
@@ -751,32 +807,46 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
 }
 
 // Draw messages between clusters if we have opened to leaves
-void Gnome::drawGnomeQtInterMessages(QPainter * painter, int blockwidth, int startStep, int startx)
+void Gnome::drawGnomeQtInterMessages(QPainter * painter, int blockwidth,
+                                     int startStep, int startx)
 {
     if (options->showAggregateSteps)
         startStep -= 1;
     if (blockwidth >= 1.0)
         blockwidth = floor(blockwidth);
     painter->setPen(QPen(Qt::black, 1.5, Qt::SolidLine));
-    for (QSet<Message *>::Iterator msg = saved_messages.begin(); msg != saved_messages.end(); ++msg)
+    for (QSet<Message *>::Iterator msg = saved_messages.begin();
+         msg != saved_messages.end(); ++msg)
     {
         int x1, y1, x2, y2;
         PartitionCluster * sender_pc = cluster_leaves->value((*msg)->sender->process)->get_closed_root();
         PartitionCluster * receiver_pc = cluster_leaves->value((*msg)->receiver->process)->get_closed_root();
 
         x1 = startx + blockwidth * ((*msg)->sender->step - startStep + 0.5);
-        if (sender_pc->children->isEmpty())  // Sender is leaf
+
+        // Sender is leaf
+        if (sender_pc->children->isEmpty())
             y1 = sender_pc->extents.y() + sender_pc->extents.height() / 2;
-        else if (sender_pc->extents.y() > receiver_pc->extents.y()) // Sender is lower cluster
+
+        // Sender is lower cluster
+        else if (sender_pc->extents.y() > receiver_pc->extents.y())
             y1 = sender_pc->extents.y();
+
         else
             y1 = sender_pc->extents.y() + sender_pc->extents.height();
 
+
+
         x2 = startx + blockwidth * ((*msg)->receiver->step - startStep + 0.5);
-        if (receiver_pc->children->isEmpty()) // Sender is leaf
+
+        // Sender is leaf
+        if (receiver_pc->children->isEmpty())
             y2 = receiver_pc->extents.y() + receiver_pc->extents.height() / 2;
-        else if (receiver_pc->extents.y() > sender_pc->extents.y()) // Sender is lower cluster
+
+        // Sender is lower cluster
+        else if (receiver_pc->extents.y() > sender_pc->extents.y())
             y2 = receiver_pc->extents.y();
+
         else
             y2 = receiver_pc->extents.y() + receiver_pc->extents.height();
 
@@ -792,7 +862,8 @@ void Gnome::drawQtTree(QPainter * painter, QRect extents)
     {
         painter->setFont(QFont("Helvetica", 10));
         QFontMetrics font_metrics = painter->fontMetrics();
-        QString text = QString::number((*(std::max_element(cluster_root->members->begin(), cluster_root->members->end()))));
+        QString text = QString::number((*(std::max_element(cluster_root->members->begin(),
+                                                           cluster_root->members->end()))));
 
         // Determine bounding box of FontMetrics
         labelwidth = font_metrics.boundingRect(text).width();
@@ -813,15 +884,20 @@ void Gnome::drawQtTree(QPainter * painter, QRect extents)
 
     int leafx = branch_length * depth + labelwidth;
 
-    drawTreeBranch(painter, QRect(extents.x(), extents.y() + topHeight, extents.width(), extents.height() - topHeight),
+    drawTreeBranch(painter, QRect(extents.x(),
+                                  extents.y() + topHeight,
+                                  extents.width(),
+                                  extents.height() - topHeight),
                    cluster_root, branch_length, labelwidth, blockheight, leafx);
 }
 
 
 
 // Draw hierarchical clustering navigation tree recursively
-void Gnome::drawTreeBranch(QPainter * painter, QRect current, PartitionCluster * pc,
-                                             int branch_length, int labelwidth, float blockheight, int leafx)
+void Gnome::drawTreeBranch(QPainter * painter, QRect current,
+                           PartitionCluster * pc,
+                           int branch_length, int labelwidth,
+                           float blockheight, int leafx)
 {
     int pc_size = pc->members->size();
     int my_x = current.x();
@@ -831,13 +907,14 @@ void Gnome::drawTreeBranch(QPainter * painter, QRect current, PartitionCluster *
     painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
     if (pc->open && !pc->children->isEmpty())
     {
-        // Draw line to myself
-        //painter->drawLine(my_x - 20, my_y, my_x, my_y);
-        for (QList<PartitionCluster *>::Iterator child = pc->children->begin(); child != pc->children->end(); ++child)
+        for (QList<PartitionCluster *>::Iterator child = pc->children->begin();
+             child != pc->children->end(); ++child)
         {
-            // Draw line from wherever we start to correct height -- actually loop through children since info this side?
-            // We are in the middle of these extents at current.x() and current.y() + current.h()
-            // Though we may want to take the discreteness of the processes into account and figure it out by blockheight
+            // Draw line from wherever we start to correct height -- actually
+            // loop through children since info this side? We are in the middle
+            // of these extents at current.x() and current.y() + current.h()
+            // Though we may want to take the discreteness of the processes
+            // into account and figure it out by blockheight
             painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
             int child_size = (*child)->members->size();
             child_y = top_y + child_size / 2.0 * blockheight + used_y;
@@ -851,8 +928,10 @@ void Gnome::drawTreeBranch(QPainter * painter, QRect current, PartitionCluster *
             painter->fillRect(node, QBrush(Qt::black));
             drawnNodes[pc] = node;
 
-            drawTreeBranch(painter, QRect(child_x, top_y + used_y, current.width(), current.height()), *child,
-                                     branch_length, labelwidth, blockheight, leafx);
+            drawTreeBranch(painter, QRect(child_x, top_y + used_y,
+                                          current.width(), current.height()),
+                           *child, branch_length, labelwidth,
+                           blockheight, leafx);
             used_y += child_size * blockheight;
         }
     }
@@ -864,7 +943,8 @@ void Gnome::drawTreeBranch(QPainter * painter, QRect current, PartitionCluster *
             painter->setPen(QPen(Qt::white, 2.0, Qt::SolidLine));
             painter->drawLine(leafx - labelwidth, my_y, leafx, my_y);
             painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
-            painter->drawText(leafx - labelwidth, my_y + 3, QString::number(process));
+            painter->drawText(leafx - labelwidth, my_y + 3,
+                              QString::number(process));
     }
     else // This is a cluster leaf, no label but we extend the line all the way
     {
@@ -875,10 +955,12 @@ void Gnome::drawTreeBranch(QPainter * painter, QRect current, PartitionCluster *
 
 }
 
-// This walks through the tree and finds the y position and height at which we should
-// draw the cluster in the main vis
-void Gnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, PartitionCluster * pc,
-                                             float blockheight, int blockwidth, int barheight, int barwidth)
+// This walks through the tree and finds the y position and height at which we
+// should draw the cluster in the main vis
+void Gnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current,
+                                     PartitionCluster * pc,
+                                     float blockheight, int blockwidth,
+                                     int barheight, int barwidth)
 {
     int my_x = current.x();
     int top_y = current.y();
@@ -887,14 +969,21 @@ void Gnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, Partitio
     if (pc->open && !pc->children->isEmpty())
     {
         // Draw line to myself
-        for (QList<PartitionCluster *>::Iterator child = pc->children->begin(); child != pc->children->end(); ++child)
+        for (QList<PartitionCluster *>::Iterator child = pc->children->begin();
+             child != pc->children->end(); ++child)
         {
-            // Draw line from wherever we start to correct height -- actually loop through children since info this side?
-            // We are in the middle of these extents at current.x() and current.y() + current.h()
-            // Though we may want to take the discreteness of the processes into account and figure it out by blockheight
+            // Draw line from wherever we start to correct height -- actually
+            // loop through children since info this side? We are in the middle
+            // of these extents at current.x() and current.y() + current.h()
+            // Though we may want to take the discreteness of the processes
+            // into account and figure it out by blockheight
             int child_size = (*child)->members->size();
-            drawGnomeQtClusterBranch(painter, QRect(my_x, top_y + used_y, current.width(), current.height()), *child,
-                                     blockheight, blockwidth, barheight, barwidth);
+            drawGnomeQtClusterBranch(painter, QRect(my_x,
+                                                    top_y + used_y,
+                                                    current.width(),
+                                                    current.height()),
+                                     *child, blockheight, blockwidth,
+                                     barheight, barwidth);
             used_y += child_size * blockheight;
         }
     }
@@ -902,15 +991,19 @@ void Gnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, Partitio
     {
         int process = pc->members->at(0);
         painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
-        drawGnomeQtClusterLeaf(painter, QRect(current.x(), current.y(), barwidth, barheight),
-                                  partition->events->value(process), blockwidth, partition->min_global_step);
-        drawnPCs[pc] = QRect(current.x(), current.y(), current.width(), blockheight);
+        drawGnomeQtClusterLeaf(painter, QRect(current.x(), current.y(),
+                                              barwidth, barheight),
+                               partition->events->value(process), blockwidth,
+                               partition->min_global_step);
+        drawnPCs[pc] = QRect(current.x(), current.y(),
+                             current.width(), blockheight);
         pc->extents = drawnPCs[pc];
     }
     else // This is open
     {
         painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
-        QRect clusterRect = QRect(current.x(), current.y(), current.width(), blockheight * pc->members->size());
+        QRect clusterRect = QRect(current.x(), current.y(), current.width(),
+                                  blockheight * pc->members->size());
         if (pc == selected_pc) {
             painter->fillRect(clusterRect, QBrush(QColor(153, 255, 153)));
         } else if (alternation) {
@@ -930,48 +1023,63 @@ void Gnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current, Partitio
 }
 
 // If a cluster is a leaf with one process, draw it similarly to StepVis
-void Gnome::drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy, QList<Event *> * elist, int blockwidth, int startStep)
+void Gnome::drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy,
+                                   QList<Event *> * elist, int blockwidth,
+                                   int startStep)
 {
     int y = startxy.y();
     int x, w, h, xa, wa;
     if (options->showAggregateSteps)
         startStep -= 1;
     painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
-    for (QList<Event *>::Iterator evt = elist->begin(); evt != elist->end(); ++evt)
+    for (QList<Event *>::Iterator evt = elist->begin();
+         evt != elist->end(); ++evt)
     {
         if (options->showAggregateSteps)
-            x = floor(((*evt)->step - startStep) * blockwidth) + 1 + startxy.x();
+            x = floor(((*evt)->step - startStep) * blockwidth) + 1
+                + startxy.x();
         else
-            x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1 + startxy.x();
+            x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1
+                + startxy.x();
         w = startxy.width();
         h = startxy.height();
 
-        // We know it will be complete in this view because we're not doing scrolling or anything here.
+        // We know it will be complete in this view because we're not doing
+        // scrolling or anything here.
 
         // Draw the event
         if ((*evt)->hasMetric(metric))
-            painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color((*evt)->getMetric(metric))));
+            painter->fillRect(QRectF(x, y, w, h),
+                              QBrush(options->colormap->color((*evt)->getMetric(metric))));
         else
-            painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(180, 180, 180)));
+            painter->fillRect(QRectF(x, y, w, h),
+                              QBrush(QColor(180, 180, 180)));
 
         // Draw border but only if we're doing spacing, otherwise too messy
         if (blockwidth != w)
             painter->drawRect(QRectF(x,y,w,h));
 
         if (options->showAggregateSteps) {
-            xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + startxy.x();
+            xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1
+                 + startxy.x();
             wa = startxy.width();
 
             if ((*evt)->hasMetric(metric))
-                painter->fillRect(QRectF(xa, y, wa, h), QBrush(options->colormap->color((*evt)->getMetric(metric, true))));
+                painter->fillRect(QRectF(xa, y, wa, h),
+                                  QBrush(options->colormap->color((*evt)->getMetric(metric,
+                                                                                    true))));
             else
-                painter->fillRect(QRectF(xa, y, wa, h), QBrush(QColor(180, 180, 180)));
+                painter->fillRect(QRectF(xa, y, wa, h),
+                                  QBrush(QColor(180, 180, 180)));
             if (blockwidth != w)
                 painter->drawRect(QRectF(xa, y, wa, h));
         }
 
-        for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
+        for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
+             msg != (*evt)->messages->end(); ++msg)
+        {
             saved_messages.insert(*msg);
+        }
 
     }
 }
@@ -982,11 +1090,14 @@ Gnome::ChangeType Gnome::handleDoubleClick(QMouseEvent * event)
     int x = event->x();
     int y = event->y();
     // Find the clicked PartitionCluster
-    for (QMap<PartitionCluster *, QRect>::Iterator p = drawnPCs.begin(); p != drawnPCs.end(); ++p)
+    for (QMap<PartitionCluster *, QRect>::Iterator p = drawnPCs.begin();
+         p != drawnPCs.end(); ++p)
+    {
         if (p.value().contains(x,y))
         {
             PartitionCluster * pc = p.key();
-            if ((Qt::ControlModifier && event->modifiers()) && (event->button() == Qt::RightButton))
+            if ((Qt::ControlModifier && event->modifiers())
+                && (event->button() == Qt::RightButton))
             {
                 // Focus processes on centroid of this cluster
                 options->topByCentroid = true;
@@ -1020,6 +1131,8 @@ Gnome::ChangeType Gnome::handleDoubleClick(QMouseEvent * event)
                 return CLUSTER;
             }
         }
+    }
+
     return NONE;
 }
 
@@ -1030,7 +1143,8 @@ void Gnome::handleTreeDoubleClick(QMouseEvent * event)
     int y = event->y();
 
     // Figure out which branch this occurs in, open that branch
-    for (QMap<PartitionCluster *, QRect>::Iterator p = drawnNodes.begin(); p != drawnNodes.end(); ++p)
+    for (QMap<PartitionCluster *, QRect>::Iterator p = drawnNodes.begin();
+         p != drawnNodes.end(); ++p)
     {
         if (p.value().contains(x,y))
         {
@@ -1042,10 +1156,12 @@ void Gnome::handleTreeDoubleClick(QMouseEvent * event)
 }
 
 
-// This is the basic function for drawing a cluster. This should be overriden by child classes
-// that want to change this drawing style.
-void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, PartitionCluster * pc,
-                                  int barwidth, int barheight, int blockwidth, int blockheight,
+// This is the basic function for drawing a cluster. This should be overriden
+// by child classes that want to change this drawing style.
+void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect,
+                                  PartitionCluster * pc,
+                                  int barwidth, int barheight,
+                                  int blockwidth, int blockheight,
                                   int startStep)
 {
     bool drawMessages = true;
@@ -1075,15 +1191,19 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, Partiti
 
     // Draw partition cluster events
     painter->setPen(QPen(Qt::black, 1.0, Qt::SolidLine));
-    for (QList<ClusterEvent *>::Iterator evt = pc->events->begin(); evt != pc->events->end(); ++evt)
+    for (QList<ClusterEvent *>::Iterator evt = pc->events->begin();
+         evt != pc->events->end(); ++evt)
     {
         if (options->showAggregateSteps)
-            x = floor(((*evt)->step - startStep) * blockwidth) + 1 + clusterRect.x();
+            x = floor(((*evt)->step - startStep) * blockwidth) + 1
+                + clusterRect.x();
         else
-            x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1 + clusterRect.x();
+            x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1
+                + clusterRect.x();
         w = barwidth;
         nsends = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND);
-        nrecvs = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::RECV) + (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::WAITALL);
+        nrecvs = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::RECV)
+                 + (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::WAITALL);
 
         int divisor = pc->members->size();
         if (!options->showInactiveSteps)
@@ -1096,19 +1216,20 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, Partiti
 
         // Draw the event
         if (nsends)
-            painter->fillRect(QRectF(x, ys, w, hs), QBrush(options->colormap->color(
-                                                         (*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::SEND,
-                                                                           ClusterEvent::ALL)
-                                                         / nsends
-                                                         )));
+            painter->fillRect(QRectF(x, ys, w, hs),
+                              QBrush(options->colormap->color((*evt)->getMetric(ClusterEvent::COMM,
+                                                                                ClusterEvent::SEND,
+                                                                                ClusterEvent::ALL)
+                                                              / nsends)));
         if (nrecvs)
-            painter->fillRect(QRectF(x, yr, w, hr), QBrush(options->colormap->color(
-                                                         ((*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::RECV,
-                                                                           ClusterEvent::ALL)
-                                                          + (*evt)->getMetric(ClusterEvent::COMM, ClusterEvent::WAITALL,
-                                                                              ClusterEvent::ALL))
-                                                         / nrecvs
-                                                         )));
+            painter->fillRect(QRectF(x, yr, w, hr),
+                              QBrush(options->colormap->color(((*evt)->getMetric(ClusterEvent::COMM,
+                                                                                 ClusterEvent::RECV,
+                                                                                 ClusterEvent::ALL)
+                                                              + (*evt)->getMetric(ClusterEvent::COMM,
+                                                                                  ClusterEvent::WAITALL,
+                                                                                  ClusterEvent::ALL))
+                                                              / nrecvs)));
 
         // Draw border but only if we're doing spacing, otherwise too messy
         if (blockwidth != w) {
@@ -1120,37 +1241,41 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, Partiti
         if (drawMessages) {
             if (nsends)
             {
-                painter->setPen(QPen(Qt::black, nsends * 2.0 / divisor, Qt::SolidLine));
-                painter->drawLine(x + blockwidth / 2, ys, x + barwidth, ys - 20);
+                painter->setPen(QPen(Qt::black, nsends * 2.0 / divisor,
+                                     Qt::SolidLine));
+                painter->drawLine(x + blockwidth / 2, ys, x + barwidth,
+                                  ys - 20);
             }
             if (nrecvs)
             {
-                painter->setPen(QPen(Qt::black, nrecvs * 2.0 / divisor, Qt::SolidLine));
-                painter->drawLine(x + blockwidth / 2, ys + blockheight, x + 1, ys + blockheight + 20);
+                painter->setPen(QPen(Qt::black, nrecvs * 2.0 / divisor,
+                                     Qt::SolidLine));
+                painter->drawLine(x + blockwidth / 2, ys + blockheight, x + 1,
+                                  ys + blockheight + 20);
             }
         }
 
         // Aggregate step
         if (options->showAggregateSteps) {
-            xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + clusterRect.x();
+            xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1
+                 + clusterRect.x();
             wa = barwidth;
 
             if (nsends)
                 painter->fillRect(QRectF(xa, ys, wa, hs),
-                                  QBrush(options->colormap->color(
-                                                                  (*evt)->getMetric(ClusterEvent::AGG, ClusterEvent::SEND,
+                                  QBrush(options->colormap->color((*evt)->getMetric(ClusterEvent::AGG,
+                                                                                    ClusterEvent::SEND,
                                                                                     ClusterEvent::ALL)
-                                                                  / nsends
-                                                                  )));
+                                                                  / nsends)));
             if (nrecvs)
                 painter->fillRect(QRectF(xa, yr, wa, hr),
-                              QBrush(options->colormap->color(
-                                                              ((*evt)->getMetric(ClusterEvent::AGG, ClusterEvent::RECV,
-                                                                                ClusterEvent::ALL)
-                                                               + (*evt)->getMetric(ClusterEvent::AGG, ClusterEvent::WAITALL,
-                                                                                   ClusterEvent::ALL))
-                                                              / nrecvs
-                                                              )));
+                                  QBrush(options->colormap->color(((*evt)->getMetric(ClusterEvent::AGG,
+                                                                                     ClusterEvent::RECV,
+                                                                                     ClusterEvent::ALL)
+                                                                  + (*evt)->getMetric(ClusterEvent::AGG,
+                                                                                      ClusterEvent::WAITALL,
+                                                                                      ClusterEvent::ALL))
+                                                                 / nrecvs)));
             if (blockwidth != w)
             {
                 painter->setPen(QPen(Qt::black, 1.0, Qt::SolidLine));
@@ -1163,38 +1288,47 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, Partiti
 }
 
 
-// Divide hover into event and preceding aggregate event in case we want to do something different with it
+// Divide hover into event and preceding aggregate event in case we want to do
+// something different with it
 bool Gnome::handleHover(QMouseEvent * event)
 {
     return false;
     mousex = event->x();
     mousey = event->y();
-    if (options->showAggregateSteps && hover_event && drawnEvents[hover_event].contains(mousex, mousey))
+    if (options->showAggregateSteps && hover_event
+            && drawnEvents[hover_event].contains(mousex, mousey))
     {
         // Need to check if we're changing from aggregate to not or vice versa
-        if (!hover_aggregate && mousex <= drawnEvents[hover_event].x() + stepwidth)
+        if (!hover_aggregate && mousex <= drawnEvents[hover_event].x()
+                                          + stepwidth)
         {
             hover_aggregate = true;
             return true;
         }
-        else if (hover_aggregate && mousex >=  drawnEvents[hover_event].x() + stepwidth)
+        else if (hover_aggregate && mousex >=  drawnEvents[hover_event].x()
+                                               + stepwidth)
         {
             hover_aggregate = false;
             return true;
         }
     }
-    else if (hover_event == NULL || !drawnEvents[hover_event].contains(mousex, mousey))
+    else if (hover_event == NULL
+             || !drawnEvents[hover_event].contains(mousex, mousey))
     {
         // Finding potential new hover
         hover_event = NULL;
-        for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin(); evt != drawnEvents.end(); ++evt)
+        for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin();
+             evt != drawnEvents.end(); ++evt)
+        {
             if (evt.value().contains(mousex, mousey))
             {
                 hover_aggregate = false;
-                if (options->showAggregateSteps && mousex <= evt.value().x() + stepwidth)
+                if (options->showAggregateSteps && mousex <= evt.value().x()
+                                                             + stepwidth)
                     hover_aggregate = true;
                 hover_event = evt.key();
             }
+        }
 
         return true;
     }
@@ -1219,7 +1353,7 @@ void Gnome::drawHover(QPainter * painter)
     else
     {
         // Fall through and draw Event
-        text = functions->value(hover_event->function)->name; // + ", " + QString::number(hover_event->step).toStdString().c_str();
+        text = functions->value(hover_event->function)->name;
     }
 
     // Determine bounding box of FontMetrics
@@ -1227,8 +1361,11 @@ void Gnome::drawHover(QPainter * painter)
 
     // Draw bounding box
     painter->setPen(QPen(QColor(255, 255, 0, 150), 1.0, Qt::SolidLine));
-    painter->drawRect(QRectF(mousex, mousey, textRect.width(), textRect.height()));
-    painter->fillRect(QRectF(mousex, mousey, textRect.width(), textRect.height()), QBrush(QColor(255, 255, 144, 150)));
+    painter->drawRect(QRectF(mousex, mousey,
+                             textRect.width(), textRect.height()));
+    painter->fillRect(QRectF(mousex, mousey,
+                             textRect.width(),textRect.height()),
+                      QBrush(QColor(255, 255, 144, 150)));
 
     // Draw text
     painter->setPen(Qt::black);

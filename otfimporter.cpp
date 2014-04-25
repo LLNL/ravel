@@ -21,7 +21,8 @@ OTFImporter::OTFImporter()
       rawtrace(NULL),
       functionGroups(NULL),
       functions(NULL),
-      collectiveMap(new QMap<std::pair<uint64_t, uint32_t>, CollectiveRecord *>())
+      collectiveMap(new QMap<std::pair<uint64_t, uint32_t>,
+                             CollectiveRecord *>())
 {
 
 }
@@ -29,8 +30,12 @@ OTFImporter::OTFImporter()
 OTFImporter::~OTFImporter()
 {
 
-    for (QVector<QLinkedList<CommRecord *> *>::Iterator eitr = unmatched_recvs->begin(); eitr != unmatched_recvs->end(); ++eitr) {
-        for (QLinkedList<CommRecord *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
+    for (QVector<QLinkedList<CommRecord *> *>::Iterator eitr
+         = unmatched_recvs->begin(); eitr != unmatched_recvs->end(); ++eitr)
+    {
+        for (QLinkedList<CommRecord *>::Iterator itr = (*eitr)->begin();
+             itr != (*eitr)->end(); ++itr)
+        {
             delete *itr;
             *itr = NULL;
         }
@@ -39,9 +44,14 @@ OTFImporter::~OTFImporter()
     }
     delete unmatched_recvs;
 
-    for (QVector<QLinkedList<CommRecord *> *>::Iterator eitr = unmatched_sends->begin(); eitr != unmatched_sends->end(); ++eitr) {
-        // I don't think we delete these yet, but we should -- just remove them from the messages
-        /*for (QLinkedList<CommRecord *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
+    for (QVector<QLinkedList<CommRecord *> *>::Iterator eitr
+         = unmatched_sends->begin();
+         eitr != unmatched_sends->end(); ++eitr)
+    {
+        // Don't delete, used elsewhere
+        /*for (QLinkedList<CommRecord *>::Iterator itr = (*eitr)->begin();
+         itr != (*eitr)->end(); ++itr)
+        {
             delete *itr;
             *itr = NULL;
         }*/
@@ -102,20 +112,35 @@ RawTrace * OTFImporter::importOTF(const char* otf_file)
     std::cout << "Finish reading" << std::endl;
 
     int unmatched_recv_count = 0;
-    for (QVector<QLinkedList<CommRecord *> *>::Iterator eitr = unmatched_recvs->begin(); eitr != unmatched_recvs->end(); ++eitr) {
-        for (QLinkedList<CommRecord *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
+    for (QVector<QLinkedList<CommRecord *> *>::Iterator eitr
+         = unmatched_recvs->begin();
+         eitr != unmatched_recvs->end(); ++eitr)
+    {
+        for (QLinkedList<CommRecord *>::Iterator itr = (*eitr)->begin();
+             itr != (*eitr)->end(); ++itr)
+        {
             unmatched_recv_count++;
-            std::cout << "Unmatched RECV " << (*itr)->sender << "->" << (*itr)->receiver << " (" << (*itr)->send_time << ", " << (*itr)->recv_time << ")" << std::endl;
+            std::cout << "Unmatched RECV " << (*itr)->sender << "->"
+                      << (*itr)->receiver << " (" << (*itr)->send_time << ", "
+                      << (*itr)->recv_time << ")" << std::endl;
         }
     }
     int unmatched_send_count = 0;
-    for (QVector<QLinkedList<CommRecord *> *>::Iterator eitr = unmatched_sends->begin(); eitr != unmatched_sends->end(); ++eitr) {
-        for (QLinkedList<CommRecord *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
+    for (QVector<QLinkedList<CommRecord *> *>::Iterator eitr
+         = unmatched_sends->begin();
+         eitr != unmatched_sends->end(); ++eitr)
+    {
+        for (QLinkedList<CommRecord *>::Iterator itr = (*eitr)->begin();
+             itr != (*eitr)->end(); ++itr)
+        {
             unmatched_send_count++;
-            std::cout << "Unmatched SEND " << (*itr)->sender << "->" << (*itr)->receiver << " (" << (*itr)->send_time << ", " << (*itr)->recv_time << ")" << std::endl;
+            std::cout << "Unmatched SEND " << (*itr)->sender << "->"
+                      << (*itr)->receiver << " (" << (*itr)->send_time << ", "
+                      << (*itr)->recv_time << ")" << std::endl;
         }
     }
-    std::cout << unmatched_send_count << " unmatched sends and " << unmatched_recv_count << " unmatched recvs." << std::endl;
+    std::cout << unmatched_send_count << " unmatched sends and "
+              << unmatched_recv_count << " unmatched recvs." << std::endl;
 
 
     traceElapsed = traceTimer.nsecsElapsed();
@@ -132,31 +157,36 @@ void OTFImporter::setHandlers()
     OTF_HandlerArray_setHandler(handlerArray,
                                 (OTF_FunctionPointer*) &OTFImporter::handleDefTimerResolution,
                                 OTF_DEFTIMERRESOLUTION_RECORD);
-    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_DEFTIMERRESOLUTION_RECORD);
+    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this,
+                                        OTF_DEFTIMERRESOLUTION_RECORD);
 
     // Function Groups
     OTF_HandlerArray_setHandler(handlerArray,
                                 (OTF_FunctionPointer*) &OTFImporter::handleDefFunctionGroup,
                                 OTF_DEFFUNCTIONGROUP_RECORD);
-    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_DEFFUNCTIONGROUP_RECORD);
+    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this,
+                                        OTF_DEFFUNCTIONGROUP_RECORD);
 
     // Function Names
     OTF_HandlerArray_setHandler(handlerArray,
                                 (OTF_FunctionPointer*) &OTFImporter::handleDefFunction,
                                 OTF_DEFFUNCTION_RECORD);
-    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_DEFFUNCTION_RECORD);
+    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this,
+                                        OTF_DEFFUNCTION_RECORD);
 
     // Process Info
     OTF_HandlerArray_setHandler(handlerArray,
                                 (OTF_FunctionPointer*) &OTFImporter::handleDefProcess,
                                 OTF_DEFPROCESS_RECORD);
-    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_DEFPROCESS_RECORD);
+    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this,
+                                        OTF_DEFPROCESS_RECORD);
 
     // Counter Names
     OTF_HandlerArray_setHandler(handlerArray,
                                 (OTF_FunctionPointer*) &OTFImporter::handleDefCounter,
                                 OTF_DEFCOUNTER_RECORD);
-    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_DEFCOUNTER_RECORD);
+    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this,
+                                        OTF_DEFCOUNTER_RECORD);
 
     // Enter & Leave
     OTF_HandlerArray_setHandler(handlerArray,
@@ -167,24 +197,28 @@ void OTFImporter::setHandlers()
     OTF_HandlerArray_setHandler(handlerArray,
                                 (OTF_FunctionPointer*) &OTFImporter::handleLeave,
                                 OTF_LEAVE_RECORD);
-    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_LEAVE_RECORD);
+    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this,
+                                        OTF_LEAVE_RECORD);
 
     // Send & Receive
     OTF_HandlerArray_setHandler(handlerArray,
                                 (OTF_FunctionPointer*) &OTFImporter::handleSend,
                                 OTF_SEND_RECORD);
-    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_SEND_RECORD);
+    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this,
+                                        OTF_SEND_RECORD);
 
     OTF_HandlerArray_setHandler(handlerArray,
                                 (OTF_FunctionPointer*) &OTFImporter::handleRecv,
                                 OTF_RECEIVE_RECORD);
-    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_RECEIVE_RECORD);
+    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this,
+                                        OTF_RECEIVE_RECORD);
 
     // Counter Value
     OTF_HandlerArray_setHandler(handlerArray,
                                 (OTF_FunctionPointer*) &OTFImporter::handleCounter,
                                 OTF_COUNTER_RECORD);
-    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_COUNTER_RECORD);
+    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this,
+                                        OTF_COUNTER_RECORD);
 
     // Collectives
     /*
@@ -221,11 +255,14 @@ void OTFImporter::setHandlers()
 }
 
 // Find timescale
-uint64_t OTFImporter::convertTime(void* userData, uint64_t time) {
-    return (uint64_t) ((double) time) * ((OTFImporter *) userData)->time_conversion_factor;
+uint64_t OTFImporter::convertTime(void* userData, uint64_t time)
+{
+    return (uint64_t) ((double) time)
+            * ((OTFImporter *) userData)->time_conversion_factor;
 }
 
-int OTFImporter::handleDefTimerResolution(void* userData, uint32_t stream, uint64_t ticksPerSecond)
+int OTFImporter::handleDefTimerResolution(void* userData, uint32_t stream,
+                                          uint64_t ticksPerSecond)
 {
     Q_UNUSED(stream);
     ((OTFImporter*) userData)->ticks_per_second = ticksPerSecond;
@@ -239,8 +276,8 @@ int OTFImporter::handleDefTimerResolution(void* userData, uint32_t stream, uint6
 }
 
 // Function Names & Groups pretty easy
-int OTFImporter::handleDefFunctionGroup(void * userData, uint32_t stream, uint32_t funcGroup,
-                                        const char * name)
+int OTFImporter::handleDefFunctionGroup(void * userData, uint32_t stream,
+                                        uint32_t funcGroup, const char * name)
 {
     Q_UNUSED(stream);
 
@@ -248,21 +285,24 @@ int OTFImporter::handleDefFunctionGroup(void * userData, uint32_t stream, uint32
     return 0;
 }
 
-int OTFImporter::handleDefFunction(void * userData, uint32_t stream, uint32_t func,
-                             const char* name, uint32_t funcGroup, uint32_t source)
+int OTFImporter::handleDefFunction(void * userData, uint32_t stream,
+                                   uint32_t func, const char* name,
+                                   uint32_t funcGroup, uint32_t source)
 {
     Q_UNUSED(stream);
     Q_UNUSED(source);
 
-    (*(((OTFImporter*) userData)->functions))[func] = new Function(QString(name), funcGroup);
+    (*(((OTFImporter*) userData)->functions))[func] = new Function(QString(name),
+                                                                   funcGroup);
     return 0;
 }
 
 // Here the name seems to correspond to the MPI rank. We might want to do some
 // processing to get the actual name of the process or have another map.
 // For now we can go with the default numbering I guess.
-int OTFImporter::handleDefProcess(void * userData, uint32_t stream, uint32_t process,
-                            const char* name, uint32_t parent)
+int OTFImporter::handleDefProcess(void * userData, uint32_t stream,
+                                  uint32_t process, const char* name,
+                                  uint32_t parent)
 {
     Q_UNUSED(stream);
     Q_UNUSED(parent);
@@ -273,32 +313,48 @@ int OTFImporter::handleDefProcess(void * userData, uint32_t stream, uint32_t pro
     return 0;
 }
 
-int OTFImporter::handleDefCounter(void * userData, uint32_t stream, uint32_t counter,
-                            const char* name, uint32_t properties, uint32_t counterGroup,
-                            const char* unit)
+int OTFImporter::handleDefCounter(void * userData, uint32_t stream,
+                                  uint32_t counter, const char* name,
+                                  uint32_t properties, uint32_t counterGroup,
+                                  const char* unit)
 {
+    Q_UNUSED(userData);
+    Q_UNUSED(stream);
+    Q_UNUSED(counter);
+    Q_UNUSED(name);
+    Q_UNUSED(properties);
+    Q_UNUSED(counterGroup);
+    Q_UNUSED(unit);
     return 0;
 }
 
 int OTFImporter::handleEnter(void * userData, uint64_t time, uint32_t function,
-                       uint32_t process, uint32_t source)
+                             uint32_t process, uint32_t source)
 {
     Q_UNUSED(source);
-    ((*((((OTFImporter*) userData)->rawtrace)->events))[process - 1])->append(new EventRecord(process - 1, convertTime(userData, time), function));
+    ((*((((OTFImporter*) userData)->rawtrace)->events))[process - 1])->append(new EventRecord(process - 1,
+                                                                                              convertTime(userData,
+                                                                                                          time),
+                                                                                              function));
     return 0;
 }
 
 int OTFImporter::handleLeave(void * userData, uint64_t time, uint32_t function,
-                       uint32_t process, uint32_t source)
+                             uint32_t process, uint32_t source)
 {
     Q_UNUSED(source);
-    ((*((((OTFImporter*) userData)->rawtrace)->events))[process - 1])->append(new EventRecord(process - 1, convertTime(userData, time), function));
+    ((*((((OTFImporter*) userData)->rawtrace)->events))[process - 1])->append(new EventRecord(process - 1,
+                                                                                              convertTime(userData,
+                                                                                                          time),
+                                                                                              function));
     return 0;
 }
 
-// Check if two comm records match (one that already is a record, one that is just parts)
-bool OTFImporter::compareComms(CommRecord * comm, unsigned int sender, unsigned int receiver,
-                         unsigned int tag, unsigned int size)
+// Check if two comm records match
+// (one that already is a record, one that is just parts)
+bool OTFImporter::compareComms(CommRecord * comm, unsigned int sender,
+                               unsigned int receiver, unsigned int tag,
+                               unsigned int size)
 {
     if ((comm->sender != sender) || (comm->receiver != receiver)
             || (comm->tag != tag) || (comm->size != size))
@@ -306,19 +362,23 @@ bool OTFImporter::compareComms(CommRecord * comm, unsigned int sender, unsigned 
     return true;
 }
 
-// Note the send matching doesn't guarantee any particular order of the sends/receives in time. We will need to look into this.
-int OTFImporter::handleSend(void * userData, uint64_t time, uint32_t sender, uint32_t receiver,
-                      uint32_t group, uint32_t type, uint32_t length, uint32_t source)
+// Note the send matching doesn't guarantee any particular order of the
+// sends/receives in time. We will need to look into this.
+int OTFImporter::handleSend(void * userData, uint64_t time, uint32_t sender,
+                            uint32_t receiver, uint32_t group, uint32_t type,
+                            uint32_t length, uint32_t source)
 {
     Q_UNUSED(source);
     Q_UNUSED(group);
 
 
-    // Every time we find a send, check the unmatched recvs to see if it has a match
+    // Every time we find a send, check the unmatched recvs
+    // to see if it has a match
     time = convertTime(userData, time);
     CommRecord * cr = NULL;
     QLinkedList<CommRecord *> * unmatched = (*(((OTFImporter *) userData)->unmatched_recvs))[sender - 1];
-    for (QLinkedList<CommRecord *>::Iterator itr = unmatched->begin(); itr != unmatched->end(); ++itr)
+    for (QLinkedList<CommRecord *>::Iterator itr = unmatched->begin();
+         itr != unmatched->end(); ++itr)
     {
         if (OTFImporter::compareComms((*itr), sender, receiver, type, length))
         {
@@ -346,8 +406,9 @@ int OTFImporter::handleSend(void * userData, uint64_t time, uint32_t sender, uin
 }
 
 
-int OTFImporter::handleRecv(void * userData, uint64_t time, uint32_t receiver, uint32_t sender,
-                      uint32_t group, uint32_t type, uint32_t length, uint32_t source)
+int OTFImporter::handleRecv(void * userData, uint64_t time, uint32_t receiver,
+                            uint32_t sender, uint32_t group, uint32_t type,
+                            uint32_t length, uint32_t source)
 {
     Q_UNUSED(source);
     Q_UNUSED(group);
@@ -356,51 +417,74 @@ int OTFImporter::handleRecv(void * userData, uint64_t time, uint32_t receiver, u
     time = convertTime(userData, time);
     CommRecord * cr = NULL;
     QLinkedList<CommRecord *> * unmatched = (*(((OTFImporter*) userData)->unmatched_sends))[sender - 1];
-    for (QLinkedList<CommRecord *>::Iterator itr = unmatched->begin(); itr != unmatched->end(); ++itr) {
-        if (OTFImporter::compareComms((*itr), sender - 1, receiver - 1, type, length)) {
+    for (QLinkedList<CommRecord *>::Iterator itr = unmatched->begin();
+         itr != unmatched->end(); ++itr)
+    {
+        if (OTFImporter::compareComms((*itr), sender - 1, receiver - 1,
+                                      type, length))
+        {
             cr = *itr;
             cr->recv_time = time;
             break;
         }
     }
 
-    // If match is found, remove it from unmatched_sends, otherwise create a new unmatched recv record
+    // If match is found, remove it from unmatched_sends, otherwise create
+    // a new unmatched recv record
     if (cr)
     {
         (*(((OTFImporter *) userData)->unmatched_sends))[sender - 1]->removeOne(cr);
     }
     else
     {
-        ((*(((OTFImporter*) userData)->unmatched_recvs))[sender - 1])->append(new CommRecord(sender - 1, 0, receiver - 1, time, length, type));
+        ((*(((OTFImporter*) userData)->unmatched_recvs))[sender - 1])->append(new CommRecord(sender - 1,
+                                                                                             0,
+                                                                                             receiver - 1,
+                                                                                             time,
+                                                                                             length,
+                                                                                             type));
     }
 
     return 0;
 }
 
-int OTFImporter::handleCounter(void * userData, uint64_t time, uint32_t process, uint32_t counter,
-                         uint64_t value)
+int OTFImporter::handleCounter(void * userData, uint64_t time,
+                               uint32_t process, uint32_t counter,
+                               uint64_t value)
 {
+    Q_UNUSED(userData);
+    Q_UNUSED(time);
+    Q_UNUSED(process);
+    Q_UNUSED(counter);
+    Q_UNUSED(value);
     return 0;
 }
 
 // These are for collectives
-int OTFImporter::handleDefProcessGroup(void * userData, uint32_t stream, uint32_t procGroup,
-                                       const char * name, uint32_t numberOfProcs, const uint32_t * procs)
+int OTFImporter::handleDefProcessGroup(void * userData, uint32_t stream,
+                                       uint32_t procGroup, const char * name,
+                                       uint32_t numberOfProcs,
+                                       const uint32_t * procs)
 {
     std::cout << "ProcessGroup: " << name << " : " << numberOfProcs << std::endl;
     return 0;
 }
 
-int OTFImporter::handleDefCollectiveOperation(void * userData, uint32_t stream, uint32_t collOp,
-                                              const char * name, uint32_t type)
+int OTFImporter::handleDefCollectiveOperation(void * userData, uint32_t stream,
+                                              uint32_t collOp, const char * name,
+                                              uint32_t type)
 {
     std::cout << "DefCollective: " << collOp << " --> " << name << " : " << type << std::endl;
     return 0;
 }
 
-int OTFImporter::handleCollectiveOperation(void * userData, uint64_t time, uint32_t process,
-                                           uint32_t collective, uint32_t procGroup, uint32_t rootProc,
-                                           uint32_t sent, uint32_t received, uint64_t duration,
+int OTFImporter::handleCollectiveOperation(void * userData, uint64_t time,
+                                           uint32_t process,
+                                           uint32_t collective,
+                                           uint32_t procGroup,
+                                           uint32_t rootProc,
+                                           uint32_t sent, uint32_t received,
+                                           uint64_t duration,
                                            uint32_t source)
 {
     Q_UNUSED(source); // Location in source code
@@ -412,10 +496,16 @@ int OTFImporter::handleCollectiveOperation(void * userData, uint64_t time, uint3
     return 0;
 }
 
-int OTFImporter::handleBeginCollectiveOperation(void * userData, uint64_t time, uint32_t process,
-                                           uint32_t collective, uint64_t matchingId, uint32_t procGroup,
-                                           uint32_t rootProc, uint32_t sent, uint32_t received,
-                                           uint32_t scltoken, OTF_KeyValueList * list)
+int OTFImporter::handleBeginCollectiveOperation(void * userData, uint64_t time,
+                                                uint32_t process,
+                                                uint32_t collective,
+                                                uint64_t matchingId,
+                                                uint32_t procGroup,
+                                                uint32_t rootProc,
+                                                uint32_t sent,
+                                                uint32_t received,
+                                                uint32_t scltoken,
+                                                OTF_KeyValueList * list)
 {
     Q_UNUSED(list);
     Q_UNUSED(scltoken);
@@ -424,8 +514,10 @@ int OTFImporter::handleBeginCollectiveOperation(void * userData, uint64_t time, 
     std::cout << ", recv: " << received << ", matching: " << matchingId << std::endl;
 }
 
-int OTFImporter::handleEndCollectiveOperation(void * userData, uint64_t time, uint32_t process,
-                                        uint64_t matchingId, OTF_KeyValueList * list)
+int OTFImporter::handleEndCollectiveOperation(void * userData, uint64_t time,
+                                              uint32_t process,
+                                              uint64_t matchingId,
+                                              OTF_KeyValueList * list)
 {
     Q_UNUSED(list);
     std::cout << "End Collective: " << time << ", proc: " << process;

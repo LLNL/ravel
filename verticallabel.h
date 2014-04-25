@@ -3,8 +3,9 @@
 
 #include <QLabel>
 
-// Adapted from http://stackoverflow.com/questions/9183050/vertical-qlabel-or-the-equivalent
-
+// Adapted from:
+// http://stackoverflow.com/questions/9183050/vertical-qlabel-or-the-equivalent
+// Draw a vertical label with appropriately rotated text
 class VerticalLabel : public QLabel
 {
     Q_OBJECT

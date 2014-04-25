@@ -1,6 +1,7 @@
 #include "otfimportoptions.h"
 
-OTFImportOptions::OTFImportOptions(bool _waitall, bool _leap, bool _skip, bool _partition, QString _fxn)
+OTFImportOptions::OTFImportOptions(bool _waitall, bool _leap, bool _skip,
+                                   bool _partition, QString _fxn)
     : waitallMerge(_waitall),
       leapMerge(_leap),
       leapSkip(_skip),

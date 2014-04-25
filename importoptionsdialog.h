@@ -14,7 +14,8 @@ class ImportOptionsDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit ImportOptionsDialog(QWidget *parent = 0, OTFImportOptions * _options = NULL);
+    explicit ImportOptionsDialog(QWidget *parent = 0,
+                                 OTFImportOptions * _options = NULL);
     ~ImportOptionsDialog();
 
 public slots:

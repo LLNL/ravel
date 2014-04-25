@@ -30,6 +30,9 @@ ClusterProcess::~ClusterProcess()
     delete metric_events;
 }
 
+// Distance between this ClusterProcess and another. Since metric_events fills
+// in the missing steps with the previous value, we can just go straight
+// through from the startStep of the shorter one.
 double ClusterProcess::calculateMetricDistance(const ClusterProcess& other) const
 {
     int num_matches = metric_events->size();
@@ -41,19 +44,27 @@ double ClusterProcess::calculateMetricDistance(const ClusterProcess& other) cons
             num_matches = other.metric_events->size();
             offset = metric_events->size() - other.metric_events->size();
             for (int i = 0; i < other.metric_events->size(); i++)
-                total_difference += (metric_events->at(offset + i) - other.metric_events->at(i)) * (metric_events->at(offset + i) - other.metric_events->at(i));
+                total_difference += (metric_events->at(offset + i)
+                                    - other.metric_events->at(i))
+                                    * (metric_events->at(offset + i)
+                                    - other.metric_events->at(i));
         }
         else
         {
             offset = other.metric_events->size() - metric_events->size();
             for (int i = 0; i < metric_events->size(); i++)
-                total_difference += (other.metric_events->at(offset + i) - metric_events->at(i)) * (other.metric_events->at(offset + i) - metric_events->at(i));
+                total_difference += (other.metric_events->at(offset + i)
+                                    - metric_events->at(i))
+                                    * (other.metric_events->at(offset + i)
+                                    - metric_events->at(i));
         }
     if (num_matches <= 0)
         return DBL_MAX;
     return total_difference / num_matches;
 }
 
+// Adds the metric_events of the second ClusterProcess, ignores
+// any possible process this is represented (process field in classs)
 ClusterProcess& ClusterProcess::operator+(const ClusterProcess & other)
 {
     int offset = 0;

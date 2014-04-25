@@ -13,10 +13,13 @@ class PartitionCluster
 {
 public:
     PartitionCluster(int num_steps, int start, long long _divider = LLONG_MAX);
-    PartitionCluster(int member, QList<Event *> *elist, QString metric, long long int _divider = LLONG_MAX);
-    PartitionCluster(long long int distance, PartitionCluster * c1, PartitionCluster * c2);
+    PartitionCluster(int member, QList<Event *> *elist, QString metric,
+                     long long int _divider = LLONG_MAX);
+    PartitionCluster(long long int distance, PartitionCluster * c1,
+                     PartitionCluster * c2);
     ~PartitionCluster();
-    long long int addMember(ClusterProcess * cp, QList<Event *> * elist, QString metric);
+    long long int addMember(ClusterProcess * cp, QList<Event *> * elist,
+                            QString metric);
     long long int distance(PartitionCluster * other);
     void makeClusterVectors();
 
@@ -50,7 +53,9 @@ public:
     QList<int> * members; // Processes in the cluster
     QList<ClusterEvent *> * events; // Represented events
     QRect extents; // Where it was drawn
-    QVector<long long int> * cluster_vector; // Vector that has previous 'lateness' filling in steps without events
+
+    // Vector that has previous 'lateness' filling in steps without events
+    QVector<long long int> * cluster_vector;
     int clusterStart; // Starting step of the cluster_vector
 };
 

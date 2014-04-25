@@ -18,11 +18,14 @@ void OTFImportFunctor::doImport(QString dataFileName)
 
     OTFConverter * importer = new OTFConverter();
     connect(importer, SIGNAL(finishRead()), this, SLOT(finishInitialRead()));
-    connect(importer, SIGNAL(matchingUpdate(int, QString)), this, SLOT(updateMatching(int, QString)));
+    connect(importer, SIGNAL(matchingUpdate(int, QString)), this,
+            SLOT(updateMatching(int, QString)));
     Trace* trace = importer->importOTF(dataFileName, options);
     delete importer;
-    connect(trace, SIGNAL(updatePreprocess(int, QString)), this, SLOT(updatePreprocess(int, QString)));
-    connect(trace, SIGNAL(updateClustering(int)), this, SLOT(updateClustering(int)));
+    connect(trace, SIGNAL(updatePreprocess(int, QString)), this,
+            SLOT(updatePreprocess(int, QString)));
+    connect(trace, SIGNAL(updateClustering(int)), this,
+            SLOT(updateClustering(int)));
     connect(trace, SIGNAL(startClustering()), this, SLOT(switchProgress()));
     trace->preprocess(options);
 

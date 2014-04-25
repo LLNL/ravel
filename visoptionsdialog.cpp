@@ -2,8 +2,9 @@
 #include "ui_visoptionsdialog.h"
 #include <iostream>
 
-VisOptionsDialog::VisOptionsDialog(QWidget *parent, VisOptions * _options, Trace * _trace) :
-    QDialog(parent),
+VisOptionsDialog::VisOptionsDialog(QWidget *parent, VisOptions * _options,
+                                   Trace * _trace)
+    : QDialog(parent),
     ui(new Ui::VisOptionsDialog),
     isSet(false),
     options(_options),
@@ -21,18 +22,27 @@ VisOptionsDialog::VisOptionsDialog(QWidget *parent, VisOptions * _options, Trace
 
     connect(ui->buttonBox, SIGNAL(accepted()), this, SLOT(onOK()));
     connect(ui->buttonBox, SIGNAL(rejected()), this, SLOT(onCancel()));
-    connect(ui->metricColorTraditionalCheckBox, SIGNAL(clicked(bool)), this, SLOT(onMetricColorTraditional(bool)));
-    connect(ui->metricComboBox, SIGNAL(currentIndexChanged(QString)), this, SLOT(onMetric(QString)));
-    connect(ui->showAggregateCheckBox, SIGNAL(clicked(bool)), this, SLOT(onShowAggregate(bool)));
-    connect(ui->messageComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(onShowMessages(int)));
-    connect(ui->inactiveCheckBox, SIGNAL(clicked(bool)), this, SLOT(onShowInactive(bool)));
-    connect(ui->colorComboBox, SIGNAL(currentIndexChanged(QString)), this, SLOT(onColorCombo(QString)));
+    connect(ui->metricColorTraditionalCheckBox, SIGNAL(clicked(bool)), this,
+            SLOT(onMetricColorTraditional(bool)));
+    connect(ui->metricComboBox, SIGNAL(currentIndexChanged(QString)), this,
+            SLOT(onMetric(QString)));
+    connect(ui->showAggregateCheckBox, SIGNAL(clicked(bool)), this,
+            SLOT(onShowAggregate(bool)));
+    connect(ui->messageComboBox, SIGNAL(currentIndexChanged(int)), this,
+            SLOT(onShowMessages(int)));
+    connect(ui->inactiveCheckBox, SIGNAL(clicked(bool)), this,
+            SLOT(onShowInactive(bool)));
+    connect(ui->colorComboBox, SIGNAL(currentIndexChanged(QString)), this,
+            SLOT(onColorCombo(QString)));
 
-
+    // We only have metrics if we have an active trace.
     if (trace)
     {
-        for (QList<QString>::Iterator metric = trace->metrics->begin(); metric != trace->metrics->end(); ++metric)
+        for (QList<QString>::Iterator metric = trace->metrics->begin();
+             metric != trace->metrics->end(); ++metric)
+        {
             ui->metricComboBox->addItem(*metric);
+        }
     }
 
     setUIState();
@@ -141,7 +151,9 @@ void VisOptionsDialog::setUIState()
     {
         int metric_index = mapMetricToIndex(options->metric);
         ui->metricComboBox->setCurrentIndex(metric_index);
-        options->metric = ui->metricComboBox->itemText(metric_index); // In case we're stuck at the default
+
+        // In case we're stuck at the default
+        options->metric = ui->metricComboBox->itemText(metric_index);
     }
 }
 

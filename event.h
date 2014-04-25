@@ -13,7 +13,8 @@ public:
     Event(unsigned long long _enter, unsigned long long _exit, int _function,
           int _process, int _step);
     ~Event();
-    void addMetric(QString name, long long event_value, long long aggregate_value = 0);
+    void addMetric(QString name, long long event_value,
+                   long long aggregate_value = 0);
     bool hasMetric(QString name);
     long long getMetric(QString name, bool aggregate = false);
 

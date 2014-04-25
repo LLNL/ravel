@@ -33,7 +33,8 @@ ClusterEvent::ClusterEvent(const ClusterEvent& copy)
     }
 }
 
-ClusterEvent::ClusterEvent(int _step, const ClusterEvent *copy1, const ClusterEvent *copy2)
+ClusterEvent::ClusterEvent(int _step, const ClusterEvent *copy1,
+                           const ClusterEvent *copy2)
     : step(_step)
 {
     waitallrecvs = copy1->waitallrecvs + copy2->waitallrecvs;
@@ -51,26 +52,26 @@ ClusterEvent::ClusterEvent(int _step, const ClusterEvent *copy1, const ClusterEv
 }
 
 void ClusterEvent::setMetric(int count, long long value,
-               EventType etype,
-               CommType ctype,
-               Threshhold thresh)
+                             EventType etype,
+                             CommType ctype,
+                             Threshhold thresh)
 {
     metric[etype][ctype][thresh] = value;
     counts[etype][ctype][thresh] = count;
 }
 
 void ClusterEvent::addMetric(int count, long long value,
-                              EventType etype,
-                              CommType ctype,
-                              Threshhold thresh)
+                             EventType etype,
+                             CommType ctype,
+                             Threshhold thresh)
 {
     metric[etype][ctype][thresh] += value;
     counts[etype][ctype][thresh] += count;
 }
 
 long long int ClusterEvent::getMetric(EventType etype,
-                        CommType ctype,
-                        Threshhold thresh)
+                                      CommType ctype,
+                                      Threshhold thresh)
 {
     if (ctype == BOTH && thresh == ALL)
     {
@@ -99,8 +100,8 @@ long long int ClusterEvent::getMetric(EventType etype,
 }
 
 int ClusterEvent::getCount(EventType etype,
-                        CommType ctype,
-                        Threshhold thresh)
+                           CommType ctype,
+                           Threshhold thresh)
 {
     if (ctype == BOTH && thresh == ALL)
     {

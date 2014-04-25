@@ -41,7 +41,8 @@ public slots:
 protected:
     void initializeGL();
     void paintEvent(QPaintEvent *event);
-    void incompleteBox(QPainter *painter, float x, float y, float w, float h, QRect *extents);
+    void incompleteBox(QPainter *painter,
+                       float x, float y, float w, float h, QRect *extents);
     int boundStep(float step); // Determine upper bound on step
 
     virtual void drawNativeGL();
@@ -62,6 +63,8 @@ protected:
     QBrush selectColor;
     bool changeSource;
     int border;
+
+    // Interactions
     QMap<Event *, QRect> drawnEvents;
     QList<int> selected_processes;
     Gnome * selected_gnome;

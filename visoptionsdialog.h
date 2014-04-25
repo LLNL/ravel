@@ -5,6 +5,7 @@
 #include "trace.h"
 #include <QDialog>
 
+// GUI element for handling Vis options
 namespace Ui {
 class VisOptionsDialog;
 }
@@ -14,7 +15,9 @@ class VisOptionsDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit VisOptionsDialog(QWidget *parent = 0, VisOptions * _options = NULL, Trace * _trace = NULL);
+    explicit VisOptionsDialog(QWidget *parent = 0,
+                              VisOptions * _options = NULL,
+                              Trace * _trace = NULL);
     ~VisOptionsDialog();
 
 public slots:

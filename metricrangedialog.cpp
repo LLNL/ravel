@@ -1,8 +1,9 @@
 #include "metricrangedialog.h"
 #include "ui_metricrangedialog.h"
 
-MetricRangeDialog::MetricRangeDialog(QWidget *parent, long long int current, long long int original) :
-    QDialog(parent),
+MetricRangeDialog::MetricRangeDialog(QWidget *parent, long long int current,
+                                     long long int original)
+    : QDialog(parent),
     ui(new Ui::MetricRangeDialog),
     start_value(current),
     original_value(original)
@@ -10,7 +11,8 @@ MetricRangeDialog::MetricRangeDialog(QWidget *parent, long long int current, lon
     ui->setupUi(this);
 
     ui->metricEdit->setText(QString::number(current));
-    connect(ui->buttonBox, SIGNAL(clicked(QAbstractButton*)), this, SLOT(onButtonClick(QAbstractButton*)));
+    connect(ui->buttonBox, SIGNAL(clicked(QAbstractButton*)), this,
+            SLOT(onButtonClick(QAbstractButton*)));
     connect(ui->buttonBox, SIGNAL(accepted()), this, SLOT(onOK()));
     connect(ui->buttonBox, SIGNAL(rejected()), this, SLOT(onCancel()));
 }

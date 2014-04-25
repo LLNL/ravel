@@ -23,7 +23,7 @@ VisOptions::VisOptions(bool _showAgg,
     divergentmap->addColor(QColor(240, 230, 140), 0.5);
     divergentmap->addColor(QColor(178, 34, 34), 1);
 
-    // Cat colors from d3's category20, lulesh example is 0.1 to 0.4
+    // Cat colors from d3's category20, reordered to put less saturated first
     catcolormap->addColor(QColor(219, 219, 141), 0.05); // light yellow-green
     catcolormap->addColor(QColor(199, 199, 199), 0.1); // light gray
     catcolormap->addColor(QColor(255, 187, 120), 0.15); // peach

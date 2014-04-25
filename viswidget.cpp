@@ -137,6 +137,9 @@ void VisWidget::qtPaint(QPainter *painter)
     Q_UNUSED(painter);
 }
 
+// If a described box falls outside the given extents
+// We only draw the border where to the edge of the extents.
+// We use this when we draw partial boxes and cannot rely on automatic clipping.
 void VisWidget::incompleteBox(QPainter *painter, float x, float y, float w, float h, QRect * extents)
 {
     bool left = true;
@@ -190,7 +193,10 @@ void VisWidget::setVisOptions(VisOptions * _options)
 }
 
 
-void VisWidget::drawTimescale(QPainter * painter, unsigned long long start, unsigned long long span, int margin)
+// Draws a timescale (physical). Note this can fail if the span is short
+// enough which can happen when we find no events.
+void VisWidget::drawTimescale(QPainter * painter, unsigned long long start,
+                              unsigned long long span, int margin)
 {
     // Draw the scale bar
     int lineHeight = rect().height() - (timescaleHeight - 1);
@@ -207,15 +213,16 @@ void VisWidget::drawTimescale(QPainter * painter, unsigned long long start, unsi
     QLocale systemlocale = QLocale::system();
     QString text = systemlocale.toString(start);
     int textWidth = font_metrics.width(text) * 1.4;
-    int max_ticks = floor((rect().width() - 2*margin) / 1.0 / textWidth); // We can't have more than this and fit text
+
+    // We can't have more than this and fit text
+    int max_ticks = floor((rect().width() - 2*margin) / 1.0 / textWidth);
+
     int y = lineHeight + timescaleTickHeight + font_metrics.xHeight() + 4;
 
     // We want a round number
     unsigned long long tick_span = span / max_ticks; // Not round
     int power = floor(log10(tick_span)); // How many zeros
     unsigned long long roundfactor = std::max(1.0, pow(10, power));
-    //std::cout << "span " << span << " max_ticks " << max_ticks << " tick_span " << tick_span << std::endl;
-    //std::cout << "power " << power << " roundfactor " << roundfactor << std::endl;
     tick_span = (tick_span / roundfactor) * roundfactor; // Now round
     if (tick_span < 1)
         tick_span = 1;
@@ -223,15 +230,13 @@ void VisWidget::drawTimescale(QPainter * painter, unsigned long long start, unsi
     // Now we must find the first number after startTime divisible by
     // the tick_span. We don't want to just find the same roundness
     // because then panning doesn't work.
-    //std::cout << "tick_span " << tick_span << "  start " << start << std::endl;
-    //std::cout << "start % tick_span " << (start % tick_span) << std::endl;
-    //std::cout << "ts - s%ts " << (tick_span - start % tick_span) << std::endl;
     unsigned long long tick = (tick_span - start % tick_span) + start;
 
     // And now we draw
     while (tick < start + span)
     {
-        int x = margin + round((tick - start) / 1.0 / span * (rect().width() - 2*margin));
+        int x = margin + round((tick - start) / 1.0 / span
+                               * (rect().width() - 2*margin));
         painter->drawLine(x, lineHeight, x, lineHeight + timescaleTickHeight);
         text = systemlocale.toString(tick);
         textWidth = font_metrics.width(text) / 3;

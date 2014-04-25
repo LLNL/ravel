@@ -1,5 +1,4 @@
-/* Coordination Adjusted Parallel Timeline Information Visualization and Analysis Timeline Extractor */
-/* Coordination Adjusted Parallel Trace Information Visualization and Analysis Timeline Explorer */
+/* Ravel */
 #include <QApplication>
 #include "mainwindow.h"
 

@@ -1,6 +1,7 @@
 #include "clustervis.h"
 
-ClusterVis::ClusterVis(ClusterTreeVis *ctv, QWidget* parent, VisOptions *_options)
+ClusterVis::ClusterVis(ClusterTreeVis *ctv, QWidget* parent,
+                       VisOptions *_options)
     : TimelineVis(parent, _options),
       drawnGnomes(QMap<Gnome *, QRect>()),
       selected(NULL),
@@ -80,7 +81,7 @@ void ClusterVis::mouseMoveEvent(QMouseEvent * event)
         changeSource = true;
         emit stepsChanged(startStep, startStep + stepSpan, false);
     }
-    else // potential hover - forward to appropriate gnome & possibly change focus gnome to match hover
+    else // potential hover - forward to containing gnome & possibly change focus gnome
     {
         mousex = event->x();
         mousey = event->y();
@@ -99,7 +100,9 @@ void ClusterVis::mouseMoveEvent(QMouseEvent * event)
         else
         {
             hover_gnome = NULL;
-            for (QMap<Gnome *, QRect>::Iterator grect = drawnGnomes.begin(); grect != drawnGnomes.end(); ++grect)
+            for (QMap<Gnome *, QRect>::Iterator grect = drawnGnomes.begin();
+                 grect != drawnGnomes.end(); ++grect)
+            {
                 if (grect.value().contains(mousex, mousey))
                 {
                     hover_gnome = grect.key();
@@ -110,6 +113,7 @@ void ClusterVis::mouseMoveEvent(QMouseEvent * event)
                         emit_flag = true;
                     }
                 }
+            }
             repaint();
         }
         if (emit_flag)
@@ -159,14 +163,20 @@ void ClusterVis::mouseDoubleClickEvent(QMouseEvent * event)
     int x = event->x();
     int y = event->y();
 
-    // Reset selection for other gnomes -- the gnomes can't tell if one is selected and another is
-    // not, so this effectively clears the selection in the old gnome when a different one has
-    // become selected. We should probably just save the one that's currently selected, but this
-    // list is fairly short and we need it anyway for other interactions.
-    for (QMap<Gnome *, QRect>::Iterator gnome = drawnGnomes.begin(); gnome != drawnGnomes.end(); ++gnome)
+    // Reset selection for other gnomes -- the gnomes can't tell if one is
+    // selected and another is not, so this effectively clears the selection in
+    // the old gnome when a different one has become selected. We should
+    // probably just save the one that's currently selected, but this list is
+    //fairly short and we need it anyway for other interactions.
+    for (QMap<Gnome *, QRect>::Iterator gnome = drawnGnomes.begin();
+         gnome != drawnGnomes.end(); ++gnome)
+    {
         gnome.key()->setSelected(false);
+    }
 
-    for (QMap<Gnome *, QRect>::Iterator gnome = drawnGnomes.begin(); gnome != drawnGnomes.end(); ++gnome)
+    for (QMap<Gnome *, QRect>::Iterator gnome = drawnGnomes.begin();
+         gnome != drawnGnomes.end(); ++gnome)
+    {
         if (gnome.value().contains(x,y))
         {
             Gnome * g = gnome.key();
@@ -195,6 +205,7 @@ void ClusterVis::mouseDoubleClickEvent(QMouseEvent * event)
             }
             return;
         }
+    }
 
 
 
@@ -243,9 +254,11 @@ void ClusterVis::prepaint()
     {
         int bottomStep = floor(startStep) - 1;
         Partition * part = NULL;
-        if (startStep < lastStartStep) // check earlier partitions to move the start back
+         // check earlier partitions in case wee need to move the start back
+        if (startStep < lastStartStep)
         {
-            for (int i = startPartition; i >= 0; --i) // Keep setting the one before until its right
+             // Keep setting the one before until its right
+            for (int i = startPartition; i >= 0; --i)
             {
                 part = trace->partitions->at(i);
                 if (part->max_global_step >= bottomStep)
@@ -260,7 +273,8 @@ void ClusterVis::prepaint()
         }
         else if (startStep > lastStartStep) // check current partitions up
         {
-            for (int i = startPartition; i < trace->partitions->length(); ++i) // See if we've advanced the start forward
+             // See if we've advanced the start forward
+            for (int i = startPartition; i < trace->partitions->length(); ++i)
             {
                 part = trace->partitions->at(i);
                 if (part->max_global_step >= bottomStep)
@@ -279,7 +293,7 @@ void ClusterVis::qtPaint(QPainter *painter)
     if(!visProcessed)
         return;
 
-    // In this case we haven't already drawn stuff with GL, so we paint it here.
+    // In this case we haven't already drawn stuff with GL, so we QtPaint it.
     if (rect().width() / stepSpan >= 3)
         paintEvents(painter);
 
@@ -331,10 +345,14 @@ void ClusterVis::drawNativeGL()
             continue;
         if (part->gnome)
         {
-            // The y value here of 0 isn't general... we need another structure to keep track of how much
-            // y is used when we're doing the gnome thing.
-            part->gnome->drawGnomeGL(QRect(barwidth * (part->min_global_step - startStep), 0,
-                                           barwidth, barheight),
+            // The y value here of 0 isn't general... we need another structure
+            // to keep track of how much y is used when we're doing the gnome
+            // thing.
+            part->gnome->drawGnomeGL(QRect(barwidth
+                                           * (part->min_global_step - startStep),
+                                           0,
+                                           barwidth,
+                                           barheight),
                                      options);
             continue;
         }
@@ -386,18 +404,22 @@ void ClusterVis::paintEvents(QPainter * painter)
         else if (part->max_global_step < bottomStep)
             continue;
         if (part->gnome) {
-            // The y value here of 0 isn't general... we need another structure to keep track of how much
-            // y is used when we're doing the gnome thing.
-            drawSpan = part->max_global_step - part->min_global_step - aggOffset + 1;
+            // The y value here of 0 isn't general... we need another structure
+            // to keep track of how much y is used when we're doing the gnome
+            // thing.
+            drawSpan = part->max_global_step - part->min_global_step
+                       - aggOffset + 1;
             drawStart = part->min_global_step + aggOffset - startStep;
             if (!options->showAggregateSteps)
             {
-                drawSpan = (part->max_global_step - part->min_global_step) / 2 + 1;
+                drawSpan = (part->max_global_step - part->min_global_step)
+                           / 2 + 1;
                 drawStart = (part->min_global_step - startStep) / 2;
             }
             QRect gnomeRect = QRect(labelWidth + blockwidth * drawStart, 0,
                                     blockwidth * (drawSpan),
-                                    part->events->size() / 1.0 / trace->num_processes * effectiveHeight);
+                                    part->events->size() / 1.0
+                                    / trace->num_processes * effectiveHeight);
             part->gnome->drawGnomeQt(painter, gnomeRect, options, blockwidth);
             drawnGnomes[part->gnome] = gnomeRect;
             if (!leftmost)
@@ -412,7 +434,8 @@ void ClusterVis::paintEvents(QPainter * painter)
     if (!treevis->getGnome())
     {
         QRect left = drawnGnomes[leftmost];
-        float left_steps = (std::min(rect().width(), left.x() + left.width()) - std::max(0, left.x())) / 1.0 / blockwidth;
+        float left_steps = (std::min(rect().width(), left.x() + left.width())
+                            - std::max(0, left.x())) / 1.0 / blockwidth;
         if (left_steps < 2)
             treevis->setGnome(nextgnome);
         else

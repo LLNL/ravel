@@ -16,7 +16,9 @@ TraditionalVis::TraditionalVis(QWidget * parent, VisOptions * _options)
 
 TraditionalVis::~TraditionalVis()
 {
-    for (QVector<TimePair *>::Iterator itr = stepToTime->begin(); itr != stepToTime->end(); itr++) {
+    for (QVector<TimePair *>::Iterator itr = stepToTime->begin();
+         itr != stepToTime->end(); itr++)
+    {
         delete *itr;
         *itr = NULL;
     }
@@ -35,45 +37,62 @@ void TraditionalVis::setTrace(Trace * t)
     processSpan = trace->num_processes;
     startPartition = 0;
 
-    // Determine time information
+    // Determine/save time information
     minTime = ULLONG_MAX;
     maxTime = 0;
     startTime = ULLONG_MAX;
     unsigned long long stopTime = 0;
     maxStep = trace->global_max_step;
-    for (QList<Partition*>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
+    for (QList<Partition*>::Iterator part = trace->partitions->begin();
+         part != trace->partitions->end(); ++part)
     {
-        for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list) {
-            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt) {
+        for (QMap<int, QList<Event *> *>::Iterator event_list
+             = (*part)->events->begin(); event_list != (*part)->events->end();
+             ++event_list)
+        {
+            for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+                 evt != (event_list.value())->end(); ++evt)
+            {
                 if ((*evt)->exit > maxTime)
                     maxTime = (*evt)->exit;
                 if ((*evt)->enter < minTime)
                     minTime = (*evt)->enter;
-                if ((*evt)->step >= boundStep(startStep) && (*evt)->enter < startTime)
+                if ((*evt)->step >= boundStep(startStep)
+                        && (*evt)->enter < startTime)
                     startTime = (*evt)->enter;
-                if ((*evt)->step <= boundStep(stopStep) && (*evt)->exit > stopTime)
+                if ((*evt)->step <= boundStep(stopStep)
+                        && (*evt)->exit > stopTime)
                     stopTime = (*evt)->exit;
             }
         }
     }
     timeSpan = stopTime - startTime;
     stepSpan = stopStep - startStep;
-    std::cout << "Stop time is " << stopTime << std::endl;
 
-    for (QVector<TimePair *>::Iterator itr = stepToTime->begin(); itr != stepToTime->end(); itr++) {
+    // Clean up old
+    for (QVector<TimePair *>::Iterator itr = stepToTime->begin();
+         itr != stepToTime->end(); itr++)
+    {
         delete *itr;
         *itr = NULL;
     }
     delete stepToTime;
 
+    // Create time/step mapping
     stepToTime = new QVector<TimePair *>();
     for (int i = 0; i < maxStep/2 + 1; i++)
         stepToTime->insert(i, new TimePair(ULLONG_MAX, 0));
     int step;
-    for (QList<Partition*>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
+    for (QList<Partition*>::Iterator part = trace->partitions->begin();
+         part != trace->partitions->end(); ++part)
     {
-        for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list) {
-            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt) {
+        for (QMap<int, QList<Event *> *>::Iterator event_list
+             = (*part)->events->begin(); event_list != (*part)->events->end();
+             ++event_list)
+        {
+            for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+                 evt != (event_list.value())->end(); ++evt)
+            {
                 if ((*evt)->step < 0)
                     continue;
                 step = (*evt)->step / 2;
@@ -94,7 +113,8 @@ void TraditionalVis::mouseDoubleClickEvent(QMouseEvent * event)
 
     int x = event->x();
     int y = event->y();
-    for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin(); evt != drawnEvents.end(); ++evt)
+    for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin();
+         evt != drawnEvents.end(); ++evt)
         if (evt.value().contains(x,y))
         {
             if (evt.key() == selected_event)
@@ -138,13 +158,17 @@ void TraditionalVis::rightDrag(QMouseEvent * event)
 
     if (pressy < event->y())
     {
-        startProcess = startProcess + processSpan * pressy / (rect().height() - timescaleHeight);
-        processSpan = processSpan * (event->y() - pressy) / (rect().height() - timescaleHeight);
+        startProcess = startProcess + processSpan * pressy
+                / (rect().height() - timescaleHeight);
+        processSpan = processSpan * (event->y() - pressy)
+                / (rect().height() - timescaleHeight);
     }
     else
     {
-        startProcess = startProcess + processSpan * event->y() / (rect().height() - timescaleHeight);
-        processSpan = processSpan * (pressy - event->y()) / (rect().height() - timescaleHeight);
+        startProcess = startProcess + processSpan * event->y()
+                / (rect().height() - timescaleHeight);
+        processSpan = processSpan * (pressy - event->y())
+                / (rect().height() - timescaleHeight);
     }
     if (startProcess + processSpan > trace->num_processes)
         startProcess = trace->num_processes - processSpan;
@@ -168,7 +192,6 @@ void TraditionalVis::mouseMoveEvent(QMouseEvent * event)
         lastStartStep = startStep;
         int diffx = mousex - event->x();
         int diffy = mousey - event->y();
-        //startTime += rect().width() * diffx / 1.0 / timeSpan;
         startTime += timeSpan / 1.0 / rect().width() * diffx;
         startProcess += diffy / 1.0 / processheight;
 
@@ -189,18 +212,22 @@ void TraditionalVis::mouseMoveEvent(QMouseEvent * event)
     }
     else if (mousePressed && rightPressed)
     {
-        lassoRect = QRect(std::min(pressx, event->x()), std::min(pressy, event->y()),
-                     abs(pressx - event->x()), abs(pressy - event->y()));
+        lassoRect = QRect(std::min(pressx, event->x()),
+                          std::min(pressy, event->y()),
+                          abs(pressx - event->x()),
+                          abs(pressy - event->y()));
         repaint();
     }
     else // potential hover
     {
         mousex = event->x();
         mousey = event->y();
-        if (hover_event == NULL || !drawnEvents[hover_event].contains(mousex, mousey))
+        if (hover_event == NULL
+                || !drawnEvents[hover_event].contains(mousex, mousey))
         {
             hover_event = NULL;
-            for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin(); evt != drawnEvents.end(); ++evt)
+            for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin();
+                 evt != drawnEvents.end(); ++evt)
                 if (evt.value().contains(mousex, mousey))
                     hover_event = evt.key();
 
@@ -208,9 +235,11 @@ void TraditionalVis::mouseMoveEvent(QMouseEvent * event)
         }
     }
 
+    // startStep & stepSpan are calculated during painting when we
+    // examine each element
     if (mousePressed) {
         changeSource = true;
-        emit stepsChanged(startStep, startStep + stepSpan, false); // Calculated during painting
+        emit stepsChanged(startStep, startStep + stepSpan, false);
     }
 }
 
@@ -236,7 +265,9 @@ void TraditionalVis::wheelEvent(QWheelEvent * event)
     }
     repaint();
     changeSource = true;
-    emit stepsChanged(startStep, startStep + stepSpan, false); // Calculated during painting
+    // startStep & stepSpan are calculated during painting when we
+    // examine each element
+    emit stepsChanged(startStep, startStep + stepSpan, false);
 }
 
 
@@ -253,7 +284,8 @@ void TraditionalVis::setSteps(float start, float stop, bool jump)
     startStep = start;
     stepSpan = stop - start + 1;
     startTime = (*stepToTime)[std::max(boundStep(start)/2, 0)]->start;
-    timeSpan = (*stepToTime)[std::min(boundStep(stop)/2,  maxStep/2)]->stop - startTime;
+    timeSpan = (*stepToTime)[std::min(boundStep(stop)/2,  maxStep/2)]->stop
+            - startTime;
     jumped = jump;
 
     if (!closed) {
@@ -286,7 +318,8 @@ void TraditionalVis::prepaint()
         Partition * part = NULL;
         if (startStep < lastStartStep) // check earlier partitions
         {
-            for (int i = startPartition; i >= 0; --i) // Keep setting the one before until its right
+            // Keep setting the one before until its right
+            for (int i = startPartition; i >= 0; --i)
             {
                 part = trace->partitions->at(i);
                 if (part->max_global_step >= bottomStep)
@@ -301,7 +334,8 @@ void TraditionalVis::prepaint()
         }
         else if (startStep > lastStartStep) // check current partitions up
         {
-            for (int i = startPartition; i < trace->partitions->length(); ++i) // As soon as we find one, we're good
+            // As soon as we find one, we're good
+            for (int i = startPartition; i < trace->partitions->length(); ++i)
             {
                 part = trace->partitions->at(i);
                 if (part->max_global_step >= bottomStep)
@@ -364,16 +398,21 @@ void TraditionalVis::drawNativeGL()
         if (part->min_global_step > upperStep)
             break;
 
-        for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin(); event_list != part->events->end(); ++event_list)
+        for (QMap<int, QList<Event *> *>::Iterator event_list
+             = part->events->begin(); event_list != part->events->end();
+             ++event_list)
         {
             position = proc_to_order[event_list.key()];
-            if (position < floor(startProcess) || position > ceil(startProcess + processSpan)) // Out of span
+             // Out of process span test
+            if (position < floor(startProcess)
+                    || position > ceil(startProcess + processSpan))
                 continue;
             y = (maxProcess - position) * barheight - 1;
-            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
+            for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+                 evt != (event_list.value())->end(); ++evt)
             {
-
-                if ((*evt)->exit < startTime || (*evt)->enter > stopTime) // Out of time span
+                // Out of time span test
+                if ((*evt)->exit < startTime || (*evt)->enter > stopTime)
                     continue;
 
 
@@ -394,8 +433,9 @@ void TraditionalVis::drawNativeGL()
                     w -= (startTime - (*evt)->enter);
 
                 color = options->colormap->color((*(*evt)->metrics)[metric]->event);
-                if (options->colorTraditionalByMetric && (*evt)->hasMetric(options->metric))
-                    color = options->colormap->color((*evt)->getMetric(options->metric));
+                if (options->colorTraditionalByMetric
+                        && (*evt)->hasMetric(options->metric))
+                    color= options->colormap->color((*evt)->getMetric(options->metric));
                 else
                 {
                     if (*evt == selected_event)
@@ -443,7 +483,8 @@ void TraditionalVis::qtPaint(QPainter *painter)
     if ((rect().height() - timescaleHeight) / processSpan >= 3)
         paintEvents(painter);
 
-    drawProcessLabels(painter, rect().height() - timescaleHeight, processheight);
+    drawProcessLabels(painter, rect().height() - timescaleHeight,
+                      processheight);
     drawTimescale(painter, startTime, timeSpan);
     drawHover(painter);
 
@@ -483,45 +524,50 @@ void TraditionalVis::paintEvents(QPainter *painter)
     Partition * part = NULL;
 
     int start = std::max(int(floor(startProcess)), 0);
-    int end = std::min(int(ceil(startProcess + processSpan)), trace->num_processes - 1);
+    int end = std::min(int(ceil(startProcess + processSpan)),
+                       trace->num_processes - 1);
     for (int i = start; i <= end; ++i)
     {
         position = order_to_proc[i];
         QVector<Event *> * roots = trace->roots->at(i);
-        for (QVector<Event *>::Iterator root = roots->begin(); root != roots->end(); ++root)
+        for (QVector<Event *>::Iterator root = roots->begin();
+             root != roots->end(); ++root)
         {
             paintNotStepEvents(painter, *root, position, process_spacing,
                                barheight, blockheight, &extents);
         }
     }
 
-    /*for (int i = startProcess; i <= startProcess + processSpan; ++i)
-    {
-        position = proc_to_order[i];
-        w = rect().width();
-        h = barheight;
-        y = floor((position - startProcess) * blockheight) + 1;
-        x = 0;
-        painter->fillRect(x,y,w,h,QColor(217, 217, 217));
-    }*/
 
     for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
         part = trace->partitions->at(i);
         if (part->min_global_step > upperStep)
             break;
-        for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin(); event_list != part->events->end(); ++event_list)
+        for (QMap<int, QList<Event *> *>::Iterator event_list
+             = part->events->begin(); event_list != part->events->end();
+             ++event_list)
         {
             bool selected = false;
-            if (part->gnome == selected_gnome && selected_processes.contains(proc_to_order[event_list.key()]))
-                selected = true;
-            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
+            if (part->gnome == selected_gnome
+                && selected_processes.contains(proc_to_order[event_list.key()]))
             {
-                position = proc_to_order[(*evt)->process];
-                if ((*evt)->exit < startTime || (*evt)->enter > stopTime) // Out of time span
+                selected = true;
+            }
+
+            position = proc_to_order[event_list.key()];
+            // Out of process span test
+           if (position < floor(startProcess)
+                   || position > ceil(startProcess + processSpan))
+               continue;
+
+            for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+                 evt != (event_list.value())->end(); ++evt)
+            {
+                 // Out of time span test
+                if ((*evt)->exit < startTime || (*evt)->enter > stopTime)
                     continue;
-                if (position < floor(startProcess) || position > ceil(startProcess + processSpan)) // Out of span
-                    continue;
+
 
                 // save step information for emitting
                 step = (*evt)->step;
@@ -532,11 +578,13 @@ void TraditionalVis::paintEvents(QPainter *painter)
                 }
 
 
-                w = ((*evt)->exit - (*evt)->enter) / 1.0 / timeSpan * rect().width();
+                w = ((*evt)->exit - (*evt)->enter) / 1.0
+                        / timeSpan * rect().width();
                 if (w >= 2)
                 {
                     y = floor((position - startProcess) * blockheight) + 1;
-                    x = floor(static_cast<long long>((*evt)->enter - startTime) / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
+                    x = floor(static_cast<long long>((*evt)->enter - startTime)
+                              / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
                     h = barheight;
 
 
@@ -564,17 +612,21 @@ void TraditionalVis::paintEvents(QPainter *painter)
                     if (*evt == selected_event && !selected_aggregate)
                         painter->setPen(QPen(Qt::yellow));
 
-                    if (options->colorTraditionalByMetric && (*evt)->hasMetric(options->metric))
+                    if (options->colorTraditionalByMetric
+                        && (*evt)->hasMetric(options->metric))
                     {
-                            painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color((*evt)->getMetric(options->metric))));
+                            painter->fillRect(QRectF(x, y, w, h),
+                                              QBrush(options->colormap->color((*evt)->getMetric(options->metric))));
                     }
                     else
                     {
                         if (*evt == selected_event && !selected_aggregate)
-                            painter->fillRect(QRectF(x, y, w, h), QBrush(Qt::yellow));
+                            painter->fillRect(QRectF(x, y, w, h),
+                                              QBrush(Qt::yellow));
                         else
                             // Draw event
-                            painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(200, 200, 255)));
+                            painter->fillRect(QRectF(x, y, w, h),
+                                              QBrush(QColor(200, 200, 255)));
                     }
 
                     // Draw border
@@ -602,7 +654,8 @@ void TraditionalVis::paintEvents(QPainter *painter)
                     {
                         int xa = labelWidth;
                         if ((*evt)->comm_prev)
-                            xa = floor(static_cast<long long>((*evt)->comm_prev->exit - startTime) / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
+                            xa = floor(static_cast<long long>((*evt)->comm_prev->exit - startTime)
+                                       / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
                         int wa = x - xa;
                         painter->setPen(QPen(Qt::yellow));
                         painter->drawRect(xa, y, wa, h);
@@ -611,15 +664,19 @@ void TraditionalVis::paintEvents(QPainter *painter)
 
                 }
 
-                for (QVector<Message *>::Iterator msg = (*evt)->messages->begin(); msg != (*evt)->messages->end(); ++msg)
+                for (QVector<Message *>::Iterator msg
+                     = (*evt)->messages->begin();
+                     msg != (*evt)->messages->end(); ++msg)
+                {
                     drawMessages.insert((*msg));
+                }
             }
         }
     }
 
-        // Messages
-        // We need to do all of the message drawing after the event drawing
-        // for overlap purposes
+    // Messages
+    // We need to do all of the message drawing after the event drawing
+    // for overlap purposes
     if (options->showMessages != VisOptions::NONE)
     {
         if (processSpan <= 32)
@@ -629,27 +686,36 @@ void TraditionalVis::paintEvents(QPainter *painter)
         Event * send_event;
         Event * recv_event;
         QPointF p1, p2;
-        for (QSet<Message *>::Iterator msg = drawMessages.begin(); msg != drawMessages.end(); ++msg) {
+        for (QSet<Message *>::Iterator msg = drawMessages.begin();
+             msg != drawMessages.end(); ++msg)
+        {
             send_event = (*msg)->sender;
             recv_event = (*msg)->receiver;
             position = proc_to_order[send_event->process];
             y = floor((position - startProcess + 0.5) * blockheight) + 1;
-            x = floor(static_cast<long long>(send_event->enter - startTime) / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
+            x = floor(static_cast<long long>(send_event->enter - startTime)
+                      / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
             p1 = QPointF(x, y);
             position = proc_to_order[recv_event->process];
             y = floor((position - startProcess + 0.5) * blockheight) + 1;
-            x = floor(static_cast<long long>(recv_event->exit - startTime) / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
+            x = floor(static_cast<long long>(recv_event->exit - startTime)
+                      / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
             p2 = QPointF(x, y);
             painter->drawLine(p1, p2);
         }
     }
 
     stepSpan = stopStep - startStep;
-    painter->fillRect(QRectF(0,canvasHeight,rect().width(),rect().height()), QBrush(QColor(Qt::white)));
+    painter->fillRect(QRectF(0,canvasHeight,rect().width(),rect().height()),
+                      QBrush(QColor(Qt::white)));
 }
 
-void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt, float position, int process_spacing,
-                                        float barheight, float blockheight, QRect * extents)
+// To make sure events have correct overlapping, this draws from the root down
+// TODO: Have a level cut off so we don't descend all the way down the tree
+void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
+                                        float position, int process_spacing,
+                                        float barheight, float blockheight,
+                                        QRect * extents)
 {
     if (evt->enter > startTime + timeSpan || evt->exit < startTime)
         return; // Out of time
@@ -658,10 +724,11 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt, float po
 
     int x, y, w, h;
     w = (evt->exit - evt->enter) / 1.0 / timeSpan * rect().width();
-    if (w >= 2)
+    if (w >= 2) // Don't draw tiny events
     {
         y = floor((position - startProcess) * blockheight) + 1;
-        x = floor(static_cast<long long>(evt->enter - startTime) / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
+        x = floor(static_cast<long long>(evt->enter - startTime) / 1.0
+                  / timeSpan * rect().width()) + 1 + labelWidth;
         h = barheight;
 
 
@@ -686,13 +753,14 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt, float po
 
 
         // Change pen color if selected
-        // TODO: Have all these events know they are part of the agg events of what they follow
         if (evt == selected_event)
             painter->setPen(QPen(Qt::yellow));
 
-        if (options->colorTraditionalByMetric && evt->hasMetric(options->metric))
+        if (options->colorTraditionalByMetric
+                && evt->hasMetric(options->metric))
         {
-                painter->fillRect(QRectF(x, y, w, h), QBrush(options->colormap->color(evt->getMetric(options->metric))));
+                painter->fillRect(QRectF(x, y, w, h),
+                                  QBrush(options->colormap->color(evt->getMetric(options->metric))));
         }
         else
         {
@@ -702,7 +770,8 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt, float po
             {
                 // Draw event
                 int graycolor = std::max(100, 100 + evt->depth * 20);
-                painter->fillRect(QRectF(x, y, w, h), QBrush(QColor(graycolor, graycolor, graycolor)));
+                painter->fillRect(QRectF(x, y, w, h),
+                                  QBrush(QColor(graycolor, graycolor, graycolor)));
             }
         }
 
@@ -728,9 +797,12 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt, float po
             painter->drawText(x + 2, y + fxnRect.height(), fxnName);
     }
 
-    for (QVector<Event *>::Iterator child = evt->callees->begin(); child != evt->callees->end(); ++child)
+    for (QVector<Event *>::Iterator child = evt->callees->begin();
+         child != evt->callees->end(); ++child)
+    {
         paintNotStepEvents(painter, *child, position, process_spacing,
                            barheight, blockheight, extents);
+    }
 
 
 }

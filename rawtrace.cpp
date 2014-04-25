@@ -26,8 +26,12 @@ RawTrace::RawTrace(int np)
 // we know that will get passed to the processed trace
 RawTrace::~RawTrace()
 {
-    for (QVector<QVector<EventRecord *> *>::Iterator eitr = events->begin(); eitr != events->end(); ++eitr) {
-        for (QVector<EventRecord *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
+    for (QVector<QVector<EventRecord *> *>::Iterator eitr = events->begin();
+         eitr != events->end(); ++eitr)
+    {
+        for (QVector<EventRecord *>::Iterator itr = (*eitr)->begin();
+             itr != (*eitr)->end(); ++itr)
+        {
             delete *itr;
             *itr = NULL;
         }
@@ -35,8 +39,12 @@ RawTrace::~RawTrace()
         *eitr = NULL;
     }
     delete events;
-    for (QVector<QVector<CommRecord *> *>::Iterator eitr = messages->begin(); eitr != messages->end(); ++eitr) {
-        for (QVector<CommRecord *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr) {
+    for (QVector<QVector<CommRecord *> *>::Iterator eitr = messages->begin();
+         eitr != messages->end(); ++eitr)
+    {
+        for (QVector<CommRecord *>::Iterator itr = (*eitr)->begin();
+             itr != (*eitr)->end(); ++itr)
+        {
             delete *itr;
             *itr = NULL;
         }

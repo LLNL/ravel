@@ -5,8 +5,9 @@
 class CollectiveRecord
 {
 public:
-    CollectiveRecord(unsigned long long int _matching, unsigned int _process, unsigned int _root,
-                     unsigned long long int _enter, unsigned int _collective, unsigned int _communicator,
+    CollectiveRecord(unsigned long long int _matching, unsigned int _process,
+                     unsigned int _root, unsigned long long int _enter,
+                     unsigned int _collective, unsigned int _communicator,
                      unsigned int _sent, unsigned int _received);
 
     unsigned long long int matchingId;

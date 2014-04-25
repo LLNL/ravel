@@ -35,22 +35,28 @@ Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
 
     if (options->partitionByFunction && options->partitionFunction.length() > 0)
     {
-        int char_count = INT_MAX; // Want the smallest containing function in case name is part of some bigger name
+        // // Want the smallest containing function in case the name
+        // is part of some bigger name
+        int char_count = INT_MAX;
         // TODO in future: wildcard set
-        for (QMap<int, Function *>::Iterator fxn = trace->functions->begin(); fxn != trace->functions->end(); ++fxn)
+        for (QMap<int, Function *>::Iterator fxn = trace->functions->begin();
+             fxn != trace->functions->end(); ++fxn)
+        {
             if ((fxn.value())->name.contains(options->partitionFunction)
                     && (fxn.value())->name.length() < char_count)
             {
                 phaseFunction = fxn.key();
                 char_count = (fxn.value())->name.length();
             }
+        }
     }
 
     delete trace->functionGroups;
     trace->functionGroups = rawtrace->functionGroups;
 
     // Find the MPI Group key
-    for (QMap<int, QString>::Iterator fxnGroup = trace->functionGroups->begin(); fxnGroup != trace->functionGroups->end(); ++fxnGroup)
+    for (QMap<int, QString>::Iterator fxnGroup = trace->functionGroups->begin();
+         fxnGroup != trace->functionGroups->end(); ++fxnGroup)
     {
         if (fxnGroup.value().contains("MPI")) {
             trace->mpi_group = fxnGroup.key();
@@ -93,11 +99,15 @@ void OTFConverter::matchEvents()
     // We can handle each set of events separately
     QStack<Event *> * stack = new QStack<Event *>();
     emit(matchingUpdate(1, "Constructing events..."));
-    int progressPortion = std::max(round(rawtrace->num_processes / 1.0 / event_match_portion),1.0);
+    int progressPortion = std::max(round(rawtrace->num_processes / 1.0
+                                         / event_match_portion), 1.0);
     int currentPortion = 0;
     int currentIter = 0;
 
-    for (QVector<QVector<EventRecord *> *>::Iterator event_list = rawtrace->events->begin(); event_list != rawtrace->events->end(); ++event_list) {
+    for (QVector<QVector<EventRecord *> *>::Iterator event_list
+         = rawtrace->events->begin();
+         event_list != rawtrace->events->end(); ++event_list)
+    {
         int depth = 0;
         int phase = 0;
         unsigned long long endtime = 0;
@@ -107,7 +117,8 @@ void OTFConverter::matchEvents()
             emit(matchingUpdate(1 + currentPortion, "Constructing events..."));
         }
         ++currentIter;
-        for (QVector<EventRecord *>::Iterator evt = (*event_list)->begin(); evt != (*event_list)->end(); ++evt)
+        for (QVector<EventRecord *>::Iterator evt = (*event_list)->begin();
+             evt != (*event_list)->end(); ++evt)
         {
             if ((*evt)->value == 0) // End of a subroutine
             {
@@ -123,12 +134,15 @@ void OTFConverter::matchEvents()
             }
             else // Begin a subroutine
             {
-                Event * e = new Event((*evt)->time, 0, (*evt)->value, (*evt)->process, -1);
+                Event * e = new Event((*evt)->time, 0, (*evt)->value,
+                                      (*evt)->process, -1);
 
-                if (options->partitionByFunction && (*evt)->value == phaseFunction)
+                if (options->partitionByFunction && (*evt)->value
+                    == phaseFunction)
+                {
                     ++phase;
+                }
                 e->phase = phase;
-                e->orig_phase = phase;
 
                 e->depth = depth;
                 if (depth == 0)
@@ -136,8 +150,11 @@ void OTFConverter::matchEvents()
                 depth++;
 
                 // Keep track of the mpi_events for partitioning
-                if (((*(trace->functions))[e->function])->group == trace->mpi_group)
+                if (((*(trace->functions))[e->function])->group
+                        == trace->mpi_group)
+                {
                     ((*(trace->mpi_events))[e->process])->prepend(e);
+                }
 
                 stack->push(e);
                 (*(trace->events))[(*evt)->process]->append(e);
@@ -170,30 +187,36 @@ void OTFConverter::matchMessages()
     int messages = 0;
     int unmatched_recvs = 0;
     int unmatched_sends = 0;
-    int progressPortion = std::max(round(rawtrace->messages->size() / 1.0 / message_match_portion),1.0);
+    int progressPortion = std::max(round(rawtrace->messages->size() / 1.0
+                                         / message_match_portion), 1.0);
     int currentPortion = 0;
     int currentIter = 0;
-    for (QVector<QVector<CommRecord *> *>::Iterator commlist = rawtrace->messages->begin(); commlist != rawtrace->messages->end(); ++commlist)
+    for (QVector<QVector<CommRecord *> *>::Iterator commlist
+         = rawtrace->messages->begin();
+         commlist != rawtrace->messages->end(); ++commlist)
     {
         if (round(currentIter / progressPortion) > currentPortion)
         {
             ++currentPortion;
-            emit(matchingUpdate(1 + event_match_portion + currentPortion, "Event/Message matching..."));
+            emit(matchingUpdate(1 + event_match_portion + currentPortion,
+                                "Event/Message matching..."));
         }
         ++currentIter;
-        for (QVector<CommRecord *>::Iterator comm = (*commlist)->begin(); comm != (*commlist)->end(); ++comm)
+        for (QVector<CommRecord *>::Iterator comm = (*commlist)->begin();
+             comm != (*commlist)->end(); ++comm)
         {
             messages++;
             Message * m = new Message((*comm)->send_time, (*comm)->recv_time);
 
-            Event * recv_evt = find_comm_event(search_child_ranges( (*(trace->roots))[(*comm)->receiver],
-                                                                    (*comm)->recv_time),
-                                               (*comm)->recv_time);
+            Event * recv_evt = find_comm_event(search_child_ranges((*(trace->roots))[(*comm)->receiver],
+                                                                   (*comm)->recv_time),
+                                                                   (*comm)->recv_time);
 
-            Event * send_evt = find_comm_event(search_child_ranges( (*(trace->roots))[(*comm)->sender],
-                                                                    (*comm)->send_time),
-                                              (*comm)->send_time);
-            if (recv_evt && send_evt) {
+            Event * send_evt = find_comm_event(search_child_ranges((*(trace->roots))[(*comm)->sender],
+                                                                   (*comm)->send_time),
+                                                                   (*comm)->send_time);
+            if (recv_evt && send_evt)
+            {
                 recv_evt->messages->append(m);
                 m->receiver = recv_evt;
                 send_evt->messages->append(m);
@@ -201,12 +224,18 @@ void OTFConverter::matchMessages()
             } else {
                 if (!recv_evt)
                 {
-                    std::cout << "Error finding recv event for " << (*comm)->sender << "->" << (*comm)->receiver
-                              << " (" << (*comm)->send_time << ", " << (*comm)->recv_time << ")" << " -- dropping message." <<  std::endl;
+                    std::cout << "Error finding recv event for "
+                              << (*comm)->sender << "->" << (*comm)->receiver
+                              << " (" << (*comm)->send_time << ", "
+                              << (*comm)->recv_time << ")"
+                              << " -- dropping message." <<  std::endl;
                     unmatched_recvs++;
                 } else {
-                    std::cout << "Error finding send event for " << (*comm)->sender << "->" << (*comm)->receiver
-                          << " (" << (*comm)->send_time << ", " << (*comm)->recv_time << ")" << " -- dropping message." << std::endl;
+                    std::cout << "Error finding send event for "
+                              << (*comm)->sender << "->" << (*comm)->receiver
+                              << " (" << (*comm)->send_time << ", "
+                              << (*comm)->recv_time << ")"
+                              << " -- dropping message." << std::endl;
                     unmatched_sends++;
                 }
             }
@@ -214,11 +243,14 @@ void OTFConverter::matchMessages()
         }
     }
     // Report
-    std::cout << "Total messages: " << messages << " with " << unmatched_sends << " unmatched sends and " << unmatched_recvs << " unmatched_recvs." << std::endl;
+    std::cout << "Total messages: " << messages << " with " << unmatched_sends
+              << " unmatched sends and " << unmatched_recvs
+              << " unmatched_recvs." << std::endl;
 }
 
 // Binary search for event containing time
-Event * OTFConverter::search_child_ranges(QVector<Event *> * children, unsigned long long int time)
+Event * OTFConverter::search_child_ranges(QVector<Event *> * children,
+                                          unsigned long long int time)
 {
     int imid, imin = 0;
     int imax = children->size() - 1;

@@ -6,6 +6,7 @@
 #include "colormap.h"
 #include "event.h"
 
+// Parent class for those who pan and zoom like a timeline view
 class TimelineVis : public VisWidget
 {
     Q_OBJECT
@@ -26,7 +27,8 @@ public slots:
 
 protected:
     void drawHover(QPainter *painter);
-    void drawProcessLabels(QPainter * painter, int effectiveHeight, float barHeight);
+    void drawProcessLabels(QPainter * painter, int effectiveHeight,
+                           float barHeight);
 
     bool jumped;
     bool mousePressed;

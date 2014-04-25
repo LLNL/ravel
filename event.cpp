@@ -35,13 +35,17 @@ Event::~Event()
     delete parents;
     delete children;
 
-    for (QVector<Message *>::Iterator itr = messages->begin(); itr != messages->end(); ++itr) {
+    for (QVector<Message *>::Iterator itr = messages->begin();
+         itr != messages->end(); ++itr)
+    {
             delete *itr;
             *itr = NULL;
     }
     delete messages;
 
-    for (QMap<QString, MetricPair *>::Iterator itr = metrics->begin(); itr != metrics->end(); ++itr) {
+    for (QMap<QString, MetricPair *>::Iterator itr = metrics->begin();
+         itr != metrics->end(); ++itr)
+    {
         delete itr.value();
     }
     delete metrics;
@@ -75,7 +79,8 @@ bool Event::operator==(const Event &event)
 }
 
 
-void Event::addMetric(QString name, long long event_value, long long aggregate_value)
+void Event::addMetric(QString name, long long event_value,
+                      long long aggregate_value)
 {
     (*metrics)[name] = new MetricPair(event_value, aggregate_value);
 }

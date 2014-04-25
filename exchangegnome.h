@@ -18,9 +18,10 @@ public:
     void preprocess();
 
 protected:
-    void drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect, PartitionCluster * pc,
-                               int barwidth, int barheight, int blockwidth, int blockheight,
-                               int startStep);
+    void drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect,
+                               PartitionCluster * pc,
+                               int barwidth, int barheight, int blockwidth,
+                               int blockheight, int startStep);
     void generateTopProcesses();
 
 private:
@@ -36,11 +37,14 @@ private:
 
     int maxWAsize; // for drawing Waitall pies
 
-    void drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy, PartitionCluster * pc, int barwidth, int barheight,
-                                               int blockwidth, int blockheight, int startStep);
-    void drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy, PartitionCluster * pc,
-                                               int barwidth, int barheight, int blockwidth, int blockheight,
-                                               int startStep);
+    void drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy,
+                                PartitionCluster * pc, int barwidth,
+                                int barheight, int blockwidth, int blockheight,
+                                int startStep);
+    void drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy,
+                                PartitionCluster * pc, int barwidth,
+                                int barheight, int blockwidth, int blockheight,
+                                int startStep);
 
 
 };

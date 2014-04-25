@@ -7,7 +7,8 @@ public:
     ClusterEvent(int _step);
 
     ClusterEvent(const ClusterEvent& copy);
-    ClusterEvent(int _step, const ClusterEvent * copy1, const ClusterEvent * copy2);
+    ClusterEvent(int _step, const ClusterEvent * copy1,
+                 const ClusterEvent * copy2);
 
     enum EventType { COMM, AGG };
     enum CommType { SEND, RECV, WAITALL, BOTH };
@@ -31,7 +32,9 @@ public:
     int step;
     int waitallrecvs; // How many individual receives there are
     long long int metric[2][3][2]; // [COMM/AGG] [SEND/RECV/WAITALL] [LOW/HIGH]
-    int counts[2][3][2]; // This counts a waitall as a single event rather than all the receives
+
+     // This counts a waitall as a single event rather than all the receives
+    int counts[2][3][2];
 };
 
 #endif // CLUSTEREVENT_H

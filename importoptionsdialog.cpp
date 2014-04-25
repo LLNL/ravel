@@ -1,8 +1,9 @@
 #include "importoptionsdialog.h"
 #include "ui_importoptionsdialog.h"
 
-ImportOptionsDialog::ImportOptionsDialog(QWidget *parent, OTFImportOptions * _options) :
-    QDialog(parent),
+ImportOptionsDialog::ImportOptionsDialog(QWidget *parent,
+                                         OTFImportOptions * _options)
+    : QDialog(parent),
     ui(new Ui::ImportOptionsDialog),
     options(_options),
     saved(OTFImportOptions(*_options))
@@ -10,15 +11,24 @@ ImportOptionsDialog::ImportOptionsDialog(QWidget *parent, OTFImportOptions * _op
     ui->setupUi(this);
     connect(ui->buttonBox, SIGNAL(accepted()), this, SLOT(onOK()));
     connect(ui->buttonBox, SIGNAL(rejected()), this, SLOT(onCancel()));
-    connect(ui->functionRadioButton, SIGNAL(clicked(bool)), this, SLOT(onPartitionByFunction(bool)));
-    connect(ui->heuristicRadioButton, SIGNAL(clicked(bool)), this, SLOT(onPartitionByHeuristic(bool)));
-    connect(ui->waitallCheckbox, SIGNAL(clicked(bool)), this, SLOT(onWaitallMerge(bool)));
-    connect(ui->leapCheckbox, SIGNAL(clicked(bool)), this, SLOT(onLeapMerge(bool)));
-    connect(ui->leapCollectiveCheckbox, SIGNAL(clicked(bool)), this, SLOT(onLeapCollective(bool)));
-    connect(ui->skipCheckbox, SIGNAL(clicked(bool)), this, SLOT(onLeapSkip(bool)));
-    connect(ui->globalMergeBox, SIGNAL(clicked(bool)), this, SLOT(onGlobalMerge(bool)));
-    connect(ui->functionEdit, SIGNAL(textChanged(QString)), this, SLOT(onFunctionEdit(QString)));
-    connect(ui->clusterCheckbox, SIGNAL(clicked(bool)), this, SLOT(onCluster(bool)));
+    connect(ui->functionRadioButton, SIGNAL(clicked(bool)), this,
+            SLOT(onPartitionByFunction(bool)));
+    connect(ui->heuristicRadioButton, SIGNAL(clicked(bool)), this,
+            SLOT(onPartitionByHeuristic(bool)));
+    connect(ui->waitallCheckbox, SIGNAL(clicked(bool)), this,
+            SLOT(onWaitallMerge(bool)));
+    connect(ui->leapCheckbox, SIGNAL(clicked(bool)), this,
+            SLOT(onLeapMerge(bool)));
+    connect(ui->leapCollectiveCheckbox, SIGNAL(clicked(bool)), this,
+            SLOT(onLeapCollective(bool)));
+    connect(ui->skipCheckbox, SIGNAL(clicked(bool)), this,
+            SLOT(onLeapSkip(bool)));
+    connect(ui->globalMergeBox, SIGNAL(clicked(bool)), this,
+            SLOT(onGlobalMerge(bool)));
+    connect(ui->functionEdit, SIGNAL(textChanged(QString)), this,
+            SLOT(onFunctionEdit(QString)));
+    connect(ui->clusterCheckbox, SIGNAL(clicked(bool)), this,
+            SLOT(onCluster(bool)));
 
     setUIState();
 }

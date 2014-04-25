@@ -42,6 +42,7 @@ void TimelineVis::processVis()
         order_to_proc[i] = i;
     }
 
+    // Determine needs for process labels
     int max_process = pow(10,ceil(log10(trace->num_processes)) + 1) - 1;
     QPainter * painter = new QPainter();
     painter->begin(this);
@@ -59,6 +60,8 @@ void TimelineVis::processVis()
     visProcessed = true;
 }
 
+// Figure out which event has been selected.
+// Relies on drawnEvents which is set by child classes.
 void TimelineVis::mouseDoubleClickEvent(QMouseEvent * event)
 {
     if (!visProcessed)
@@ -66,14 +69,17 @@ void TimelineVis::mouseDoubleClickEvent(QMouseEvent * event)
 
     int x = event->x();
     int y = event->y();
-    for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin(); evt != drawnEvents.end(); ++evt)
+    for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin();
+         evt != drawnEvents.end(); ++evt)
+    {
         if (evt.value().contains(x,y))
         {
             if (evt.key() == selected_event)
             {
                 if (options->showAggregateSteps)
                 {
-                    if (x < evt.value().x() + evt.value().width() / 2) // we're in the aggregate event
+                    // we're in the aggregate event
+                    if (x < evt.value().x() + evt.value().width() / 2)
                     {
                         if (selected_aggregate)
                         {
@@ -102,7 +108,9 @@ void TimelineVis::mouseDoubleClickEvent(QMouseEvent * event)
             }
             else
             {
-                if (options->showAggregateSteps && x < evt.value().x() + evt.value().width() / 2) // we're in the aggregate event
+                // we're in the aggregate event
+                if (options->showAggregateSteps
+                    && x < evt.value().x() + evt.value().width() / 2)
                 {
                     selected_aggregate = true;
                 }
@@ -114,11 +122,13 @@ void TimelineVis::mouseDoubleClickEvent(QMouseEvent * event)
             }
             break;
         }
+    }
 
     changeSource = true;
     emit eventClicked(selected_event, selected_aggregate);
     repaint();
 }
+
 
 void TimelineVis::mousePressEvent(QMouseEvent * event)
 {
@@ -151,7 +161,8 @@ void TimelineVis::leaveEvent(QEvent *event)
     hover_event = NULL;
 }
 
-
+// We can either select a single event exclusive-or select a
+// number of processes in a gnome right now.
 void TimelineVis::selectEvent(Event * event, bool aggregate)
 {
     selected_processes.clear();
@@ -181,7 +192,6 @@ void TimelineVis::selectProcesses(QList<int> processes, Gnome * gnome)
 
 void TimelineVis::drawHover(QPainter * painter)
 {
-    //return;
     if (!visProcessed || hover_event == NULL)
         return;
 
@@ -197,8 +207,7 @@ void TimelineVis::drawHover(QPainter * painter)
     else
     {
         // Fall through and draw Event
-        text = ((*(trace->functions))[hover_event->function])->name + ", " + QString::number(hover_event->orig_phase).toStdString().c_str()
-                + ", " + QString::number(hover_event->phase).toStdString().c_str();
+        text = ((*(trace->functions))[hover_event->function])->name;
         // + ", " + QString::number(hover_event->step).toStdString().c_str();
     }
 
@@ -207,15 +216,19 @@ void TimelineVis::drawHover(QPainter * painter)
 
     // Draw bounding box
     painter->setPen(QPen(QColor(255, 255, 0, 150), 1.0, Qt::SolidLine));
-    painter->drawRect(QRectF(mousex, mousey, textRect.width(), textRect.height()));
-    painter->fillRect(QRectF(mousex, mousey, textRect.width(), textRect.height()), QBrush(QColor(255, 255, 144, 150)));
+    painter->drawRect(QRectF(mousex, mousey,
+                             textRect.width(), textRect.height()));
+    painter->fillRect(QRectF(mousex, mousey,
+                             textRect.width(), textRect.height()),
+                      QBrush(QColor(255, 255, 144, 150)));
 
     // Draw text
     painter->setPen(Qt::black);
     painter->drawText(mousex + 2, mousey + textRect.height() - 2, text);
 }
 
-void TimelineVis::drawProcessLabels(QPainter * painter, int effectiveHeight, float barHeight)
+void TimelineVis::drawProcessLabels(QPainter * painter, int effectiveHeight,
+                                    float barHeight)
 {
     painter->setPen(Qt::black);
     painter->setFont(QFont("Helvetica", 10));
@@ -229,10 +242,12 @@ void TimelineVis::drawProcessLabels(QPainter * painter, int effectiveHeight, flo
     }
 
     int start = std::max(floor(startProcess), 0.0);
-    int end = std::min(ceil(startProcess + processSpan), trace->num_processes - 1.0);
+    int end = std::min(ceil(startProcess + processSpan),
+                       trace->num_processes - 1.0);
     for (int i = start; i <= end; i+= skip) // Do this by order
     {
-        y = floor((i - startProcess) * barHeight) + 1 + barHeight / 2 + labelDescent;
+        y = floor((i - startProcess) * barHeight) + 1 + barHeight / 2
+            + labelDescent;
         if (y < effectiveHeight)
             painter->drawText(1, y, QString::number(order_to_proc[i]));
     }

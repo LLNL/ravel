@@ -8,7 +8,8 @@ class ClusterTreeVis : public VisWidget
 {
     Q_OBJECT
 public:
-    explicit ClusterTreeVis(QWidget *parent = 0, VisOptions * _options = new VisOptions());
+    explicit ClusterTreeVis(QWidget *parent = 0,
+                            VisOptions * _options = new VisOptions());
     Gnome * getGnome() { return gnome; }
 
 signals:

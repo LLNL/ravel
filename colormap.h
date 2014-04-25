@@ -28,7 +28,8 @@ private:
         float value;
     };
 
-    QColor average(ColorValue * low, ColorValue * high, double norm, double opacity = 1.0);
+    QColor average(ColorValue * low, ColorValue * high,
+                   double norm, double opacity = 1.0);
     QColor categorical_color(double value);
 
     // metric value range
