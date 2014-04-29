@@ -21,8 +21,10 @@ OTFImporter::OTFImporter()
       rawtrace(NULL),
       functionGroups(NULL),
       functions(NULL),
-      collectiveMap(new QMap<std::pair<uint64_t, uint32_t>,
-                             CollectiveRecord *>())
+      communicators(NULL),
+      collective_definitions(NULL),
+      collectives(NULL),
+      collectiveMap(NULL)
 {
 
 }
@@ -59,8 +61,6 @@ OTFImporter::~OTFImporter()
         *eitr = NULL;
     }
     delete unmatched_sends;
-
-    delete collectiveMap;
 }
 
 RawTrace * OTFImporter::importOTF(const char* otf_file)
@@ -84,27 +84,42 @@ RawTrace * OTFImporter::importOTF(const char* otf_file)
 
     functionGroups = new QMap<int, QString>();
     functions = new QMap<int, Function *>();
+    communicators = new QMap<int, Communicator *>();
+    collective_definitions = new QMap<int, OTFCollective *>();
+    collectives = new QMap<unsigned long long, CollectiveRecord *>();
 
     std::cout << "Reading definitions" << std::endl;
     OTF_Reader_readDefinitions(otfReader, handlerArray);
 
     rawtrace = new RawTrace(num_processes);
-    delete rawtrace->functions;
     rawtrace->functions = functions;
-    delete rawtrace->functionGroups;
     rawtrace->functionGroups = functionGroups;
+    rawtrace->communicators = communicators;
+    rawtrace->collective_definitions = collective_definitions;
+    rawtrace->collectives = collectives;
+    rawtrace->events = new QVector<QVector<EventRecord *> *>(num_processes);
+    rawtrace->messages = new QVector<QVector<CommRecord *> *>(num_processes);
+
+
 
     delete unmatched_recvs;
     unmatched_recvs = new QVector<QLinkedList<CommRecord *> *>(num_processes);
     delete unmatched_sends;
     unmatched_sends = new QVector<QLinkedList<CommRecord *> *>(num_processes);
+    delete collectiveMap;
+    collectiveMap = new QVector<QMap<unsigned long long, CollectiveRecord *> *>(num_processes);
     for (int i = 0; i < num_processes; i++) {
         (*unmatched_recvs)[i] = new QLinkedList<CommRecord *>();
         (*unmatched_sends)[i] = new QLinkedList<CommRecord *>();
+        (*collectiveMap)[i] = new QMap<unsigned long long, CollectiveRecord *>();
+        (*(rawtrace->events))[i] = new QVector<EventRecord *>();
+        (*(rawtrace->messages))[i] = new QVector<CommRecord *>();
     }
 
     std::cout << "Reading events" << std::endl;
     OTF_Reader_readEvents(otfReader, handlerArray);
+
+    rawtrace->collectiveMap = collectiveMap;
 
     OTF_HandlerArray_close(handlerArray);
     OTF_Reader_close(otfReader);
@@ -238,11 +253,12 @@ void OTFImporter::setHandlers()
                                 OTF_BEGINCOLLOP_RECORD);
     OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_BEGINCOLLOP_RECORD);
 
-
+    /* We just store the start times
     OTF_HandlerArray_setHandler(handlerArray,
                                 (OTF_FunctionPointer*) &OTFImporter::handleEndCollectiveOperation,
                                 OTF_ENDCOLLOP_RECORD);
     OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_ENDCOLLOP_RECORD);
+    */
 
 
 }
@@ -459,7 +475,19 @@ int OTFImporter::handleDefProcessGroup(void * userData, uint32_t stream,
                                        uint32_t numberOfProcs,
                                        const uint32_t * procs)
 {
-    std::cout << "ProcessGroup: " << name << " : " << numberOfProcs << std::endl;
+    Q_UNUSED(stream);
+
+    QString qname(name);
+    if (qname.contains("MPI_COMM_SELF"))
+        return 0;
+
+    Communicator * c = new Communicator(procGroup, qname);
+    for (int i = 0; i < numberOfProcs; i++)
+    {
+        c->processes->append(procs[i]);
+    }
+    (*(((OTFImporter*) userData)->communicators))[procGroup] = c;
+
     return 0;
 }
 
@@ -467,10 +495,15 @@ int OTFImporter::handleDefCollectiveOperation(void * userData, uint32_t stream,
                                               uint32_t collOp, const char * name,
                                               uint32_t type)
 {
-    std::cout << "DefCollective: " << collOp << " --> " << name << " : " << type << std::endl;
+    Q_UNUSED(stream);
+
+    (*(((OTFImporter *) userData)->collective_definitions))[collOp]
+            = new OTFCollective(collOp, type, name);
+
     return 0;
 }
 
+// Deprecated
 int OTFImporter::handleCollectiveOperation(void * userData, uint64_t time,
                                            uint32_t process,
                                            uint32_t collective,
@@ -481,6 +514,7 @@ int OTFImporter::handleCollectiveOperation(void * userData, uint64_t time,
                                            uint32_t source)
 {
     Q_UNUSED(source); // Location in source code
+    Q_UNUSED(userData);
 
     std::cout << "Collective: " << time << ", proc: " << process << ", coll: " << collective;
     std::cout << ", root: " << rootProc << ", group: " << procGroup << ", sent: " << sent;
@@ -502,9 +536,19 @@ int OTFImporter::handleBeginCollectiveOperation(void * userData, uint64_t time,
 {
     Q_UNUSED(list);
     Q_UNUSED(scltoken);
-    std::cout << "Begin Collective: " << time << ", proc: " << process << ", coll: " << collective;
-    std::cout << ", root: " << rootProc << ", group: " << procGroup << ", sent: " << sent;
-    std::cout << ", recv: " << received << ", matching: " << matchingId << std::endl;
+    Q_UNUSED(sent);
+    Q_UNUSED(received);
+
+    // Create collective record if it doesn't yet exist
+    if (!(*(((OTFImporter *) userData)->collectives)).contains(matchingId))
+        (*(((OTFImporter *) userData)->collectives))[matchingId]
+            = new CollectiveRecord(matchingId, rootProc, collective, procGroup);
+
+    // Get the matching collective record
+    CollectiveRecord * cr = (*(((OTFImporter *) userData)->collectives))[matchingId];
+
+    // Map process/time to the collective record
+    (*(*(((OTFImporter *) userData)->collectiveMap))[process - 1])[time] = cr;
 
     return 0;
 }
@@ -514,6 +558,7 @@ int OTFImporter::handleEndCollectiveOperation(void * userData, uint64_t time,
                                               uint64_t matchingId,
                                               OTF_KeyValueList * list)
 {
+    Q_UNUSED(userData);
     Q_UNUSED(list);
     std::cout << "End Collective: " << time << ", proc: " << process;
     std::cout << ", matching: " << matchingId << std::endl;

@@ -40,6 +40,8 @@ private:
 
     static const int event_match_portion = 14;
     static const int message_match_portion = 10;
+    static const QString collectives_string;
+
 };
 
 #endif // OTFCONVERTER_H

@@ -4,6 +4,12 @@
 #include <iostream>
 #include "general_util.h"
 
+const QString OTFConverter::collectives_string
+    = QString("MPI_BarrierMPI_BcastMPI_ReduceMPI_GatherMPI_Scatter")
+      + QString("MPI_AllgatherMPI_AllreduceMPI_AlltoallMPI_Scan")
+      + QString("MPI_Reduce_scatterMPI_Op_createMPI_Op_freeMPIMPI_Alltoallv")
+      + QString("MPI_AllgathervMPI_GathervMPI_Scatterv");
+
 OTFConverter::OTFConverter()
     : rawtrace(NULL), trace(NULL), options(NULL), phaseFunction(-1)
 {
@@ -137,8 +143,8 @@ void OTFConverter::matchEvents()
                 Event * e = new Event((*evt)->time, 0, (*evt)->value,
                                       (*evt)->process, -1);
 
-                if (options->partitionByFunction && (*evt)->value
-                    == phaseFunction)
+                if (options->partitionByFunction
+                    && (*evt)->value == phaseFunction)
                 {
                     ++phase;
                 }
@@ -154,6 +160,12 @@ void OTFConverter::matchEvents()
                         == trace->mpi_group)
                 {
                     ((*(trace->mpi_events))[e->process])->prepend(e);
+                    if (rawtrace->collectiveMap->at((*evt)->process)->contains((*evt)->time))
+                    {
+                        e->collective
+                                = (*(rawtrace->collectiveMap->at((*evt)->process)))[(*evt)->time];
+
+                    }
                 }
 
                 stack->push(e);

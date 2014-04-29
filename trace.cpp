@@ -6,6 +6,12 @@
 #include "general_util.h"
 #include <cmath>
 
+const QString Trace::collectives_string
+    = QString("MPI_BarrierMPI_BcastMPI_ReduceMPI_GatherMPI_Scatter")
+      + QString("MPI_AllgatherMPI_AllreduceMPI_AlltoallMPI_Scan")
+      + QString("MPI_Reduce_scatterMPI_Op_createMPI_Op_freeMPIMPI_Alltoallv")
+      + QString("MPI_AllgathervMPI_GathervMPI_Scatterv");
+
 Trace::Trace(int np)
     : num_processes(np),
       units(-9),
@@ -23,7 +29,6 @@ Trace::Trace(int np)
       dag_entries(NULL),
       dag_step_dict(NULL),
       isProcessed(false),
-      collectives_string(QString("MPI_BarrierMPI_BcastMPI_ReduceMPI_GatherMPI_ScatterMPI_AllgatherMPI_AllreduceMPI_AlltoallMPI_ScanMPI_Reduce_scatterMPI_Op_createMPI_Op_freeMPIMPI_AlltoallvMPI_AllgathervMPI_GathervMPI_Scatterv")),
       riTracker(NULL),
       riChildrenTracker(NULL)
 {

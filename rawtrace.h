@@ -3,6 +3,8 @@
 
 #include "eventrecord.h"
 #include "commrecord.h"
+#include "communicator.h"
+#include "otfcollective.h"
 #include "collectiverecord.h"
 #include "function.h"
 #include <QMap>
@@ -19,7 +21,11 @@ public:
     QMap<int, Function *> * functions;
     QVector<QVector<EventRecord *> *> * events;
     QVector<QVector<CommRecord *> *> * messages;
-    QVector<QVector<CollectiveRecord *> *> * collectives;
+    QMap<int, Communicator *> * communicators;
+    QMap<int, OTFCollective *> * collective_definitions;
+
+    QMap<unsigned long long, CollectiveRecord *> * collectives;
+    QVector<QMap<unsigned long long, CollectiveRecord *> *> * collectiveMap;
     int num_processes;
 };
 

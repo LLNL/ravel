@@ -1,25 +1,17 @@
 #include "rawtrace.h"
 
 RawTrace::RawTrace(int np)
-    : functionGroups(new QMap<int, QString>()),
-      functions(new QMap<int, Function *>()),
-      events(new QVector<QVector<EventRecord *> *>(np)),
-      messages(new QVector<QVector<CommRecord *> *>(np)),
-      collectives(new QVector<QVector<CollectiveRecord *> *>(np)),
+    : functionGroups(NULL),
+      functions(NULL),
+      events(NULL),
+      messages(NULL),
+      communicators(NULL),
+      collective_definitions(NULL),
+      collectives(NULL),
+      collectiveMap(NULL),
       num_processes(np)
 {
 
-    for (int i = 0; i < np; i++) {
-        (*events)[i] = new QVector<EventRecord *>();
-    }
-
-    for (int i = 0; i < np; i++) {
-        (*messages)[i] = new QVector<CommRecord *>();
-    }
-
-    for (int i = 0; i < np; i++) {
-        (*collectives)[i] = new QVector<CollectiveRecord *>();
-    }
 }
 
 // Note we do not delete the function/functionGroup map because
@@ -39,6 +31,7 @@ RawTrace::~RawTrace()
         *eitr = NULL;
     }
     delete events;
+
     for (QVector<QVector<CommRecord *> *>::Iterator eitr = messages->begin();
          eitr != messages->end(); ++eitr)
     {
@@ -52,4 +45,13 @@ RawTrace::~RawTrace()
         *eitr = NULL;
     }
     delete messages;
+
+    for (QVector<QMap<unsigned long long, CollectiveRecord *> *>::Iterator eitr
+         = collectiveMap->begin();
+         eitr != collectiveMap->end(); ++eitr)
+    {
+        delete *eitr;
+        *eitr = NULL;
+    }
+    delete collectiveMap;
 }

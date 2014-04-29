@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QMap>
 #include "message.h"
+#include "collectiverecord.h"
 
 class Partition;
 
@@ -49,6 +50,7 @@ public:
     // Call tree info
     Event * caller;
     QVector<Event *> * callees;
+    CollectiveRecord * collective;
 
     Partition * partition;
     Event * comm_next;

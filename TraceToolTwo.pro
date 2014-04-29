@@ -37,7 +37,9 @@ SOURCES  += main.cpp \
     verticallabel.cpp \
     rpartition.cpp \
     clusterprocess.cpp \
-    metricrangedialog.cpp
+    metricrangedialog.cpp \
+    communicator.cpp \
+    otfcollective.cpp
 
 
 HEADERS += \
@@ -73,7 +75,9 @@ HEADERS += \
     verticallabel.h \
     rpartition.h \
     clusterprocess.h \
-    metricrangedialog.h
+    metricrangedialog.h \
+    communicator.h \
+    otfcollective.h
 
 
 FORMS += \

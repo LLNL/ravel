@@ -135,7 +135,6 @@ private:
                                               unsigned long long stop);
 
     bool isProcessed; // Partitions exist
-    QString collectives_string;
 
     // TODO: Replace this terrible stuff with QSharedPointer
     QSet<RecurseInfo *> * riTracker;
@@ -144,6 +143,7 @@ private:
     static const int partition_portion = 45;
     static const int lateness_portion = 35;
     static const int steps_portion = 20;
+    static const QString collectives_string;
 };
 
 #endif // TRACE_H
