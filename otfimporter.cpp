@@ -221,7 +221,7 @@ void OTFImporter::setHandlers()
                                         OTF_COUNTER_RECORD);
 
     // Collectives
-    /*
+
     OTF_HandlerArray_setHandler(handlerArray,
                                 (OTF_FunctionPointer*) &OTFImporter::handleDefProcessGroup,
                                 OTF_DEFPROCESSGROUP_RECORD);
@@ -231,16 +231,8 @@ void OTFImporter::setHandlers()
                                 (OTF_FunctionPointer*) &OTFImporter::handleDefCollectiveOperation,
                                 OTF_DEFCOLLOP_RECORD);
     OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_DEFCOLLOP_RECORD);
-    */
 
-    /* Doesn't seem to be used anymore
-    OTF_HandlerArray_setHandler(handlerArray,
-                                (OTF_FunctionPointer*) &OTFImporter::handleCollectiveOperation,
-                                OTF_COLLOP_RECORD);
-    OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_COLLOP_RECORD);
-    */
 
-    /*
     OTF_HandlerArray_setHandler(handlerArray,
                                 (OTF_FunctionPointer*) &OTFImporter::handleBeginCollectiveOperation,
                                 OTF_BEGINCOLLOP_RECORD);
@@ -251,7 +243,8 @@ void OTFImporter::setHandlers()
                                 (OTF_FunctionPointer*) &OTFImporter::handleEndCollectiveOperation,
                                 OTF_ENDCOLLOP_RECORD);
     OTF_HandlerArray_setFirstHandlerArg(handlerArray, this, OTF_ENDCOLLOP_RECORD);
-    */
+
+
 }
 
 // Find timescale
@@ -512,6 +505,8 @@ int OTFImporter::handleBeginCollectiveOperation(void * userData, uint64_t time,
     std::cout << "Begin Collective: " << time << ", proc: " << process << ", coll: " << collective;
     std::cout << ", root: " << rootProc << ", group: " << procGroup << ", sent: " << sent;
     std::cout << ", recv: " << received << ", matching: " << matchingId << std::endl;
+
+    return 0;
 }
 
 int OTFImporter::handleEndCollectiveOperation(void * userData, uint64_t time,

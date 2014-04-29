@@ -82,6 +82,8 @@ FORMS += \
     visoptionsdialog.ui \
     metricrangedialog.ui
 
+HOME = $$system(echo $HOME)
+
 unix:!macx: LIBS += -lotf
 
 macx: LIBS += -L$$PWD/../../libs/lib/ -lopen-trace-format
@@ -89,7 +91,8 @@ macx: LIBS += -L$$PWD/../../libs/lib/ -lopen-trace-format
 INCLUDEPATH += $$PWD/../../libs/include/open-trace-format/
 DEPENDPATH += $$PWD/../../libs/include/open-trace-format/
 
-unix:!macx: LIBS += -L$$PWD/../../../../../opt/muster/lib/ -lmuster
+unix: LIBS += -L$${HOME}/opt/lib -lmuster
 
-INCLUDEPATH += $$PWD/../../../../../opt/muster/include
-DEPENDPATH += $$PWD/../../../../../opt/muster/include
+INCLUDEPATH += $${HOME}/opt/include
+DEPENDPATH += $${HOME}/opt/include
+
