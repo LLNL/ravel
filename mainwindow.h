@@ -82,6 +82,8 @@ private:
     // Color stuff & other vis options
     VisOptions * visoptions;
     VisOptionsDialog * visdialog;
+
+    QString activetracename;
 };
 
 #endif // MAINWINDOW_H

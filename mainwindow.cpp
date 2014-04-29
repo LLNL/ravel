@@ -228,6 +228,12 @@ void MainWindow::importOTFbyGUI()
 
     repaint();
     importOTF(dataFileName);
+    QStringList fileinfo = dataFileName.split("\/");
+    int fisize = fileinfo.size();
+    if (fisize > 1)
+        activetracename = fileinfo[fisize-2] + "/" + fileinfo[fisize-1];
+    else
+        activetracename = dataFileName;
 }
 
 void MainWindow::importOTF(QString dataFileName){
@@ -275,6 +281,7 @@ void MainWindow::traceFinished(Trace * trace)
     delete progress;
     delete importThread;
 
+    setWindowTitle("Ravel - " + activetracename);
     activeTraceChanged();
 }
 
