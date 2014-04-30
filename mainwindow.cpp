@@ -21,6 +21,7 @@ MainWindow::MainWindow(QWidget *parent) :
     traces(QList<Trace *>()),
     viswidgets(QVector<VisWidget *>()),
     visactions(QList<QAction *>()),
+    splitterMap(QVector<int>()),
     activeTrace(-1),
     importWorker(NULL),
     importThread(NULL),
@@ -44,6 +45,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(overview, SIGNAL(stepsChanged(float, float, bool)), this,
             SLOT(pushSteps(float, float, bool)));
     viswidgets.push_back(overview);
+    splitterMap.push_back(3);
 
     // Logical Timeline
     StepVis* stepvis = new StepVis(ui->stepContainer, visoptions);
@@ -57,6 +59,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect((stepvis), SIGNAL(eventClicked(Event *, bool)), this,
             SLOT(selectEvent(Event *, bool)));
     viswidgets.push_back(stepvis);
+    splitterMap.push_back(0);
 
     // Physical Timeline
     TraditionalVis* timevis = new TraditionalVis(ui->traditionalContainer,
@@ -72,6 +75,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect((timevis), SIGNAL(eventClicked(Event *, bool)), this,
             SLOT(selectEvent(Event *, bool)));
     viswidgets.push_back(timevis);
+    splitterMap.push_back(2);
 
     // Cluster View
     ClusterTreeVis* clustertreevis = new ClusterTreeVis(ui->stepContainer,
@@ -103,6 +107,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     viswidgets.push_back(clustervis);
     viswidgets.push_back(clustertreevis);
+    splitterMap.push_back(1);
 
     // Sliders
     connect(ui->verticalSlider, SIGNAL(valueChanged(int)), clustervis,
@@ -422,16 +427,15 @@ void MainWindow::handleSideSplitter(int pos, int index)
 // Synchronize menus and splitters
 void MainWindow::setVisWidgetState()
 {
+    QList<int> sizes = ui->splitter->sizes();
     for (int i = 0; i < viswidgets.size() - 1; i++)
     {
-        if (viswidgets[i]->container->height() == 0
-            && !viswidgets[i]->isClosed())
+        if (sizes[splitterMap[i]] == 0 && !viswidgets[i]->isClosed())
         {
             viswidgets[i]->setClosed(true);
             visactions[i]->setChecked(false);
         }
-        else if (viswidgets[i]->container->height() != 0
-                 && viswidgets[i]->isClosed())
+        else if (sizes[splitterMap[i]] != 0 && viswidgets[i]->isClosed())
         {
             viswidgets[i]->setClosed(false);
             visactions[i]->setChecked(true);
@@ -454,6 +458,7 @@ void MainWindow::toggleLogicalSteps()
     }
     ui->splitter->setSizes(sizes);
     linkSideSplitter();
+    setVisWidgetState();
 }
 
 void MainWindow::toggleClusteredSteps()
@@ -473,6 +478,7 @@ void MainWindow::toggleClusteredSteps()
     }
     ui->splitter->setSizes(sizes);
     linkSideSplitter();
+    setVisWidgetState();
 }
 
 void MainWindow::togglePhysicalTime()
@@ -490,6 +496,7 @@ void MainWindow::togglePhysicalTime()
     }
     ui->splitter->setSizes(sizes);
     linkSideSplitter();
+    setVisWidgetState();
 }
 
 void MainWindow::toggleMetricOverview()
@@ -507,4 +514,5 @@ void MainWindow::toggleMetricOverview()
     }
     ui->splitter->setSizes(sizes);
     linkSideSplitter();
+    setVisWidgetState();
 }

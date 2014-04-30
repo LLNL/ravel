@@ -72,6 +72,7 @@ private:
     QList<Trace *> traces;
     QVector<VisWidget *> viswidgets;
     QList<QAction *> visactions;
+    QVector<int> splitterMap;
     int activeTrace;
 
     // For progress bar
