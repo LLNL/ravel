@@ -1947,7 +1947,7 @@ void Trace::initializePartitionsWaitall()
             {
                 // Is this an event that can stop aggregating?
                 // 1. Due to a recv (including waitall recv)
-                if ((*evt)->messages->size() > 0 || (*evt)->collective)
+                if ((*evt)->messages->size() > 0)
                 {
                     bool recv_found = false;
                     for (QVector<Message *>::Iterator msg
@@ -1994,11 +1994,38 @@ void Trace::initializePartitionsWaitall()
                         aggregation->prepend(*evt);
                     }
                 }
+                // 2. Due to a collective
+                else if ((*evt)->collective)
+                {
+                    // Do partition for aggregated stuff
+                    if (aggregation->size() > 0)
+                    {
+                        Partition * p = new Partition();
+                        for (QList<Event *>::Iterator saved_evt
+                             = aggregation->begin();
+                             saved_evt != aggregation->end(); ++saved_evt)
+                        {
+                            p->addEvent(*saved_evt);
+                            (*saved_evt)->partition = p;
+                        }
+                        p->new_partition = p;
+                        partitions->append(p);
+                    }
 
-                // 2. Due to non-recv/non-comm waitall or collective
+                    // Do partition for this collective
+                    Partition * c = new Partition();
+                    c->addEvent(*evt);
+                    (*evt)->partition = c;
+                    c->new_partition = c;
+                    partitions->append(c);
+
+                    aggregating = false;
+                    delete aggregation;
+                }
+
+                // 3. Due to non-recv/non-comm waitall
                 else if ((*evt)->function == waitall_index
-                         || (*evt)->function == testall_index
-                         || collective_ids->contains((*evt)->function))
+                         || (*evt)->function == testall_index)
                 {
                     // Do partition for aggregated stuff
                     if (aggregation->size() > 0)
