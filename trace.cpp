@@ -283,10 +283,6 @@ void Trace::partition()
         else
             initializePartitions();
 
-        // Merge collectives should go here
-        std::cout << "Merging collectives..." << std::endl;
-        mergeCollectives();
-
         traceElapsed = traceTimer.nsecsElapsed();
         std::cout << "Partition initialization: ";
         gu_printTime(traceElapsed);
@@ -1395,33 +1391,6 @@ void Trace::mergeForMessages()
     mergePartitions(components);
     delete to_merge;
     delete to_process;
-}
-
-// merge events of the same collective into a single partition
-// Assumption: this partition will be one event wide. I don't think I use
-// this assumption explicitly yet though.
-void Trace::mergeCollectives()
-{
-    return;
-    for (QMap<unsigned long long, CollectiveRecord *>::Iterator cr
-         = collectives->begin();
-         cr != collectives->end(); ++cr)
-    {
-        // Create new partition for this collective
-
-        for (QList<Event *>::Iterator evt = (*cr)->events->begin();
-             evt != (*cr)->events->end(); ++evt)
-        {
-            // Merge in partition of this event
-
-            // Update parent/child relationships for event
-
-            // Set up this event's partition for deletion
-        }
-
-        // Delete old partitions
-    }
-
 }
 
 // Looping section of Tarjan algorithm

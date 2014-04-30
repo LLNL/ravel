@@ -99,7 +99,6 @@ private:
     void partitionByPhase();
     void initializePartitions();
     void initializePartitionsWaitall();
-    void mergeCollectives();
     void mergeForMessages();
     void mergeForMessagesHelper(Partition * part, QSet<Partition *> * to_merge,
                                 QQueue<Partition *> * to_process);
