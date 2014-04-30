@@ -18,7 +18,7 @@
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
-    traces(QVector<Trace *>()),
+    traces(QList<Trace *>()),
     viswidgets(QVector<VisWidget *>()),
     visactions(QList<QAction *>()),
     activeTrace(-1),
@@ -28,7 +28,9 @@ MainWindow::MainWindow(QWidget *parent) :
     otfoptions(new OTFImportOptions()),
     otfdialog(NULL),
     visoptions(new VisOptions()),
-    visdialog(NULL)
+    visdialog(NULL),
+    activetracename(""),
+    activetraces(QStack<QString>())
 {
     ui->setupUi(this);
 
@@ -108,10 +110,14 @@ MainWindow::MainWindow(QWidget *parent) :
     connect((clustervis), SIGNAL(neighborChange(int)), ui->verticalSlider,
             SLOT(setValue(int)));
 
-    // Menus
+    // Menu
     connect(ui->actionOpen_OTF, SIGNAL(triggered()),this,
             SLOT(importOTFbyGUI()));
     ui->actionOpen_OTF->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_O));
+    connect(ui->actionClose, SIGNAL(triggered()), this,
+            SLOT(closeTrace()));
+    ui->actionClose->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_C));
+    ui->actionClose->setEnabled(false);
 
     connect(ui->actionOTF_Importing, SIGNAL(triggered()), this,
             SLOT(launchOTFOptions()));
@@ -123,16 +129,16 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(ui->actionLogical_Steps, SIGNAL(triggered()), this,
             SLOT(toggleLogicalSteps()));
-    ui->actionLogical_Steps->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_L));
+    ui->actionLogical_Steps->setShortcut(QKeySequence(Qt::ALT + Qt::Key_L));
     connect(ui->actionClustered_Logical_Steps, SIGNAL(triggered()), this,
             SLOT(toggleClusteredSteps()));
-    ui->actionClustered_Logical_Steps->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_C));
+    ui->actionClustered_Logical_Steps->setShortcut(QKeySequence(Qt::ALT + Qt::Key_C));
     connect(ui->actionPhysical_Time, SIGNAL(triggered()), this,
             SLOT(togglePhysicalTime()));
-    ui->actionPhysical_Time->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_P));
+    ui->actionPhysical_Time->setShortcut(QKeySequence(Qt::ALT + Qt::Key_P));
     connect(ui->actionMetric_Overview, SIGNAL(triggered()), this,
             SLOT(toggleMetricOverview()));
-    ui->actionMetric_Overview->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_M));
+    ui->actionMetric_Overview->setShortcut(QKeySequence(Qt::ALT + Qt::Key_M));
     visactions.append(ui->actionLogical_Steps);
     visactions.append(ui->actionClustered_Logical_Steps);
     visactions.append(ui->actionPhysical_Time);
@@ -140,6 +146,10 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(ui->actionQuit, SIGNAL(triggered()), this, SLOT(close()));
     ui->actionQuit->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Q));
+
+    ui->menuTraces->setEnabled(false);
+    connect(ui->menuTraces, SIGNAL(triggered(QAction *)), this,
+            SLOT(traceTriggered(QAction *)));
 
     // Splitters
     connect(ui->splitter, SIGNAL(splitterMoved(int, int)), this,
@@ -275,13 +285,17 @@ void MainWindow::traceFinished(Trace * trace)
     progress->close();
 
     this->traces.push_back(trace);
+    if (activeTrace >= 0)
+        ui->menuTraces->actions().at(activeTrace)->setChecked(false);
     activeTrace = traces.size() - 1;
 
     delete importWorker;
     delete progress;
     delete importThread;
 
-    setWindowTitle("Ravel - " + activetracename);
+    trace->name = activetracename;
+    QAction * action = ui->menuTraces->addAction(activetracename);
+    action->setCheckable(true);
     activeTraceChanged();
 }
 
@@ -318,6 +332,59 @@ void MainWindow::activeTraceChanged()
     }
     ui->splitter->setSizes(splitter_sizes);
     ui->sideSplitter->setSizes(splitter_sizes);
+    ui->actionClose->setEnabled(true);
+    ui->menuTraces->setEnabled(true);
+
+    QList<QAction *> actions = ui->menuTraces->actions();
+    actions[activeTrace]->setChecked(true);
+
+    activetraces.push(traces[activeTrace]->name);
+    setWindowTitle("Ravel - " + traces[activeTrace]->name);
+
+}
+
+void MainWindow::traceTriggered(QAction * action)
+{
+    QList<QAction *> actions = ui->menuTraces->actions();
+
+    actions[activeTrace]->setChecked(false);
+
+    activeTrace = actions.indexOf(action);
+    activeTraceChanged();
+}
+
+void MainWindow::closeTrace()
+{
+    activetraces.pop();
+    Trace * trace = traces[activeTrace];
+    traces.removeAt(activeTrace);
+    ui->menuTraces->removeAction(ui->menuTraces->actions().at(activeTrace));
+    delete trace;
+
+    int index = -1;
+    QString fallback = activetraces.pop();
+    while (index < 0 && !activetraces.isEmpty())
+    {
+        for (int i = 0; i < traces.size(); i++)
+        {
+            if (fallback == traces[i]->name)
+            {
+                index = i;
+            }
+        }
+        if (index < 0)
+            fallback = activetraces.pop();
+    }
+
+    if (index >= 0)
+    {
+        activeTrace = index;
+        activeTraceChanged();
+    }
+    else // We must have no traces left
+    {
+        ui->menuTraces->setEnabled(false);
+    }
 }
 
 // Make splitters act together

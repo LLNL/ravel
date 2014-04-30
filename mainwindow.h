@@ -52,6 +52,10 @@ public slots:
     void togglePhysicalTime();
     void toggleMetricOverview();
 
+    // Change Traces
+    void traceTriggered(QAction * action);
+    void closeTrace();
+
 
 signals:
     void operate(const QString &);
@@ -65,7 +69,7 @@ private:
     void setVisWidgetState();
 
     // Saving traces & vis
-    QVector<Trace *> traces;
+    QList<Trace *> traces;
     QVector<VisWidget *> viswidgets;
     QList<QAction *> visactions;
     int activeTrace;
@@ -84,6 +88,8 @@ private:
     VisOptionsDialog * visdialog;
 
     QString activetracename;
+
+    QStack<QString> activetraces;
 };
 
 #endif // MAINWINDOW_H

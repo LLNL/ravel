@@ -421,6 +421,7 @@
      <string>File</string>
     </property>
     <addaction name="actionOpen_OTF"/>
+    <addaction name="actionClose"/>
     <addaction name="actionQuit"/>
    </widget>
    <widget class="QMenu" name="menuOptions">
@@ -439,9 +440,15 @@
     <addaction name="actionPhysical_Time"/>
     <addaction name="actionMetric_Overview"/>
    </widget>
+   <widget class="QMenu" name="menuTraces">
+    <property name="title">
+     <string>Traces</string>
+    </property>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuOptions"/>
    <addaction name="menuViews"/>
+   <addaction name="menuTraces"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionOpen_JSON">
@@ -514,6 +521,11 @@
    </property>
    <property name="menuRole">
     <enum>QAction::QuitRole</enum>
+   </property>
+  </action>
+  <action name="actionClose">
+   <property name="text">
+    <string>Close</string>
    </property>
   </action>
  </widget>

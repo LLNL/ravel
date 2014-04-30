@@ -25,6 +25,7 @@ public:
     void gnomify();
     void printStats();
 
+    QString name;
     int num_processes;
     int units;
 

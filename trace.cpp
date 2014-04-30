@@ -13,7 +13,8 @@ const QString Trace::collectives_string
       + QString("MPI_AllgathervMPI_GathervMPI_Scatterv");
 
 Trace::Trace(int np)
-    : num_processes(np),
+    : name(""),
+      num_processes(np),
       units(-9),
       partitions(new QList<Partition *>()),
       metrics(new QList<QString>()),
@@ -54,8 +55,9 @@ Trace::~Trace()
     delete functions;
 
     for (QList<Partition *>::Iterator itr = partitions->begin();
-         itr != partitions->end(); ++itr) {
-        (*itr)->deleteEvents();
+         itr != partitions->end(); ++itr)
+    {
+        //(*itr)->deleteEvents();
         delete *itr;
         *itr = NULL;
     }
@@ -2060,8 +2062,8 @@ long long int Trace::getAggregateFunctionRecurse(Event * evt,
     unsigned long long overlap_start = std::max(start, evt->enter);
     long long overlap = overlap_stop - overlap_start;
     long long child_overlap;
-    for (QVector<Event *>::Iterator child = evt->children->begin();
-         child != evt->children->end(); ++child)
+    for (QVector<Event *>::Iterator child = evt->callees->begin();
+         child != evt->callees->end(); ++child)
     {
         child_overlap = getAggregateFunctionRecurse(*child, fpMap,
                                                     start, stop);

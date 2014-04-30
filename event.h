@@ -38,10 +38,6 @@ public:
         long long aggregate; // value at prev. aggregate event
     };
 
-    // Logical parents/children
-    QVector<Event *> * parents;
-    QVector<Event *> * children;
-
     // Messages involved wiht this event
     QVector<Message *> * messages;
 

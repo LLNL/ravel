@@ -3,9 +3,7 @@
 
 Event::Event(unsigned long long _enter, unsigned long long _exit,
              int _function, int _process, int _step)
-    : parents(new QVector<Event *>()),
-      children(new QVector<Event *>()),
-      messages(new QVector<Message *>()),
+    : messages(new QVector<Message *>()),
       metrics(new QMap<QString, MetricPair *>()),
       caller(NULL),
       callees(new QVector<Event *>()),
@@ -33,9 +31,6 @@ Event::Event(unsigned long long _enter, unsigned long long _exit,
 
 Event::~Event()
 {
-    delete parents;
-    delete children;
-
     for (QVector<Message *>::Iterator itr = messages->begin();
          itr != messages->end(); ++itr)
     {
@@ -51,7 +46,8 @@ Event::~Event()
     }
     delete metrics;
 
-    delete callees;
+    if (callees)
+        delete callees;
 }
 
 bool Event::operator<(const Event &event)
