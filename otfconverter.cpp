@@ -59,6 +59,13 @@ Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
 
     delete trace->functionGroups;
     trace->functionGroups = rawtrace->functionGroups;
+    trace->collectives = rawtrace->collectives;
+    trace->collectiveMap = rawtrace->collectiveMap;
+
+    // Not sure we need the communicators yet but it would be nice for
+    // extra user information later
+    trace->communicators = rawtrace->communicators;
+    trace->collective_definitions = rawtrace->collective_definitions;
 
     // Find the MPI Group key
     for (QMap<int, QString>::Iterator fxnGroup = trace->functionGroups->begin();
@@ -162,9 +169,9 @@ void OTFConverter::matchEvents()
                     ((*(trace->mpi_events))[e->process])->prepend(e);
                     if (rawtrace->collectiveMap->at((*evt)->process)->contains((*evt)->time))
                     {
-                        e->collective
-                                = (*(rawtrace->collectiveMap->at((*evt)->process)))[(*evt)->time];
-
+                        CollectiveRecord * cr = (*(rawtrace->collectiveMap->at((*evt)->process)))[(*evt)->time];
+                        e->collective = cr;
+                        cr->events->append(e);
                     }
                 }
 

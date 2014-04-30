@@ -478,7 +478,7 @@ int OTFImporter::handleDefProcessGroup(void * userData, uint32_t stream,
     Q_UNUSED(stream);
 
     QString qname(name);
-    if (qname.contains("MPI_COMM_SELF"))
+    if (qname.contains("MPI_COMM_SELF")) // Probably won't use this
         return 0;
 
     Communicator * c = new Communicator(procGroup, qname);
@@ -548,6 +548,7 @@ int OTFImporter::handleBeginCollectiveOperation(void * userData, uint64_t time,
     CollectiveRecord * cr = (*(((OTFImporter *) userData)->collectives))[matchingId];
 
     // Map process/time to the collective record
+    time = convertTime(userData, time);
     (*(*(((OTFImporter *) userData)->collectiveMap))[process - 1])[time] = cr;
 
     return 0;

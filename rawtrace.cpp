@@ -45,13 +45,4 @@ RawTrace::~RawTrace()
         *eitr = NULL;
     }
     delete messages;
-
-    for (QVector<QMap<unsigned long long, CollectiveRecord *> *>::Iterator eitr
-         = collectiveMap->begin();
-         eitr != collectiveMap->end(); ++eitr)
-    {
-        delete *eitr;
-        *eitr = NULL;
-    }
-    delete collectiveMap;
 }

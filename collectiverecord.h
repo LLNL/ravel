@@ -16,6 +16,7 @@ public:
     unsigned int root;
     unsigned int collective;
     unsigned int communicator;
+    bool mark;
 
     // Map from process to enter/leave times
     //QMap<int, std::pair<unsigned long long, unsigned long long> > * times;

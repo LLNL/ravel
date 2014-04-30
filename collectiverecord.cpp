@@ -8,6 +8,7 @@ CollectiveRecord::CollectiveRecord(unsigned long long _matching,
       root(_root),
       collective(_collective),
       communicator(_communicator),
+      mark(false),
       events(new QList<Event *>())/*,
       times(new QMap<int,
             std::pair<unsigned long long int, unsigned long long int> >())*/

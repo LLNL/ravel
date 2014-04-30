@@ -48,6 +48,8 @@ Event::~Event()
 
     if (callees)
         delete callees;
+    if (last_recvs)
+        delete last_recvs;
 }
 
 bool Event::operator<(const Event &event)

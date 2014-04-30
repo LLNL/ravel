@@ -11,7 +11,6 @@ class ExchangeGnome : public Gnome
 {
 public:
     ExchangeGnome();
-    ~ExchangeGnome();
 
     bool detectGnome(Partition * part);
     Gnome * create();

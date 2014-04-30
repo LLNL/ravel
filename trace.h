@@ -6,6 +6,8 @@
 #include "rpartition.h"
 #include "otfimportoptions.h"
 #include "gnome.h"
+#include "communicator.h"
+#include "otfcollective.h"
 #include <QMap>
 #include <QVector>
 #include <QStack>
@@ -39,6 +41,13 @@ public:
     // Below set by OTFConverter
     QMap<int, QString> * functionGroups;
     QMap<int, Function *> * functions;
+
+    QMap<int, Communicator *> * communicators;
+    QMap<int, OTFCollective *> * collective_definitions;
+
+    QMap<unsigned long long, CollectiveRecord *> * collectives;
+    QVector<QMap<unsigned long long, CollectiveRecord *> *> * collectiveMap;
+
     QVector<QVector<Event *> *> * events;
     QVector<QVector<Event *> *> * roots; // Roots of call trees per process
 
@@ -90,6 +99,7 @@ private:
     void partitionByPhase();
     void initializePartitions();
     void initializePartitionsWaitall();
+    void mergeCollectives();
     void mergeForMessages();
     void mergeForMessagesHelper(Partition * part, QSet<Partition *> * to_merge,
                                 QQueue<Partition *> * to_process);

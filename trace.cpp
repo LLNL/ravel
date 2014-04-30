@@ -22,6 +22,10 @@ Trace::Trace(int np)
       options(NULL),
       functionGroups(new QMap<int, QString>()),
       functions(new QMap<int, Function *>()),
+      communicators(NULL),
+      collective_definitions(NULL),
+      collectives(NULL),
+      collectiveMap(NULL),
       events(new QVector<QVector<Event *> *>(np)),
       roots(new QVector<QVector<Event *> *>(np)),
       mpi_events(NULL),
@@ -57,7 +61,7 @@ Trace::~Trace()
     for (QList<Partition *>::Iterator itr = partitions->begin();
          itr != partitions->end(); ++itr)
     {
-        //(*itr)->deleteEvents();
+        //(*itr)->deleteEvents(); // This conflicts with the next deletion
         delete *itr;
         *itr = NULL;
     }
@@ -93,6 +97,32 @@ Trace::~Trace()
         *gnome = NULL;
     }
     delete gnomes;
+
+    for (QMap<int, Communicator *>::Iterator comm = communicators->begin();
+         comm != communicators->end(); ++comm)
+    {
+        delete *comm;
+        *comm = NULL;
+    }
+    delete communicators;
+
+    for (QMap<int, OTFCollective *>::Iterator cdef = collective_definitions->begin();
+         cdef != collective_definitions->end(); ++cdef)
+    {
+        delete *cdef;
+        *cdef = NULL;
+    }
+    delete collective_definitions;
+
+    for (QMap<unsigned long long, CollectiveRecord *>::Iterator coll = collectives->begin();
+         coll != collectives->end(); ++coll)
+    {
+        delete *coll;
+        *coll = NULL;
+    }
+    delete collectives;
+
+    delete collectiveMap;
 }
 
 void Trace::printStats()
@@ -143,6 +173,9 @@ void Trace::preprocess(OTFImportOptions * _options)
     std::cout << std::endl;
 }
 
+// Check every gnome in our set for matching and set which gnome as a metric
+// There is probably a more efficient way to do this but it can be
+// easily parallelized by partition
 void Trace::gnomify()
 {
     QElapsedTimer traceTimer;
@@ -205,6 +238,7 @@ void Trace::setGnomeMetric(Partition * part, int gnome_index)
     }
 }
 
+// For debugging, so we know what partition we're in
 void Trace::addPartitionMetric()
 {
     metrics->append("Partition");
@@ -232,9 +266,7 @@ void Trace::partition()
     QElapsedTimer traceTimer;
     qint64 traceElapsed;
 
-
-
-    chainCommEvents(); // Set comm_prev/comm_next
+    chainCommEvents(); // Set comm_prev/comm_next and cc_prev/cc_next
 
     partitions = new QList<Partition *>();
     dag_entries = new QList<Partition *>();
@@ -244,12 +276,16 @@ void Trace::partition()
     if (!options.partitionByFunction)
     {
         traceTimer.start();
-          // Partition by Process w or w/o Waitall
+        // Partition by Process w or w/o Waitall
         std::cout << "Initializing partitios..." << std::endl;
         if (options.waitallMerge)
             initializePartitionsWaitall();
         else
             initializePartitions();
+
+        // Merge collectives should go here
+        std::cout << "Merging collectives..." << std::endl;
+        mergeCollectives();
 
         traceElapsed = traceTimer.nsecsElapsed();
         std::cout << "Partition initialization: ";
@@ -258,8 +294,6 @@ void Trace::partition()
 
         traceTimer.start();
           // Merge communication
-        //set_partition_dag();
-        //output_graph("/home/kate/pre_msgpartition.dot");
         std::cout << "Merging for messages..." << std::endl;
         mergeForMessages();
         traceElapsed = traceTimer.nsecsElapsed();
@@ -267,25 +301,8 @@ void Trace::partition()
         gu_printTime(traceElapsed);
         std::cout << std::endl;
 
-        /*
-        for (QList<Partition *>::Iterator part = partitions->begin(); part != partitions->end(); ++part)
-        {
-            std::cout << "New Partition:" << std::endl;
-            for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list)
-            {
-                std::cout << "  evt process:" << event_list.key() << std::endl;
-                for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt)
-                {
-                    std::cout << "    evt time: " << (*evt)->enter << " - " << (*evt)->exit << std::endl;
-                }
-            }
-        }*/
-
           // Tarjan
         std::cout << "Merging cycles..." << std::endl;
-        //set_partition_dag();
-        //output_graph("/home/kate/pre_cyclepartition.dot");
-        //output_graph("/home/kate/pre_cyclepartitionparent.dot", true);
         traceTimer.start();
         mergeCycles();
         traceElapsed = traceTimer.nsecsElapsed();
@@ -309,17 +326,13 @@ void Trace::partition()
     }
 
     // Partition - given
-      // Form partitions given in some way -- need to write options for this [ later ]
+    // Form partitions given in some way -- need to write options for this [ later ]
     else
     {
         std::cout << "Partitioning by phase..." << std::endl;
         partitionByPhase();
         set_partition_dag();
     }
-
-    //std::cout << "Setting partition dag for the first time..." << std::endl;
-    //set_partition_dag();
-    //output_graph("/Users/kate/post_partition.dot");
 }
 
 void Trace::set_global_steps()
@@ -405,6 +418,8 @@ void Trace::set_global_steps()
     delete current_leap;
 }
 
+// This actually calculates differential metric_name based on existing
+// metric base_name (e.g. D. Lateness and Lateness)
 void Trace::calculate_differential_lateness(QString metric_name,
                                             QString base_name)
 {
@@ -449,6 +464,7 @@ void Trace::calculate_differential_lateness(QString metric_name,
 
 }
 
+// Calculates lateness per partition rather than global step
 void Trace::calculate_partition_lateness()
 {
 
@@ -504,6 +520,7 @@ void Trace::calculate_partition_lateness()
 
 }
 
+// Calculates lateness per global step
 void Trace::calculate_lateness()
 {
     metrics->append("Lateness");
@@ -618,6 +635,7 @@ void Trace::calculate_lateness()
     delete active_partitions;
 }
 
+// Iterates through all partitions and sets the steps
 void Trace::assignSteps()
 {
     // Step
@@ -690,7 +708,7 @@ void Trace::chainCommEvents()
         for (QList<Event *>::Iterator evt = (*event_list)->begin();
              evt != (*event_list)->end(); ++evt)
         {
-            if ((*evt)->messages->size() > 0)
+            if ((*evt)->messages->size() > 0 || (*evt)->collective)
             {
                 (*evt)->comm_next = next;
                 (*evt)->cc_next = ccnext;
@@ -700,7 +718,8 @@ void Trace::chainCommEvents()
                     ccnext->cc_prev = (*evt);
                 next = (*evt);
                 ccnext = (*evt);
-            } else if (collectives_string.contains(functions->value((*evt)->function)->name))
+            }
+            else if (collectives_string.contains(functions->value((*evt)->function)->name))
             {
                 (*evt)->cc_next = ccnext;
                 if (ccnext)
@@ -711,6 +730,8 @@ void Trace::chainCommEvents()
     }
 }
 
+// This is the most difficult to understand part of the algorithm and the code.
+// At least that's consistent!
 void Trace::mergeByLeap()
 {
     int leap = 0;
@@ -1275,7 +1296,8 @@ void Trace::mergeGlobalSteps()
 
 // Merges partitions that are connected by a message
 // We go through all send events and merge them with all recvs
-// connected to the event (there should only be 1)
+// connected to the event (there should only be 1) but in the
+// ISend future...
 void Trace::mergeForMessagesHelper(Partition * part,
                                    QSet<Partition *> * to_merge,
                                    QQueue<Partition *> * to_process)
@@ -1287,17 +1309,36 @@ void Trace::mergeForMessagesHelper(Partition * part,
         for (QList<Event *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
         {
-            for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
-                 msg != (*evt)->messages->end(); ++msg)
+            // If Event is collective, merge the collective
+            if ((*evt)->collective && !(*evt)->collective->mark)
             {
-                Partition * rpart = (*msg)->receiver->partition;
-                Partition * spart = (*msg)->sender->partition;
-                to_merge->insert(rpart);
-                to_merge->insert(spart);
-                if (!rpart->mark && !to_process->contains(rpart))
-                    to_process->enqueue(rpart);
-                if (!spart->mark && !to_process->contains(spart))
-                    to_process->enqueue(spart);
+                for (QList<Event *>::Iterator ev2
+                     = (*evt)->collective->events->begin();
+                     ev2 != (*evt)->collective->events->end(); ++ev2)
+                {
+                    to_merge->insert((*ev2)->partition);
+                    if (!(*ev2)->partition->mark
+                            && !to_process->contains((*ev2)->partition))
+                        to_process->enqueue((*ev2)->partition);
+                }
+
+                // Mark so we don't have to do the above again
+                (*evt)->collective->mark = true;
+            }
+            else // We have messages, merge the messages
+            {
+                for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
+                     msg != (*evt)->messages->end(); ++msg)
+                {
+                    Partition * rpart = (*msg)->receiver->partition;
+                    Partition * spart = (*msg)->sender->partition;
+                    to_merge->insert(rpart);
+                    to_merge->insert(spart);
+                    if (!rpart->mark && !to_process->contains(rpart))
+                        to_process->enqueue(rpart);
+                    if (!spart->mark && !to_process->contains(spart))
+                        to_process->enqueue(spart);
+                }
             }
         }
 
@@ -1354,6 +1395,33 @@ void Trace::mergeForMessages()
     mergePartitions(components);
     delete to_merge;
     delete to_process;
+}
+
+// merge events of the same collective into a single partition
+// Assumption: this partition will be one event wide. I don't think I use
+// this assumption explicitly yet though.
+void Trace::mergeCollectives()
+{
+    return;
+    for (QMap<unsigned long long, CollectiveRecord *>::Iterator cr
+         = collectives->begin();
+         cr != collectives->end(); ++cr)
+    {
+        // Create new partition for this collective
+
+        for (QList<Event *>::Iterator evt = (*cr)->events->begin();
+             evt != (*cr)->events->end(); ++evt)
+        {
+            // Merge in partition of this event
+
+            // Update parent/child relationships for event
+
+            // Set up this event's partition for deletion
+        }
+
+        // Delete old partitions
+    }
+
 }
 
 // Looping section of Tarjan algorithm
@@ -1704,6 +1772,7 @@ void Trace::set_partition_dag()
     }
 }
 
+// In other words, assign to each partitions its leap value
 void Trace::set_dag_steps()
 {
     // Clear current dag steps
@@ -1772,13 +1841,18 @@ void Trace::set_dag_steps()
     delete current_level;
 }
 
-// Note, phases were set on importing from OTF
+// Note, phases were set on importing from OTF so here we just have to
+// group by phase but alter the phases so that ordering constraints
+// are still met.
 void Trace::partitionByPhase()
 {
     QMap<int, Partition *> * partition_dict = new QMap<int, Partition *>();
     for (QVector<QList<Event *> *>::Iterator event_list = mpi_events->begin();
          event_list != mpi_events->end(); ++event_list)
     {
+        // The mpi_events list was set in reverse chronological order while
+        // the phase consistency check we do goes in forward chronological
+        // order, so we iterate through the list backwards.
         for (int i = (*event_list)->size() - 1; i >= 0; i--)
         {
             Event * evt = (*event_list)->at(i);
@@ -1843,7 +1917,7 @@ void Trace::initializePartitions()
              evt != (*event_list)->end(); ++evt)
         {
             // Every event with messages becomes its own partition
-            if ((*evt)->messages->size() > 0)
+            if ((*evt)->messages->size() > 0 || (*evt)->collective)
             {
                 Partition * p = new Partition();
                 p->addEvent(*evt);
@@ -1904,7 +1978,7 @@ void Trace::initializePartitionsWaitall()
             {
                 // Is this an event that can stop aggregating?
                 // 1. Due to a recv (including waitall recv)
-                if ((*evt)->messages->size() > 0)
+                if ((*evt)->messages->size() > 0 || (*evt)->collective)
                 {
                     bool recv_found = false;
                     for (QVector<Message *>::Iterator msg
@@ -1989,7 +2063,7 @@ void Trace::initializePartitionsWaitall()
                 }
 
                 // Is this an event that should be added?
-                if ((*evt)->messages->size() > 0)
+                if ((*evt)->messages->size() > 0 || (*evt)->collective)
                 {
 
                     if (aggregating)
@@ -2028,6 +2102,7 @@ void Trace::initializePartitionsWaitall()
     } // End event loop for one process
 }
 
+// In progress: will be used for extra information on aggregate events
 QList<Trace::FunctionPair> Trace::getAggregateFunctions(Event * evt)
 {
     unsigned long long int stoptime = evt->enter;
@@ -2083,6 +2158,7 @@ long long int Trace::getAggregateFunctionRecurse(Event * evt,
     return overlap;
 }
 
+// use GraphViz to see partition graph for debugging
 void Trace::output_graph(QString filename, bool byparent)
 {
     std::ofstream graph;
@@ -2136,5 +2212,4 @@ void Trace::output_graph(QString filename, bool byparent)
     graph << "}";
 
     graph.close();
-    //std::cout << "Finished graph" << std::endl;
 }

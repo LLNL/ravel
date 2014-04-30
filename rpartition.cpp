@@ -222,7 +222,7 @@ void Partition::step()
     // Setup strides
     int stride;
     Event * last_send;
-    QList<Event *> * last_recvs;
+    QList<Event *> * last_recvs = NULL;
     for (QMap<int, QList<Event *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
     {
@@ -273,6 +273,7 @@ void Partition::step()
         // Leftover last_recvs are free
         if (last_recvs->size() > 0)
             free_recvs->append(last_recvs[0]);
+        delete last_recvs; // Leftover
     }
 
     // In message order, do the step_recvs
@@ -298,7 +299,6 @@ void Partition::step()
 
     delete message_list;
     delete free_recvs;
-    delete last_recvs;
 }
 
 // In the message, make sure receive happens after send. If not,

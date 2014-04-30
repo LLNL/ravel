@@ -14,11 +14,6 @@ ExchangeGnome::ExchangeGnome()
 {
 }
 
-ExchangeGnome::~ExchangeGnome()
-{
-
-}
-
 // Check that the send-to processes and receive-from processes are the same.
 // Note right now this doesn't check number, only identity, so it could false
 // positive if you send-to a process twice but only receive from it once.
