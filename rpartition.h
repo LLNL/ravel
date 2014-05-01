@@ -70,6 +70,8 @@ public:
     QString gvid;
 
     // For gnome and clustering
+    // Cluster_vectors simplify the coding of distance calculations
+    // between processes but don't aid performance so may be wasteful
     Gnome * gnome;
     int gnome_type;
     QVector<ClusterProcess *> * cluster_processes;
@@ -79,6 +81,9 @@ public:
 
 private:
     // Stepping logic -- probably want to rewrite
+    void set_stride_dag(QList<Event *> * stride_events);
+    void find_stride_child(Event * evt);
+    void old_step();
     void step_receive(Message * msg);
     void finalize_steps();
     void restep();

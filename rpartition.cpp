@@ -212,7 +212,7 @@ void Partition::calculate_dag_leap()
 
 }
 
-void Partition::new_step()
+void Partition::step()
 {
     // Build send+collective graph
     // Send dependencies go right through their receives until they find a send
@@ -278,6 +278,7 @@ void Partition::new_step()
     delete stride_events;
 
     //. Find recv stride boundaries based on dependencies
+    int max_stride = 0;
     for (QList<Event *>::Iterator recv = recv_events->begin();
          recv != recv_events->end(); ++recv)
     {
@@ -288,14 +289,82 @@ void Partition::new_step()
              msg != (*recv)->messages->end(); ++msg)
         {
             if ((*msg)->sender->stride > (*recv)->last_send->stride)
-                (*recv)->last_send = (*msg)->sender();
+                (*recv)->last_send = (*msg)->sender;
+        }
+        if ((*recv)->last_send->stride > max_stride)
+            max_stride = (*recv)->last_send->stride;
+    }
+
+    // Inflate receives (need not check them for happened-before as their
+    // dependencies are built into the stride graph).
+    // This may be somewhat similar to restep/finalize... but slightly
+    // different so look into that.
+    max_step = 0;
+    int process;
+    Event * evt;
+    QList<int> processes = events->keys();
+    QMap<int, Event*> next_step = QMap<int, Event*>();
+    for (int i = 0; i < processes.size(); i++)
+    {
+        next_step[processes[i]] = (*events)[processes[i]]->at(0);
+    }
+    for (int stride = 0; stride <= max_stride; stride++)
+    {
+        for (int i = 0; i < processes.size(); i++)
+        {
+            process = processes[i];
+            evt = next_step[process];
+
+            // We want recvs that can be set at this stride and
+            // are blocking the current send strides from
+            // being sent. Not
+            while (evt->stride < 0 && evt->last_send->stride < stride
+                   && evt->next_send->stride == stride)
+            {
+                evt->step = 1 + evt->comm_prev->step;
+                if (evt->step > max_step)
+                    max_step = evt->step;
+                evt = evt->comm_next;
+            }
+
+            // Save where we are
+            next_step[process] = evt;
+        }
+
+        // Now we know that the stride should be at max_step + 1
+        // So set all of those
+        for (int i = 0; i < processes.size(); i++)
+        {
+            process = processes[i];
+            evt = next_step[process];
+
+            if (evt->stride == stride)
+            {
+                evt->step = max_step + 1;
+                next_step[process] = evt->comm_next;
+            }
         }
     }
 
-    // Inflate receives (need not check them, their dependencies
-    // are built into the stride graph)
-    // This may be somewhat similar to restep/finalize... but slightly
-    // different so look into that.
+    // Now handle all of the left over recvs
+    for (int i = 0; i < processes.size(); i++)
+    {
+        process = processes[i];
+        evt = next_step[process];
+
+        // We only want things in the current partition
+        while (evt->partition == this)
+        {
+            evt->step = 1 + evt->comm_prev->step;
+            if (evt->step > max_step)
+                max_step = evt->step;
+            evt = evt->comm_next;
+        }
+    }
+
+    // Now that we have finished, we should also have a correct max_step
+    // for this process.
+
 }
 
 void Partition::set_stride_dag(QList<Event *> * stride_events)
@@ -303,8 +372,8 @@ void Partition::set_stride_dag(QList<Event *> * stride_events)
     QSet<Event *> * current_events = new QSet<Event*>();
     QSet<Event *> * next_events = new QSet<Event *>();
     // Find first stride
-    for (QList<Event *>::Iterator evt = stride_events.begin();
-         evt != stride_events.end(); ++evt)
+    for (QList<Event *>::Iterator evt = stride_events->begin();
+         evt != stride_events->end(); ++evt)
     {
         if ((*evt)->stride_parents->isEmpty())
         {
@@ -319,7 +388,7 @@ void Partition::set_stride_dag(QList<Event *> * stride_events)
 
     bool parentFlag;
     int stride;
-    while (!current_events.isEmpty())
+    while (!current_events->isEmpty())
     {
         for (QSet<Event *>::Iterator evt = current_events->begin();
              evt != current_events->end(); ++evt)
@@ -399,7 +468,7 @@ void Partition::find_stride_child(Event * evt)
 
 // Figure out step assignments for everything in partition
 // TODO: Rewrite this so it is cleaner and closer to the paper
-void Partition::step()
+void Partition::old_step()
 {
     free_recvs = new QList<Event *>();
     QList<Message *> * message_list = new QList<Message *>();

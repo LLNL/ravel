@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include <QMap>
+#include <QSet>
 #include "message.h"
 #include "collectiverecord.h"
 
