@@ -122,7 +122,7 @@
                <item>
                 <widget class="QCheckBox" name="skipCheckbox">
                  <property name="text">
-                  <string>skip Leaps that cannot be mered</string>
+                  <string>skip Leaps that cannot be merged</string>
                  </property>
                 </widget>
                </item>

@@ -18,6 +18,9 @@ Event::Event(unsigned long long _enter, unsigned long long _exit,
       next_send(NULL),
       last_recvs(NULL),
       last_step(-1),
+      stride_parents(QSet<Event *>()),
+      stride_children(QSet<Event *>()),
+      stride(-1),
       enter(_enter),
       exit(_exit),
       function(_function),
@@ -50,6 +53,10 @@ Event::~Event()
         delete callees;
     if (last_recvs)
         delete last_recvs;
+    if (stride_children)
+        delete stride_children;
+    if (stride_parents)
+        delete stride_parents;
 }
 
 bool Event::operator<(const Event &event)

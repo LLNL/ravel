@@ -212,6 +212,191 @@ void Partition::calculate_dag_leap()
 
 }
 
+void Partition::new_step()
+{
+    // Build send+collective graph
+    // Send dependencies go right through their receives until they find a send
+    // Collectives are dependent to the rest of the collective set
+    // We use stride_parents & stride_children to create this graph
+    // We set up by looking for children only and having the parents set
+    // the children links
+    QList<Event *> * stride_events = new QList<Event *>();
+    QList<Event *> * recv_events = new QList<Event *>();
+    for (QMap<int, QList<Event *> *>::Iterator event_list = events->begin();
+         event_list != events->end(); ++event_list)
+    {
+        for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+             evt != (event_list.value())->end(); ++evt)
+        {
+            if ((*evt)->collective || ((*evt)->messages->size() > 0
+                     && (*evt)->messages->at(0)->sender == (*evt)))
+            {
+                stride_events->append(*evt);
+
+                // The next one in the process is a stride child
+                find_stride_child((*evt)->comm_next);
+
+                // Follow messages to their receives and then along
+                // the new process to find more stride children
+                for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
+                     msg != (*evt)->messages->end(); ++msg)
+                {
+                    if ((*msg)->sender == *evt)
+                    {
+                        find_stride_child((*msg)->receiver);
+                    }
+                }
+            }
+            else
+            {
+                recv_events->append(*evt);
+                (*evt)->last_send = (*evt)->comm_prev;
+                // Set last_send based on process
+                while (!((*evt)->last_send->collective
+                         || ((*evt)->last_send->messages->size() > 0
+                         && (*evt)->last_send->messages->at(0)->sender
+                             == (*evt)->last_send)))
+                {
+                    (*evt)->last_send = (*evt)->last_send->comm_prev;
+                }
+
+                (*evt)->next_send = (*evt)->comm_next;
+                // Set next_send based on process
+                while (!((*evt)->next_send->collective
+                         || ((*evt)->next_send->messages->size() > 0
+                         && (*evt)->next_send->messages->at(0)->sender
+                             == (*evt)->next_send)))
+                {
+                    (*evt)->next_send = (*evt)->next_send->comm_next;
+                }
+            }
+        }
+    }
+
+    // Set strides
+    set_stride_dag(stride_events);
+    delete stride_events;
+
+    //. Find recv stride boundaries based on dependencies
+    for (QList<Event *>::Iterator recv = recv_events->begin();
+         recv != recv_events->end(); ++recv)
+    {
+        // Iterate through sends of this recv and check what
+        // their strides are to update last_send and next_send
+        // to be the tightest boundaries.
+        for (QVector<Message *>::Iterator msg = (*recv)->messages->begin();
+             msg != (*recv)->messages->end(); ++msg)
+        {
+            if ((*msg)->sender->stride > (*recv)->last_send->stride)
+                (*recv)->last_send = (*msg)->sender();
+        }
+    }
+
+    // Inflate receives (need not check them, their dependencies
+    // are built into the stride graph)
+    // This may be somewhat similar to restep/finalize... but slightly
+    // different so look into that.
+}
+
+void Partition::set_stride_dag(QList<Event *> * stride_events)
+{
+    QSet<Event *> * current_events = new QSet<Event*>();
+    QSet<Event *> * next_events = new QSet<Event *>();
+    // Find first stride
+    for (QList<Event *>::Iterator evt = stride_events.begin();
+         evt != stride_events.end(); ++evt)
+    {
+        if ((*evt)->stride_parents->isEmpty())
+        {
+            (*evt)->stride = 0;
+            for (QSet<Event *>::Iterator child = (*evt)->stride_children->begin();
+                 child != (*evt)->stride_children->end(); ++child)
+            {
+                current_events->insert(*child);
+            }
+        }
+    }
+
+    bool parentFlag;
+    int stride;
+    while (!current_events.isEmpty())
+    {
+        for (QSet<Event *>::Iterator evt = current_events->begin();
+             evt != current_events->end(); ++evt)
+        {
+            parentFlag = true;
+            stride = -1;
+            for (QSet<Event *>::Iterator parent = (*evt)->stride_parents->begin();
+                 parent != (*evt)->stride_parents->end(); ++parent)
+            {
+                if ((*parent)->stride < 0)
+                {
+                    next_events->insert(*parent);
+                    parentFlag = false;
+                    break;
+                }
+                else
+                {
+                    stride = std::max(stride, (*parent)->stride);
+                }
+            }
+
+            if (!parentFlag)
+                continue;
+
+            (*evt)->stride = stride + 1; // 1 over the max parent
+
+            // Add children to next_events
+            for (QSet<Event *>::Iterator child = (*evt)->stride_children->begin();
+                 child != (*evt)->stride_children->end(); ++child)
+            {
+                if ((*child)->stride < 0)
+                    next_events->insert(*child);
+            }
+        }
+
+        delete current_events;
+        current_events = next_events;
+        next_events = new QSet<Event *>();
+    }
+
+    delete current_events;
+    delete next_events;
+}
+
+// Helper function for building stride graph, finds the next send
+// or collective event along a process from the parameter evt
+void Partition::find_stride_child(Event * evt)
+{
+    Event * process_next = evt->comm_next;
+    while (!(process_next->collective
+             || (process_next->messages->size() > 0
+                 && process_next->messages->at(0)->sender == process_next)))
+    {
+        process_next = process_next->comm_next;
+    }
+
+    if (process_next->partition = this)
+    {
+        // If this a collective, add to everyone in the collective
+        if (process_next->collective)
+        {
+            for (QList<Event *>::Iterator ev
+                 = process_next->collective->events->begin();
+                 ev != process_next->collective->events->end(); ++ev)
+            {
+                evt->stride_children->insert(*ev);
+                (*ev)->stride_parents->insert(evt);
+            }
+        }
+        else
+        {
+            evt->stride_children->insert(process_next);
+            process_next->stride_parents->insert(evt);
+        }
+    }
+}
+
 // Figure out step assignments for everything in partition
 // TODO: Rewrite this so it is cleaner and closer to the paper
 void Partition::step()

@@ -60,6 +60,9 @@ public:
     Event * next_send;
     QList<Event *> * last_recvs;
     int last_step;
+    QSet<Event *> * stride_parents;
+    QSet<Event *> * stride_children;
+    int stride;
 
     unsigned long long enter;
     unsigned long long exit;
