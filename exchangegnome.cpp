@@ -31,6 +31,8 @@ bool ExchangeGnome::detectGnome(Partition * part)
         for (QList<Event *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
         {
+            if ((*evt)->collective)
+                return false;
             for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
                  msg != (*evt)->messages->end(); ++msg)
             {

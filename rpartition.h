@@ -33,7 +33,6 @@ public:
     unsigned long long int distance(Partition * other);
 
      // For leap merge - which children can we merge to
-    void setMergables(bool considerCollectives);
     void calculate_dag_leap();
     QString generate_process_string(); // For debugging
 
@@ -56,8 +55,6 @@ public:
     QSet<Partition *> * children;
     QSet<Partition *> * old_parents;
     QSet<Partition *> * old_children;
-    QSet<Partition *> * mergable_parents;
-    QSet<Partition *> * mergable_children;
     Partition * new_partition;
     int tindex;
     int lowlink;

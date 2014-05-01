@@ -12,8 +12,6 @@ Partition::Partition()
       children(new QSet<Partition *>()),
       old_parents(new QSet<Partition *>()),
       old_children(new QSet<Partition *>()),
-      mergable_parents(new QSet<Partition *>()),
-      mergable_children(new QSet<Partition *>()),
       new_partition(NULL),
       tindex(-1),
       lowlink(-1),
@@ -146,59 +144,6 @@ unsigned long long int Partition::distance(Partition * other)
     return dist;
 }
 
-// Creates sets of mergable parents and children. If we don't consider
-// collectives, this is the same as the parents and children. If we do
-// consider them, it is a subset based on whether we are divided by a
-// collective.
-void Partition::setMergables(bool considerCollectives)
-{
-    mergable_parents->clear();
-    mergable_children->clear();
-    if (considerCollectives)
-    {
-        bool mergable;
-        for (QSet<Partition *>::Iterator parent = parents->begin();
-             parent != parents->end(); ++parent)
-        {
-            mergable = true;
-            for (QMap<int, QList<Event *> *>::Iterator event_list
-                 = (*parent)->events->begin();
-                 event_list != (*parent)->events->end(); ++event_list)
-            {
-                if ((event_list.value())->last()->comm_next
-                    != (event_list.value())->last()->cc_next)
-                {
-                    mergable = false;
-                }
-            }
-            if (mergable)
-                mergable_parents->insert(*parent);
-        }
-
-        for (QSet<Partition *>::Iterator child = children->begin();
-             child != children->end(); ++child)
-        {
-            mergable = true;
-            for (QMap<int, QList<Event *> *>::Iterator event_list
-                 = (*child)->events->begin();
-                 event_list != (*child)->events->end(); ++event_list)
-            {
-                if ((event_list.value())->first()->comm_prev
-                    != (event_list.value())->first()->cc_prev)
-                {
-                    mergable = false;
-                }
-            }
-            if (mergable)
-                mergable_children->insert(*child);
-        }
-    }
-    else
-    {
-        mergable_parents->unite(*parents);
-        mergable_children->unite(*children);
-    }
-}
 
 // Requires parent's dag leaps to be up to date
 void Partition::calculate_dag_leap()

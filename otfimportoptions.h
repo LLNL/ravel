@@ -15,7 +15,6 @@ public:
     bool waitallMerge; // use waitall heuristic
     bool leapMerge; // merge to complete leaps
         bool leapSkip; // but skip if you can't gain processes
-        bool leapCollective; // but respect collectives -- do not merge through
     bool partitionByFunction; // partitions based on functions
     bool globalMerge; // merge across steps
     bool cluster; // clustering on gnomes should be done
