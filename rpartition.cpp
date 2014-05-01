@@ -234,7 +234,7 @@ void Partition::step()
                 stride_events->append(*evt);
 
                 // The next one in the process is a stride child
-                find_stride_child((*evt)->comm_next);
+                find_stride_child(*evt, *evt);
 
                 // Follow messages to their receives and then along
                 // the new process to find more stride children
@@ -243,16 +243,17 @@ void Partition::step()
                 {
                     if ((*msg)->sender == *evt)
                     {
-                        find_stride_child((*msg)->receiver);
+                        find_stride_child(*evt, (*msg)->receiver);
                     }
                 }
             }
-            else
+            else // Setup receives
             {
                 recv_events->append(*evt);
-                (*evt)->last_send = (*evt)->comm_prev;
+                if ((*evt)->comm_prev && (*evt)->comm_prev->partition == this)
+                    (*evt)->last_send = (*evt)->comm_prev;
                 // Set last_send based on process
-                while (!((*evt)->last_send->collective
+                while ((*evt)->last_send && !((*evt)->last_send->collective
                          || ((*evt)->last_send->messages->size() > 0
                          && (*evt)->last_send->messages->at(0)->sender
                              == (*evt)->last_send)))
@@ -262,7 +263,7 @@ void Partition::step()
 
                 (*evt)->next_send = (*evt)->comm_next;
                 // Set next_send based on process
-                while (!((*evt)->next_send->collective
+                while ((*evt)->next_send && !((*evt)->next_send->collective
                          || ((*evt)->next_send->messages->size() > 0
                          && (*evt)->next_send->messages->at(0)->sender
                              == (*evt)->next_send)))
@@ -288,62 +289,105 @@ void Partition::step()
         for (QVector<Message *>::Iterator msg = (*recv)->messages->begin();
              msg != (*recv)->messages->end(); ++msg)
         {
-            if ((*msg)->sender->stride > (*recv)->last_send->stride)
+            if (!(*recv)->last_send
+                    || (*msg)->sender->stride > (*recv)->last_send->stride)
+            {
                 (*recv)->last_send = (*msg)->sender;
+            }
         }
         if ((*recv)->last_send->stride > max_stride)
             max_stride = (*recv)->last_send->stride;
     }
+    delete recv_events;
 
     // Inflate receives (need not check them for happened-before as their
     // dependencies are built into the stride graph).
     // This may be somewhat similar to restep/finalize... but slightly
     // different so look into that.
-    max_step = 0;
+    max_step = -1;
     int process;
     Event * evt;
     QList<int> processes = events->keys();
     QMap<int, Event*> next_step = QMap<int, Event*>();
     for (int i = 0; i < processes.size(); i++)
     {
-        next_step[processes[i]] = (*events)[processes[i]]->at(0);
+        if ((*events)[processes[i]]->size() > 0)
+            next_step[processes[i]] = (*events)[processes[i]]->at(0);
+        else
+            next_step[processes[i]] = NULL;
     }
+
     for (int stride = 0; stride <= max_stride; stride++)
     {
+        // Step the sends that come before this stride
         for (int i = 0; i < processes.size(); i++)
         {
             process = processes[i];
             evt = next_step[process];
 
-            // We want recvs that can be set at this stride and
-            // are blocking the current send strides from
-            // being sent. Not
-            while (evt->stride < 0 && evt->last_send->stride < stride
-                   && evt->next_send->stride == stride)
+            if (evt)
+                std::cout << "Event is " << evt << " at " << evt->enter << std::endl;
+
+            // We want recvs that can be set at this stride and are blocking
+            // the current send strides from being sent. That means the
+            // last_send has a stride less than this one and
+            // if that the next_send exists and is this one (otherwise
+            // it wouldn't be blocking the step procedure)
+            // For recvs, last_send must exist
+            while (evt && evt->stride < 0
+                   && evt->last_send->stride < stride
+                   && evt->next_send && evt->next_send->stride == stride)
             {
-                evt->step = 1 + evt->comm_prev->step;
+                if (evt->comm_prev && evt->comm_prev->partition == this)
+                    // It has to go after its previous event but it also
+                    // has to go after any of its sends. The maximum
+                    // step of any of its sends will be in last_send.
+                    // (If last_send is its process-previous, then
+                    // it will be covered by comm_prev).
+                    evt->step = 1 + std::max(evt->comm_prev->step,
+                                              evt->last_send->step);
+                else
+                    evt->step = 1 + evt->last_send->step;
+
                 if (evt->step > max_step)
                     max_step = evt->step;
+
+                std::cout << "Advancing on receive" << std::endl;
                 evt = evt->comm_next;
             }
 
             // Save where we are
+            if (evt)
+                std::cout << "Saving " << evt << " at " << evt->enter << std::endl;
             next_step[process] = evt;
         }
 
         // Now we know that the stride should be at max_step + 1
         // So set all of those
+        bool increaseMax = false;
         for (int i = 0; i < processes.size(); i++)
         {
             process = processes[i];
             evt = next_step[process];
 
-            if (evt->stride == stride)
+            if (evt) {
+                std::cout << "Event stride is " << evt->stride << " and current stride is " << stride << std::endl;
+                std::cout << "Event is " << evt << " at " << evt->enter << std::endl;
+            }
+
+            if (evt && evt->stride == stride)
             {
                 evt->step = max_step + 1;
                 next_step[process] = evt->comm_next;
+                if (next_step[process])
+                    std::cout << "Advancing to " << next_step[process] << " at " << next_step[process]->enter << " with stride " << next_step[process]->stride << std::endl;
+                else
+                    std::cout << "Advancing to NULL" << std::endl;
+                increaseMax = true;
             }
         }
+        if (increaseMax)
+            max_step++;
     }
 
     // Now handle all of the left over recvs
@@ -353,9 +397,14 @@ void Partition::step()
         evt = next_step[process];
 
         // We only want things in the current partition
-        while (evt->partition == this)
+        while (evt && evt->partition == this)
         {
-            evt->step = 1 + evt->comm_prev->step;
+            if (evt->comm_prev && evt->comm_prev->partition == this)
+                evt->step = 1 + std::max(evt->comm_prev->step,
+                                          evt->last_send->step);
+            else
+                evt->step = 1 + evt->last_send->step;
+
             if (evt->step > max_step)
                 max_step = evt->step;
             evt = evt->comm_next;
@@ -435,33 +484,36 @@ void Partition::set_stride_dag(QList<Event *> * stride_events)
 
 // Helper function for building stride graph, finds the next send
 // or collective event along a process from the parameter evt
-void Partition::find_stride_child(Event * evt)
+void Partition::find_stride_child(Event *base, Event * evt)
 {
     Event * process_next = evt->comm_next;
-    while (!(process_next->collective
+
+    while (process_next && !(process_next->collective
              || (process_next->messages->size() > 0
                  && process_next->messages->at(0)->sender == process_next)))
     {
         process_next = process_next->comm_next;
     }
 
-    if (process_next->partition = this)
+    if (process_next && process_next->partition == this)
     {
         // If this a collective, add to everyone in the collective
+        // as a child. This will force the collective to be after
+        // anything that happens before any of the collectives.
         if (process_next->collective)
         {
             for (QList<Event *>::Iterator ev
                  = process_next->collective->events->begin();
                  ev != process_next->collective->events->end(); ++ev)
             {
-                evt->stride_children->insert(*ev);
-                (*ev)->stride_parents->insert(evt);
+                base->stride_children->insert(*ev);
+                (*ev)->stride_parents->insert(base);
             }
         }
         else
         {
-            evt->stride_children->insert(process_next);
-            process_next->stride_parents->insert(evt);
+            base->stride_children->insert(process_next);
+            process_next->stride_parents->insert(base);
         }
     }
 }
