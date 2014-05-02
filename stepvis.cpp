@@ -616,6 +616,7 @@ void StepVis::paintEvents(QPainter * painter)
     int position;
     bool complete, aggcomplete;
     QSet<Message *> drawMessages = QSet<Message *>();
+    QSet<CollectiveRecord *> drawCollectives = QSet<CollectiveRecord *>();
     painter->setPen(QPen(QColor(0, 0, 0)));
     Partition * part = NULL;
     int topStep = boundStep(startStep + stepSpan) + 1;
@@ -729,6 +730,8 @@ void StepVis::paintEvents(QPainter * painter)
                 {
                     drawMessages.insert((*msg));
                 }
+                if ((*evt)->collective)
+                    drawCollectives.insert((*evt)->collective);
 
                 // Draw aggregate events if necessary
                 if (options->showAggregateSteps) {
@@ -784,6 +787,7 @@ void StepVis::paintEvents(QPainter * painter)
     // for overlap purposes
     if (options->showMessages != VisOptions::NONE)
     {
+        // Draw messages
         if (processSpan <= 32)
             painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
         else
@@ -800,7 +804,7 @@ void StepVis::paintEvents(QPainter * painter)
             recv_event = (*msg)->receiver;
             position = proc_to_order[send_event->process];
             y = floor((position - startProcess) * blockheight) + 1;
-            if (options->showAggregateSteps)
+            if (options->showAggregateSteps) // Factor these calcs into own fxn!
                 x = floor((send_event->step - startStep) * blockwidth) + 1
                     + labelWidth;
             else
@@ -828,6 +832,59 @@ void StepVis::paintEvents(QPainter * painter)
             }
             drawLine(painter, &p1, &p2, effectiveHeight);
         }
+
+        // Draw collectives
+        painter->setPen(QPen(Qt::black, 1, Qt::DashLine));
+        painter->setBrush(QBrush(Qt::darkGray));
+        int prev_x, prev_y, ell_w, ell_h;
+        if (blockwidth / 5 > 0)
+            ell_w = blockwidth / 5;
+        else
+            ell_w = 3;
+        if (blockheight / 5 > 0)
+            ell_h = blockheight / 5;
+        else
+            ell_h = 3;
+        Event * coll_event;
+        for (QSet<CollectiveRecord *>::Iterator cr = drawCollectives.begin();
+             cr != drawCollectives.end(); ++cr)
+        {
+            coll_event = (*cr)->events->at(0);
+            position = proc_to_order[coll_event->process];
+            prev_y = floor((position - startProcess) * blockheight) + 1;
+            if (options->showAggregateSteps)
+                prev_x = floor((coll_event->step - startStep) * blockwidth) + 1
+                    + labelWidth;
+            else
+                prev_x = floor((coll_event->step - startStep) / 2 * blockwidth) + 1
+                    + labelWidth;
+            painter->drawEllipse(prev_x + w/2 - ell_w/2,
+                                 prev_y + h/2 - ell_h/2,
+                                 ell_w, ell_h);
+
+            for (int i = 1; i < (*cr)->events->size(); i++)
+            {
+                coll_event = (*cr)->events->at(i);
+                position = proc_to_order[coll_event->process];
+                y = floor((position - startProcess) * blockheight) + 1;
+                if (options->showAggregateSteps)
+                    x = floor((coll_event->step - startStep) * blockwidth) + 1
+                        + labelWidth;
+                else
+                    x = floor((coll_event->step - startStep) / 2 * blockwidth) + 1
+                        + labelWidth;
+                painter->drawEllipse(x + w/2 - ell_w/2, y + h/2 - ell_h/2,
+                                     ell_w, ell_h);
+            }
+
+            // Line goes through all of these values... this is going to be weird
+            // for overlapping collectives.
+            // May want to draw as arcs between each hop.
+            p1 = QPointF(prev_x + w/2.0, prev_y + h/2.0);
+            p2 = QPointF(x + w/2.0, y + h/2.0);
+            drawLine(painter, &p1, &p2, effectiveHeight);
+        }
+        painter->setBrush(QBrush());
     }
 }
 

@@ -83,6 +83,13 @@ Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
         (*(trace->mpi_events))[i] = new QList<Event *>();
     matchEvents();
 
+    // Sort all the collective records
+    for (QMap<unsigned long long, CollectiveRecord *>::Iterator cr
+         = trace->collectives->begin();
+         cr != trace->collectives->end(); ++cr)
+    {
+        qSort((*cr)->events->begin(), (*cr)->events->end(), eventProcessLessThan);
+    }
 
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "Event Matching: ";

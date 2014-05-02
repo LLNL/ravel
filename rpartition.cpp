@@ -173,16 +173,20 @@ void Partition::step()
         for (QList<Event *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
         {
+            std::cout << "Sorting event " << *evt;
             if ((*evt)->collective || ((*evt)->messages->size() > 0
                      && (*evt)->messages->at(0)->sender == (*evt)))
             {
+                std::cout << " as a stride." << std::endl;
                 stride_events->append(*evt);
 
                 // The next one in the process is a stride child
+                std::cout << "     has a process child: " << std::endl;
                 find_stride_child(*evt, *evt);
 
                 // Follow messages to their receives and then along
                 // the new process to find more stride children
+                std::cout << "     has msg children: " << std::endl;
                 for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
                      msg != (*evt)->messages->end(); ++msg)
                 {
@@ -194,7 +198,9 @@ void Partition::step()
             }
             else // Setup receives
             {
+                std::cout << " as a recv" << std::endl;
                 recv_events->append(*evt);
+                (*evt)->is_recv = true;
                 if ((*evt)->comm_prev && (*evt)->comm_prev->partition == this)
                     (*evt)->last_send = (*evt)->comm_prev;
                 // Set last_send based on process
@@ -270,8 +276,8 @@ void Partition::step()
             process = processes[i];
             evt = next_step[process];
 
-            if (evt)
-                std::cout << "Event is " << evt << " at " << evt->enter << std::endl;
+            //if (evt)
+            //    std::cout << "Event is " << evt << " at " << evt->enter << std::endl;
 
             // We want recvs that can be set at this stride and are blocking
             // the current send strides from being sent. That means the
@@ -297,13 +303,13 @@ void Partition::step()
                 if (evt->step > max_step)
                     max_step = evt->step;
 
-                std::cout << "Advancing on receive" << std::endl;
+                //std::cout << "Advancing on receive" << std::endl;
                 evt = evt->comm_next;
             }
 
             // Save where we are
-            if (evt)
-                std::cout << "Saving " << evt << " at " << evt->enter << std::endl;
+            //if (evt)
+            //    std::cout << "Saving " << evt << " at " << evt->enter << std::endl;
             next_step[process] = evt;
         }
 
@@ -315,19 +321,19 @@ void Partition::step()
             process = processes[i];
             evt = next_step[process];
 
-            if (evt) {
-                std::cout << "Event stride is " << evt->stride << " and current stride is " << stride << std::endl;
-                std::cout << "Event is " << evt << " at " << evt->enter << std::endl;
-            }
+            //if (evt) {
+            //    std::cout << "Event stride is " << evt->stride << " and current stride is " << stride << std::endl;
+            //    std::cout << "Event is " << evt << " at " << evt->enter << std::endl;
+            //}
 
             if (evt && evt->stride == stride)
             {
                 evt->step = max_step + 1;
                 next_step[process] = evt->comm_next;
-                if (next_step[process])
-                    std::cout << "Advancing to " << next_step[process] << " at " << next_step[process]->enter << " with stride " << next_step[process]->stride << std::endl;
-                else
-                    std::cout << "Advancing to NULL" << std::endl;
+                //if (next_step[process])
+                //    std::cout << "Advancing to " << next_step[process] << " at " << next_step[process]->enter << " with stride " << next_step[process]->stride << std::endl;
+                //else
+                //    std::cout << "Advancing to NULL" << std::endl;
                 increaseMax = true;
             }
         }
@@ -447,6 +453,7 @@ void Partition::find_stride_child(Event *base, Event * evt)
         // anything that happens before any of the collectives.
         if (process_next->collective)
         {
+            std::cout << "          Collective" << std::endl;
             for (QList<Event *>::Iterator ev
                  = process_next->collective->events->begin();
                  ev != process_next->collective->events->end(); ++ev)
@@ -459,6 +466,7 @@ void Partition::find_stride_child(Event *base, Event * evt)
         {
             base->stride_children->insert(process_next);
             process_next->stride_parents->insert(base);
+            std::cout << "          " << process_next << std::endl;
         }
     }
 }

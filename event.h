@@ -72,4 +72,9 @@ public:
     int phase;
 };
 
+static bool eventProcessLessThan(const Event * evt1, const Event * evt2)
+{
+    return evt1->process < evt2->process;
+}
+
 #endif // EVENT_H
