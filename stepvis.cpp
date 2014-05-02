@@ -845,9 +845,19 @@ void StepVis::paintEvents(QPainter * painter)
         else
             ell_h = 3;
         Event * coll_event;
+        bool rooted;
+        int root;
         for (QSet<CollectiveRecord *>::Iterator cr = drawCollectives.begin();
              cr != drawCollectives.end(); ++cr)
         {
+            rooted = false;
+            if ((*(trace->collective_definitions))[(*cr)->collective]->type == 2
+                    || (*(trace->collective_definitions))[(*cr)->collective]->type == 3)
+            {
+                rooted = true;
+                root = (*(trace->communicators))[(*cr)->communicator]->processes->at((*cr)->root);
+            }
+
             painter->setPen(QPen(Qt::darkGray, 1, Qt::SolidLine));
             painter->setBrush(QBrush(Qt::darkGray));
             coll_event = (*cr)->events->at(0);
@@ -868,6 +878,12 @@ void StepVis::paintEvents(QPainter * painter)
                 painter->setPen(QPen(Qt::darkGray, 1, Qt::SolidLine));
                 painter->setBrush(QBrush(Qt::darkGray));
                 coll_event = (*cr)->events->at(i);
+
+                if (rooted && coll_event->process == root)
+                {
+                    painter->setBrush(QBrush());
+                }
+
                 position = proc_to_order[coll_event->process];
                 y = floor((position - startProcess) * blockheight) + 1;
                 if (options->showAggregateSteps)
@@ -913,14 +929,15 @@ void StepVis::drawArc(QPainter * painter, QPointF * p1, QPointF * p2,
 {
     QPainterPath path;
 
-    // handle effectiveheight
+    // handle effectiveheight -- find correct span angle & start so
+    // the arc doesn't draw past effective height
     if (p2->y() > effectiveHeight)
     {
         //
     }
 
-    QRectF bounding(p1->x(), p1->y(), width, p2->y() - p1->y());
-    path.moveTo(*p1);
+    QRectF bounding(p1->x() - width, p1->y(), width*2, p2->y() - p1->y());
+    path.moveTo(p1->x(), p1->y());
     path.arcTo(bounding, 90, -180);
     painter->drawPath(path);
 }
