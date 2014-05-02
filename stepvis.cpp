@@ -912,32 +912,6 @@ void StepVis::drawArc(QPainter * painter, QPointF * p1, QPointF * p2,
                       int width, int effectiveHeight)
 {
     QPainterPath path;
-    int startAngle, spanAngle, radius, chord_height_half;
-
-    // First find radius of circle meeting our conditions.
-    // We know we have a right triangle with hypotenuse radius R
-    // and sides s1 = chord_height/2 and s2 = radius - width;
-    // Then R^2 = s1^2 + s2^2 = (R - w)^2 + s2^2 so we can solve
-    chord_height_half = (p2->y() - p1->y()) / 2;
-    radius = (width*width + chord_height_half*chord_height_half) / 2 / width;
-    std::cout << "Chord " << chord_height_half << " and radius " << radius << std::endl;
-
-    // This makes our bounding box:
-    int x, y, w, h;
-    x = p1->x() - radius;
-    y = p1->y();
-    w = radius;
-    h = 2 * chord_height_half;
-    std::cout << "Arc " << x << ", " << y << ", " << w << ", " << h;
-
-    // Zero degrees is at 3'oclock which is perfect for us.
-    // Don't forget angles are in 16ths of a degree
-    // So startAngle is the lower one and then we move
-    // counter clockwise to reach the top
-    float radians = asin(chord_height_half / 1.0 / radius);
-    startAngle = 16 * 180 / M_PI * radians;
-    spanAngle = -2 * startAngle;
-    std::cout << ", " << startAngle << ", " << spanAngle << std::endl;
 
     // handle effectiveheight
     if (p2->y() > effectiveHeight)
@@ -948,7 +922,6 @@ void StepVis::drawArc(QPainter * painter, QPointF * p1, QPointF * p2,
     QRectF bounding(p1->x(), p1->y(), width, p2->y() - p1->y());
     path.moveTo(*p1);
     path.arcTo(bounding, 90, -180);
-    //painter->drawArc(x, y, w, h, startAngle, spanAngle);
     painter->drawPath(path);
 }
 
