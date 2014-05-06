@@ -91,7 +91,10 @@ void StepVis::setupMetric()
 
     // For colorbar
     QLocale systemlocale = QLocale::system();
-    maxMetricText = systemlocale.toString(maxMetric) + " ns";
+    if (options->colormap->isCategorical())
+        maxMetricText = "";
+    else
+        maxMetricText = systemlocale.toString(maxMetric) + " ns";
 
     // For colorbar range
     delete metricdialog;
@@ -106,7 +109,10 @@ void StepVis::setMaxMetric(long long int new_max)
 {
     options->setRange(0, new_max);
     QLocale systemlocale = QLocale::system();
-    maxMetricText = systemlocale.toString(new_max) + " ns";
+    if (options->colormap->isCategorical())
+        maxMetricText = "";
+    else
+        maxMetricText = systemlocale.toString(new_max) + " ns";
     repaint();
 }
 
@@ -835,7 +841,7 @@ void StepVis::paintEvents(QPainter * painter)
 
         // Draw collectives
 
-        int prev_x, prev_y, ell_w, ell_h;
+        int ell_w, ell_h;
         if (blockwidth / 5 > 0)
             ell_w = blockwidth / 5;
         else
@@ -844,80 +850,167 @@ void StepVis::paintEvents(QPainter * painter)
             ell_h = blockheight / 5;
         else
             ell_h = 3;
-        Event * coll_event;
-        bool rooted;
-        int root;
         for (QSet<CollectiveRecord *>::Iterator cr = drawCollectives.begin();
              cr != drawCollectives.end(); ++cr)
         {
-            rooted = false;
-            if ((*(trace->collective_definitions))[(*cr)->collective]->type == 2
-                    || (*(trace->collective_definitions))[(*cr)->collective]->type == 3)
-            {
-                rooted = true;
-                root = (*(trace->communicators))[(*cr)->communicator]->processes->at((*cr)->root);
-            }
-
-            painter->setPen(QPen(Qt::darkGray, 1, Qt::SolidLine));
-            painter->setBrush(QBrush(Qt::darkGray));
-            coll_event = (*cr)->events->at(0);
-            position = proc_to_order[coll_event->process];
-            prev_y = floor((position - startProcess) * blockheight) + 1;
-            if (options->showAggregateSteps)
-                prev_x = floor((coll_event->step - startStep) * blockwidth) + 1
-                    + labelWidth;
-            else
-                prev_x = floor((coll_event->step - startStep) / 2 * blockwidth) + 1
-                    + labelWidth;
-            painter->drawEllipse(prev_x + w/2 - ell_w/2,
-                                 prev_y + h/2 - ell_h/2,
-                                 ell_w, ell_h);
-
-            for (int i = 1; i < (*cr)->events->size(); i++)
-            {
-                painter->setPen(QPen(Qt::darkGray, 1, Qt::SolidLine));
-                painter->setBrush(QBrush(Qt::darkGray));
-                coll_event = (*cr)->events->at(i);
-
-                if (rooted && coll_event->process == root)
-                {
-                    painter->setBrush(QBrush());
-                }
-
-                position = proc_to_order[coll_event->process];
-                y = floor((position - startProcess) * blockheight) + 1;
-                if (options->showAggregateSteps)
-                    x = floor((coll_event->step - startStep) * blockwidth) + 1
-                        + labelWidth;
-                else
-                    x = floor((coll_event->step - startStep) / 2 * blockwidth) + 1
-                        + labelWidth;
-                painter->drawEllipse(x + w/2 - ell_w/2, y + h/2 - ell_h/2,
-                                     ell_w, ell_h);
-
-                // Arc style
-                p1 = QPointF(prev_x + w/2.0, prev_y + h/2.0);
-                p2 = QPointF(x + w/2.0, y + h/2.0);
-                painter->setPen(QPen(Qt::black, 1, Qt::DashLine));
-                painter->setBrush(QBrush());
-                drawArc(painter, &p1, &p2, ell_w * 1.5, effectiveHeight);
-
-
-                prev_x = x;
-                prev_y = y;
-            }
-
-            // Vampir style
-            // Line goes through all of these values... this is going to be weird
-            // for overlapping collectives.
-            // May want to draw as arcs between each hop.
-            /*p1 = QPointF(prev_x + w/2.0, prev_y + h/2.0);
-            p2 = QPointF(x + w/2.0, y + h/2.0);
-            painter->setPen(QPen(Qt::black, 1, Qt::DashLine));
-            painter->setBrush(QBrush());
-            drawLine(painter, &p1, &p2, effectiveHeight);
-            */
+            drawCollective(painter, *cr, ell_w, ell_h, effectiveHeight,
+                           blockheight, blockwidth);
         }
+    }
+}
+
+void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr,
+                             int ellipse_width, int ellipse_height,
+                             int effectiveHeight, int blockheight, int blockwidth)
+{
+    int root, x, y, prev_x, prev_y, position;
+    Event * coll_event;
+    QPointF p1, p2;
+
+    int ell_w = ellipse_width;
+    int ell_h = ellipse_height;
+    int coll_type = (*(trace->collective_definitions))[cr->collective]->type;
+    int root_offset = 0;
+    bool rooted = false;
+    int w = blockwidth;
+    int h = blockheight;
+
+    // Rooted
+    if (coll_type == 2 || coll_type == 3)
+    {
+        //root = (*(trace->communicators))[(*cr)->communicator]->processes->at((*cr)->root);
+        rooted = true;
+        root = cr->root;
+        root_offset = ell_w;
+        if (coll_type == 2)
+        {
+            root_offset *= -1;
+        }
+    }
+
+    painter->setPen(QPen(Qt::darkGray, 1, Qt::SolidLine));
+    painter->setBrush(QBrush(Qt::darkGray));
+    coll_event = cr->events->at(0);
+    position = proc_to_order[coll_event->process];
+    prev_y = floor((position - startProcess) * blockheight) + 1;
+    if (options->showAggregateSteps)
+        prev_x = floor((coll_event->step - startStep) * blockwidth) + 1
+            + labelWidth;
+    else
+        prev_x = floor((coll_event->step - startStep) / 2 * blockwidth) + 1
+            + labelWidth;
+    if (rooted)
+    {
+        if (coll_event->process == root)
+        {
+            painter->setBrush(QBrush());
+            prev_x += root_offset;
+        }
+        else
+            prev_x -= root_offset;
+    }
+    painter->drawEllipse(prev_x + w/2 - ell_w/2,
+                         prev_y + h/2 - ell_h/2,
+                         ell_w, ell_h);
+
+    if (rooted && coll_event->process == root)
+    {
+        painter->setPen(QPen(Qt::black, 1, Qt::DashLine));
+        painter->setBrush(QBrush());
+        Event * other;
+        int oposition, ox, oy;
+        p1 = QPointF(prev_x + w/2, prev_y + h/2);
+        for (int j = 1; j < cr->events->size(); j++)
+        {
+            other = cr->events->at(j);
+
+            oposition = proc_to_order[other->process];
+            oy = floor((oposition - startProcess) * blockheight) + 1;
+            if (options->showAggregateSteps)
+                ox = floor((other->step - startStep) * blockwidth) + 1
+                    + labelWidth - root_offset;
+            else
+                ox = floor((other->step - startStep) / 2 * blockwidth) + 1
+                    + labelWidth - root_offset;
+
+            p2 = QPointF(ox + w/2, oy + h/2);
+            drawLine(painter, &p1, &p2, effectiveHeight);
+        }
+    }
+
+    for (int i = 1; i < cr->events->size(); i++)
+    {
+        painter->setPen(QPen(Qt::darkGray, 1, Qt::SolidLine));
+        painter->setBrush(QBrush(Qt::darkGray));
+        coll_event = cr->events->at(i);
+
+        if (rooted && coll_event->process == root)
+        {
+            painter->setBrush(QBrush());
+        }
+
+        position = proc_to_order[coll_event->process];
+        y = floor((position - startProcess) * blockheight) + 1;
+        if (options->showAggregateSteps)
+            x = floor((coll_event->step - startStep) * blockwidth) + 1
+                + labelWidth;
+        else
+            x = floor((coll_event->step - startStep) / 2 * blockwidth) + 1
+                + labelWidth;
+        if (rooted)
+        {
+            if (coll_event->process == root)
+                x += root_offset;
+            else
+                x -= root_offset;
+        }
+        painter->drawEllipse(x + w/2 - ell_w/2, y + h/2 - ell_h/2,
+                             ell_w, ell_h);
+
+        // Arc style
+        painter->setPen(QPen(Qt::black, 1, Qt::DashLine));
+        painter->setBrush(QBrush());
+        if (coll_type == 1) // BARRIER
+        {
+            p1 = QPointF(prev_x + w/2.0, prev_y + h/2.0);
+            p2 = QPointF(x + w/2.0, y + h/2.0);
+            drawArc(painter, &p1, &p2, ell_w * 1.5, effectiveHeight);
+        }
+        else if (rooted && coll_event->process == root)
+        {
+            // ONE2ALL / ALL2ONE drawing handled by root only
+            Event * other;
+            int oposition, ox, oy;
+            p1 = QPointF(x + w/2, y + h/2);
+            for (int j = 0; j < cr->events->size(); j++)
+            {
+                other = cr->events->at(j);
+                if (other->process == root)
+                    continue;
+                oposition = proc_to_order[other->process];
+                oy = floor((oposition - startProcess) * blockheight) + 1;
+                if (options->showAggregateSteps)
+                    ox = floor((other->step - startStep) * blockwidth) + 1
+                        + labelWidth - root_offset;
+                else
+                    ox = floor((other->step - startStep) / 2 * blockwidth) + 1
+                        + labelWidth - root_offset;
+
+                p2 = QPointF(ox + w/2, oy + h/2);
+                drawLine(painter, &p1, &p2, effectiveHeight);
+            }
+        }
+        else if (coll_type == 4) // ALL2ALL
+        {
+            // First Arc
+            p1 = QPointF(prev_x + w/2.0, prev_y + h/2.0);
+            p2 = QPointF(x + w/2.0, y + h/2.0);
+            drawArc(painter, &p1, &p2, ell_w * 1.5, effectiveHeight);
+            drawArc(painter, &p1, &p2, ell_w * -1.5, effectiveHeight, false);
+        }
+
+        prev_x = x;
+        prev_y = y;
     }
 }
 
@@ -925,7 +1018,7 @@ void StepVis::paintEvents(QPainter * painter)
 // point p2 that is not wider than radius and stops at the
 // effectiveHeight.
 void StepVis::drawArc(QPainter * painter, QPointF * p1, QPointF * p2,
-                      int width, int effectiveHeight)
+                      int width, int effectiveHeight, bool forward)
 {
     QPainterPath path;
 
@@ -938,7 +1031,10 @@ void StepVis::drawArc(QPainter * painter, QPointF * p1, QPointF * p2,
 
     QRectF bounding(p1->x() - width, p1->y(), width*2, p2->y() - p1->y());
     path.moveTo(p1->x(), p1->y());
-    path.arcTo(bounding, 90, -180);
+    if (forward)
+        path.arcTo(bounding, 90, -180);
+    else
+        path.arcTo(bounding, 90, 180);
     painter->drawPath(path);
 }
 
@@ -1044,7 +1140,9 @@ void StepVis::drawColorBarText(QPainter * painter)
 }
 
 
-// This may change the colorbar
+// This may change the colorbar but only if the colormap
+// is non-categorical. If it's categorical, changing the
+// range would not make sense.
 void StepVis::mouseDoubleClickEvent(QMouseEvent * event)
 {
     if (!visProcessed)
@@ -1053,7 +1151,8 @@ void StepVis::mouseDoubleClickEvent(QMouseEvent * event)
     if (event->y() >= rect().height() - colorBarHeight)
     {
         if (event->x() < rect().width() - colorbar_offset
-            && event->x() > colorbar_offset)
+            && event->x() > colorbar_offset
+            && !options->colormap->isCategorical())
         {
             options->colormap->setClamp(maxMetric
                                         * (event->x() - colorbar_offset)
@@ -1063,7 +1162,8 @@ void StepVis::mouseDoubleClickEvent(QMouseEvent * event)
         }
         else if (event->x() > rect().width() - colorbar_offset + 3
                  && event->x() < rect().width() - colorbar_offset + 3
-                                 + maxMetricTextWidth)
+                                 + maxMetricTextWidth
+                 && !options->colormap->isCategorical())
         {
             metricdialog->show();
 

@@ -32,10 +32,13 @@ protected:
     void prepaint();
     void drawColorBarGL();
     void drawColorBarText(QPainter * painter);
+    void drawCollective(QPainter * painter, CollectiveRecord * cr,
+                        int ellipse_width, int ellipse_height,
+                        int effectiveHeight, int blockheight, int blockwidth);
     void drawLine(QPainter * painter, QPointF * p1, QPointF * p2,
                   int effectiveHeight);
     void drawArc(QPainter * painter, QPointF * p1, QPointF * p2,
-                 int width, int effectiveHeight);
+                 int width, int effectiveHeight, bool forward = true);
     void setupMetric();
     void drawColorValue(QPainter * painter);
 

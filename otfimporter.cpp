@@ -536,8 +536,12 @@ int OTFImporter::handleBeginCollectiveOperation(void * userData, uint64_t time,
 {
     Q_UNUSED(list);
     Q_UNUSED(scltoken);
-    Q_UNUSED(sent);
-    Q_UNUSED(received);
+    Q_UNUSED(sent); // Data volume received
+    Q_UNUSED(received); // Data volume sent
+
+    // Convert rootProc to 0..p-1 space if it truly is a root and not unrooted value
+    if (rootProc > 0)
+        rootProc--;
 
     // Create collective record if it doesn't yet exist
     if (!(*(((OTFImporter *) userData)->collectives)).contains(matchingId))

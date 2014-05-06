@@ -15,6 +15,7 @@ public:
     void setRange(double low, double high);
     void setClamp(double clamp);
     double getMax() { return maxValue; }
+    bool isCategorical() { return categorical; }
 
 private:
     class ColorValue {
