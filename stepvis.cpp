@@ -863,7 +863,7 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr,
                              int ellipse_width, int ellipse_height,
                              int effectiveHeight, int blockheight, int blockwidth)
 {
-    int root, x, y, prev_x, prev_y, position;
+    int root, x, y, prev_x, prev_y, root_x, root_y, position;
     Event * coll_event;
     QPointF p1, p2;
 
@@ -905,6 +905,8 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr,
         {
             painter->setBrush(QBrush());
             prev_x += root_offset;
+            root_x = prev_x;
+            root_y = prev_y;
         }
         else
             prev_x -= root_offset;
@@ -912,31 +914,6 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr,
     painter->drawEllipse(prev_x + w/2 - ell_w/2,
                          prev_y + h/2 - ell_h/2,
                          ell_w, ell_h);
-
-    if (rooted && coll_event->process == root)
-    {
-        painter->setPen(QPen(Qt::black, 1, Qt::DashLine));
-        painter->setBrush(QBrush());
-        Event * other;
-        int oposition, ox, oy;
-        p1 = QPointF(prev_x + w/2, prev_y + h/2);
-        for (int j = 1; j < cr->events->size(); j++)
-        {
-            other = cr->events->at(j);
-
-            oposition = proc_to_order[other->process];
-            oy = floor((oposition - startProcess) * blockheight) + 1;
-            if (options->showAggregateSteps)
-                ox = floor((other->step - startStep) * blockwidth) + 1
-                    + labelWidth - root_offset;
-            else
-                ox = floor((other->step - startStep) / 2 * blockwidth) + 1
-                    + labelWidth - root_offset;
-
-            p2 = QPointF(ox + w/2, oy + h/2);
-            drawLine(painter, &p1, &p2, effectiveHeight);
-        }
-    }
 
     for (int i = 1; i < cr->events->size(); i++)
     {
@@ -978,27 +955,9 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr,
         }
         else if (rooted && coll_event->process == root)
         {
-            // ONE2ALL / ALL2ONE drawing handled by root only
-            Event * other;
-            int oposition, ox, oy;
-            p1 = QPointF(x + w/2, y + h/2);
-            for (int j = 0; j < cr->events->size(); j++)
-            {
-                other = cr->events->at(j);
-                if (other->process == root)
-                    continue;
-                oposition = proc_to_order[other->process];
-                oy = floor((oposition - startProcess) * blockheight) + 1;
-                if (options->showAggregateSteps)
-                    ox = floor((other->step - startStep) * blockwidth) + 1
-                        + labelWidth - root_offset;
-                else
-                    ox = floor((other->step - startStep) / 2 * blockwidth) + 1
-                        + labelWidth - root_offset;
-
-                p2 = QPointF(ox + w/2, oy + h/2);
-                drawLine(painter, &p1, &p2, effectiveHeight);
-            }
+            // ONE2ALL / ALL2ONE drawing handled after the loop
+            root_x = x;
+            root_y = y;
         }
         else if (coll_type == 4) // ALL2ALL
         {
@@ -1011,6 +970,33 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr,
 
         prev_x = x;
         prev_y = y;
+    }
+
+    if (rooted)
+    {
+        painter->setPen(QPen(Qt::black, 1, Qt::DashLine));
+        painter->setBrush(QBrush());
+        Event * other;
+        int oposition, ox, oy;
+        p1 = QPointF(root_x + w/2, root_y + h/2);
+        for (int j = 0; j < cr->events->size(); j++)
+        {
+            other = cr->events->at(j);
+            if (other->process == root)
+                continue;
+
+            oposition = proc_to_order[other->process];
+            oy = floor((oposition - startProcess) * blockheight) + 1;
+            if (options->showAggregateSteps)
+                ox = floor((other->step - startStep) * blockwidth) + 1
+                    + labelWidth - root_offset;
+            else
+                ox = floor((other->step - startStep) / 2 * blockwidth) + 1
+                    + labelWidth - root_offset;
+
+            p2 = QPointF(ox + w/2, oy + h/2);
+            drawLine(painter, &p1, &p2, effectiveHeight);
+        }
     }
 }
 
