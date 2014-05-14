@@ -690,19 +690,125 @@ void Trace::chainCommEvents()
     // Note that mpi_events go backwards in time, so as we iterate through,
     // the event we just processed is the next event of the one we are
     // processing.
-    for (QVector<QList<Event *> *>::Iterator event_list = mpi_events->begin();
-         event_list != mpi_events->end(); ++event_list)
+    if (options.isendCoalescing)
     {
-        Event * next = NULL;
-        for (QList<Event *>::Iterator evt = (*event_list)->begin();
-             evt != (*event_list)->end(); ++evt)
+        // Find Isend index
+        int isend_index = -1;
+        for (QMap<int, Function * >::Iterator function = functions->begin();
+             function != functions->end(); ++function)
         {
-            if ((*evt)->messages->size() > 0 || (*evt)->collective)
+            if (function.value()->group == mpi_group)
             {
-                (*evt)->comm_next = next;
-                if (next)
-                    next->comm_prev = (*evt);
-                next = (*evt);
+                if (function.value()->name == "MPI_Isend")
+                    isend_index = function.key();
+            }
+        }
+
+        // In each MPI events list, we want to remove the isends and coalesce them
+        // into a new event containing all of their messages
+        for (int j = 0; j < mpi_events->size(); j++)
+        {
+            QList<Event *> * elist = mpi_events->at(j);
+            Event * next = NULL;
+            Event * evt = NULL;
+            Event * isend = NULL;
+            int i = 0;
+            int isend_i = 0;
+            // We will be removing events so i will shrink
+            while (i != elist->size())
+            {
+                evt = elist->at(i);
+                if (evt->function == isend_index)
+                {
+                    if (isend)
+                    {
+                        // Remove current evt and add it to isend event
+                        isend->enter = evt->enter;
+                        for (int k = 0; k < evt->messages->size(); k++)
+                        {
+                            evt->messages->at(k)->sender = isend;
+                            isend->messages->prepend(evt->messages->at(k));
+                        }
+                        isend->subevents->prepend(evt);
+                        elist->removeAt(i);
+                        // We removed i, so we don't change i
+                    }
+                    else
+                    {
+                        // Create new isend event and then remove current
+                        // evt and add it to the isend
+                        isend = new Event(evt->enter, evt->exit, isend_index,
+                                          evt->process, -1);
+                        isend->subevents = new QList<Event *>();
+                        isend->subevents->prepend(evt);
+                        for (int k = 0; k < evt->messages->size(); k++)
+                        {
+                            evt->messages->at(k)->sender = isend;
+                            isend->messages->prepend(evt->messages->at(k));
+                        }
+                        (*(elist))[i] = isend;
+                        isend_i = i; // Tihs is where it will go eventually
+
+                        // And we connect it to the rest
+                        if (next)
+                            next->comm_prev = isend;
+                        isend->comm_next = next;
+                        next = isend;
+
+                        i++; // We replaced i, so we move forward
+                    }
+                }
+                else if (evt->messages->size() > 0 || evt->collective)
+                {
+                    // Check for isend and handle if necessary
+                    if (isend)
+                    {
+                        isend = NULL;
+                    }
+
+                    // Update comm_next, comm_prev and advance
+                    evt->comm_next = next;
+                    if (next)
+                        next->comm_prev = evt;
+                    next = evt;
+                    i++;
+                }
+                else
+                {
+                    // Not a comm message but we take this break to
+                    // close off the isend right here.
+                    if (isend)
+                    {
+                        isend = NULL;
+                    }
+                    i++;
+                }
+            }
+
+            // If the last event was the isend, and we have not yet
+            // inserted it, do so now
+            if (isend)
+                elist->insert(isend_i, isend);
+        }
+    }
+    else
+    {
+        // Just need to go through and connect them when they meet our definition
+        // of communication
+        for (QVector<QList<Event *> *>::Iterator event_list = mpi_events->begin();
+             event_list != mpi_events->end(); ++event_list)
+        {
+            Event * next = NULL;
+            for (QList<Event *>::Iterator evt = (*event_list)->begin();
+                 evt != (*event_list)->end(); ++evt)
+            {
+                if ((*evt)->messages->size() > 0 || (*evt)->collective)
+                {
+                    (*evt)->comm_next = next;
+                    if (next)
+                        next->comm_prev = (*evt);
+                    next = (*evt);
+                }
             }
         }
     }

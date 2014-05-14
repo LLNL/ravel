@@ -27,6 +27,8 @@ ImportOptionsDialog::ImportOptionsDialog(QWidget *parent,
             SLOT(onFunctionEdit(QString)));
     connect(ui->clusterCheckbox, SIGNAL(clicked(bool)), this,
             SLOT(onCluster(bool)));
+    connect(ui->isendCheckbox, SIGNAL(clicked(bool)), this,
+            SLOT(onIsend(bool)));
 
     setUIState();
 }
@@ -85,6 +87,10 @@ void ImportOptionsDialog::onCluster(bool cluster)
     options->cluster = cluster;
 }
 
+void ImportOptionsDialog::onIsend(bool coalesce)
+{
+    options->isendCoalescing = coalesce;
+}
 
 void ImportOptionsDialog::onFunctionEdit(const QString& text)
 {
@@ -128,7 +134,10 @@ void ImportOptionsDialog::setUIState()
     else
         ui->clusterCheckbox->setChecked(false);
 
-
+    if (options->isendCoalescing)
+        ui->isendCheckbox->setChecked(true);
+    else
+        ui->isendCheckbox->setChecked(false);
 
     ui->functionEdit->setText(options->partitionFunction);
 

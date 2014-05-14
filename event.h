@@ -39,6 +39,9 @@ public:
         long long aggregate; // value at prev. aggregate event
     };
 
+    // ISend coalescing
+    QList<Event *> * subevents;
+
     // Messages involved wiht this event
     QVector<Message *> * messages;
 

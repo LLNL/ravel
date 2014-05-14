@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>412</width>
-    <height>277</height>
+    <height>323</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -159,9 +159,30 @@
     </layout>
    </item>
    <item>
+    <widget class="Line" name="line">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="isendCheckbox">
+     <property name="text">
+      <string>Coalesce Isends</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QCheckBox" name="clusterCheckbox">
      <property name="text">
       <string>Cluster processes</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="Line" name="line_2">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
      </property>
     </widget>
    </item>

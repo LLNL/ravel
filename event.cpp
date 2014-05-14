@@ -3,7 +3,8 @@
 
 Event::Event(unsigned long long _enter, unsigned long long _exit,
              int _function, int _process, int _step)
-    : messages(new QVector<Message *>()),
+    : subevents(NULL),
+      messages(new QVector<Message *>()),
       metrics(new QMap<QString, MetricPair *>()),
       caller(NULL),
       callees(new QVector<Event *>()),
@@ -55,6 +56,8 @@ Event::~Event()
         delete stride_children;
     if (stride_parents)
         delete stride_parents;
+    if (subevents)
+        delete subevents;
 }
 
 bool Event::operator<(const Event &event)

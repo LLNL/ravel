@@ -18,6 +18,7 @@ public:
     bool partitionByFunction; // partitions based on functions
     bool globalMerge; // merge across steps
     bool cluster; // clustering on gnomes should be done
+    bool isendCoalescing; // group consecutive isends
     QString partitionFunction;
 };
 
