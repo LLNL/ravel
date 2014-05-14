@@ -173,11 +173,9 @@ void Partition::step()
         for (QList<Event *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
         {
-            std::cout << "Sorting event " << *evt;
             if ((*evt)->collective || ((*evt)->messages->size() > 0
                      && (*evt)->messages->at(0)->sender == (*evt)))
             {
-                std::cout << " as a stride." << std::endl;
                 stride_events->append(*evt);
 
                 // The next one in the process is a stride child
@@ -211,6 +209,8 @@ void Partition::step()
                 {
                     (*evt)->last_send = (*evt)->last_send->comm_prev;
                 }
+                if ((*evt)->last_send && (*evt)->last_send->partition != this)
+                    (*evt)->last_send = NULL;
 
                 (*evt)->next_send = (*evt)->comm_next;
                 // Set next_send based on process
@@ -221,16 +221,17 @@ void Partition::step()
                 {
                     (*evt)->next_send = (*evt)->next_send->comm_next;
                 }
+                if ((*evt)->next_send && (*evt)->next_send->partition != this)
+                    (*evt)->next_send = NULL;
             }
         }
     }
 
     // Set strides
-    set_stride_dag(stride_events);
+    int max_stride = set_stride_dag(stride_events);
     delete stride_events;
 
     //. Find recv stride boundaries based on dependencies
-    int max_stride = 0;
     for (QList<Event *>::Iterator recv = recv_events->begin();
          recv != recv_events->end(); ++recv)
     {
@@ -246,8 +247,6 @@ void Partition::step()
                 (*recv)->last_send = (*msg)->sender;
             }
         }
-        if ((*recv)->last_send->stride > max_stride)
-            max_stride = (*recv)->last_send->stride;
     }
     delete recv_events;
 
@@ -276,9 +275,6 @@ void Partition::step()
             process = processes[i];
             evt = next_step[process];
 
-            //if (evt)
-            //    std::cout << "Event is " << evt << " at " << evt->enter << std::endl;
-
             // We want recvs that can be set at this stride and are blocking
             // the current send strides from being sent. That means the
             // last_send has a stride less than this one and
@@ -303,13 +299,13 @@ void Partition::step()
                 if (evt->step > max_step)
                     max_step = evt->step;
 
-                //std::cout << "Advancing on receive" << std::endl;
-                evt = evt->comm_next;
+                if (evt->comm_next && evt->comm_next->partition == this)
+                    evt = evt->comm_next;
+                else
+                    evt = NULL;
             }
 
             // Save where we are
-            //if (evt)
-            //    std::cout << "Saving " << evt << " at " << evt->enter << std::endl;
             next_step[process] = evt;
         }
 
@@ -321,19 +317,14 @@ void Partition::step()
             process = processes[i];
             evt = next_step[process];
 
-            //if (evt) {
-            //    std::cout << "Event stride is " << evt->stride << " and current stride is " << stride << std::endl;
-            //    std::cout << "Event is " << evt << " at " << evt->enter << std::endl;
-            //}
-
             if (evt && evt->stride == stride)
             {
                 evt->step = max_step + 1;
-                next_step[process] = evt->comm_next;
-                //if (next_step[process])
-                //    std::cout << "Advancing to " << next_step[process] << " at " << next_step[process]->enter << " with stride " << next_step[process]->stride << std::endl;
-                //else
-                //    std::cout << "Advancing to NULL" << std::endl;
+                if (evt->comm_next && evt->comm_next->partition == this)
+                    next_step[process] = evt->comm_next;
+                else
+                    next_step[process] = NULL;
+
                 increaseMax = true;
             }
         }
@@ -367,7 +358,7 @@ void Partition::step()
 
 }
 
-void Partition::set_stride_dag(QList<Event *> * stride_events)
+int Partition::set_stride_dag(QList<Event *> * stride_events)
 {
     QSet<Event *> * current_events = new QSet<Event*>();
     QSet<Event *> * next_events = new QSet<Event *>();
@@ -388,6 +379,7 @@ void Partition::set_stride_dag(QList<Event *> * stride_events)
 
     bool parentFlag;
     int stride;
+    int max_stride = 0;
     while (!current_events->isEmpty())
     {
         for (QSet<Event *>::Iterator evt = current_events->begin();
@@ -414,6 +406,8 @@ void Partition::set_stride_dag(QList<Event *> * stride_events)
                 continue;
 
             (*evt)->stride = stride + 1; // 1 over the max parent
+            if ((*evt)->stride > max_stride)
+                max_stride = (*evt)->stride;
 
             // Add children to next_events
             for (QSet<Event *>::Iterator child = (*evt)->stride_children->begin();
@@ -431,6 +425,7 @@ void Partition::set_stride_dag(QList<Event *> * stride_events)
 
     delete current_events;
     delete next_events;
+    return max_stride;
 }
 
 // Helper function for building stride graph, finds the next send
@@ -453,7 +448,6 @@ void Partition::find_stride_child(Event *base, Event * evt)
         // anything that happens before any of the collectives.
         if (process_next->collective)
         {
-            std::cout << "          Collective" << std::endl;
             for (QList<Event *>::Iterator ev
                  = process_next->collective->events->begin();
                  ev != process_next->collective->events->end(); ++ev)
@@ -466,7 +460,6 @@ void Partition::find_stride_child(Event *base, Event * evt)
         {
             base->stride_children->insert(process_next);
             process_next->stride_parents->insert(base);
-            std::cout << "          " << process_next << std::endl;
         }
     }
 }

@@ -78,7 +78,7 @@ public:
 
 private:
     // Stepping logic -- probably want to rewrite
-    void set_stride_dag(QList<Event *> * stride_events);
+    int set_stride_dag(QList<Event *> * stride_events);
     void find_stride_child(Event * base, Event * evt);
     void old_step();
     void step_receive(Message * msg);
