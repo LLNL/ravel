@@ -1184,7 +1184,7 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect,
 
     // Figure out base values
     int base_y = clusterRect.y() + clusterRect.height() / 2 - blockheight / 2;
-    int x, ys, yr, w, hs, hr, xa, wa, nsends, nrecvs;
+    int x, ys, yr, yc, w, hs, hr, hc, xa, wa, nsends, nrecvs, ncolls;
     if (options->showAggregateSteps) {
         startStep -= 1;
     }
@@ -1204,6 +1204,7 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect,
         nsends = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND);
         nrecvs = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::RECV)
                  + (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::WAITALL);
+        ncolls = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::COLL);
 
         int divisor = pc->members->size();
         if (!options->showInactiveSteps)
@@ -1213,6 +1214,9 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect,
         ys = base_y;
         hr = blockheight * nrecvs / 1.0 / divisor;
         yr = base_y + blockheight - hr;
+
+        hc = blockheight * ncolls / 1.0 / divisor;
+        yc = base_y + hs;
 
         // Draw the event
         if (nsends)
@@ -1230,6 +1234,12 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect,
                                                                                   ClusterEvent::WAITALL,
                                                                                   ClusterEvent::ALL))
                                                               / nrecvs)));
+        if (ncolls)
+            painter->fillRect(QRectF(x, yc, w, hc),
+                              QBrush(options->colormap->color((*evt)->getMetric(ClusterEvent::COMM,
+                                                                                ClusterEvent::COLL,
+                                                                                ClusterEvent::ALL)
+                                                              / ncolls)));
 
         // Draw border but only if we're doing spacing, otherwise too messy
         if (blockwidth != w) {
@@ -1253,6 +1263,23 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect,
                 painter->drawLine(x + blockwidth / 2, ys + blockheight, x + 1,
                                   ys + blockheight + 20);
             }
+
+            if (ncolls && hc > 5)
+            {
+                painter->setPen(QPen(Qt::black, 1.0, Qt::DashLine));
+                painter->drawLine(x,yc,x+w,yc+hc);
+                painter->drawLine(x,yc+hc,x+w,yc);
+            }
+            else if (ncolls && hc > 3 && hs > 3)
+            {
+                painter->setPen(QPen(Qt::black, 1.0, Qt::DashLine));
+                painter->drawLine(x,yc,x+w,yc);
+            }
+        }
+        else if (ncolls && nsends && hc > 3 && hs > 3) // Delimit
+        {
+            painter->setPen(QPen(Qt::black, 1.0, Qt::DashLine));
+            painter->drawLine(x,yc,x+w,yc);
         }
 
         // Aggregate step
@@ -1276,6 +1303,12 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect,
                                                                                       ClusterEvent::WAITALL,
                                                                                       ClusterEvent::ALL))
                                                                  / nrecvs)));
+            if (ncolls)
+                painter->fillRect(QRectF(xa, yc, wa, hc),
+                                  QBrush(options->colormap->color((*evt)->getMetric(ClusterEvent::AGG,
+                                                                                    ClusterEvent::COLL,
+                                                                                    ClusterEvent::ALL)
+                                                                  / ncolls)));
             if (blockwidth != w)
             {
                 painter->setPen(QPen(Qt::black, 1.0, Qt::SolidLine));

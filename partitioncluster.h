@@ -23,6 +23,9 @@ public:
     long long int distance(PartitionCluster * other);
     void makeClusterVectors();
 
+    void aggMetric(ClusterEvent * ce, long long agg_metric,
+                   ClusterEvent::CommType ctype, bool set = true);
+
     // Call at root before deconstructing
     void delete_tree();
 

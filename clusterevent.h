@@ -11,7 +11,7 @@ public:
                  const ClusterEvent * copy2);
 
     enum EventType { COMM, AGG };
-    enum CommType { SEND, RECV, WAITALL, BOTH };
+    enum CommType { SEND, RECV, WAITALL, COLL, BOTH };
     enum Threshhold { LOW, HIGH, ALL };
 
     void setMetric(int count, long long int value,
@@ -31,10 +31,10 @@ public:
 
     int step;
     int waitallrecvs; // How many individual receives there are
-    long long int metric[2][3][2]; // [COMM/AGG] [SEND/RECV/WAITALL] [LOW/HIGH]
+    long long int metric[2][4][2]; // [COMM/AGG] [SEND/RECV/WAITALL/COLL] [LOW/HIGH]
 
      // This counts a waitall as a single event rather than all the receives
-    int counts[2][3][2];
+    int counts[2][4][2];
 };
 
 #endif // CLUSTEREVENT_H
