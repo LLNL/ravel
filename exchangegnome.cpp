@@ -307,6 +307,7 @@ void ExchangeGnome::generateTopProcesses()
 }
 
 
+// Probably need to do this for the isend -> waitall pattern...
 // Replace the receive line with a pie indicating the size of the waitall
 void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy,
                                            PartitionCluster * pc,
@@ -363,7 +364,7 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy,
         if (nsends) {
             QColor sendColor = options->colormap->color((*evt)->getMetric(ClusterEvent::COMM,
                                                                           ClusterEvent::SEND,
-                                                                          ClusterEvent::ALL)
+                                                                          ClusterEvent::BOTH)
                                                         / nsends);
             painter->fillRect(QRectF(x, ys, w, hs), QBrush(sendColor));
         }
@@ -371,7 +372,7 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy,
          {
             QColor waitColor = options->colormap->color((*evt)->getMetric(ClusterEvent::COMM,
                                                                           ClusterEvent::WAITALL,
-                                                                          ClusterEvent::ALL)
+                                                                          ClusterEvent::BOTH)
                                                         / nwaits );
             painter->fillRect(QRectF(x, yw, w, hw), QBrush(waitColor));
          }
@@ -424,14 +425,14 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy,
                 painter->fillRect(QRectF(xa, ys, wa, hs),
                               QBrush(options->colormap->color((*evt)->getMetric(ClusterEvent::AGG,
                                                                                 ClusterEvent::SEND,
-                                                                                ClusterEvent::ALL)
+                                                                                ClusterEvent::BOTH)
                                                               / nsends)));
 
             if (nwaits)
                 painter->fillRect(QRectF(xa, yw, wa, hw),
                               QBrush(options->colormap->color((*evt)->getMetric(ClusterEvent::AGG,
                                                                                 ClusterEvent::WAITALL,
-                                                                                ClusterEvent::ALL)
+                                                                                ClusterEvent::BOTH)
                                                               / nwaits)));
 
             if (blockwidth != w)
@@ -514,11 +515,11 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy,
             // Draw the event
             painter->fillRect(QRectF(x, y, w, h),
                               QBrush(options->colormap->color(evt->getMetric(ClusterEvent::COMM,
-                                                                             ClusterEvent::BOTH,
-                                                                             ClusterEvent::ALL)
+                                                                             ClusterEvent::ALL,
+                                                                             ClusterEvent::BOTH)
                                                              / evt->getCount(ClusterEvent::COMM,
-                                                                             ClusterEvent::BOTH,
-                                                                             ClusterEvent::ALL)
+                                                                             ClusterEvent::ALL,
+                                                                             ClusterEvent::BOTH)
                                                              )));
 
             // Draw border but only if we're doing spacing, otherwise too messy
@@ -529,11 +530,11 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy,
             if (options->showAggregateSteps) {
                 painter->fillRect(QRectF(xa, y, wa, h),
                                   QBrush(options->colormap->color(evt->getMetric(ClusterEvent::AGG,
-                                                                                 ClusterEvent::BOTH,
-                                                                                 ClusterEvent::ALL)
+                                                                                 ClusterEvent::ALL,
+                                                                                 ClusterEvent::BOTH)
                                                                   / evt->getCount(ClusterEvent::AGG,
-                                                                                  ClusterEvent::BOTH,
-                                                                                  ClusterEvent::ALL)
+                                                                                  ClusterEvent::ALL,
+                                                                                  ClusterEvent::BOTH)
                                                                        )));
                 if (blockwidth != w)
                     painter->drawRect(QRectF(xa, y, wa, h));

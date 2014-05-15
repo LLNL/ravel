@@ -111,7 +111,16 @@ long long int PartitionCluster::addMember(ClusterProcess * cp,
 
         if (evt_metric < divider)
         {
-            if (nsend)
+            if (nsend > 1)
+            {
+                ce->addMetric(1, evt_metric,
+                              ClusterEvent::COMM,
+                              ClusterEvent::ISEND,
+                              ClusterEvent::LOW);
+                ce->isends += nsend;
+                aggMetric(ce, agg_metric, ClusterEvent::ISEND, false);
+            }
+            else if (nsend)
             {
                 ce->addMetric(nsend, evt_metric,
                               ClusterEvent::COMM,
@@ -119,6 +128,7 @@ long long int PartitionCluster::addMember(ClusterProcess * cp,
                               ClusterEvent::LOW);
                 aggMetric(ce, agg_metric, ClusterEvent::SEND, false);
             }
+
             if (nrecv > 1)
             {
                 ce->addMetric(1, evt_metric,
@@ -148,7 +158,16 @@ long long int PartitionCluster::addMember(ClusterProcess * cp,
         }
         else
         {
-            if (nsend)
+            if (nsend > 1)
+            {
+                ce->addMetric(1, evt_metric,
+                              ClusterEvent::COMM,
+                              ClusterEvent::ISEND,
+                              ClusterEvent::HIGH);
+                ce->isends += nsend;
+                aggMetric(ce, agg_metric, ClusterEvent::ISEND, false);
+            }
+            else if (nsend)
             {
                 ce->addMetric(nsend, evt_metric,
                               ClusterEvent::COMM,
@@ -156,6 +175,7 @@ long long int PartitionCluster::addMember(ClusterProcess * cp,
                               ClusterEvent::HIGH);
                 aggMetric(ce, agg_metric, ClusterEvent::SEND, false);
             }
+
             if (nrecv > 1)
             {
                 ce->addMetric(1, evt_metric,
@@ -252,7 +272,16 @@ PartitionCluster::PartitionCluster(int member, QList<Event *> * elist,
 
         if (evt_metric < divider)
         {
-            if (nsend)
+            if (nsend > 1)
+            {
+                ce->setMetric(1, evt_metric,
+                              ClusterEvent::COMM,
+                              ClusterEvent::ISEND,
+                              ClusterEvent::LOW);
+                ce->isends += nsend;
+                aggMetric(ce, agg_metric, ClusterEvent::ISEND, true);
+            }
+            else if (nsend)
             {
                 ce->setMetric(nsend, evt_metric,
                               ClusterEvent::COMM,
@@ -289,7 +318,16 @@ PartitionCluster::PartitionCluster(int member, QList<Event *> * elist,
         }
         else
         {
-            if (nsend)
+            if (nsend > 1)
+            {
+                ce->setMetric(1, evt_metric,
+                              ClusterEvent::COMM,
+                              ClusterEvent::ISEND,
+                              ClusterEvent::HIGH);
+                ce->isends += nsend;
+                aggMetric(ce, agg_metric, ClusterEvent::ISEND, true);
+            }
+            else if (nsend)
             {
                 ce->setMetric(nsend, evt_metric,
                               ClusterEvent::COMM,

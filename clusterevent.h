@@ -11,8 +11,8 @@ public:
                  const ClusterEvent * copy2);
 
     enum EventType { COMM, AGG };
-    enum CommType { SEND, RECV, WAITALL, COLL, BOTH };
-    enum Threshhold { LOW, HIGH, ALL };
+    enum CommType { SEND, ISEND, RECV, WAITALL, COLL, ALL };
+    enum Threshhold { LOW, HIGH, BOTH };
 
     void setMetric(int count, long long int value,
                    EventType etype = COMM,
@@ -23,18 +23,19 @@ public:
                    CommType ctype = SEND,
                    Threshhold thresh = LOW);
     long long int getMetric(EventType etype = COMM,
-                            CommType ctype = BOTH,
-                            Threshhold thresh = ALL);
+                            CommType ctype = ALL,
+                            Threshhold thresh = BOTH);
     int getCount(EventType etype = COMM,
-                 CommType ctype = BOTH,
-                 Threshhold thresh = ALL);
+                 CommType ctype = ALL,
+                 Threshhold thresh = BOTH);
 
     int step;
     int waitallrecvs; // How many individual receives there are
-    long long int metric[2][4][2]; // [COMM/AGG] [SEND/RECV/WAITALL/COLL] [LOW/HIGH]
+    int isends;
+    long long int metric[2][5][2]; // [COMM/AGG] [SEND/RECV/WAITALL/COLL] [LOW/HIGH]
 
      // This counts a waitall as a single event rather than all the receives
-    int counts[2][4][2];
+    int counts[2][5][2];
 };
 
 #endif // CLUSTEREVENT_H
