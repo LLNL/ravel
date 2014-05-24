@@ -1,6 +1,8 @@
 #ifndef COMMRECORD_H
 #define COMMRECORD_H
 
+#include "message.h"
+
 // Holder of OTF Comm Info
 class CommRecord
 {
@@ -18,6 +20,15 @@ public:
     unsigned int tag;
     unsigned int type;
     bool matched;
+
+    Message * message;
+
+
+    bool operator<(const  CommRecord &);
+    bool operator>(const  CommRecord &);
+    bool operator<=(const  CommRecord &);
+    bool operator>=(const  CommRecord &);
+    bool operator==(const  CommRecord &);
 };
 
 #endif // COMMRECORD_H

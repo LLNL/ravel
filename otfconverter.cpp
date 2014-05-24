@@ -98,6 +98,14 @@ Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
 
     traceTimer.start();
 
+    // First sort messages - not necessary
+    /*for (QVector<QVector<CommRecord *> *>::Iterator msglist
+         = rawtrace->messages->begin();
+         msglist != rawtrace->messages->end(); ++msglist)
+    {
+        qSort((*msglist)->begin(), (*msglist)->end(), dereferencedLessThan<CommRecord>);
+    }*/
+
     // Match messages to previously connected events
     matchMessages();
 
@@ -206,9 +214,120 @@ void OTFConverter::matchEvents()
     delete stack;
 }
 
+void OTFConverter::matchMessages()
+{
+    int messages = 0;
+    int unmatched_recvs = 0;
+    int unmatched_sends = 0;
+    Event * tmp;
+    int index;
+    QMap<int, int> indexMap = QMap<int, int>();
+    int progressPortion = std::max(round(rawtrace->messages->size() * 1.0
+                                         / message_match_portion), 1.0);
+    int currentPortion = 0;
+    int currentIter = 0;
+    for (int i = 0; i < rawtrace->num_processes; i++)
+    {
+        if (round(currentIter / progressPortion) > currentPortion)
+        {
+            ++currentPortion;
+            emit(matchingUpdate(1 + event_match_portion + currentPortion,
+                                "Event/Message matching..."));
+        }
+        ++currentIter;
+        QVector<CommRecord *> * commlist = rawtrace->messages->at(i);
+        QList<Event *> * sender_events = trace->mpi_events->at(i);
+        for (int j = 0; j < rawtrace->num_processes; j++)
+            indexMap[j] = trace->mpi_events->at(j)->size() - 1; // We go backwards
+
+        for (QVector<CommRecord *>::Iterator comm = commlist->begin();
+             comm != commlist->end(); ++comm)
+        {
+            messages++;
+            Message * m = new Message((*comm)->send_time, (*comm)->recv_time);
+
+            Event * send_evt = NULL, * recv_evt = NULL;
+
+            // Find matching send
+            index = indexMap[(*comm)->sender];
+            while (!send_evt && index >= 0)
+            {
+                tmp = sender_events->at(index);
+                if (tmp->enter <= (*comm)->send_time
+                    && tmp->exit >= (*comm)->send_time)
+                {
+                    send_evt = tmp;
+                }
+                index--;
+            }
+            indexMap[(*comm)->sender] = index;
+
+            // Find matching recv - move back/forth from index to find match
+            QList<Event *> * receiver_events = trace->mpi_events->at((*comm)->receiver);
+            index = indexMap[(*comm)->receiver];
+            while (!recv_evt && index >= 0 && index < receiver_events->size())
+            {
+                tmp = receiver_events->at(index);
+                if (tmp->enter > (*comm)->recv_time)
+                {
+                    index++;\
+                }
+                else if (tmp->exit < (*comm)->recv_time)
+                {
+                    index--;
+                }
+                else
+                {
+                    recv_evt = receiver_events->at(index);
+                }
+            }
+            indexMap[(*comm)->receiver] = index;
+
+            if (send_evt)
+            {
+                m->sender = send_evt;
+                (*comm)->message = m;
+            }
+            else
+            {
+                std::cout << "Error finding send event for "
+                          << (*comm)->sender << "->" << (*comm)->receiver
+                          << " (" << (*comm)->send_time << ", "
+                          << (*comm)->recv_time << ")"
+                          << " -- dropping message." << std::endl;
+                unmatched_sends++;
+                delete m;
+            }
+
+            if (recv_evt)
+            {
+                m->sender->messages->append(m);
+                recv_evt->messages->append(m);
+                m->receiver = recv_evt;
+            }
+            else
+            {
+                std::cout << "Error finding recv event for "
+                          << (*comm)->sender << "->" << (*comm)->receiver
+                          << " (" << (*comm)->send_time << ", "
+                          << (*comm)->recv_time << ")"
+                          << " -- dropping message." <<  std::endl;
+                unmatched_recvs++;
+                delete m;
+            }
+
+        }
+    }
+
+    // Report
+    std::cout << "Total messages: " << messages << " with " << unmatched_sends
+              << " unmatched sends and " << unmatched_recvs
+              << " unmatched_recvs." << std::endl;
+}
+
 
 // Match the messages to the events.
-void OTFConverter::matchMessages()
+void OTFConverter::matchMessagesOld()
 {
     int messages = 0;
     int unmatched_recvs = 0;

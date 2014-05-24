@@ -29,6 +29,7 @@ private:
     void matchEvents();
 
     void matchMessages();
+    void matchMessagesOld();
     Event * search_child_ranges(QVector<Event *> * children,
                                 unsigned long long int time);
     Event * find_comm_event(Event * evt, unsigned long long int time);

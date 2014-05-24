@@ -179,12 +179,10 @@ void Partition::step()
                 stride_events->append(*evt);
 
                 // The next one in the process is a stride child
-                std::cout << "     has a process child: " << std::endl;
                 find_stride_child(*evt, *evt);
 
                 // Follow messages to their receives and then along
                 // the new process to find more stride children
-                std::cout << "     has msg children: " << std::endl;
                 for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
                      msg != (*evt)->messages->end(); ++msg)
                 {
@@ -196,7 +194,6 @@ void Partition::step()
             }
             else // Setup receives
             {
-                std::cout << " as a recv" << std::endl;
                 recv_events->append(*evt);
                 (*evt)->is_recv = true;
                 if ((*evt)->comm_prev && (*evt)->comm_prev->partition == this)
