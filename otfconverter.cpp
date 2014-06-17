@@ -221,7 +221,6 @@ void OTFConverter::matchMessages()
     int unmatched_sends = 0;
     Event * tmp;
     int index;
-    QMap<int, int> indexMap = QMap<int, int>();
     int progressPortion = std::max(round(rawtrace->messages->size() * 1.0
                                          / message_match_portion), 1.0);
     int currentPortion = 0;
@@ -236,23 +235,22 @@ void OTFConverter::matchMessages()
         }
         ++currentIter;
         QVector<CommRecord *> * commlist = rawtrace->messages->at(i);
-        QList<Event *> * sender_events = trace->mpi_events->at(i);
-        for (int j = 0; j < rawtrace->num_processes; j++)
-            indexMap[j] = trace->mpi_events->at(j)->size() - 1; // We go backwards
 
+        // Match the sends
+        QList<Event *> * mpi_events = trace->mpi_events->at(i);
+        index = mpi_events->size() - 1;
         for (QVector<CommRecord *>::Iterator comm = commlist->begin();
              comm != commlist->end(); ++comm)
         {
             messages++;
             Message * m = new Message((*comm)->send_time, (*comm)->recv_time);
 
-            Event * send_evt = NULL, * recv_evt = NULL;
+            Event * send_evt = NULL;
 
-            // Find matching send
-            index = indexMap[(*comm)->sender];
+            // Find matching send from last index back
             while (!send_evt && index >= 0)
             {
-                tmp = sender_events->at(index);
+                tmp = mpi_events->at(index);
                 if (tmp->enter <= (*comm)->send_time
                     && tmp->exit >= (*comm)->send_time)
                 {
@@ -260,28 +258,6 @@ void OTFConverter::matchMessages()
                 }
                 index--;
             }
-            indexMap[(*comm)->sender] = index;
-
-            // Find matching recv - move back/forth from index to find match
-            QList<Event *> * receiver_events = trace->mpi_events->at((*comm)->receiver);
-            index = indexMap[(*comm)->receiver];
-            while (!recv_evt && index >= 0 && index < receiver_events->size())
-            {
-                tmp = receiver_events->at(index);
-                if (tmp->enter > (*comm)->recv_time)
-                {
-                    index++;\
-                }
-                else if (tmp->exit < (*comm)->recv_time)
-                {
-                    index--;
-                }
-                else
-                {
-                    recv_evt = receiver_events->at(index);
-                }
-            }
-            indexMap[(*comm)->receiver] = index;
 
             if (send_evt)
             {
@@ -298,6 +274,36 @@ void OTFConverter::matchMessages()
                 unmatched_sends++;
                 delete m;
             }
+        }
+
+        commlist = rawtrace->messages_r->at(i);
+
+        // Match the sends
+        index = mpi_events->size() - 1;
+        for (QVector<CommRecord *>::Iterator comm = commlist->begin();
+             comm != commlist->end(); ++comm)
+        {
+            // Find matching recv - move back/forth from index to find match
+            Message * m = (*comm)->message;
+
+            // Don't bother if we didn't find the matching send
+            if (!m)
+                continue;
+
+            Event * recv_evt = NULL;
+
+            // Find matching send from last index back
+            while (!recv_evt && index >= 0)
+            {
+                tmp = mpi_events->at(index);
+                if (tmp->enter <= (*comm)->recv_time
+                    && tmp->exit >= (*comm)->recv_time)
+                {
+                    recv_evt = tmp;
+                }
+                index--;
+            }
+
 
             if (recv_evt)
             {

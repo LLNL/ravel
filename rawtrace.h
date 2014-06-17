@@ -21,6 +21,7 @@ public:
     QMap<int, Function *> * functions;
     QVector<QVector<EventRecord *> *> * events;
     QVector<QVector<CommRecord *> *> * messages;
+    QVector<QVector<CommRecord *> *> * messages_r; // by receiver instead of sender
     QMap<int, Communicator *> * communicators;
     QMap<int, OTFCollective *> * collective_definitions;
 

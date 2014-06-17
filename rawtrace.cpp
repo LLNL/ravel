@@ -5,6 +5,7 @@ RawTrace::RawTrace(int np)
       functions(NULL),
       events(NULL),
       messages(NULL),
+      messages_r(NULL),
       communicators(NULL),
       collective_definitions(NULL),
       collectives(NULL),
@@ -45,4 +46,5 @@ RawTrace::~RawTrace()
         *eitr = NULL;
     }
     delete messages;
+    delete messages_r;
 }

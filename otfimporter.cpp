@@ -446,13 +446,10 @@ int OTFImporter::handleRecv(void * userData, uint64_t time, uint32_t receiver,
     }
     else
     {
-        ((*(((OTFImporter*) userData)->unmatched_recvs))[sender - 1])->append(new CommRecord(sender - 1,
-                                                                                             0,
-                                                                                             receiver - 1,
-                                                                                             time,
-                                                                                             length,
-                                                                                             type));
+        cr = new CommRecord(sender - 1, 0, receiver - 1, time, length, type);
+        ((*(((OTFImporter*) userData)->unmatched_recvs))[sender - 1])->append(cr);
     }
+    (*((((OTFImporter*) userData)->rawtrace)->messages_r))[receiver - 1]->append(cr);
 
     return 0;
 }
