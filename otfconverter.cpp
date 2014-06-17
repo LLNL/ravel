@@ -221,10 +221,12 @@ void OTFConverter::matchMessages()
     int unmatched_sends = 0;
     Event * tmp;
     int index;
-    int progressPortion = std::max(round(rawtrace->messages->size() * 1.0
+    int progressPortion = std::max(round(rawtrace->messages->size() * 0.5
                                          / message_match_portion), 1.0);
     int currentPortion = 0;
     int currentIter = 0;
+
+    // First do all the sends, so the receives can wait for them
     for (int i = 0; i < rawtrace->num_processes; i++)
     {
         if (round(currentIter / progressPortion) > currentPortion)
@@ -275,10 +277,22 @@ void OTFConverter::matchMessages()
                 delete m;
             }
         }
+    }
 
-        commlist = rawtrace->messages_r->at(i);
+    // Now do all the receives since sends have been finished
+    for (int i = 0; i < rawtrace->num_processes; i++)
+    {
+        if (round(currentIter / progressPortion) > currentPortion)
+        {
+            ++currentPortion;
+            emit(matchingUpdate(1 + event_match_portion + currentPortion,
+                                "Event/Message matching..."));
+        }
+        ++currentIter;
+        QVector<CommRecord *> * commlist = rawtrace->messages_r->at(i);
 
         // Match the sends
+        QList<Event *> * mpi_events = trace->mpi_events->at(i);
         index = mpi_events->size() - 1;
         for (QVector<CommRecord *>::Iterator comm = commlist->begin();
              comm != commlist->end(); ++comm)

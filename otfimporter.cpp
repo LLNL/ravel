@@ -99,6 +99,7 @@ RawTrace * OTFImporter::importOTF(const char* otf_file)
     rawtrace->collectives = collectives;
     rawtrace->events = new QVector<QVector<EventRecord *> *>(num_processes);
     rawtrace->messages = new QVector<QVector<CommRecord *> *>(num_processes);
+    rawtrace->messages_r = new QVector<QVector<CommRecord *> *>(num_processes);
 
 
 
@@ -114,6 +115,7 @@ RawTrace * OTFImporter::importOTF(const char* otf_file)
         (*collectiveMap)[i] = new QMap<unsigned long long, CollectiveRecord *>();
         (*(rawtrace->events))[i] = new QVector<EventRecord *>();
         (*(rawtrace->messages))[i] = new QVector<CommRecord *>();
+        (*(rawtrace->messages_r))[i] = new QVector<CommRecord *>();
     }
 
     std::cout << "Reading events" << std::endl;
