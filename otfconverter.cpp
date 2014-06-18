@@ -221,7 +221,7 @@ void OTFConverter::matchMessages()
     int unmatched_sends = 0;
     Event * tmp;
     int index;
-    int progressPortion = std::max(round(rawtrace->messages->size() * 0.5
+    int progressPortion = std::max(round(rawtrace->messages->size() * 2.0
                                          / message_match_portion), 1.0);
     int currentPortion = 0;
     int currentIter = 0;
@@ -302,7 +302,9 @@ void OTFConverter::matchMessages()
 
             // Don't bother if we didn't find the matching send
             if (!m)
+            {
                 continue;
+            }
 
             Event * recv_evt = NULL;
 
@@ -315,9 +317,12 @@ void OTFConverter::matchMessages()
                 {
                     recv_evt = tmp;
                 }
-                index--;
+                else
+                {   // Stay at this index until it's no good because multiple
+                    // receives may happen at this event.
+                    index--;
+                }
             }
-
 
             if (recv_evt)
             {

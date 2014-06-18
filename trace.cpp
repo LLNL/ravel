@@ -758,7 +758,7 @@ void Trace::chainCommEvents()
                         i++; // We replaced i, so we move forward
                     }
                 }
-                else if (evt->messages->size() > 0 || evt->collective)
+                else if ((evt->messages && evt->messages->size() > 0) || evt->collective)
                 {
                     // Check for isend and handle if necessary
                     if (isend)
