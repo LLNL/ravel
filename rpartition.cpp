@@ -23,6 +23,7 @@ Partition::Partition()
       cluster_processes(new QVector<ClusterProcess *>()),
       cluster_vectors(new QMap<int, QVector<long long int> *>()),
       cluster_step_starts(new QMap<int, int>()),
+      debug_mark(false),
       free_recvs(NULL)
 {
     group->insert(this); // We are always in our own group
@@ -258,8 +259,11 @@ void Partition::step()
     QMap<int, Event*> next_step = QMap<int, Event*>();
     for (int i = 0; i < processes.size(); i++)
     {
-        if ((*events)[processes[i]]->size() > 0)
+        if ((*events)[processes[i]]->size() > 0) {
             next_step[processes[i]] = (*events)[processes[i]]->at(0);
+            if ((*events)[processes[i]]->at(0)->enter == 6785280561)
+                std::cout << "Next Step initialized with event of interest" << std::endl;
+        }
         else
             next_step[processes[i]] = NULL;
     }
@@ -271,6 +275,8 @@ void Partition::step()
         {
             process = processes[i];
             evt = next_step[process];
+            if (evt && evt->enter == 6785280561)
+                std::cout << "Retrieved from next step" << std::endl;
 
             // We want recvs that can be set at this stride and are blocking
             // the current send strides from being sent. That means the
@@ -292,6 +298,9 @@ void Partition::step()
                                               evt->last_send->step);
                 else
                     evt->step = 1 + evt->last_send->step;
+
+                if (evt->enter == 6785280561)
+                    std::cout << "In while loop, step is " << evt->step << std::endl;
 
                 if (evt->step > max_step)
                     max_step = evt->step;
@@ -344,6 +353,9 @@ void Partition::step()
             else
                 evt->step = 1 + evt->last_send->step;
 
+            if (evt->enter == 6785280561)
+                std::cout << "In leftover whlie, step is " << evt->step << std::endl;
+
             if (evt->step > max_step)
                 max_step = evt->step;
             evt = evt->comm_next;
@@ -352,7 +364,6 @@ void Partition::step()
 
     // Now that we have finished, we should also have a correct max_step
     // for this process.
-
 }
 
 int Partition::set_stride_dag(QList<Event *> * stride_events)

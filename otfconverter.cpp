@@ -297,7 +297,7 @@ void OTFConverter::matchMessages()
         for (QVector<CommRecord *>::Iterator comm = commlist->begin();
              comm != commlist->end(); ++comm)
         {
-            // Find matching recv - move back/forth from index to find match
+            // Find matching recv
             Message * m = (*comm)->message;
 
             // Don't bother if we didn't find the matching send

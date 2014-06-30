@@ -76,6 +76,8 @@ public:
     QMap<int, QVector<long long int> *> * cluster_vectors;
     QMap<int, int> * cluster_step_starts;
 
+    bool debug_mark;
+
 private:
     // Stepping logic -- probably want to rewrite
     int set_stride_dag(QList<Event *> * stride_events);
