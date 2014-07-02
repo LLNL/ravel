@@ -390,12 +390,15 @@ void Gnome::generateTopProcessesWorker(int process)
              proc != current_processes.end(); ++proc)
         {
             elist = partition->events->value(*proc);
-            for (QList<Event *>::Iterator evt = elist->begin();
+            for (QList<CommEvent *>::Iterator evt = elist->begin();
                  evt != elist->end(); ++evt)
             {
+                msgs = (*evt)->getMessages();
+                if (!msgs)
+                    continue;
                 for (QVector<Message *>::Iterator msg
-                     = (*evt)->messages->begin();
-                     msg != (*evt)->messages->end(); ++msg)
+                     = msgs->begin();
+                     msg != msgs->end(); ++msg)
                 {
                     if (*evt == (*msg)->sender)
                     {
@@ -674,7 +677,7 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
         opacity = 0.5;
     for (int i = 0; i < top_processes.size(); ++i)
     {
-        QList<Event *> * event_list = partition->events->value(top_processes[i]);
+        QList<CommEvent *> * event_list = partition->events->value(top_processes[i]);
         bool selected = false;
         if (is_selected && selected_pc
             && selected_pc->members->contains(top_processes[i]))
@@ -684,7 +687,7 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
         y =  floor(extents.y() + i * blockheight) + 1;
 
         processYs[top_processes[i]] = y;
-        for (QList<Event *>::Iterator evt = event_list->begin();
+        for (QList<CommEvent *>::Iterator evt = event_list->begin();
              evt != event_list->end(); ++evt)
         {
             if (options->showAggregateSteps)
@@ -710,31 +713,33 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
                 painter->drawRect(QRectF(x,y,w,h));
             }
 
-            for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
-                 msg != (*evt)->messages->end(); ++msg)
-            {
-                if (top_processes.contains((*msg)->sender->process)
-                        && top_processes.contains((*msg)->receiver->process))
+            QVector<Message *> * msgs = (*evt)->getMessages();
+            if (msgs)
+                for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
+                     msg != (*evt)->messages->end(); ++msg)
                 {
-                    drawMessages.insert((*msg));
-                }
-                else if (*evt == (*msg)->sender)
-                {
-                    // send
-                    if ((*msg)->sender->process > (*msg)->receiver->process)
-                        painter->drawLine(x + w/2, y + h/2, x + w, y);
+                    if (top_processes.contains((*msg)->sender->process)
+                            && top_processes.contains((*msg)->receiver->process))
+                    {
+                        drawMessages.insert((*msg));
+                    }
+                    else if (*evt == (*msg)->sender)
+                    {
+                        // send
+                        if ((*msg)->sender->process > (*msg)->receiver->process)
+                            painter->drawLine(x + w/2, y + h/2, x + w, y);
+                        else
+                            painter->drawLine(x + w/2, y + h/2, x + w, y + h);
+                    }
                     else
-                        painter->drawLine(x + w/2, y + h/2, x + w, y + h);
+                    {
+                        // recv
+                        if ((*msg)->sender->process > (*msg)->receiver->process)
+                            painter->drawLine(x + w/2, y + h/2, x, y + h);
+                        else
+                            painter->drawLine(x + w/2, y + h/2, x, y);
+                    }
                 }
-                else
-                {
-                    // recv
-                    if ((*msg)->sender->process > (*msg)->receiver->process)
-                        painter->drawLine(x + w/2, y + h/2, x, y + h);
-                    else
-                        painter->drawLine(x + w/2, y + h/2, x, y);
-                }
-            }
 
             if (options->showAggregateSteps) {
                 xa = floor(((*evt)->step - startStep - 1) * blockwidth) + 1 + extents.x();
@@ -767,8 +772,8 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
             painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
         else
             painter->setPen(QPen(Qt::black, 1, Qt::SolidLine));
-        Event * send_event;
-        Event * recv_event;
+        P2PEvent * send_event;
+        P2PEvent * recv_event;
         QPointF p1, p2;
         w = barwidth;
         h = barheight;
@@ -1024,7 +1029,7 @@ void Gnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current,
 
 // If a cluster is a leaf with one process, draw it similarly to StepVis
 void Gnome::drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy,
-                                   QList<Event *> * elist, int blockwidth,
+                                   QList<CommEvent *> * elist, int blockwidth,
                                    int startStep)
 {
     int y = startxy.y();
@@ -1032,7 +1037,7 @@ void Gnome::drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy,
     if (options->showAggregateSteps)
         startStep -= 1;
     painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
-    for (QList<Event *>::Iterator evt = elist->begin();
+    for (QList<CommEvent *>::Iterator evt = elist->begin();
          evt != elist->end(); ++evt)
     {
         if (options->showAggregateSteps)
@@ -1075,11 +1080,13 @@ void Gnome::drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy,
                 painter->drawRect(QRectF(xa, y, wa, h));
         }
 
-        for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
-             msg != (*evt)->messages->end(); ++msg)
-        {
-            saved_messages.insert(*msg);
-        }
+        QVector<Message *> * msgs = (*evt)->getMessages();
+        if (msgs)
+            for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
+                 msg != (*evt)->messages->end(); ++msg)
+            {
+                saved_messages.insert(*msg);
+            }
 
     }
 }

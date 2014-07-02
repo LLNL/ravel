@@ -39,7 +39,10 @@ SOURCES  += main.cpp \
     clusterprocess.cpp \
     metricrangedialog.cpp \
     communicator.cpp \
-    otfcollective.cpp
+    otfcollective.cpp \
+    commevent.cpp \
+    p2pevent.cpp \
+    collectiveevent.cpp
 
 
 HEADERS += \
@@ -77,7 +80,10 @@ HEADERS += \
     clusterprocess.h \
     metricrangedialog.h \
     communicator.h \
-    otfcollective.h
+    otfcollective.h \
+    commevent.h \
+    p2pevent.h \
+    collectiveevent.h
 
 
 FORMS += \

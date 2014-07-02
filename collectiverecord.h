@@ -3,7 +3,7 @@
 
 #include <QMap>
 
-class Event;
+class CollectiveEvent;
 
 // Information we get from OTF about collectives
 class CollectiveRecord
@@ -20,7 +20,7 @@ public:
 
     // Map from process to enter/leave times
     //QMap<int, std::pair<unsigned long long, unsigned long long> > * times;
-    QList<Event *> * events;
+    QList<CollectiveEvent *> * events;
 
 };
 

@@ -153,7 +153,7 @@ protected:
                                   float blockheight, int blockwidth, int barheight,
                                   int barwidth);
     void drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy,
-                                QList<Event *> * elist,
+                                QList<CommEvent *> *elist,
                                 int blockwidth, int startStep);
     void drawGnomeQtInterMessages(QPainter * painter, int blockwidth,
                                   int startStep, int startx);

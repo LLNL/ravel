@@ -220,11 +220,11 @@ void Trace::gnomify()
 
 void Trace::setGnomeMetric(Partition * part, int gnome_index)
 {
-    for (QMap<int, QList<Event *> *>::Iterator event_list
+    for (QMap<int, QList<CommEvent *> *>::Iterator event_list
          = part->events->begin();
          event_list != part->events->end(); ++event_list)
     {
-        for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+        for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
         {
             (*evt)->addMetric("Gnome", gnome_index, gnome_index);
@@ -240,11 +240,11 @@ void Trace::addPartitionMetric()
     for (QList<Partition *>::Iterator part = partitions->begin();
          part != partitions->end(); ++part)
     {
-        for (QMap<int, QList<Event *> *>::Iterator event_list
+        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
              = (*part)->events->begin();
              event_list != (*part)->events->end(); ++event_list)
         {
-            for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+            for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
             {
                 (*evt)->addMetric("Partition", partition, partition);
@@ -376,11 +376,11 @@ void Trace::set_global_steps()
             (*part)->mark = false; // Using this to debug again
 
             // Set steps for partition events
-            for (QMap<int, QList<Event *> *>::Iterator event_list
+            for (QMap<int, QList<CommEvent *> *>::Iterator event_list
                  = (*part)->events->begin();
                  event_list != (*part)->events->end(); ++event_list)
             {
-                for (QList<Event *>::Iterator evt
+                for (QList<CommEvent *>::Iterator evt
                      = (event_list.value())->begin();
                      evt != (event_list.value())->end(); ++evt)
                 {
@@ -420,11 +420,11 @@ void Trace::calculate_differential_lateness(QString metric_name,
     for (QList<Partition *>::Iterator part = partitions->begin();
          part != partitions->end(); ++part)
     {
-        for (QMap<int, QList<Event *> *>::Iterator event_list
+        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
              = (*part)->events->begin();
              event_list != (*part)->events->end(); ++event_list)
         {
-            for (QList<Event *>::Iterator evt
+            for (QList<CommEvent *>::Iterator evt
                  = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
             {
@@ -432,14 +432,16 @@ void Trace::calculate_differential_lateness(QString metric_name,
                 max_agg_parent = 0;
                 if ((*evt)->comm_prev)
                     max_agg_parent = ((*evt)->comm_prev->getMetric(base_name));
-                for (QVector<Message *>::Iterator msg
-                     = (*evt)->messages->begin();
-                     msg != (*evt)->messages->end(); ++msg)
-                {
-                    if ((*msg)->receiver == *evt
-                        && (*msg)->sender->getMetric(base_name) > max_parent)
-                        max_parent = (*msg)->sender->getMetric(base_name);
-                }
+                QVector<Message *> * msgs = (*evt)->getMessages();
+                if (msgs)
+                    for (QVector<Message *>::Iterator msg
+                         = msgs->begin();
+                         msg != msgs->end(); ++msg)
+                    {
+                        if ((*msg)->receiver == *evt
+                            && (*msg)->sender->getMetric(base_name) > max_parent)
+                            max_parent = (*msg)->sender->getMetric(base_name);
+                    }
 
                 (*evt)->addMetric(metric_name,
                                   std::max(0LL,
@@ -470,13 +472,13 @@ void Trace::calculate_partition_lateness()
         for (int i = (*part)->min_global_step;
              i <= (*part)->max_global_step; i += 2)
         {
-            QList<Event *> * i_list = new QList<Event *>();
+            QList<CommEvent *> * i_list = new QList<CommEvent *>();
 
             for (QMap<int, QList<Event *> *>::Iterator event_list
                  = (*part)->events->begin();
                  event_list != (*part)->events->end(); ++event_list)
             {
-                for (QList<Event *>::Iterator evt
+                for (QList<CommEvent *>::Iterator evt
                      = (event_list.value())->begin();
                      evt != (event_list.value())->end(); ++evt)
                 {
@@ -488,7 +490,7 @@ void Trace::calculate_partition_lateness()
             // Find min leave time
             mintime = ULLONG_MAX;
             aggmintime = ULLONG_MAX;
-            for (QList<Event *>::Iterator evt = i_list->begin();
+            for (QList<CommEvent *>::Iterator evt = i_list->begin();
                  evt != i_list->end(); ++evt)
             {
                 if ((*evt)->exit < mintime)
@@ -498,7 +500,7 @@ void Trace::calculate_partition_lateness()
             }
 
             // Set lateness;
-            for (QList<Event *>::Iterator evt = i_list->begin();
+            for (QList<CommEvent *>::Iterator evt = i_list->begin();
                  evt != i_list->end(); ++evt)
             {
                 (*evt)->addMetric(p_late, (*evt)->exit - mintime,
@@ -545,15 +547,15 @@ void Trace::calculate_lateness()
         }
         ++currentIter;
 
-        QList<Event *> * i_list = new QList<Event *>();
+        QList<CommEvent *> * i_list = new QList<CommEvent *>();
         for (QSet<Partition *>::Iterator part = active_partitions->begin();
              part != active_partitions->end(); ++part)
         {
-            for (QMap<int, QList<Event *> *>::Iterator event_list
+            for (QMap<int, QList<CommEvent *> *>::Iterator event_list
                  = (*part)->events->begin();
                  event_list != (*part)->events->end(); ++event_list)
             {
-                for (QList<Event *>::Iterator evt
+                for (QList<CommEvent *>::Iterator evt
                      = (event_list.value())->begin();
                      evt != (event_list.value())->end(); ++evt)
                 {
@@ -576,7 +578,7 @@ void Trace::calculate_lateness()
         }
 
         // Set lateness
-        for (QList<Event *>::Iterator evt = i_list->begin();
+        for (QList<CommEvent *>::Iterator evt = i_list->begin();
              evt != i_list->end(); ++evt)
         {
             (*evt)->addMetric("Lateness", (*evt)->exit - mintime,

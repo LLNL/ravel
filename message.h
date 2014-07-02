@@ -1,15 +1,15 @@
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
-class Event;
+class P2PEvent;
 
 // Holder of message info
 class Message
 {
 public:
     Message(unsigned long long send, unsigned long long recv);
-    Event * sender;
-    Event * receiver;
+    P2PEvent * sender;
+    P2PEvent * receiver;
     unsigned long long sendtime;
     unsigned long long recvtime;
 

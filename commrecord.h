@@ -2,6 +2,7 @@
 #define COMMRECORD_H
 
 #include "message.h"
+#include "p2pevent.h"
 
 // Holder of OTF Comm Info
 class CommRecord
@@ -22,7 +23,6 @@ public:
     bool matched;
 
     Message * message;
-
 
     bool operator<(const  CommRecord &);
     bool operator>(const  CommRecord &);

@@ -92,30 +92,12 @@ Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
     }
 
     traceElapsed = traceTimer.nsecsElapsed();
-    std::cout << "Event Matching: ";
+    std::cout << "Event/Message Matching: ";
     gu_printTime(traceElapsed);
     std::cout << std::endl;
-
-    traceTimer.start();
-
-    // First sort messages - not necessary
-    /*for (QVector<QVector<CommRecord *> *>::Iterator msglist
-         = rawtrace->messages->begin();
-         msglist != rawtrace->messages->end(); ++msglist)
-    {
-        qSort((*msglist)->begin(), (*msglist)->end(), dereferencedLessThan<CommRecord>);
-    }*/
-
-    // Match messages to previously connected events
-    matchMessages();
 
     delete importer;
     delete rawtrace;
-
-    traceElapsed = traceTimer.nsecsElapsed();
-    std::cout << "Message Matching: ";
-    gu_printTime(traceElapsed);
-    std::cout << std::endl;
 
     return trace;
 }
@@ -125,13 +107,13 @@ Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
 void OTFConverter::matchEvents()
 {
     // We can handle each set of events separately
-    QStack<Event *> * stack = new QStack<Event *>();
+    QStack<EventRecord *> * stack = new QStack<EventRecord *>();
     emit(matchingUpdate(1, "Constructing events..."));
     int progressPortion = std::max(round(rawtrace->num_processes / 1.0
                                          / event_match_portion), 1.0);
     int currentPortion = 0;
     int currentIter = 0;
-
+    bool mpi, sendflag, recvflag;
     for (QVector<QVector<EventRecord *> *>::Iterator event_list
          = rawtrace->events->begin();
          event_list != rawtrace->events->end(); ++event_list)
@@ -145,53 +127,151 @@ void OTFConverter::matchEvents()
             emit(matchingUpdate(1 + currentPortion, "Constructing events..."));
         }
         ++currentIter;
+
+        QVector<CommRecord *> * sendlist = rawtrace->messages->at(i);
+        QVector<CommRecord *> * recvlist = rawtrace->messages_r->at(i);
+        int sindex = 0, rindex = 0;
+        CommEvent * prev = NULL;
         for (QVector<EventRecord *>::Iterator evt = (*event_list)->begin();
              evt != (*event_list)->end(); ++evt)
         {
             if ((*evt)->value == 0) // End of a subroutine
             {
-                Event * e = stack->pop();
-                e->exit = (*evt)->time;
+                EventRecord * bgn = stack->pop();
+
+                // Keep track of the mpi_events for partitioning
+                CollectiveRecord * cr = NULL;
+                mpi = false, sendflag = false, recvflag = false;
+                if (((*(trace->functions))[e->function])->group
+                        == trace->mpi_group)
+                {
+                    mpi = true;
+                    if (rawtrace->collectiveMap->at((*evt)->process)->contains(bgn->time))
+                    {
+                        cr = (*(rawtrace->collectiveMap->at((*evt)->process)))[bgn->time];
+                    }
+
+                    if (bgn->time == sendlist->at(sindex)->send_time)
+                    {
+                        sflag = true;
+                    }
+                    else if (bgn->time > sendlist->at(sindex)->send_time)
+                    {
+                        sindex++;
+                        std::cout << "Error, skipping message (by send) at ";
+                        std::cout << sendlist->at(sindex)->send_time << " on ";
+                        std::cout << (*evt)->process << std::endl;
+                    }
+
+                    if (!sflag && (*evt)->time == recvlist->at(rindex)->recv_time)
+                    {
+                        rflag = true;
+                    }
+                    else if (!sflag && (*evt)->time > recvlist->at(rindex)->recv_time)
+                    {
+                        rindex++;
+                        std::cout << "Error, skipping message (by recv) at ";
+                        std::cout << recvlist->at(rindex)->send_time << " on ";
+                        std::cout << (*evt)->process << std::endl;
+                    }
+                }
+
+
+                Event * e = NULL;
+                if (cr)
+                {
+                    cr->events->append(CollectiveEvent(bgn->time, (*evt)->time,
+                                            bgn->value, bgn->process,
+                                            phase, cr));
+                    cr->events->last()->comm_prev = prev;
+                    prev->comm_next = cr->events->last();
+                    prev = cr->events->last();
+                    e = cr->events->last();
+                }
+                else if (sflag)
+                {
+                    QVector<Message *> * msgs = new QVector<Message *>();
+                    CommRecord * crec = sendlist->at(sindex);
+                    if (!(crec->message))
+                    {
+                        crec->message = new Message(crec->send_time, crec->recv_time);
+                    }
+                    msgs->append(crec->message);
+                    crec->message->sender = new P2PEvent(bgn->time, (*evt)->time,
+                                                         bgn->value,
+                                                         bgn->process, phase,
+                                                         msgs);
+                    crec->message->sender->comm_prev = prev;
+                    prev->comm_next = crec->message->sender;
+                    prev = crec->message->sender;
+                    e = crec->message->sender;
+                    sindex++;
+                }
+                else if (rflag)
+                {
+                    QVector<Message *> * msgs = new QVector<Message *>();
+                    CommRecord * crec = NULL;
+                    while ((*evt)->time == recvlist->at(rindex)->recv_time)
+                    {
+                        crec = recvlist->at(rindex);
+                        if (!(crec->message))
+                        {
+                            crec->message = new Message(crec->send_time, crec->recv_time);
+                        }
+                        msgs->append(crec->message);
+                        rindex++;
+                    }
+                    msgs->at(0)->receiver = new P2PEvent(bgn->time, (*evt)->time,
+                                                         bgn->value,
+                                                         bgn->process, phase,
+                                                         msgs);
+                    for (int i = 1; i < msgs->size(); i++)
+                    {
+                        msgs->at(i)->receiver = msgs->at(0)->receiver;
+                    }
+                    msgs->at(0)->receiver->is_recv = true;
+
+                    msgs->at(0)->receiver->comm_prev = prev;
+                    prev->comm_next = msgs->at(0)->receiver;
+                    prev = msgs->at(0)->receiver;
+
+                    e = msgs->at(0)->receiver;
+                }
+                else
+                {
+                    e = new Event(bgn->time, (*evt)->time, bgn->value,
+                                  bgn->process);
+                }
+
+                if (mpi)
+                {
+                    ((*(trace->mpi_events))[e->process])->prepend(e);
+                }
+
+                depth--;
+                e->depth = depth;
+                if (depth == 0)
+                    (*(trace->roots))[(*evt)->process]->append(e);
+
                 if (e->exit > endtime)
                     endtime = e->exit;
-                if (!stack->isEmpty()) {
+                if (!stack->isEmpty())
+                {
                     e->caller = stack->top();
                     stack->top()->callees->append(e);
                 }
-                depth--;
+
+                (*(trace->events))[(*evt)->process]->append(e);
             }
             else // Begin a subroutine
             {
-                Event * e = new Event((*evt)->time, 0, (*evt)->value,
-                                      (*evt)->process, -1);
-
                 if (options->partitionByFunction
                     && (*evt)->value == phaseFunction)
                 {
                     ++phase;
                 }
-                e->phase = phase;
-
-                e->depth = depth;
-                if (depth == 0)
-                    (*(trace->roots))[(*evt)->process]->append(e);
                 depth++;
-
-                // Keep track of the mpi_events for partitioning
-                if (((*(trace->functions))[e->function])->group
-                        == trace->mpi_group)
-                {
-                    ((*(trace->mpi_events))[e->process])->prepend(e);
-                    if (rawtrace->collectiveMap->at((*evt)->process)->contains((*evt)->time))
-                    {
-                        CollectiveRecord * cr = (*(rawtrace->collectiveMap->at((*evt)->process)))[(*evt)->time];
-                        e->collective = cr;
-                        cr->events->append(e);
-                    }
-                }
-
-                stack->push(e);
-                (*(trace->events))[(*evt)->process]->append(e);
+                stack->push(*evt);
             }
         }
 
@@ -212,249 +292,4 @@ void OTFConverter::matchEvents()
         stack->clear();
     }
     delete stack;
-}
-
-void OTFConverter::matchMessages()
-{
-    int messages = 0;
-    int unmatched_recvs = 0;
-    int unmatched_sends = 0;
-    Event * tmp;
-    int index;
-    int progressPortion = std::max(round(rawtrace->messages->size() * 2.0
-                                         / message_match_portion), 1.0);
-    int currentPortion = 0;
-    int currentIter = 0;
-
-    // First do all the sends, so the receives can wait for them
-    for (int i = 0; i < rawtrace->num_processes; i++)
-    {
-        if (round(currentIter / progressPortion) > currentPortion)
-        {
-            ++currentPortion;
-            emit(matchingUpdate(1 + event_match_portion + currentPortion,
-                                "Event/Message matching..."));
-        }
-        ++currentIter;
-        QVector<CommRecord *> * commlist = rawtrace->messages->at(i);
-
-        // Match the sends
-        QList<Event *> * mpi_events = trace->mpi_events->at(i);
-        index = mpi_events->size() - 1;
-        for (QVector<CommRecord *>::Iterator comm = commlist->begin();
-             comm != commlist->end(); ++comm)
-        {
-            messages++;
-            Message * m = new Message((*comm)->send_time, (*comm)->recv_time);
-
-            Event * send_evt = NULL;
-
-            // Find matching send from last index back
-            while (!send_evt && index >= 0)
-            {
-                tmp = mpi_events->at(index);
-                if (tmp->enter <= (*comm)->send_time
-                    && tmp->exit >= (*comm)->send_time)
-                {
-                    send_evt = tmp;
-                }
-                index--;
-            }
-
-            if (send_evt)
-            {
-                m->sender = send_evt;
-                (*comm)->message = m;
-            }
-            else
-            {
-                std::cout << "Error finding send event for "
-                          << (*comm)->sender << "->" << (*comm)->receiver
-                          << " (" << (*comm)->send_time << ", "
-                          << (*comm)->recv_time << ")"
-                          << " -- dropping message." << std::endl;
-                unmatched_sends++;
-                delete m;
-            }
-        }
-    }
-
-    // Now do all the receives since sends have been finished
-    for (int i = 0; i < rawtrace->num_processes; i++)
-    {
-        if (round(currentIter / progressPortion) > currentPortion)
-        {
-            ++currentPortion;
-            emit(matchingUpdate(1 + event_match_portion + currentPortion,
-                                "Event/Message matching..."));
-        }
-        ++currentIter;
-        QVector<CommRecord *> * commlist = rawtrace->messages_r->at(i);
-
-        // Match the sends
-        QList<Event *> * mpi_events = trace->mpi_events->at(i);
-        index = mpi_events->size() - 1;
-        for (QVector<CommRecord *>::Iterator comm = commlist->begin();
-             comm != commlist->end(); ++comm)
-        {
-            // Find matching recv
-            Message * m = (*comm)->message;
-
-            // Don't bother if we didn't find the matching send
-            if (!m)
-            {
-                continue;
-            }
-
-            Event * recv_evt = NULL;
-
-            // Find matching send from last index back
-            while (!recv_evt && index >= 0)
-            {
-                tmp = mpi_events->at(index);
-                if (tmp->enter <= (*comm)->recv_time
-                    && tmp->exit >= (*comm)->recv_time)
-                {
-                    recv_evt = tmp;
-                }
-                else
-                {   // Stay at this index until it's no good because multiple
-                    // receives may happen at this event.
-                    index--;
-                }
-            }
-
-            if (recv_evt)
-            {
-                m->sender->messages->append(m);
-                recv_evt->messages->append(m);
-                m->receiver = recv_evt;
-            }
-            else
-            {
-                std::cout << "Error finding recv event for "
-                          << (*comm)->sender << "->" << (*comm)->receiver
-                          << " (" << (*comm)->send_time << ", "
-                          << (*comm)->recv_time << ")"
-                          << " -- dropping message." <<  std::endl;
-                unmatched_recvs++;
-                delete m;
-            }
-
-        }
-    }
-
-    // Report
-    std::cout << "Total messages: " << messages << " with " << unmatched_sends
-              << " unmatched sends and " << unmatched_recvs
-              << " unmatched_recvs." << std::endl;
-}
-
-
-// Match the messages to the events.
-void OTFConverter::matchMessagesOld()
-{
-    int messages = 0;
-    int unmatched_recvs = 0;
-    int unmatched_sends = 0;
-    int progressPortion = std::max(round(rawtrace->messages->size() / 1.0
-                                         / message_match_portion), 1.0);
-    int currentPortion = 0;
-    int currentIter = 0;
-    for (QVector<QVector<CommRecord *> *>::Iterator commlist
-         = rawtrace->messages->begin();
-         commlist != rawtrace->messages->end(); ++commlist)
-    {
-        if (round(currentIter / progressPortion) > currentPortion)
-        {
-            ++currentPortion;
-            emit(matchingUpdate(1 + event_match_portion + currentPortion,
-                                "Event/Message matching..."));
-        }
-        ++currentIter;
-        for (QVector<CommRecord *>::Iterator comm = (*commlist)->begin();
-             comm != (*commlist)->end(); ++comm)
-        {
-            messages++;
-            Message * m = new Message((*comm)->send_time, (*comm)->recv_time);
-
-            Event * recv_evt = find_comm_event(search_child_ranges((*(trace->roots))[(*comm)->receiver],
-                                                                   (*comm)->recv_time),
-                                                                   (*comm)->recv_time);
-
-            Event * send_evt = find_comm_event(search_child_ranges((*(trace->roots))[(*comm)->sender],
-                                                                   (*comm)->send_time),
-                                                                   (*comm)->send_time);
-            if (recv_evt && send_evt)
-            {
-                recv_evt->messages->append(m);
-                m->receiver = recv_evt;
-                send_evt->messages->append(m);
-                m->sender = send_evt;
-            } else {
-                if (!recv_evt)
-                {
-                    std::cout << "Error finding recv event for "
-                              << (*comm)->sender << "->" << (*comm)->receiver
-                              << " (" << (*comm)->send_time << ", "
-                              << (*comm)->recv_time << ")"
-                              << " -- dropping message." <<  std::endl;
-                    unmatched_recvs++;
-                } else {
-                    std::cout << "Error finding send event for "
-                              << (*comm)->sender << "->" << (*comm)->receiver
-                              << " (" << (*comm)->send_time << ", "
-                              << (*comm)->recv_time << ")"
-                              << " -- dropping message." << std::endl;
-                    unmatched_sends++;
-                }
-            }
-
-        }
-    }
-    // Report
-    std::cout << "Total messages: " << messages << " with " << unmatched_sends
-              << " unmatched sends and " << unmatched_recvs
-              << " unmatched_recvs." << std::endl;
-}
-
-// Binary search for event containing time
-Event * OTFConverter::search_child_ranges(QVector<Event *> * children,
-                                          unsigned long long int time)
-{
-    int imid, imin = 0;
-    int imax = children->size() - 1;
-    while (imax >= imin)
-    {
-        imid = (imin + imax) / 2;
-        if (((*(children))[imid])->exit < time)
-        {
-            imin = imid + 1;
-        }
-        else if (((*(children))[imid])->enter > time)
-        {
-            imax = imid - 1;
-        }
-        else
-            return (*children)[imid];
-    }
-
-    return NULL;
-}
-
-
-// Find event containing this comm
-Event * OTFConverter::find_comm_event(Event * evt, unsigned long long int time)
-{
-    // Pass back up null if something went wrong
-    if (!evt)
-        return evt;
-
-
-    // No children, this must be it
-    if (evt->callees->size() == 0)
-        return evt;
-
-    // Otherwise, continue search
-    return find_comm_event(search_child_ranges(evt->callees, time), time);
 }

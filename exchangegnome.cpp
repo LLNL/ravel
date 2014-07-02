@@ -22,19 +22,20 @@ bool ExchangeGnome::detectGnome(Partition * part)
     bool gnome = true;
     QSet<int> sends = QSet<int>();
     QSet<int> recvs = QSet<int>();
-    for (QMap<int, QList<Event *> *>::Iterator event_list
+    for (QMap<int, QList<CommEvent *> *>::Iterator event_list
          = part->events->begin();
          event_list != part->events->end(); ++event_list)
     {
         sends.clear();
         recvs.clear();
-        for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+        for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
         {
-            if ((*evt)->collective)
+            QVector<Message *> * msgs = (*evt)->getMessages();
+            if (!msgs)
                 return false;
-            for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
-                 msg != (*evt)->messages->end(); ++msg)
+            for (QVector<Message *>::Iterator msg = msgs->begin();
+                 msg != msgs->end(); ++msg)
             {
                 if ((*msg)->sender == (*evt))
                 {
@@ -77,7 +78,7 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
     int types[UNKNOWN + 1];
     for (int i = 0; i <= UNKNOWN; i++)
         types[i] = 0;
-    for (QMap<int, QList<Event *> *>::Iterator event_list
+    for (QMap<int, QList<CommEvent *> *>::Iterator event_list
          = partition->events->begin();
          event_list != partition->events->end(); ++event_list)
     {
@@ -97,10 +98,10 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
         // this might do  something odd for the pair of pairs, which is why
         // this isn't in use yet or maybe ever.
         int srsr_pattern = 0;
-        for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+        for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
         {
-            Message * msg = (*evt)->messages->at(0);
+            Message * msg = (*evt)->getMessages()->at(0);
             if (first) // For the first message, we don't have a sentlast
             {
                 first = false;
@@ -123,14 +124,14 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
                         b_srsr = false;
 
                     // Waitall or simmilar
-                    else if (sentlast && (*evt)->messages->size() > 1)
+                    else if (sentlast && (*evt)->getMessages()->size() > 1)
                         b_ssrr = false;
 
                     sentlast = false;
 
                     // Keep track of largest Waitall
-                    if ((*evt)->messages->size() > maxWAsize)
-                        maxWAsize = (*evt)->messages->size();
+                    if ((*evt)->getMessages()->size() > maxWAsize)
+                        maxWAsize = (*evt)->getMessages()->size();
                 }
                 else // Send
                 {
@@ -219,11 +220,12 @@ void ExchangeGnome::generateTopProcesses()
         patterns.insert(SRSRmap[max_metric_process]);
         add_processes.insert(max_metric_process);
         // Always add the 1-neighborhood:
-        for (QList<Event *>::Iterator evt = elist->begin();
+        for (QList<CommEvent *>::Iterator evt = elist->begin();
              evt != elist->end(); ++evt)
         {
-            for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
-                 msg != (*evt)->messages->end(); ++msg)
+            QVector<Message *> * msgs = (*evt)->getMessages();
+            for (QVector<Message *>::Iterator msg = msgs->begin();
+                 msg != msgs->end(); ++msg)
             {
                 if (*evt == (*msg)->sender)
                 {
@@ -262,12 +264,13 @@ void ExchangeGnome::generateTopProcesses()
                  proc != check_group.end(); ++proc)
             {
                 elist = partition->events->value(*proc);
-                for (QList<Event *>::Iterator evt = elist->begin();
+                for (QList<CommEvent *>::Iterator evt = elist->begin();
                      evt != elist->end(); ++evt)
                 {
+                    QVector<Message *> * msgs = (*evt)->getMessages();
                     for (QVector<Message *>::Iterator msg
-                         = (*evt)->messages->begin();
-                         msg != (*evt)->messages->end(); ++msg)
+                         = msgs->begin();
+                         msg != msgs->end(); ++msg)
                     {
                         if (*evt == (*msg)->sender)
                         {

@@ -18,7 +18,7 @@ public:
     PartitionCluster(long long int distance, PartitionCluster * c1,
                      PartitionCluster * c2);
     ~PartitionCluster();
-    long long int addMember(ClusterProcess * cp, QList<Event *> * elist,
+    long long int addMember(ClusterProcess * cp, QList<CommEvent *> *elist,
                             QString metric);
     long long int distance(PartitionCluster * other);
     void makeClusterVectors();

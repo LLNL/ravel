@@ -46,11 +46,11 @@ void StepVis::setupMetric()
     for (QList<Partition *>::Iterator part = trace->partitions->begin();
          part != trace->partitions->end(); ++part)
     {
-        for (QMap<int, QList<Event *> *>::Iterator event_list
+        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
              = (*part)->events->begin();
              event_list != (*part)->events->end(); ++event_list)
         {
-            for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+            for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
             {
                 if ((*evt)->hasMetric(metric))
@@ -492,7 +492,7 @@ void StepVis::drawNativeGL()
             break;
         else if (part->max_global_step < bottomStep)
             continue;
-        for (QMap<int, QList<Event *> *>::Iterator event_list = part->events->begin();
+        for (QMap<int, QList<CommEvent *> *>::Iterator event_list = part->events->begin();
              event_list != part->events->end(); ++event_list)
         {
             bool selected = false;
@@ -511,7 +511,7 @@ void StepVis::drawNativeGL()
             }
             y = (maxProcess - position) * barheight - 1;
 
-            for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+            for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
             {
                 // Out of step span test
@@ -641,7 +641,7 @@ void StepVis::paintEvents(QPainter * painter)
             continue;
 
         // Go through events in partition
-        for (QMap<int, QList<Event *> *>::Iterator event_list
+        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
              = part->events->begin();
              event_list != part->events->end(); ++event_list)
         {
@@ -661,7 +661,7 @@ void StepVis::paintEvents(QPainter * painter)
             }
             y = floor((position - startProcess) * blockheight) + 1;
 
-            for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+            for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
             {
                  // Out of step span test
@@ -731,13 +731,15 @@ void StepVis::paintEvents(QPainter * painter)
 
 
                 // Save messages for the end since they draw on top
-                for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
-                     msg != (*evt)->messages->end(); ++msg)
-                {
-                    drawMessages.insert((*msg));
-                }
-                if ((*evt)->collective)
-                    drawCollectives.insert((*evt)->collective);
+                QVector<Message *> * msgs = (*evt)->getMessages();
+                if (msgs)
+                    for (QVector<Message *>::Iterator msg = msgs->begin();
+                         msg != msgs->end(); ++msg)
+                    {
+                        drawMessages.insert((*msg));
+                    }
+                if ((*evt)->getCollective())
+                    drawCollectives.insert((*evt)->getCollective());
 
                 // Draw aggregate events if necessary
                 if (options->showAggregateSteps) {
@@ -798,8 +800,8 @@ void StepVis::paintEvents(QPainter * painter)
             painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
         else
             painter->setPen(QPen(Qt::black, 1, Qt::SolidLine));
-        Event * send_event;
-        Event * recv_event;
+        P2PEvent * send_event;
+        P2PEvent * recv_event;
         QPointF p1, p2;
         w = barwidth;
         h = barheight;
@@ -864,7 +866,7 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr,
                              int effectiveHeight, int blockheight, int blockwidth)
 {
     int root, x, y, prev_x, prev_y, root_x, root_y, position;
-    Event * coll_event;
+    CollectiveEvent * coll_event;
     QPointF p1, p2;
 
     int ell_w = ellipse_width;
@@ -976,7 +978,7 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr,
     {
         painter->setPen(QPen(Qt::black, 1, Qt::DashLine));
         painter->setBrush(QBrush());
-        Event * other;
+        CollectiveEvent * other;
         int oposition, ox, oy;
         p1 = QPointF(root_x + w/2, root_y + h/2);
         for (int j = 0; j < cr->events->size(); j++)

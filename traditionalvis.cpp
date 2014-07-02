@@ -46,11 +46,11 @@ void TraditionalVis::setTrace(Trace * t)
     for (QList<Partition*>::Iterator part = trace->partitions->begin();
          part != trace->partitions->end(); ++part)
     {
-        for (QMap<int, QList<Event *> *>::Iterator event_list
+        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
              = (*part)->events->begin(); event_list != (*part)->events->end();
              ++event_list)
         {
-            for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+            for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
             {
                 if ((*evt)->exit > maxTime)
@@ -86,11 +86,11 @@ void TraditionalVis::setTrace(Trace * t)
     for (QList<Partition*>::Iterator part = trace->partitions->begin();
          part != trace->partitions->end(); ++part)
     {
-        for (QMap<int, QList<Event *> *>::Iterator event_list
+        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
              = (*part)->events->begin(); event_list != (*part)->events->end();
              ++event_list)
         {
-            for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+            for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
             {
                 if ((*evt)->step < 0)
@@ -398,7 +398,7 @@ void TraditionalVis::drawNativeGL()
         if (part->min_global_step > upperStep)
             break;
 
-        for (QMap<int, QList<Event *> *>::Iterator event_list
+        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
              = part->events->begin(); event_list != part->events->end();
              ++event_list)
         {
@@ -408,7 +408,7 @@ void TraditionalVis::drawNativeGL()
                     || position > ceil(startProcess + processSpan))
                 continue;
             y = (maxProcess - position) * barheight - 1;
-            for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+            for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
             {
                 // Out of time span test
@@ -544,7 +544,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
         part = trace->partitions->at(i);
         if (part->min_global_step > upperStep)
             break;
-        for (QMap<int, QList<Event *> *>::Iterator event_list
+        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
              = part->events->begin(); event_list != part->events->end();
              ++event_list)
         {
@@ -561,7 +561,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
                    || position > ceil(startProcess + processSpan))
                continue;
 
-            for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+            for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
             {
                  // Out of time span test
@@ -664,12 +664,14 @@ void TraditionalVis::paintEvents(QPainter *painter)
 
                 }
 
-                for (QVector<Message *>::Iterator msg
-                     = (*evt)->messages->begin();
-                     msg != (*evt)->messages->end(); ++msg)
-                {
-                    drawMessages.insert((*msg));
-                }
+                QVector<Message *> * msgs = (*evt)->getMessages();
+                if (msgs)
+                    for (QVector<Message *>::Iterator msg
+                         = msgs->begin();
+                         msg != msgs->end(); ++msg)
+                    {
+                        drawMessages.insert((*msg));
+                    }
             }
         }
     }
@@ -683,8 +685,8 @@ void TraditionalVis::paintEvents(QPainter *painter)
             painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
         else
             painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
-        Event * send_event;
-        Event * recv_event;
+        P2PEvent * send_event;
+        P2PEvent * recv_event;
         QPointF p1, p2;
         for (QSet<Message *>::Iterator msg = drawMessages.begin();
              msg != drawMessages.end(); ++msg)

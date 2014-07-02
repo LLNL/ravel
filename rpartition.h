@@ -2,6 +2,7 @@
 #define RPARTITION_H
 
 #include "event.h"
+#include "commevent.h"
 #include "general_util.h"
 #include "clusterprocess.h"
 #include <QList>
@@ -41,7 +42,7 @@ public:
     int num_events();
 
     // Core partition information, events per process and step summary
-    QMap<int, QList<Event *> *> * events;
+    QMap<int, QList<CommEvent *> *> * events;
     int max_step;
     int max_global_step;
     int min_global_step;
@@ -80,12 +81,8 @@ public:
 
 private:
     // Stepping logic -- probably want to rewrite
-    int set_stride_dag(QList<Event *> * stride_events);
-    void find_stride_child(Event * base, Event * evt);
-    void old_step();
-    void step_receive(Message * msg);
-    void finalize_steps();
-    void restep();
+    int set_stride_dag(QList<CommEvent *> *stride_events);
+    void find_stride_child(CommEvent * base, CommEvent * evt);
 
     QList<Event *> * free_recvs;
 
