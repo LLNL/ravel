@@ -31,7 +31,7 @@ void CollectiveEvent::set_stride_relationships(CommEvent * base)
 QSet<Partition *> *CollectiveEvent::mergeForMessagesHelper()
 {
     QSet<Partition *> * parts = new QSet<Partition *>();
-    if (collective->mark)
+    if (!collective->mark)
     {
         for (QList<CollectiveEvent *>::Iterator ev2
              = collective->events->begin();
