@@ -2,6 +2,9 @@
 #define TRACE_H
 
 #include "event.h"
+#include "commevent.h"
+#include "p2pevent.h"
+#include "collectiveevent.h"
 #include "function.h"
 #include "rpartition.h"
 #include "otfimportoptions.h"
@@ -25,7 +28,7 @@ public:
     void partition();
     void assignSteps();
     void gnomify();
-    void printStats();
+    void mergePartitions(QList<QList<Partition *> *> * components);
 
     QString name;
     int num_processes;
@@ -50,8 +53,6 @@ public:
 
     QVector<QVector<Event *> *> * events;
     QVector<QVector<Event *> *> * roots; // Roots of call trees per process
-
-    QVector<QList<Event *> *> * mpi_events;
 
     int mpi_group; // functionGroup index of "MPI" functions
 
@@ -79,7 +80,7 @@ public:
         int fxn;
         long long int time;
     };
-    QList<FunctionPair> getAggregateFunctions(Event * evt);
+    QList<FunctionPair> getAggregateFunctions(CommEvent *evt);
 
 signals:
     // This is for progress bars
@@ -96,9 +97,6 @@ private:
     void set_dag_steps();
 
     // Partitioning process
-    void partitionByPhase();
-    void initializePartitions();
-    void initializePartitionsWaitall();
     void mergeForMessages();
     void mergeForMessagesHelper(Partition * part, QSet<Partition *> * to_merge,
                                 QQueue<Partition *> * to_process);
@@ -116,7 +114,6 @@ private:
     };
 
     // Tarjan
-    void mergePartitions(QList<QList<Partition *> *> * components);
     void strong_connect_loop(Partition * part, QStack<Partition *> * stack,
                             QList<Partition *> * children, int cIndex,
                             QStack<RecurseInfo *> * recurse,

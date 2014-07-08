@@ -33,7 +33,6 @@ void OTFImportFunctor::doImport(QString dataFileName)
     std::cout << "Total trace: ";
     gu_printTime(traceElapsed);
     std::cout << std::endl;
-    trace->printStats();
 
     emit(done(trace));
 }

@@ -222,14 +222,14 @@ void OverviewVis::processVis()
     for (QList<Partition *>::Iterator part = trace->partitions->begin();
          part != trace->partitions->end(); ++part)
     {
-        for (QMap<int, QList<Event *> *>::Iterator event_list
+        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
              = (*part)->events->begin();
              event_list != (*part)->events->end(); ++event_list)
         {
             // For each event, we figure out which steps it spans and then we
             // accumulate height over those steps based on the event's metric
             // value
-            for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+            for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
             {
                 // start and stop are the cursor positions

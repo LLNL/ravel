@@ -82,7 +82,7 @@ void PartitionCluster::makeClusterVectors()
 // Add another process to this cluster using the events in elist, the given
 // metric and the process encapsulated by ClusterProcess
 long long int PartitionCluster::addMember(ClusterProcess * cp,
-                                          QList<Event *> * elist,
+                                          QList<CommEvent *> * elist,
                                           QString metric)
 {
     members->append(cp->process);

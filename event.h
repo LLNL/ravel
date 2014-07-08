@@ -23,6 +23,10 @@ public:
     bool operator>=(const Event &);
     bool operator==(const Event &);
 
+    virtual bool isCommEvent() { return false; }
+    virtual bool isReceive() { return false; }
+    virtual bool isCollective() { return false; }
+
     // Call tree info
     Event * caller;
     QVector<Event *> * callees;

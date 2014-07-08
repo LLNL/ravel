@@ -10,6 +10,30 @@ P2PEvent::P2PEvent(unsigned long long _enter, unsigned long long _exit,
 {
 }
 
+P2PEvent::P2PEvent(QList<P2PEvent *> * _subevents)
+    : CommEvent(_subevents->first()->enter, _subevents->last()->exit,
+                _subevents->first()->function, _subevents->first()->process,
+                _subevents->first()->phase),
+      subevents(_subevents),
+      messages(new QVector<Message *>()),
+      is_recv(_subevents->first()->is_recv)
+{
+    this->depth = _subevents->first()->depth;
+    for (QList<P2PEvent *>::Iterator evt = _subevents->begin();
+         evt != subevents->end(); ++evt)
+    {
+        for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
+             msg != (*evt)->messages->end(); ++msg)
+        {
+            if (is_recv)
+                (*msg)->receiver = this;
+            else
+                (*msg)->sender = this;
+            messages->append(*msg);
+        }
+    }
+}
+
 P2PEvent::~P2PEvent()
 {
     for (QVector<Message *>::Iterator itr = messages->begin();
@@ -24,14 +48,31 @@ P2PEvent::~P2PEvent()
         delete subevents;
 }
 
-P2PEvent::isReceive()
+bool P2PEvent::isReceive()
 {
     return is_recv;
 }
 
 
-P2PEvent::set_stride_relationships(CommEvent * base)
+void P2PEvent::set_stride_relationships(CommEvent * base)
 {
     base->stride_children->insert(this);
     stride_parents->insert(base);
+}
+
+void P2PEvent::mergeForMessagesHelper(QSet<Partition *> * to_merge,
+                                      QQueue<Partition *> * to_process)
+{
+    for (QVector<Message *>::Iterator msg = messages->begin();
+         msg != messages->end(); ++msg)
+    {
+        Partition * rpart = (*msg)->receiver->partition;
+        Partition * spart = (*msg)->sender->partition;
+        to_merge->insert(rpart);
+        to_merge->insert(spart);
+        if (!rpart->mark && !to_process->contains(rpart))
+            to_process->enqueue(rpart);
+        if (!spart->mark && !to_process->contains(spart))
+            to_process->enqueue(spart);
+    }
 }

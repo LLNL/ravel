@@ -4,6 +4,7 @@
 #include "clusterevent.h"
 #include "clusterprocess.h"
 #include "event.h"
+#include "commevent.h"
 #include <QSet>
 #include <QList>
 #include <climits>

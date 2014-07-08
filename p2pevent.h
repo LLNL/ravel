@@ -9,11 +9,14 @@ public:
     P2PEvent(unsigned long long _enter, unsigned long long _exit,
              int _function, int _process, int _phase,
              QVector<Message *> * _messages = NULL);
+    P2PEvent(QList<P2PEvent *> * _subevents);
     ~P2PEvent();
-    virtual bool isP2P() { return true; }
+    bool isP2P() { return true; }
     bool isReceive();
     void set_stride_relationships(CommEvent * base);
-    virtual QVector<Message *> * getMessages() { return messages; }
+    QVector<Message *> * getMessages() { return messages; }
+    void mergeForMessagesHelper(QSet<Partition *> * to_merge,
+                                QQueue<Partition *> * to_process);
 
     // ISend coalescing
     QList<P2PEvent *> * subevents;

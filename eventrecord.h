@@ -1,6 +1,8 @@
 #ifndef EVENTRECORD_H
 #define EVENTRECORD_H
 
+#include "event.h"
+
 // Holder for OTF Event info
 class EventRecord
 {
@@ -10,6 +12,7 @@ public:
     unsigned int process;
     unsigned long long int time;
     unsigned int value;
+    QList<Event *> children;
 };
 
 #endif // EVENTRECORD_H

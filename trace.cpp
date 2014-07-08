@@ -22,7 +22,6 @@ Trace::Trace(int np)
       collectiveMap(NULL),
       events(new QVector<QVector<Event *> *>(np)),
       roots(new QVector<QVector<Event *> *>(np)),
-      mpi_events(NULL),
       mpi_group(-1),
       global_max_step(-1),
       dag_entries(NULL),
@@ -117,25 +116,6 @@ Trace::~Trace()
     delete collectives;
 
     delete collectiveMap;
-}
-
-void Trace::printStats()
-{
-    if (!isProcessed)
-    {
-        std::cout << "Not yet processed, incomplete stats" << std::endl;
-        return;
-    }
-
-    int num_mpi = 0;
-    for (QVector<QList<Event *> *>::Iterator itr = mpi_events->begin();
-         itr != mpi_events->end(); ++itr)
-    {
-        num_mpi += (*itr)->length();
-    }
-
-    std::cout << "# MPI Events: " << num_mpi << std::endl;
-
 }
 
 void Trace::preprocess(OTFImportOptions * _options)
@@ -260,28 +240,13 @@ void Trace::partition()
     QElapsedTimer traceTimer;
     qint64 traceElapsed;
 
-    chainCommEvents(); // Set comm_prev/comm_next and cc_prev/cc_next
-
-    partitions = new QList<Partition *>();
     dag_entries = new QList<Partition *>();
     dag_step_dict = new QMap<int, QSet<Partition *> *>();
 
-    // Partition - default
+    // Partition - default - we assume base partitions done
+    // at the converter stage, now we have to do a lot of merging
     if (!options.partitionByFunction)
     {
-        traceTimer.start();
-        // Partition by Process w or w/o Waitall
-        std::cout << "Initializing partitios..." << std::endl;
-        if (options.waitallMerge)
-            initializePartitionsWaitall();
-        else
-            initializePartitions();
-
-        traceElapsed = traceTimer.nsecsElapsed();
-        std::cout << "Partition initialization: ";
-        gu_printTime(traceElapsed);
-        std::cout << std::endl;
-
         traceTimer.start();
           // Merge communication
         std::cout << "Merging for messages..." << std::endl;
@@ -317,10 +282,11 @@ void Trace::partition()
 
     // Partition - given
     // Form partitions given in some way -- need to write options for this [ later ]
+    // Now handled in converter
     else
     {
-        std::cout << "Partitioning by phase..." << std::endl;
-        partitionByPhase();
+        // std::cout << "Partitioning by phase..." << std::endl;
+        //partitionByPhase();
         set_partition_dag();
     }
 }
@@ -432,16 +398,18 @@ void Trace::calculate_differential_lateness(QString metric_name,
                 max_agg_parent = 0;
                 if ((*evt)->comm_prev)
                     max_agg_parent = ((*evt)->comm_prev->getMetric(base_name));
-                QVector<Message *> * msgs = (*evt)->getMessages();
-                if (msgs)
+
+                if ((*evt)->isReceive())
+                {
+                    QVector<Message *> * msgs = (*evt)->getMessages();
                     for (QVector<Message *>::Iterator msg
                          = msgs->begin();
                          msg != msgs->end(); ++msg)
                     {
-                        if ((*msg)->receiver == *evt
-                            && (*msg)->sender->getMetric(base_name) > max_parent)
+                        if ((*msg)->sender->getMetric(base_name) > max_parent)
                             max_parent = (*msg)->sender->getMetric(base_name);
                     }
+                }
 
                 (*evt)->addMetric(metric_name,
                                   std::max(0LL,
@@ -474,7 +442,7 @@ void Trace::calculate_partition_lateness()
         {
             QList<CommEvent *> * i_list = new QList<CommEvent *>();
 
-            for (QMap<int, QList<Event *> *>::Iterator event_list
+            for (QMap<int, QList<CommEvent *> *>::Iterator event_list
                  = (*part)->events->begin();
                  event_list != (*part)->events->end(); ++event_list)
             {
@@ -568,7 +536,7 @@ void Trace::calculate_lateness()
         // Find min leave time
         mintime = ULLONG_MAX;
         aggmintime = ULLONG_MAX;
-        for (QList<Event *>::Iterator evt = i_list->begin();
+        for (QList<CommEvent *>::Iterator evt = i_list->begin();
              evt != i_list->end(); ++evt)
         {
             if ((*evt)->exit < mintime)
@@ -683,137 +651,6 @@ void Trace::assignSteps()
     std::cout << "Lateness Calculation: ";
     gu_printTime(traceElapsed);
     std::cout << std::endl;
-}
-
-
-// Create connectors of prev/next between send/recv events.
-void Trace::chainCommEvents()
-{
-    // Note that mpi_events go backwards in time, so as we iterate through,
-    // the event we just processed is the next event of the one we are
-    // processing.
-    if (options.isendCoalescing)
-    {
-        // Find Isend index
-        int isend_index = -1;
-        for (QMap<int, Function * >::Iterator function = functions->begin();
-             function != functions->end(); ++function)
-        {
-            if (function.value()->group == mpi_group)
-            {
-                if (function.value()->name == "MPI_Isend")
-                    isend_index = function.key();
-            }
-        }
-
-        // In each MPI events list, we want to remove the isends and coalesce them
-        // into a new event containing all of their messages
-        for (int j = 0; j < mpi_events->size(); j++)
-        {
-            QList<Event *> * elist = mpi_events->at(j);
-            Event * next = NULL;
-            Event * evt = NULL;
-            Event * isend = NULL;
-            int i = 0;
-            int isend_i = 0;
-            // We will be removing events so i will shrink
-            while (i != elist->size())
-            {
-                evt = elist->at(i);
-                if (evt->function == isend_index)
-                {
-                    if (isend)
-                    {
-                        // Remove current evt and add it to isend event
-                        isend->enter = evt->enter;
-                        for (int k = 0; k < evt->messages->size(); k++)
-                        {
-                            evt->messages->at(k)->sender = isend;
-                            isend->messages->prepend(evt->messages->at(k));
-                        }
-                        isend->subevents->prepend(evt);
-                        elist->removeAt(i);
-                        // We removed i, so we don't change i
-                    }
-                    else
-                    {
-                        // Create new isend event and then remove current
-                        // evt and add it to the isend
-                        isend = new Event(evt->enter, evt->exit, isend_index,
-                                          evt->process, -1);
-                        isend->subevents = new QList<Event *>();
-                        isend->subevents->prepend(evt);
-                        for (int k = 0; k < evt->messages->size(); k++)
-                        {
-                            evt->messages->at(k)->sender = isend;
-                            isend->messages->prepend(evt->messages->at(k));
-                        }
-                        (*(elist))[i] = isend;
-                        isend_i = i; // Tihs is where it will go eventually
-
-                        // And we connect it to the rest
-                        if (next)
-                            next->comm_prev = isend;
-                        isend->comm_next = next;
-                        next = isend;
-
-                        i++; // We replaced i, so we move forward
-                    }
-                }
-                else if ((evt->messages && evt->messages->size() > 0) || evt->collective)
-                {
-                    // Check for isend and handle if necessary
-                    if (isend)
-                    {
-                        isend = NULL;
-                    }
-
-                    // Update comm_next, comm_prev and advance
-                    evt->comm_next = next;
-                    if (next)
-                        next->comm_prev = evt;
-                    next = evt;
-                    i++;
-                }
-                else
-                {
-                    // Not a comm message but we take this break to
-                    // close off the isend right here.
-                    if (isend)
-                    {
-                        isend = NULL;
-                    }
-                    i++;
-                }
-            }
-
-            // If the last event was the isend, and we have not yet
-            // inserted it, do so now
-            if (isend)
-                elist->insert(isend_i, isend);
-        }
-    }
-    else
-    {
-        // Just need to go through and connect them when they meet our definition
-        // of communication
-        for (QVector<QList<Event *> *>::Iterator event_list = mpi_events->begin();
-             event_list != mpi_events->end(); ++event_list)
-        {
-            Event * next = NULL;
-            for (QList<Event *>::Iterator evt = (*event_list)->begin();
-                 evt != (*event_list)->end(); ++evt)
-            {
-                if ((*evt)->messages->size() > 0 || (*evt)->collective)
-                {
-                    (*evt)->comm_next = next;
-                    if (next)
-                        next->comm_prev = (*evt);
-                    next = (*evt);
-                }
-            }
-        }
-    }
 }
 
 // This is the most difficult to understand part of the algorithm and the code.
@@ -1014,7 +851,7 @@ void Trace::mergeByLeap()
                         }
                         else
                         {
-                            (*(p->events))[*k] = new QList<Event *>();
+                            (*(p->events))[*k] = new QList<CommEvent *>();
                             *((*(p->events))[*k]) += *((*((*partition)->events))[*k]);
                         }
                     }
@@ -1177,11 +1014,11 @@ void Trace::mergeByLeap()
             dag_entries->append(*partition);
 
         // Update event's reference just in case
-        for (QMap<int, QList<Event *> *>::Iterator event_list
+        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
              = (*partition)->events->begin();
              event_list != (*partition)->events->end(); ++event_list)
         {
-            for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+            for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
             {
                 (*evt)->partition = *partition;
@@ -1257,7 +1094,7 @@ void Trace::mergeGlobalSteps()
                 }
                 else
                 {
-                    (*(p->events))[*k] = new QList<Event *>();
+                    (*(p->events))[*k] = new QList<CommEvent *>();
                     *((*(p->events))[*k]) += *((*((*partition)->events))[*k]);
                 }
             }
@@ -1350,11 +1187,11 @@ void Trace::mergeGlobalSteps()
             dag_entries->append(*partition);
 
         // Update event's reference just in case
-        for (QMap<int, QList<Event *> *>::Iterator event_list
+        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
              = (*partition)->events->begin();
              event_list != (*partition)->events->end(); ++event_list)
         {
-            for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+            for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
             {
                 (*evt)->partition = *partition;
@@ -1375,46 +1212,15 @@ void Trace::mergeForMessagesHelper(Partition * part,
                                    QSet<Partition *> * to_merge,
                                    QQueue<Partition *> * to_process)
 {
-    for(QMap<int, QList<Event *> *>::Iterator event_list
+    for(QMap<int, QList<CommEvent *> *>::Iterator event_list
         = part->events->begin();
         event_list != part->events->end(); ++event_list)
     {
-        for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+        for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
         {
-            // If Event is collective, merge the collective
-            if ((*evt)->collective && !(*evt)->collective->mark)
-            {
-                for (QList<Event *>::Iterator ev2
-                     = (*evt)->collective->events->begin();
-                     ev2 != (*evt)->collective->events->end(); ++ev2)
-                {
-                    to_merge->insert((*ev2)->partition);
-                    if (!(*ev2)->partition->mark
-                            && !to_process->contains((*ev2)->partition))
-                        to_process->enqueue((*ev2)->partition);
-                }
-
-                // Mark so we don't have to do the above again
-                (*evt)->collective->mark = true;
-            }
-            else // We have messages, merge the messages
-            {
-                for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
-                     msg != (*evt)->messages->end(); ++msg)
-                {
-                    Partition * rpart = (*msg)->receiver->partition;
-                    Partition * spart = (*msg)->sender->partition;
-                    to_merge->insert(rpart);
-                    to_merge->insert(spart);
-                    if (!rpart->mark && !to_process->contains(rpart))
-                        to_process->enqueue(rpart);
-                    if (!spart->mark && !to_process->contains(spart))
-                        to_process->enqueue(spart);
-                }
-            }
+            (*evt)->mergeForMessagesHelper(to_merge, to_process);
         }
-
     }
     part->mark = true;
 }
@@ -1659,7 +1465,7 @@ void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
                 }
                 else
                 {
-                    (*(p->events))[*k] = new QList<Event *>();
+                    (*(p->events))[*k] = new QList<CommEvent *>();
                     *((*(p->events))[*k]) += *((*((*partition)->events))[*k]);
                 }
             }
@@ -1734,11 +1540,11 @@ void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
         (*partition)->sortEvents();
 
         // Set Event partition for all of the events.
-        for (QMap<int, QList<Event *> *>::Iterator event_list
+        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
              = (*partition)->events->begin();
              event_list != (*partition)->events->end(); ++event_list)
         {
-            for (QList<Event *>::Iterator evt = (event_list.value())->begin();
+            for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
             {
                 (*evt)->partition = (*partition);
@@ -1787,7 +1593,7 @@ void Trace::set_partition_dag()
          partition != partitions->end(); ++partition)
     {
         parent_flag = false;
-        for (QMap<int, QList<Event *> *>::Iterator event_list
+        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
              = (*partition)->events->begin();
              event_list != (*partition)->events->end(); ++event_list)
         {
@@ -1887,289 +1693,9 @@ void Trace::set_dag_steps()
     delete current_level;
 }
 
-// Note, phases were set on importing from OTF so here we just have to
-// group by phase but alter the phases so that ordering constraints
-// are still met.
-void Trace::partitionByPhase()
-{
-    QMap<int, Partition *> * partition_dict = new QMap<int, Partition *>();
-    for (QVector<QList<Event *> *>::Iterator event_list = mpi_events->begin();
-         event_list != mpi_events->end(); ++event_list)
-    {
-        // The mpi_events list was set in reverse chronological order while
-        // the phase consistency check we do goes in forward chronological
-        // order, so we iterate through the list backwards.
-        for (int i = (*event_list)->size() - 1; i >= 0; i--)
-        {
-            Event * evt = (*event_list)->at(i);
-            if ((evt)->messages->size() > 0)
-            {
-                if ((evt)->comm_prev
-                    && (evt)->comm_prev->phase > (evt)->phase)
-                {
-                    (evt)->phase = (evt)->comm_prev->phase;
-                }
-                for (QVector<Message *>::Iterator msg
-                     = (evt)->messages->begin();
-                     msg != (evt)->messages->end(); ++msg)
-                {
-                    if (!msg)
-                        continue;
-                    if ((*msg)->sender->phase > (evt)->phase)
-                        (evt)->phase = (*msg)->sender->phase;
-                    else if ((*msg)->sender->phase < (evt)->phase)
-                        (*msg)->sender->phase = (evt)->phase;
-                    if ((*msg)->receiver->phase > (evt)->phase)
-                        (evt)->phase = (*msg)->receiver->phase;
-                    else if ((*msg)->receiver->phase < (evt)->phase)
-                        (*msg)->receiver->phase = (evt)->phase;
-                }
-                if (!partition_dict->contains((evt)->phase))
-                    (*partition_dict)[(evt)->phase] = new Partition();
-                ((*partition_dict)[(evt)->phase])->addEvent(evt);
-                (evt)->partition = (*partition_dict)[(evt)->phase];
-            }
-        }
-    }
-
-    for (QMap<int, Partition *>::Iterator partition
-         = partition_dict->begin();
-         partition != partition_dict->end(); ++partition)
-    {
-        (*partition)->sortEvents();
-        partitions->append(*partition);
-    }
-
-    delete partition_dict;
-}
-
-// Every send/recv event becomes its own partition
-void Trace::initializePartitions()
-{
-    int progressPortion = std::max(round(num_processes / 1.0 / 5), 1.0);
-    int currentPortion = 0;
-    int currentIter = 0;
-    for (QVector<QList<Event *> *>::Iterator event_list = mpi_events->begin();
-         event_list != mpi_events->end(); ++event_list)
-    {
-        if (round(currentIter / 1.0 / progressPortion) > currentPortion)
-        {
-            ++currentPortion;
-            emit(updatePreprocess(currentPortion,
-                                  "Initializing partitions..."));
-        }
-        ++currentIter;
-        for (QList<Event *>::Iterator evt = (*event_list)->begin();
-             evt != (*event_list)->end(); ++evt)
-        {
-            // Every event with messages becomes its own partition
-            if ((*evt)->messages->size() > 0 || (*evt)->collective)
-            {
-                Partition * p = new Partition();
-                p->addEvent(*evt);
-                (*evt)->partition = p;
-                p->new_partition = p;
-                partitions->append(p);
-            }
-        }
-    }
-}
-
-// Waitalls determine if send/recv events are grouped along a process
-void Trace::initializePartitionsWaitall()
-{
-    int waitall_index = -1;
-    int testall_index = -1;
-    for (QMap<int, Function * >::Iterator function = functions->begin();
-         function != functions->end(); ++function)
-    {
-        if (function.value()->group == mpi_group)
-        {
-            if (function.value()->name == "MPI_Waitall")
-                waitall_index = function.key();
-            if (function.value()->name == "MPI_Testall")
-                testall_index = function.key();
-        }
-    }
-
-    int progressPortion = std::max(round(num_processes / 1.0 / 5), 1.0);
-    int currentPortion = 0;
-    int currentIter = 0;
-
-    bool aggregating;
-    QList<Event *> * aggregation;
-    for (QVector<QList<Event *> *>::Iterator event_list = mpi_events->begin();
-         event_list != mpi_events->end(); ++event_list)
-    {
-        if (round(currentIter / 1.0 / progressPortion) > currentPortion)
-        {
-            ++currentPortion;
-            emit(updatePreprocess(currentPortion, "Initializing partitions..."));
-        }
-        ++currentIter;
-        // We note these should be in reverse order because of the way
-        // they were added
-        aggregating = false;
-        for (QList<Event *>::Iterator evt = (*event_list)->begin();
-             evt != (*event_list)->end(); ++evt)
-        {
-            if (aggregating)
-            {
-                // Is this an event that can stop aggregating?
-                // 1. Due to a recv (including waitall recv)
-                if ((*evt)->messages->size() > 0)
-                {
-                    bool recv_found = false;
-                    for (QVector<Message *>::Iterator msg
-                         = (*evt)->messages->begin();
-                         msg != (*evt)->messages->end(); ++msg)
-                    {
-                        if ((*msg)->receiver == *evt) // Receive found
-                        {
-                            recv_found = true;
-                            break;
-                        }
-                    }
-
-                    if (recv_found)
-                    {
-                        // Do partition for aggregated stuff
-                        if (aggregation->size() > 0)
-                        {
-                            Partition * p = new Partition();
-                            for (QList<Event *>::Iterator saved_evt
-                                 = aggregation->begin();
-                                 saved_evt != aggregation->end();
-                                 ++saved_evt)
-                            {
-                                p->addEvent(*saved_evt);
-                                (*saved_evt)->partition = p;
-                            }
-                            p->new_partition = p;
-                            partitions->append(p);
-                        }
-
-                        // Do partition for this recv
-                        Partition * r = new Partition();
-                        r->addEvent(*evt);
-                        (*evt)->partition = r;
-                        r->new_partition = r;
-                        partitions->append(r);
-
-                        aggregating = false;
-                        delete aggregation;
-                    }
-                    else
-                    {   // Must be a send only, prepend and continue on
-                        aggregation->prepend(*evt);
-                    }
-                }
-                // 2. Due to a collective
-                else if ((*evt)->collective)
-                {
-                    // Do partition for aggregated stuff
-                    if (aggregation->size() > 0)
-                    {
-                        Partition * p = new Partition();
-                        for (QList<Event *>::Iterator saved_evt
-                             = aggregation->begin();
-                             saved_evt != aggregation->end(); ++saved_evt)
-                        {
-                            p->addEvent(*saved_evt);
-                            (*saved_evt)->partition = p;
-                        }
-                        p->new_partition = p;
-                        partitions->append(p);
-                    }
-
-                    // Do partition for this collective
-                    Partition * c = new Partition();
-                    c->addEvent(*evt);
-                    (*evt)->partition = c;
-                    c->new_partition = c;
-                    partitions->append(c);
-
-                    aggregating = false;
-                    delete aggregation;
-                }
-
-                // 3. Due to non-recv/non-comm waitall
-                else if ((*evt)->function == waitall_index
-                         || (*evt)->function == testall_index)
-                {
-                    // Do partition for aggregated stuff
-                    if (aggregation->size() > 0)
-                    {
-                        Partition * p = new Partition();
-                        for (QList<Event *>::Iterator saved_evt
-                             = aggregation->begin();
-                             saved_evt != aggregation->end(); ++saved_evt)
-                        {
-                            p->addEvent(*saved_evt);
-                            (*saved_evt)->partition = p;
-                        }
-                        p->new_partition = p;
-                        partitions->append(p);
-                    }
-
-                    aggregating = false;
-                    delete aggregation;
-                }
-                // Neither a comm event or waitall/collective, skip this event.
-
-            }
-            else // We are not aggregating
-            {
-                // Is this an event that should cause aggregation?
-                if ((*evt)->function == waitall_index
-                    || (*evt)->function == testall_index)
-                {
-                    aggregating = true;
-                    aggregation = new QList<Event *>();
-                }
-
-                // Is this an event that should be added?
-                if ((*evt)->messages->size() > 0 || (*evt)->collective)
-                {
-
-                    if (aggregating)
-                        // prepend since we're walking backwards
-                        aggregation->prepend(*evt);
-                    else
-                    {
-                        Partition * p = new Partition();
-                        p->addEvent(*evt);
-                        (*evt)->partition = p;
-                        p->new_partition = p;
-                        partitions->append(p);
-                    }
-                }
-            } // Not aggregating
-        } // End this event
-
-        // Check if we have any left over and aggregate them
-        if (aggregating)
-        {
-            if (aggregation->size() > 0)
-            {
-                Partition * p = new Partition();
-                for (QList<Event *>::Iterator saved_evt = aggregation->begin();
-                     saved_evt != aggregation->end(); ++saved_evt)
-                {
-                    p->addEvent(*saved_evt);
-                    (*saved_evt)->partition = p;
-                }
-                p->new_partition = p;
-                partitions->append(p);
-            }
-            delete aggregation;
-            aggregating = false;
-        }
-    } // End event loop for one process
-}
 
 // In progress: will be used for extra information on aggregate events
-QList<Trace::FunctionPair> Trace::getAggregateFunctions(Event * evt)
+QList<Trace::FunctionPair> Trace::getAggregateFunctions(CommEvent * evt)
 {
     unsigned long long int stoptime = evt->enter;
     unsigned long long int starttime = 0;

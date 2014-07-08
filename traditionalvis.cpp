@@ -721,7 +721,7 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
 {
     if (evt->enter > startTime + timeSpan || evt->exit < startTime)
         return; // Out of time
-    if (evt->step >= 0)
+    if (evt->isCommEvent())
         return; // Drawn later
 
     int x, y, w, h;
@@ -758,24 +758,17 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
         if (evt == selected_event)
             painter->setPen(QPen(Qt::yellow));
 
-        if (options->colorTraditionalByMetric
-                && evt->hasMetric(options->metric))
-        {
-                painter->fillRect(QRectF(x, y, w, h),
-                                  QBrush(options->colormap->color(evt->getMetric(options->metric))));
-        }
+
+        if (evt == selected_event)
+            painter->fillRect(QRectF(x, y, w, h), QBrush(Qt::yellow));
         else
         {
-            if (evt == selected_event)
-                painter->fillRect(QRectF(x, y, w, h), QBrush(Qt::yellow));
-            else
-            {
-                // Draw event
-                int graycolor = std::max(100, 100 + evt->depth * 20);
-                painter->fillRect(QRectF(x, y, w, h),
-                                  QBrush(QColor(graycolor, graycolor, graycolor)));
-            }
+            // Draw event
+            int graycolor = std::max(100, 100 + evt->depth * 20);
+            painter->fillRect(QRectF(x, y, w, h),
+                              QBrush(QColor(graycolor, graycolor, graycolor)));
         }
+
 
         // Draw border
         if (process_spacing > 0)
