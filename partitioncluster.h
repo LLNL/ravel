@@ -14,7 +14,7 @@ class PartitionCluster
 {
 public:
     PartitionCluster(int num_steps, int start, long long _divider = LLONG_MAX);
-    PartitionCluster(int member, QList<Event *> *elist, QString metric,
+    PartitionCluster(int member, QList<CommEvent *> *elist, QString metric,
                      long long int _divider = LLONG_MAX);
     PartitionCluster(long long int distance, PartitionCluster * c1,
                      PartitionCluster * c2);

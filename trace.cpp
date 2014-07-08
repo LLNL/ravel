@@ -1219,7 +1219,15 @@ void Trace::mergeForMessagesHelper(Partition * part,
         for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
         {
-            (*evt)->mergeForMessagesHelper(to_merge, to_process);
+            QSet<Partition *> * parts = (*evt)->mergeForMessagesHelper();
+            for (QSet<Partition *>::Iterator opart = parts->begin();
+                 opart != parts->end(); ++opart)
+            {
+                to_merge->insert(*opart);
+                if (!(*opart)->mark && !to_process->contains(*opart))
+                    to_process->enqueue(*opart);
+            }
+            delete parts;
         }
     }
     part->mark = true;

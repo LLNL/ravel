@@ -283,11 +283,11 @@ long long int Gnome::calculateMetricDistance(int p1, int p2)
 // Old distance metric where we skip any non-matching steps. Also this was done
 // before cluster_vectors were written in so the indexing is a little more
 // complicated
-long long int Gnome::calculateMetricDistance2(QList<Event *> * list1,
-                                              QList<Event *> * list2)
+long long int Gnome::calculateMetricDistance2(QList<CommEvent *> * list1,
+                                              QList<CommEvent *> * list2)
 {
     int index1 = 0, index2 = 0, total_calced_steps = 0;
-    Event * evt1 = list1->at(0), * evt2 = list2->at(0);
+    CommEvent * evt1 = list1->at(0), * evt2 = list2->at(0);
     long long int last1 = 0, last2 = 0, total_difference = 0;
 
     while (evt1 && evt2)
@@ -378,7 +378,7 @@ void Gnome::generateTopProcesses(PartitionCluster *pc)
 // Sets top_processes to a list w/process and its neighbors-hop neighborhood
 void Gnome::generateTopProcessesWorker(int process)
 {
-    QList<Event *> * elist = NULL;
+    QList<CommEvent *> * elist = NULL;
     QSet<int> add_processes = QSet<int>();
     add_processes.insert(process);
     QSet<int> new_processes = QSet<int>();
@@ -393,7 +393,7 @@ void Gnome::generateTopProcessesWorker(int process)
             for (QList<CommEvent *>::Iterator evt = elist->begin();
                  evt != elist->end(); ++evt)
             {
-                msgs = (*evt)->getMessages();
+                QVector<Message *> * msgs = (*evt)->getMessages();
                 if (!msgs)
                     continue;
                 for (QVector<Message *>::Iterator msg
@@ -453,7 +453,7 @@ int Gnome::findCentroidProcess(PartitionCluster * pc)
         int index1 = 0, index2 = 0, total_calced_steps = 0;
         long long int last1 = 0, last2 = 0, total_difference = 0;
         int process = distances[i].process;
-        Event * evt = partition->events->value(process)->first();
+        CommEvent * evt = partition->events->value(process)->first();
 
         while (evt && index2 < num_events)
         {
@@ -715,8 +715,8 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
 
             QVector<Message *> * msgs = (*evt)->getMessages();
             if (msgs)
-                for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
-                     msg != (*evt)->messages->end(); ++msg)
+                for (QVector<Message *>::Iterator msg = msgs->begin();
+                     msg != msgs->end(); ++msg)
                 {
                     if (top_processes.contains((*msg)->sender->process)
                             && top_processes.contains((*msg)->receiver->process))
@@ -1082,8 +1082,8 @@ void Gnome::drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy,
 
         QVector<Message *> * msgs = (*evt)->getMessages();
         if (msgs)
-            for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
-                 msg != (*evt)->messages->end(); ++msg)
+            for (QVector<Message *>::Iterator msg = msgs->begin();
+                 msg != msgs->end(); ++msg)
             {
                 saved_messages.insert(*msg);
             }

@@ -60,19 +60,13 @@ void P2PEvent::set_stride_relationships(CommEvent * base)
     stride_parents->insert(base);
 }
 
-void P2PEvent::mergeForMessagesHelper(QSet<Partition *> * to_merge,
-                                      QQueue<Partition *> * to_process)
+QSet<Partition *> * P2PEvent::mergeForMessagesHelper()
 {
+    QSet<Partition *> * parts = new QSet<Partition *>();
     for (QVector<Message *>::Iterator msg = messages->begin();
          msg != messages->end(); ++msg)
     {
-        Partition * rpart = (*msg)->receiver->partition;
-        Partition * spart = (*msg)->sender->partition;
-        to_merge->insert(rpart);
-        to_merge->insert(spart);
-        if (!rpart->mark && !to_process->contains(rpart))
-            to_process->enqueue(rpart);
-        if (!spart->mark && !to_process->contains(spart))
-            to_process->enqueue(spart);
+        parts->insert((*msg)->receiver->partition);
+        parts->insert((*msg)->sender->partition);
     }
 }

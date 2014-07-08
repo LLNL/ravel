@@ -87,7 +87,7 @@ long long int PartitionCluster::addMember(ClusterProcess * cp,
 {
     members->append(cp->process);
     long long int max_evt_metric = 0;
-    for (QList<Event *>::Iterator evt = elist->begin();
+    for (QList<CommEvent *>::Iterator evt = elist->begin();
          evt != elist->end(); ++evt)
     {
         long long evt_metric = (*evt)->getMetric(metric);
@@ -102,12 +102,14 @@ long long int PartitionCluster::addMember(ClusterProcess * cp,
         int nsend = 0, nrecv = 0;
         ClusterEvent * ce = events->at(((*evt)->step - startStep) / 2);
 
-        for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
-             msg != (*evt)->messages->end(); ++msg)
-            if ((*msg)->sender == *evt)
-                nsend += 1;
+        QVector<Message *> * msgs = (*evt)->getMessages();
+        if (msgs)
+        {
+            if ((*evt)->isReceive())
+                nrecv += msgs->size();
             else
-                nrecv += 1;
+                nsend += msgs->size();
+        }
 
         if (evt_metric < divider)
         {
@@ -147,7 +149,7 @@ long long int PartitionCluster::addMember(ClusterProcess * cp,
                 aggMetric(ce, agg_metric, ClusterEvent::RECV, false);
             }
 
-            if ((*evt)->collective)
+            if ((*evt)->getCollective())
             {
                 ce->addMetric(1, evt_metric,
                               ClusterEvent::COMM,
@@ -194,7 +196,7 @@ long long int PartitionCluster::addMember(ClusterProcess * cp,
                 aggMetric(ce, agg_metric, ClusterEvent::RECV, false);
             }
 
-            if ((*evt)->collective)
+            if ((*evt)->getCollective())
             {
                 ce->addMetric(1, evt_metric,
                               ClusterEvent::COMM,
@@ -233,7 +235,7 @@ void PartitionCluster::aggMetric(ClusterEvent * ce, long long agg_metric,
 }
 
 // Start a cluster with a single member
-PartitionCluster::PartitionCluster(int member, QList<Event *> * elist,
+PartitionCluster::PartitionCluster(int member, QList<CommEvent *> *elist,
                                    QString metric, long long int _divider)
     : startStep(elist->at(0)->step),
       max_process(member),
@@ -251,7 +253,7 @@ PartitionCluster::PartitionCluster(int member, QList<Event *> * elist,
       clusterStart(-1)
 {
     members->append(member);
-    for (QList<Event *>::Iterator evt = elist->begin();
+    for (QList<CommEvent *>::Iterator evt = elist->begin();
          evt != elist->end(); ++evt)
     {
         long long evt_metric = (*evt)->getMetric(metric);
@@ -261,13 +263,13 @@ PartitionCluster::PartitionCluster(int member, QList<Event *> * elist,
         int nsend = 0, nrecv = 0;
         ClusterEvent * ce = new ClusterEvent((*evt)->step);
 
-        for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
-             msg != (*evt)->messages->end(); ++msg)
+        QVector<Message *> * msgs = (*evt)->getMessages();
+        if (msgs)
         {
-            if ((*msg)->sender == *evt)
-                nsend += 1;
+            if ((*evt)->isReceive())
+                nrecv += msgs->size();
             else
-                nrecv += 1;
+                nsend += msgs->size();
         }
 
         if (evt_metric < divider)
@@ -307,7 +309,7 @@ PartitionCluster::PartitionCluster(int member, QList<Event *> * elist,
                 aggMetric(ce, agg_metric, ClusterEvent::RECV, true);
             }
 
-            if ((*evt)->collective)
+            if ((*evt)->getCollective())
             {
                 ce->setMetric(1, evt_metric,
                               ClusterEvent::COMM,
@@ -354,7 +356,7 @@ PartitionCluster::PartitionCluster(int member, QList<Event *> * elist,
                 aggMetric(ce, agg_metric, ClusterEvent::RECV, true);
             }
 
-            if ((*evt)->collective)
+            if ((*evt)->getCollective())
             {
                 ce->setMetric(1, evt_metric,
                               ClusterEvent::COMM,

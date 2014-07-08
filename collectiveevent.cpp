@@ -28,22 +28,20 @@ void CollectiveEvent::set_stride_relationships(CommEvent * base)
     }
 }
 
-void CollectiveEvent::mergeForMessagesHelper(QSet<Partition *> * to_merge,
-                                             QQueue<Partition *> * to_process)
+QSet<Partition *> *CollectiveEvent::mergeForMessagesHelper()
 {
+    QSet<Partition *> * parts = new QSet<Partition *>();
     if (collective->mark)
     {
         for (QList<CollectiveEvent *>::Iterator ev2
              = collective->events->begin();
              ev2 != collective->events->end(); ++ev2)
         {
-            to_merge->insert((*ev2)->partition);
-            if (!(*ev2)->partition->mark
-                    && !to_process->contains((*ev2)->partition))
-                to_process->enqueue((*ev2)->partition);
+            parts->insert((*ev2)->partition);
         }
 
         // Mark so we don't have to do the above again
-        (*evt)->collective->mark = true;
+        collective->mark = true;
     }
+    return parts;
 }

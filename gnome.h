@@ -6,6 +6,8 @@
 #include "visoptions.h"
 #include "partitioncluster.h"
 #include "clusterprocess.h"
+#include "p2pevent.h"
+#include "collectiveevent.h"
 #include <QMouseEvent>
 #include <QPainter>
 #include <QRect>
@@ -106,8 +108,8 @@ protected:
     };
 
     long long int calculateMetricDistance(int p1, int p2);
-    long long int calculateMetricDistance2(QList<Event *> * list1,
-                                           QList<Event *> * list2);
+    long long int calculateMetricDistance2(QList<CommEvent *> * list1,
+                                           QList<CommEvent *> * list2);
     void findMusters();
     void findClusters();
     void hierarchicalMusters();

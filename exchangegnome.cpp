@@ -213,7 +213,7 @@ void ExchangeGnome::generateTopProcesses()
     if (type == SRSR && neighbors < 0)
     {
         top_processes.clear();
-        QList<Event *> * elist = partition->events->value(max_metric_process);
+        QList<CommEvent *> * elist = partition->events->value(max_metric_process);
         QSet<int> add_processes = QSet<int>();
         QSet<int> level_processes = QSet<int>();
         QSet<int> patterns = QSet<int>();

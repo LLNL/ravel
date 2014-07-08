@@ -3,6 +3,8 @@
 
 #include "event.h"
 
+class Partition;
+
 class CommEvent : public Event
 {
 public:
@@ -16,15 +18,14 @@ public:
     long long getMetric(QString name, bool aggregate = false);
 
     bool isCommEvent() { return true; }
-    virtual bool isP2P();
+    virtual bool isP2P() { return false; }
     virtual bool isReceive() { return false; }
     virtual bool isCollective() { return false; }
-    virtual void set_stride_relationships(CommEvent * base);
+    virtual void set_stride_relationships(CommEvent * base)=0;
     virtual QVector<Message *> * getMessages() { return NULL; }
     virtual CollectiveRecord * getCollective() { return NULL; }
 
-    virtual void mergeForMessagesHelper(QSet<Partition *> * to_merge,
-                                        QQueue<Partition *> * to_process);
+    virtual QSet<Partition *> * mergeForMessagesHelper()=0;
 
     class MetricPair {
     public:

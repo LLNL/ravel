@@ -3,6 +3,8 @@
 
 #include "event.h"
 #include "commevent.h"
+#include "p2pevent.h"
+#include "collectiveevent.h"
 #include "general_util.h"
 #include "clusterprocess.h"
 #include <QList>
@@ -18,7 +20,7 @@ class Partition
 public:
     Partition();
     ~Partition();
-    void addEvent(Event * e);
+    void addEvent(CommEvent * e);
     void deleteEvents();
     void sortEvents();
     void step();
@@ -84,7 +86,7 @@ private:
     int set_stride_dag(QList<CommEvent *> *stride_events);
     void find_stride_child(CommEvent * base, CommEvent * evt);
 
-    QList<Event *> * free_recvs;
+    QList<CommEvent *> * free_recvs;
 
 };
 

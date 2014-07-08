@@ -15,8 +15,7 @@ public:
     bool isReceive();
     void set_stride_relationships(CommEvent * base);
     QVector<Message *> * getMessages() { return messages; }
-    void mergeForMessagesHelper(QSet<Partition *> * to_merge,
-                                QQueue<Partition *> * to_process);
+    QSet<Partition *> * mergeForMessagesHelper();
 
     // ISend coalescing
     QList<P2PEvent *> * subevents;

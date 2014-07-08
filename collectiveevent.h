@@ -15,8 +15,7 @@ public:
     virtual bool isCollective() { return true; }
     void set_stride_relationships(CommEvent * base);
     CollectiveRecord * getCollective() { return collective; }
-    void mergeForMessagesHelper(QSet<Partition *> * to_merge,
-                                QQueue<Partition *> * to_process);
+    QSet<Partition *> * mergeForMessagesHelper();
 
     CollectiveRecord * collective;
 };

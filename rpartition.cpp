@@ -105,7 +105,7 @@ void Partition::addEvent(CommEvent * e)
     }
     else
     {
-        (*events)[e->process] = new QList<Event *>();
+        (*events)[e->process] = new QList<CommEvent *>();
         ((*events)[e->process])->append(e);
     }
 }
@@ -183,15 +183,12 @@ void Partition::step()
 
                 // Follow messages to their receives and then along
                 // the new process to find more stride children
-                msgs = (*evt)->getMessages();
-                if (msgs)
+                QVector<Message *> *msgs = (*evt)->getMessages();
+                if (msgs && !(*evt)->isReceive())
                     for (QVector<Message *>::Iterator msg = msgs->begin();
                          msg != msgs->end(); ++msg)
                     {
-                        if ((*msg)->sender == *evt)
-                        {
-                            find_stride_child(*evt, (*msg)->receiver);
-                        }
+                        find_stride_child(*evt, (*msg)->receiver);
                     }
             }
             else // Setup receives
@@ -230,15 +227,17 @@ void Partition::step()
         // Iterate through sends of this recv and check what
         // their strides are to update last_send and next_send
         // to be the tightest boundaries.
-        for (QVector<Message *>::Iterator msg = (*recv)->messages->begin();
-             msg != (*recv)->messages->end(); ++msg)
-        {
-            if (!(*recv)->last_send
-                    || (*msg)->sender->stride > (*recv)->last_send->stride)
+        QVector<Message *> * msgs = (*recv)->getMessages();
+        if (msgs)
+            for (QVector<Message *>::Iterator msg = msgs->begin();
+                 msg != msgs->end(); ++msg)
             {
-                (*recv)->last_send = (*msg)->sender;
+                if (!(*recv)->last_send
+                        || (*msg)->sender->stride > (*recv)->last_send->stride)
+                {
+                    (*recv)->last_send = (*msg)->sender;
+                }
             }
-        }
     }
     delete recv_events;
 
