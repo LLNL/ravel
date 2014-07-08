@@ -28,6 +28,7 @@ signals:
 private:
     void matchEvents();
     void makeSingletonPartition(CommEvent * evt);
+    void mergeForWaitall(QList<QList<Partition * > *> * groups);
 
     RawTrace * rawtrace;
     Trace * trace;

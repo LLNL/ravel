@@ -444,7 +444,7 @@ void OTFConverter::matchEvents()
         // No we can't use this here because we don't have all
         // partitions, this will delete things not covered by a Waitall.
         // FIXME
-        trace->mergePartitions(waitallgroups);
+        mergeForWaitall(waitallgroups);
     }
 
 
@@ -541,4 +541,68 @@ void OTFConverter::matchEvents()
 
     std::cout << "Number of partitions: " << trace->partitions->size() << std::endl;
     std::cout << "Part counters: c = " << cpartcounter << ", s = " << spartcounter << ", r = " << rpartcounter << std::endl;
+}
+
+// This is a lighter weight merge since we know at this stage everything stays
+// within its own process and the partitions that must be merged are contiguous
+// Therefore we only need to merge the groups and remove the previous ones
+// from the partition list -- so we create the new ones and point the old
+// ones toward it so we can make a single pass to remove those that point to
+// a new partition.
+void OTFConverter::mergeForWaitall(QList<QList<Partition * > *> * groups)
+{
+    // Create the new partitions and store them in new parts
+    QList<Partition *> * newparts = new QList<Partition *>();
+    for (QList<QList<Partition *> *>::Iterator group = groups->begin();
+         group != groups->end(); ++group)
+    {
+        Partition * p = new Partition();
+        for (QList<Partition *>::Iterator part = (*group)->begin();
+             part != (*group)->end(); ++part)
+        {
+            (*part)->new_partition = p;
+            for (QMap<int, QList<CommEvent *> *>::Iterator proc
+                 = (*part)->events->begin();
+                 proc != (*part)->events->end(); ++proc)
+            {
+                for (QList<CommEvent *>::Iterator evt
+                     = (proc.value())->begin();
+                     evt != (proc.value())->end(); ++evt)
+                {
+                    (*evt)->partition = p;
+                    p->addEvent(*evt);
+                    p->new_partition = p;
+                }
+            }
+        }
+        newparts->append(p);
+    }
+
+    // Add in the partitions that did not change to new parts, save
+    // others for deletion.
+    QList<Partition *> toDelete = QList<Partition *>();
+    for (QList<Partition *>::Iterator part = trace->partitions->begin();
+         part != trace->partitions->end(); ++part)
+    {
+        if ((*part)->new_partition == *part)
+        {
+            newparts->append(*part);
+        }
+        else
+        {
+            toDelete.append(*part);
+        }
+    }
+
+    // Delete old parts
+    for (QList<Partition *>::Iterator oldpart = toDelete.begin();
+         oldpart != toDelete.end(); ++oldpart)
+    {
+        delete *oldpart;
+        *oldpart = NULL;
+    }
+
+    // Add the new partitions to trace->partitions
+    delete trace->partitions;
+    trace->partitions = newparts;
 }
