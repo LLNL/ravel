@@ -69,4 +69,5 @@ QSet<Partition *> * P2PEvent::mergeForMessagesHelper()
         parts->insert((*msg)->receiver->partition);
         parts->insert((*msg)->sender->partition);
     }
+    return parts;
 }

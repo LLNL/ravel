@@ -155,7 +155,8 @@ void OTFConverter::matchEvents()
         }
     }
 
-
+    int spartcounter = 0, rpartcounter = 0, cpartcounter = 0;
+    std::cout << "Num collectives " << rawtrace->collectives->size() << std::endl;
     for (int i = 0; i < rawtrace->events->size(); i++)
     {
         QVector<EventRecord *> * event_list = rawtrace->events->at(i);
@@ -174,6 +175,7 @@ void OTFConverter::matchEvents()
 
         QVector<CommRecord *> * sendlist = rawtrace->messages->at(i);
         QVector<CommRecord *> * recvlist = rawtrace->messages_r->at(i);
+        std::cout << "Total comm records: " << sendlist->size() << std::endl;
         QList<P2PEvent *> * isends = new QList<P2PEvent *>();
         int sindex = 0, rindex = 0;
         CommEvent * prev = NULL;
@@ -204,30 +206,36 @@ void OTFConverter::matchEvents()
                         cr = (*(rawtrace->collectiveMap->at((*evt)->process)))[bgn->time];
                     }
 
-                    if (bgn->time == sendlist->at(sindex)->send_time)
+                    if (sindex < sendlist->size())
                     {
-                        sflag = true;
-                        if (bgn->value == isend_index)
-                            isendflag = true;
-                    }
-                    else if (bgn->time > sendlist->at(sindex)->send_time)
-                    {
-                        sindex++;
-                        std::cout << "Error, skipping message (by send) at ";
-                        std::cout << sendlist->at(sindex)->send_time << " on ";
-                        std::cout << (*evt)->process << std::endl;
+                        if (bgn->time == sendlist->at(sindex)->send_time)
+                        {
+                            sflag = true;
+                            if (bgn->value == isend_index)
+                                isendflag = true;
+                        }
+                        else if (bgn->time > sendlist->at(sindex)->send_time)
+                        {
+                            sindex++;
+                            std::cout << "Error, skipping message (by send) at ";
+                            std::cout << sendlist->at(sindex)->send_time << " on ";
+                            std::cout << (*evt)->process << std::endl;
+                        }
                     }
 
-                    if (!sflag && (*evt)->time == recvlist->at(rindex)->recv_time)
+                    if (rindex < recvlist->size())
                     {
-                        rflag = true;
-                    }
-                    else if (!sflag && (*evt)->time > recvlist->at(rindex)->recv_time)
-                    {
-                        rindex++;
-                        std::cout << "Error, skipping message (by recv) at ";
-                        std::cout << recvlist->at(rindex)->send_time << " on ";
-                        std::cout << (*evt)->process << std::endl;
+                        if (!sflag && (*evt)->time == recvlist->at(rindex)->recv_time)
+                        {
+                            rflag = true;
+                        }
+                        else if (!sflag && (*evt)->time > recvlist->at(rindex)->recv_time)
+                        {
+                            rindex++;
+                            std::cout << "Error, skipping message (by recv) at ";
+                            std::cout << recvlist->at(rindex)->send_time << " on ";
+                            std::cout << (*evt)->process << std::endl;
+                        }
                     }
                 }
 
@@ -239,7 +247,8 @@ void OTFConverter::matchEvents()
                                             bgn->value, bgn->process,
                                             phase, cr));
                     cr->events->last()->comm_prev = prev;
-                    prev->comm_next = cr->events->last();
+                    if (prev)
+                        prev->comm_next = cr->events->last();
                     prev = cr->events->last();
                     e = cr->events->last();
                     if (options->partitionByFunction)
@@ -247,6 +256,7 @@ void OTFConverter::matchEvents()
                     else
                         makeSingletonPartition(cr->events->last());
 
+                    cpartcounter++;
                     // Any sends beforehand not end in a waitall.
                     if (options->waitallMerge)
                     {
@@ -269,7 +279,8 @@ void OTFConverter::matchEvents()
                     if (isendflag)
                         isends->append(crec->message->sender);
                     crec->message->sender->comm_prev = prev;
-                    prev->comm_next = crec->message->sender;
+                    if (prev)
+                        prev->comm_next = crec->message->sender;
                     prev = crec->message->sender;
                     e = crec->message->sender;
                     if (options->partitionByFunction)
@@ -278,6 +289,7 @@ void OTFConverter::matchEvents()
                         makeSingletonPartition(crec->message->sender);
                     sindex++;
 
+                    spartcounter++;
                     // Collect the send for possible waitall merge
                     if (options->waitallMerge)
                     {
@@ -288,7 +300,7 @@ void OTFConverter::matchEvents()
                 {
                     QVector<Message *> * msgs = new QVector<Message *>();
                     CommRecord * crec = NULL;
-                    while ((*evt)->time == recvlist->at(rindex)->recv_time)
+                    while (rindex < recvlist->size() && (*evt)->time == recvlist->at(rindex)->recv_time)
                     {
                         crec = recvlist->at(rindex);
                         if (!(crec->message))
@@ -309,13 +321,16 @@ void OTFConverter::matchEvents()
                     msgs->at(0)->receiver->is_recv = true;
 
                     msgs->at(0)->receiver->comm_prev = prev;
-                    prev->comm_next = msgs->at(0)->receiver;
+                    if (prev)
+                        prev->comm_next = msgs->at(0)->receiver;
                     prev = msgs->at(0)->receiver;
 
                     if (options->partitionByFunction)
                         commevents->append(msgs->at(0)->receiver);
                     else
                         makeSingletonPartition(msgs->at(0)->receiver);
+
+                    rpartcounter++;
 
                     e = msgs->at(0)->receiver;
 
@@ -426,6 +441,9 @@ void OTFConverter::matchEvents()
     if (options->waitallMerge)
     {
         // mergePartitions cleans up the extra structures
+        // No we can't use this here because we don't have all
+        // partitions, this will delete things not covered by a Waitall.
+        // FIXME
         trace->mergePartitions(waitallgroups);
     }
 
@@ -520,4 +538,7 @@ void OTFConverter::matchEvents()
         delete *ac;
     }
     delete allcomms;
+
+    std::cout << "Number of partitions: " << trace->partitions->size() << std::endl;
+    std::cout << "Part counters: c = " << cpartcounter << ", s = " << spartcounter << ", r = " << rpartcounter << std::endl;
 }

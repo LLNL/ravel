@@ -24,8 +24,8 @@ Trace::Trace(int np)
       roots(new QVector<QVector<Event *> *>(np)),
       mpi_group(-1),
       global_max_step(-1),
-      dag_entries(NULL),
-      dag_step_dict(NULL),
+      dag_entries(new QList<Partition *>()),
+      dag_step_dict(new QMap<int, QSet<Partition *> *>()),
       isProcessed(false),
       riTracker(NULL),
       riChildrenTracker(NULL)
@@ -116,6 +116,9 @@ Trace::~Trace()
     delete collectives;
 
     delete collectiveMap;
+
+    delete dag_entries;
+    delete dag_step_dict;
 }
 
 void Trace::preprocess(OTFImportOptions * _options)
@@ -240,9 +243,6 @@ void Trace::partition()
     QElapsedTimer traceTimer;
     qint64 traceElapsed;
 
-    dag_entries = new QList<Partition *>();
-    dag_step_dict = new QMap<int, QSet<Partition *> *>();
-
     // Partition - default - we assume base partitions done
     // at the converter stage, now we have to do a lot of merging
     if (!options.partitionByFunction)
@@ -255,6 +255,7 @@ void Trace::partition()
         std::cout << "Message Merge: ";
         gu_printTime(traceElapsed);
         std::cout << std::endl;
+        std::cout << "Partitions = " << partitions->size() << std::endl;
 
           // Tarjan
         std::cout << "Merging cycles..." << std::endl;
@@ -264,6 +265,7 @@ void Trace::partition()
         std::cout << "Cycle Merge: ";
         gu_printTime(traceElapsed);
         std::cout << std::endl;
+        std::cout << "Partitions = " << partitions->size() << std::endl;
 
           // Merge by rank level [ later ]
         if (options.leapMerge)
