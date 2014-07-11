@@ -13,7 +13,12 @@ public:
     ~P2PEvent();
     bool isP2P() { return true; }
     bool isReceive();
-    void set_stride_relationships(CommEvent * base);
+    void fixPhases();
+    void initialize_strides(QList<CommEvent *> * stride_events,
+                            QList<CommEvent *> * recv_events);
+    void update_strides();
+    void calculate_differential_metric(QString metric_name,
+                                       QString base_name);
     QVector<Message *> * getMessages() { return messages; }
     QSet<Partition *> * mergeForMessagesHelper();
 
@@ -24,6 +29,9 @@ public:
     QVector<Message *> * messages;
 
     bool is_recv;
+
+private:
+    void set_stride_relationships(CommEvent * base);
 };
 
 #endif // P2PEVENT_H

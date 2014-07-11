@@ -174,45 +174,7 @@ void Partition::step()
         for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
         {
-            if (!(*evt)->isReceive())
-            {
-                stride_events->append(*evt);
-
-                // The next one in the process is a stride child
-                find_stride_child(*evt, *evt);
-
-                // Follow messages to their receives and then along
-                // the new process to find more stride children
-                QVector<Message *> *msgs = (*evt)->getMessages();
-                if (msgs && !(*evt)->isReceive())
-                    for (QVector<Message *>::Iterator msg = msgs->begin();
-                         msg != msgs->end(); ++msg)
-                    {
-                        find_stride_child(*evt, (*msg)->receiver);
-                    }
-            }
-            else // Setup receives
-            {
-                recv_events->append(*evt);
-                if ((*evt)->comm_prev && (*evt)->comm_prev->partition == this)
-                    (*evt)->last_send = (*evt)->comm_prev;
-                // Set last_send based on process
-                while ((*evt)->last_send && (*evt)->isReceive())
-                {
-                    (*evt)->last_send = (*evt)->last_send->comm_prev;
-                }
-                if ((*evt)->last_send && (*evt)->last_send->partition != this)
-                    (*evt)->last_send = NULL;
-
-                (*evt)->next_send = (*evt)->comm_next;
-                // Set next_send based on process
-                while ((*evt)->next_send && (*evt)->isReceive())
-                {
-                    (*evt)->next_send = (*evt)->next_send->comm_next;
-                }
-                if ((*evt)->next_send && (*evt)->next_send->partition != this)
-                    (*evt)->next_send = NULL;
-            }
+            (*evt)->initialize_strides(stride_events, recv_events);
         }
     }
 
@@ -224,20 +186,7 @@ void Partition::step()
     for (QList<CommEvent *>::Iterator recv = recv_events->begin();
          recv != recv_events->end(); ++recv)
     {
-        // Iterate through sends of this recv and check what
-        // their strides are to update last_send and next_send
-        // to be the tightest boundaries.
-        QVector<Message *> * msgs = (*recv)->getMessages();
-        if (msgs)
-            for (QVector<Message *>::Iterator msg = msgs->begin();
-                 msg != msgs->end(); ++msg)
-            {
-                if (!(*recv)->last_send
-                        || (*msg)->sender->stride > (*recv)->last_send->stride)
-                {
-                    (*recv)->last_send = (*msg)->sender;
-                }
-            }
+        (*recv)->update_strides();
     }
     delete recv_events;
 
@@ -417,24 +366,6 @@ int Partition::set_stride_dag(QList<CommEvent *> * stride_events)
     delete current_events;
     delete next_events;
     return max_stride;
-}
-
-// Helper function for building stride graph, finds the next send
-// or collective event along a process from the parameter evt
-void Partition::find_stride_child(CommEvent *base, CommEvent *evt)
-{
-    CommEvent * process_next = evt->comm_next;
-
-    // while we have receives
-    while (process_next && process_next->isReceive())
-    {
-        process_next = process_next->comm_next;
-    }
-
-    if (process_next && process_next->partition == this)
-    {
-        process_next->set_stride_relationships(base);
-    }
 }
 
 void Partition::makeClusterVectors(QString metric)

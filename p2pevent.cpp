@@ -53,11 +53,127 @@ bool P2PEvent::isReceive()
     return is_recv;
 }
 
+void P2PEvent::fixPhases()
+{
+    for (QVector<Message *>::Iterator msg
+         = messages->begin();
+         msg != messages->end(); ++msg)
+    {
+         if ((*msg)->sender->phase > phase)
+             phase = (*msg)->sender->phase;
+         else if ((*msg)->sender->phase < phase)
+             (*msg)->sender->phase = phase;
+         if ((*msg)->receiver->phase > phase)
+            phase = (*msg)->receiver->phase;
+         else if ((*msg)->receiver->phase < phase)
+             (*msg)->receiver->phase = phase;
+    }
+}
+
+void P2PEvent::calculate_differential_metric(QString metric_name,
+                                             QString base_name)
+{
+    long long max_parent = getMetric(base_name, true);
+    long long max_agg_parent = 0;
+    if (comm_prev)
+        max_agg_parent = (comm_prev->getMetric(base_name));
+
+    if (is_recv)
+    {
+        for (QVector<Message *>::Iterator msg
+             = messages->begin();
+             msg != messages->end(); ++msg)
+        {
+            if ((*msg)->sender->getMetric(base_name) > max_parent)
+                max_parent = (*msg)->sender->getMetric(base_name);
+        }
+    }
+
+    addMetric(metric_name,
+              std::max(0LL,
+                       getMetric(base_name)- max_parent),
+              std::max(0LL,
+                       getMetric(base_name, true)- max_agg_parent));
+}
+
+
+void P2PEvent::initialize_strides(QList<CommEvent *> * stride_events,
+                                         QList<CommEvent *> * recv_events)
+{
+    if (!is_recv)
+    {
+        stride_events->append(this);
+
+        // The next one in the process is a stride child
+        set_stride_relationships(this);
+
+        // Follow messages to their receives and then along
+        // the new process to find more stride children
+        for (QVector<Message *>::Iterator msg = messages->begin();
+             msg != messages->end(); ++msg)
+        {
+            set_stride_relationships((*msg)->receiver);
+        }
+    }
+    else // Setup receives
+    {
+        recv_events->append(this);
+        if (comm_prev && comm_prev->partition == partition)
+            last_send = comm_prev;
+        // Set last_send based on process
+        while (last_send)
+        {
+            last_send = last_send->comm_prev;
+        }
+        if (last_send && last_send->partition != partition)
+            last_send = NULL;
+
+        next_send = comm_next;
+        // Set next_send based on process
+        while (next_send)
+        {
+            next_send = next_send->comm_next;
+        }
+        if (next_send && next_send->partition != partition)
+            next_send = NULL;
+    }
+}
+
 
 void P2PEvent::set_stride_relationships(CommEvent * base)
 {
-    base->stride_children->insert(this);
-    stride_parents->insert(base);
+    CommEvent * process_next = base->comm_next;
+
+    // while we have receives
+    while (process_next && process_next->isReceive())
+    {
+        process_next = process_next->comm_next;
+    }
+
+    if (process_next && process_next->partition == partition)
+    {
+        stride_children->insert(process_next);
+        process_next->stride_parents->insert(this);
+    }
+}
+
+void P2PEvent::update_strides()
+{
+    if (!is_recv)
+        return;
+
+    // Iterate through sends of this recv and check what
+    // their strides are to update last_send and next_send
+    // to be the tightest boundaries.
+    for (QVector<Message *>::Iterator msg = messages->begin();
+         msg != messages->end(); ++msg)
+    {
+        if (!last_send
+                || (*msg)->sender->stride > last_send->stride)
+        {
+            last_send = (*msg)->sender;
+        }
+    }
 }
 
 QSet<Partition *> * P2PEvent::mergeForMessagesHelper()

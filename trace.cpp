@@ -396,30 +396,7 @@ void Trace::calculate_differential_lateness(QString metric_name,
                  = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
             {
-                max_parent = (*evt)->getMetric(base_name, true);
-                max_agg_parent = 0;
-                if ((*evt)->comm_prev)
-                    max_agg_parent = ((*evt)->comm_prev->getMetric(base_name));
-
-                if ((*evt)->isReceive())
-                {
-                    QVector<Message *> * msgs = (*evt)->getMessages();
-                    for (QVector<Message *>::Iterator msg
-                         = msgs->begin();
-                         msg != msgs->end(); ++msg)
-                    {
-                        if ((*msg)->sender->getMetric(base_name) > max_parent)
-                            max_parent = (*msg)->sender->getMetric(base_name);
-                    }
-                }
-
-                (*evt)->addMetric(metric_name,
-                                  std::max(0LL,
-                                           (*evt)->getMetric(base_name)
-                                            - max_parent),
-                                  std::max(0LL,
-                                           (*evt)->getMetric(base_name, true)
-                                            - max_agg_parent));
+                (*evt)->calculate_differential_metric(metric_name, base_name);
             }
         }
     }

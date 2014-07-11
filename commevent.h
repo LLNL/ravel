@@ -21,7 +21,12 @@ public:
     virtual bool isP2P() { return false; }
     virtual bool isReceive() { return false; }
     virtual bool isCollective() { return false; }
-    virtual void set_stride_relationships(CommEvent * base)=0;
+    virtual void fixPhases()=0;
+    virtual void calculate_differential_metric(QString metric_name,
+                                               QString base_name);
+    virtual void initialize_strides(QList<CommEvent *> * stride_events,
+                                    QList<CommEvent *> * recv_events)=0;
+    virtual void update_strides() { return; }
     virtual QVector<Message *> * getMessages() { return NULL; }
     virtual CollectiveRecord * getCollective() { return NULL; }
 

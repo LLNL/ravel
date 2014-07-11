@@ -84,7 +84,6 @@ public:
 private:
     // Stepping logic -- probably want to rewrite
     int set_stride_dag(QList<CommEvent *> *stride_events);
-    void find_stride_child(CommEvent * base, CommEvent * evt);
 
     QList<CommEvent *> * free_recvs;
 

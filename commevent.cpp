@@ -56,3 +56,18 @@ long long CommEvent::getMetric(QString name, bool aggregate)
 
     return ((*metrics)[name])->event;
 }
+
+void CommEvent::calculate_differential_metric(QString metric_name,
+                                              QString base_name)
+{
+    long long max_parent = getMetric(base_name, true);
+    long long max_agg_parent = 0;
+    if (comm_prev)
+        max_agg_parent = (comm_prev->getMetric(base_name));
+
+    addMetric(metric_name,
+              std::max(0LL,
+                       getMetric(base_name)- max_parent),
+              std::max(0LL,
+                       getMetric(base_name, true)- max_agg_parent));
+}

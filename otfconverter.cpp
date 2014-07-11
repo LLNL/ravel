@@ -468,50 +468,9 @@ void OTFConverter::matchEvents()
                 {
                     (evt)->phase = (evt)->comm_prev->phase;
                 }
-                if (evt->isCollective())
-                {
-                    // We check mark so we only do this once per collective,
-                    // We can do this here because we know that the mark isn't
-                    // being used by partitioning later, as here we're partitioning
-                    // by phase function.
-                    CollectiveRecord * coll = evt->getCollective();
-                    if (!coll->mark)
-                    {
-                        int maxphase = 0;
-                        for (QList<CollectiveEvent *>::Iterator ce
-                             = coll->events->begin();
-                             ce != coll->events->end(); ++ce)
-                        {
-                            if ((*ce)->phase > maxphase)
-                                maxphase = (*ce)->phase;
-                        }
-                        for (QList<CollectiveEvent *>::Iterator ce
-                             = coll->events->begin();
-                             ce != coll->events->end(); ++ce)
-                        {
-                            (*ce)->phase = maxphase;
-                        }
-                    }
-                    else
-                        coll->mark = true;
-                }
-                else
-                {
-                    QVector<Message *> * messages = evt->getMessages();
-                    for (QVector<Message *>::Iterator msg
-                         = messages->begin();
-                         msg != messages->end(); ++msg)
-                    {
-                         if ((*msg)->sender->phase > (evt)->phase)
-                             (evt)->phase = (*msg)->sender->phase;
-                         else if ((*msg)->sender->phase < (evt)->phase)
-                             (*msg)->sender->phase = (evt)->phase;
-                         if ((*msg)->receiver->phase > (evt)->phase)
-                             (evt)->phase = (*msg)->receiver->phase;
-                         else if ((*msg)->receiver->phase < (evt)->phase)
-                             (*msg)->receiver->phase = (evt)->phase;
-                    }
-                }
+
+                // Fix phases based on whether they have a message or not
+                evt->fixPhases();
 
                 if (!partition_dict->contains((evt)->phase))
                     (*partition_dict)[(evt)->phase] = new Partition();

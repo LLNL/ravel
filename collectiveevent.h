@@ -13,11 +13,16 @@ public:
     bool isP2P() { return false; }
     bool isReceive() { return false; }
     virtual bool isCollective() { return true; }
-    void set_stride_relationships(CommEvent * base);
+    void fixPhases();
+    void initialize_strides(QList<CommEvent *> * stride_events,
+                            QList<CommEvent *> * recv_events);
     CollectiveRecord * getCollective() { return collective; }
     QSet<Partition *> * mergeForMessagesHelper();
 
     CollectiveRecord * collective;
+
+private:
+    void set_stride_relationships();
 };
 
 #endif // COLLECTIVEEVENT_H
