@@ -92,3 +92,43 @@ QSet<Partition *> *CollectiveEvent::mergeForMessagesHelper()
     }
     return parts;
 }
+
+ClusterEvent * CollectiveEvent::createClusterEvent(QString metric, long long int divider)
+{
+    long long evt_metric = getMetric(metric);
+    long long agg_metric = getMetric(metric, true);
+    ClusterEvent::Threshhold threshhold = ClusterEvent::HIGH;
+    if (evt_metric < divider)
+        threshhold = ClusterEvent::LOW;
+    ClusterEvent::Threshhold aggthreshhold = ClusterEvent::HIGH;
+    if (agg_metric < divider)
+        aggthreshhold = ClusterEvent::LOW;
+
+    ClusterEvent * ce = new ClusterEvent(step);
+
+    ce->setMetric(1, evt_metric, ClusterEvent::COMM,
+                  ClusterEvent::COLL, threshhold);
+    ce->setMetric(1, agg_metric, ClusterEvent::AGG,
+                  ClusterEvent::COLL, aggthreshhold);
+
+    return ce;
+}
+
+void CollectiveEvent::addToClusterEvent(ClusterEvent * ce, QString metric,
+                                 long long int divider)
+{
+    long long evt_metric = getMetric(metric);
+    long long agg_metric = getMetric(metric, true);
+    ClusterEvent::Threshhold threshhold = ClusterEvent::HIGH;
+    if (evt_metric < divider)
+        threshhold = ClusterEvent::LOW;
+    ClusterEvent::Threshhold aggthreshhold = ClusterEvent::HIGH;
+    if (agg_metric < divider)
+        aggthreshhold = ClusterEvent::LOW;
+
+
+    ce->addMetric(1, evt_metric, ClusterEvent::COMM,
+                  ClusterEvent::COLL, threshhold);
+    ce->addMetric(1, agg_metric, ClusterEvent::AGG,
+                  ClusterEvent::COLL, aggthreshhold);
+}

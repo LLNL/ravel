@@ -19,8 +19,14 @@ public:
     void update_strides();
     void calculate_differential_metric(QString metric_name,
                                        QString base_name);
+
+    void addComms(QSet<CommBundle *> * bundleset);
     QVector<Message *> * getMessages() { return messages; }
     QSet<Partition *> * mergeForMessagesHelper();
+
+    ClusterEvent * createClusterEvent(QString metric, long long divider);
+    void addToClusterEvent(ClusterEvent * ce, QString metric,
+                           long long divider);
 
     // ISend coalescing
     QList<P2PEvent *> * subevents;

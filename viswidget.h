@@ -19,6 +19,7 @@ public:
     VisWidget(QWidget *parent = 0, VisOptions * _options = new VisOptions());
     ~VisWidget();
     virtual void setTrace(Trace *t);
+    Trace * getTrace() { return trace; }
     virtual void processVis();
     virtual QSize sizeHint() const;
 
@@ -26,6 +27,10 @@ public:
     bool isClosed() { return closed; }
     void setVisOptions(VisOptions * _options);
     QWidget * container;
+
+    virtual int getX(CommEvent * evt) { Q_UNUSED(evt); return 0; }
+    virtual int getY(CommEvent * evt) { Q_UNUSED(evt); return 0; }
+    virtual int getHeight() { return rect().height(); }
 
 signals:
     void repaintAll();

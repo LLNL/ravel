@@ -2,9 +2,12 @@
 #define MESSAGE_H
 
 class P2PEvent;
+class CommEvent;
+
+#include "commbundle.h"
 
 // Holder of message info
-class Message
+class Message : public CommBundle
 {
 public:
     Message(unsigned long long send, unsigned long long recv);
@@ -13,11 +16,16 @@ public:
     unsigned long long sendtime;
     unsigned long long recvtime;
 
+    CommEvent * getDesignee();
+
     bool operator<(const Message &);
     bool operator>(const Message &);
     bool operator<=(const Message &);
     bool operator>=(const Message &);
     bool operator==(const Message &);
+
+    void draw(QPainter * painter, VisWidget * vis, VisOptions * options,
+              int w, int h);
 };
 
 #endif // MESSAGE_H

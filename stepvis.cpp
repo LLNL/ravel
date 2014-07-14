@@ -10,7 +10,9 @@ StepVis::StepVis(QWidget* parent, VisOptions * _options)
     hoverText(""),
     maxMetricTextWidth(0),
     colorbar_offset(0),
-    lassoRect(QRect())
+    lassoRect(QRect()),
+    blockwidth(0),
+    blockheight(0)
 {
 
 }
@@ -602,8 +604,8 @@ void StepVis::paintEvents(QPainter * painter)
     if (effectiveWidth / stepSpan > spacingMinimum)
         step_spacing = 3;
 
-    float x, y, w, h, xa, wa, blockwidth;
-    float blockheight = floor(effectiveHeight / processSpan);
+    float x, y, w, h, xa, wa;
+    blockheight = floor(effectiveHeight / processSpan);
     if (options->showAggregateSteps)
     {
         blockwidth = floor(effectiveWidth / stepSpan);
@@ -621,8 +623,9 @@ void StepVis::paintEvents(QPainter * painter)
     QString metric(options->metric);
     int position;
     bool complete, aggcomplete;
-    QSet<Message *> drawMessages = QSet<Message *>();
-    QSet<CollectiveRecord *> drawCollectives = QSet<CollectiveRecord *>();
+    QSet<CommBundle *> drawComms = QSet<CommBundle *>();
+    //QSet<Message *> drawMessages = QSet<Message *>();
+    //QSet<CollectiveRecord *> drawCollectives = QSet<CollectiveRecord *>();
     painter->setPen(QPen(QColor(0, 0, 0)));
     Partition * part = NULL;
     int topStep = boundStep(startStep + stepSpan) + 1;
@@ -672,12 +675,7 @@ void StepVis::paintEvents(QPainter * painter)
                 // 0 = startProcess, effectiveHeight = stopProcess (startProcess + processSpan)
                 // 0 = startStep, rect().width() = stopStep (startStep + stepSpan)
 
-                if (options->showAggregateSteps)
-                    x = floor(((*evt)->step - startStep) * blockwidth) + 1
-                        + labelWidth;
-                else
-                    x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1
-                        + labelWidth;
+                x = getX(*evt);
                 w = barwidth;
                 h = barheight;
 
@@ -731,8 +729,9 @@ void StepVis::paintEvents(QPainter * painter)
 
 
                 // Save messages for the end since they draw on top
+                (*evt)->addComms(&drawComms);
                 QVector<Message *> * msgs = (*evt)->getMessages();
-                if (msgs)
+                /*if (msgs)
                     for (QVector<Message *>::Iterator msg = msgs->begin();
                          msg != msgs->end(); ++msg)
                     {
@@ -740,6 +739,7 @@ void StepVis::paintEvents(QPainter * painter)
                     }
                 if ((*evt)->getCollective())
                     drawCollectives.insert((*evt)->getCollective());
+                    */
 
                 // Draw aggregate events if necessary
                 if (options->showAggregateSteps) {
@@ -795,11 +795,19 @@ void StepVis::paintEvents(QPainter * painter)
     // for overlap purposes
     if (options->showMessages != VisOptions::NONE)
     {
+        for (QSet<CommBundle *>::Iterator comm = drawComms.begin();
+             comm != drawComms.end(); ++comm)
+        {
+            (*comm)->draw(painter, this, options, blockwidth, blockheight);
+        }
         // Draw messages
-        if (processSpan <= 32)
+        /*if (processSpan <= 32)
             painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
         else
             painter->setPen(QPen(Qt::black, 1, Qt::SolidLine));
+            */
+
+        /*
         P2PEvent * send_event;
         P2PEvent * recv_event;
         QPointF p1, p2;
@@ -810,40 +818,28 @@ void StepVis::paintEvents(QPainter * painter)
         {
             send_event = (*msg)->sender;
             recv_event = (*msg)->receiver;
-            position = proc_to_order[send_event->process];
-            y = floor((position - startProcess) * blockheight) + 1;
-            if (options->showAggregateSteps) // Factor these calcs into own fxn!
-                x = floor((send_event->step - startStep) * blockwidth) + 1
-                    + labelWidth;
-            else
-                x = floor((send_event->step - startStep) / 2 * blockwidth) + 1
-                    + labelWidth;
+            y = getY(send_event->process);
+            x = getX(send_event->step);
             if (options->showMessages == VisOptions::TRUE)
             {
                 p1 = QPointF(x + w/2.0, y + h/2.0);
-                position = proc_to_order[recv_event->process];
-                y = floor((position - startProcess) * blockheight) + 1;
-                if (options->showAggregateSteps)
-                    x = floor((recv_event->step - startStep) * blockwidth) + 1
-                        + labelWidth;
-                else
-                    x = floor((recv_event->step - startStep) / 2 * blockwidth) + 1
-                        + labelWidth;
+                y = getY(recv_event->process);
+                x = getX(recv_event->step);
                 p2 = QPointF(x + w/2.0, y + h/2.0);
             }
             else
             {
                 p1 = QPointF(x, y + h/2.0);
-                position = proc_to_order[recv_event->process];
-                y = floor((position - startProcess) * blockheight) + 1;
+                y = getY(recv_event->process);
                 p2 = QPointF(x + w, y + h/2.0);
             }
-            drawLine(painter, &p1, &p2, effectiveHeight);
+            drawLine(painter, &p1, &p2);
         }
+        */
 
         // Draw collectives
 
-        int ell_w, ell_h;
+        /*int ell_w, ell_h;
         if (blockwidth / 5 > 0)
             ell_w = blockwidth / 5;
         else
@@ -852,18 +848,41 @@ void StepVis::paintEvents(QPainter * painter)
             ell_h = blockheight / 5;
         else
             ell_h = 3;
-        for (QSet<CollectiveRecord *>::Iterator cr = drawCollectives.begin();
+            */
+
+        /*for (QSet<CollectiveRecord *>::Iterator cr = drawCollectives.begin();
              cr != drawCollectives.end(); ++cr)
         {
-            drawCollective(painter, *cr, ell_w, ell_h, effectiveHeight,
-                           blockheight, blockwidth);
+            drawCollective(painter, *cr, ell_w, ell_h, effectiveHeight);
         }
+        */
     }
+}
+
+int StepVis::getY(CommEvent * evt)
+{
+    int y = 0;
+    int position = proc_to_order[evt->process];
+    y = floor((position - startProcess) * blockheight) + 1;
+    return y;
+}
+
+int StepVis::getX(CommEvent *evt)
+{
+    int x = 0;
+    if (options->showAggregateSteps) // Factor these calcs into own fxn!
+        x = floor((evt->step - startStep) * blockwidth) + 1
+            + labelWidth;
+    else
+        x = floor((evt->step - startStep) / 2 * blockwidth) + 1
+            + labelWidth;
+
+    return x;
 }
 
 void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr,
                              int ellipse_width, int ellipse_height,
-                             int effectiveHeight, int blockheight, int blockwidth)
+                             int effectiveHeight)
 {
     int root, x, y, prev_x, prev_y, root_x, root_y, position;
     CollectiveEvent * coll_event;
@@ -953,7 +972,7 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr,
         {
             p1 = QPointF(prev_x + w/2.0, prev_y + h/2.0);
             p2 = QPointF(x + w/2.0, y + h/2.0);
-            drawArc(painter, &p1, &p2, ell_w * 1.5, effectiveHeight);
+            drawArc(painter, &p1, &p2, ell_w * 1.5);
         }
         else if (rooted && coll_event->process == root)
         {
@@ -966,8 +985,8 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr,
             // First Arc
             p1 = QPointF(prev_x + w/2.0, prev_y + h/2.0);
             p2 = QPointF(x + w/2.0, y + h/2.0);
-            drawArc(painter, &p1, &p2, ell_w * 1.5, effectiveHeight);
-            drawArc(painter, &p1, &p2, ell_w * -1.5, effectiveHeight, false);
+            drawArc(painter, &p1, &p2, ell_w * 1.5);
+            drawArc(painter, &p1, &p2, ell_w * -1.5, false);
         }
 
         prev_x = x;
@@ -997,7 +1016,7 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr,
                     + labelWidth - root_offset;
 
             p2 = QPointF(ox + w/2, oy + h/2);
-            drawLine(painter, &p1, &p2, effectiveHeight);
+            drawLine(painter, &p1, &p2);
         }
     }
 }
@@ -1006,10 +1025,10 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr,
 // point p2 that is not wider than radius and stops at the
 // effectiveHeight.
 void StepVis::drawArc(QPainter * painter, QPointF * p1, QPointF * p2,
-                      int width, int effectiveHeight, bool forward)
+                      int width, bool forward)
 {
     QPainterPath path;
-
+    int effectiveHeight = rect().height() - colorBarHeight;
     // handle effectiveheight -- find correct span angle & start so
     // the arc doesn't draw past effective height
     if (p2->y() > effectiveHeight)
@@ -1029,9 +1048,9 @@ void StepVis::drawArc(QPainter * painter, QPointF * p1, QPointF * p2,
 // This is for drawing the message lines. It determines whether the line will
 // exceed the drawing area on the bottom and thus potentially overwrite the
 // color bar. If so, it shortens the line while maintaining its slope.
-void StepVis::drawLine(QPainter * painter, QPointF * p1, QPointF * p2,
-                       int effectiveHeight)
+void StepVis::drawLine(QPainter * painter, QPointF * p1, QPointF * p2)
 {
+    int effectiveHeight = rect().height() - colorBarHeight;
     if (p1->y() > effectiveHeight && p2->y() > effectiveHeight)
     {
         return;

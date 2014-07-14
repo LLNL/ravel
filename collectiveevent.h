@@ -16,8 +16,14 @@ public:
     void fixPhases();
     void initialize_strides(QList<CommEvent *> * stride_events,
                             QList<CommEvent *> * recv_events);
+
+    void addComms(QSet<CommBundle *> * bundleset) { bundleset->insert(collective); }
     CollectiveRecord * getCollective() { return collective; }
     QSet<Partition *> * mergeForMessagesHelper();
+
+    ClusterEvent * createClusterEvent(QString metric, long long divider);
+    void addToClusterEvent(ClusterEvent * ce, QString metric,
+                           long long divider);
 
     CollectiveRecord * collective;
 

@@ -42,7 +42,8 @@ SOURCES  += main.cpp \
     otfcollective.cpp \
     commevent.cpp \
     p2pevent.cpp \
-    collectiveevent.cpp
+    collectiveevent.cpp \
+    commbundle.cpp
 
 
 HEADERS += \
@@ -83,7 +84,8 @@ HEADERS += \
     otfcollective.h \
     commevent.h \
     p2pevent.h \
-    collectiveevent.h
+    collectiveevent.h \
+    commbundle.h
 
 
 FORMS += \

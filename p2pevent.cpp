@@ -187,3 +187,80 @@ QSet<Partition *> * P2PEvent::mergeForMessagesHelper()
     }
     return parts;
 }
+
+ClusterEvent * P2PEvent::createClusterEvent(QString metric, long long int divider)
+{
+    long long evt_metric = getMetric(metric);
+    long long agg_metric = getMetric(metric, true);
+    ClusterEvent::Threshhold threshhold = ClusterEvent::HIGH;
+    if (evt_metric < divider)
+        threshhold = ClusterEvent::LOW;
+    ClusterEvent::Threshhold aggthreshhold = ClusterEvent::HIGH;
+    if (agg_metric < divider)
+        aggthreshhold = ClusterEvent::LOW;
+
+    ClusterEvent * ce = new ClusterEvent(step);
+    ClusterEvent::CommType commtype = ClusterEvent::SEND;
+    if (is_recv && messages->size() > 1)
+    {
+        commtype = ClusterEvent::WAITALL;
+        ce->waitallrecvs += messages->size();
+    }
+    else if (is_recv)
+    {
+        commtype = ClusterEvent::RECV;
+    }
+    else if (messages->size() > 1)
+    {
+        commtype = ClusterEvent::ISEND;
+        ce->isends += messages->size();
+    }
+
+    ce->setMetric(1, evt_metric, ClusterEvent::COMM,
+                  commtype, threshhold);
+    ce->setMetric(1, agg_metric, ClusterEvent::AGG,
+                  commtype, aggthreshhold);
+
+    return ce;
+}
+
+void P2PEvent::addToClusterEvent(ClusterEvent * ce, QString metric,
+                                 long long int divider)
+{
+    long long evt_metric = getMetric(metric);
+    long long agg_metric = getMetric(metric, true);
+    ClusterEvent::Threshhold threshhold = ClusterEvent::HIGH;
+    if (evt_metric < divider)
+        threshhold = ClusterEvent::LOW;
+    ClusterEvent::Threshhold aggthreshhold = ClusterEvent::HIGH;
+    if (agg_metric < divider)
+        aggthreshhold = ClusterEvent::LOW;
+
+    ClusterEvent::CommType commtype = ClusterEvent::SEND;
+    if (is_recv && messages->size() > 1)
+    {
+        commtype = ClusterEvent::WAITALL;
+        ce->waitallrecvs += messages->size();
+    }
+    else if (is_recv)
+    {
+        commtype = ClusterEvent::RECV;
+    }
+    else if (messages->size() > 1)
+    {
+        commtype = ClusterEvent::ISEND;
+        ce->isends += messages->size();
+    }
+
+    ce->addMetric(1, evt_metric, ClusterEvent::COMM,
+                  commtype, threshhold);
+    ce->addMetric(1, agg_metric, ClusterEvent::AGG,
+                  commtype, aggthreshhold);
+}
+
+void P2PEvent::addComms(QSet<CommBundle *> * bundleset)
+{
+    for (QVector<Message *>::Iterator msg = messages->begin();
+         msg != messages->end(); ++msg)
+        bundleset->insert(*msg);
+}

@@ -2,6 +2,7 @@
 #define COMMEVENT_H
 
 #include "event.h"
+#include "clusterevent.h"
 
 class Partition;
 
@@ -27,6 +28,12 @@ public:
     virtual void initialize_strides(QList<CommEvent *> * stride_events,
                                     QList<CommEvent *> * recv_events)=0;
     virtual void update_strides() { return; }
+
+    virtual ClusterEvent * createClusterEvent(QString metric, long long divider)=0;
+    virtual void addToClusterEvent(ClusterEvent * ce, QString metric,
+                                   long long divider)=0;
+
+    virtual void addComms(QSet<CommBundle *> * bundleset)=0;
     virtual QVector<Message *> * getMessages() { return NULL; }
     virtual CollectiveRecord * getCollective() { return NULL; }
 
