@@ -393,6 +393,7 @@ void Gnome::generateTopProcessesWorker(int process)
             for (QList<CommEvent *>::Iterator evt = elist->begin();
                  evt != elist->end(); ++evt)
             {
+                // Should happen at the evt level
                 QVector<Message *> * msgs = (*evt)->getMessages();
                 if (!msgs)
                     continue;
@@ -713,6 +714,7 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
                 painter->drawRect(QRectF(x,y,w,h));
             }
 
+            // Change to commBundle method
             QVector<Message *> * msgs = (*evt)->getMessages();
             if (msgs)
                 for (QVector<Message *>::Iterator msg = msgs->begin();
@@ -1080,6 +1082,7 @@ void Gnome::drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy,
                 painter->drawRect(QRectF(xa, y, wa, h));
         }
 
+        // Chnage to commBundle method
         QVector<Message *> * msgs = (*evt)->getMessages();
         if (msgs)
             for (QVector<Message *>::Iterator msg = msgs->begin();

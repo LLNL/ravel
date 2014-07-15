@@ -116,7 +116,7 @@ private:
     // Tarjan
     void strong_connect_loop(Partition * part, QStack<Partition *> * stack,
                             QList<Partition *> * children, int cIndex,
-                            QStack<RecurseInfo *> * recurse,
+                            QStack<QSharedPointer<RecurseInfo> > * recurse,
                              QList<QList<Partition *> *> * components);
     int strong_connect_iter(Partition * partition, QStack<Partition *> * stack,
                             QList<QList<Partition *> *> * components, int index);
@@ -144,8 +144,8 @@ private:
     bool isProcessed; // Partitions exist
 
     // TODO: Replace this terrible stuff with QSharedPointer
-    QSet<RecurseInfo *> * riTracker;
-    QSet<QList<Partition *> *> * riChildrenTracker;
+    //QSet<RecurseInfo *> * riTracker;
+    //QSet<QList<Partition *> *> * riChildrenTracker;
 
     static const int partition_portion = 45;
     static const int lateness_portion = 35;

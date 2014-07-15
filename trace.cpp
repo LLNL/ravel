@@ -26,9 +26,7 @@ Trace::Trace(int np)
       global_max_step(-1),
       dag_entries(new QList<Partition *>()),
       dag_step_dict(new QMap<int, QSet<Partition *> *>()),
-      isProcessed(false),
-      riTracker(NULL),
-      riChildrenTracker(NULL)
+      isProcessed(false)
 {
     for (int i = 0; i < np; i++) {
         (*events)[i] = new QVector<Event *>();
@@ -1266,7 +1264,7 @@ void Trace::mergeForMessages()
 // Looping section of Tarjan algorithm
 void Trace::strong_connect_loop(Partition * part, QStack<Partition *> * stack,
                                       QList<Partition *> * children, int cIndex,
-                                      QStack<RecurseInfo *> * recurse,
+                                      QStack<QSharedPointer<RecurseInfo> > * recurse,
                                       QList<QList<Partition *> *> * components)
 {
     Q_ASSERT(cIndex >= 0);
@@ -1278,10 +1276,8 @@ void Trace::strong_connect_loop(Partition * part, QStack<Partition *> * stack,
         if (child->tindex < 0)
         {
             // Push onto recursion stack, return so we can deal with it
-            recurse->push(new RecurseInfo(part, child, children, cIndex));
-            riTracker->insert(recurse->top());
-            recurse->push(new RecurseInfo(child, NULL, NULL, -1));
-            riTracker->insert(recurse->top());
+            recurse->push(QSharedPointer<RecurseInfo>(new RecurseInfo(part, child, children, cIndex)));
+            recurse->push(QSharedPointer<RecurseInfo>(new RecurseInfo(child, NULL, NULL, -1)));
             return;
         }
         else if (stack->contains(child))
@@ -1315,14 +1311,11 @@ int Trace::strong_connect_iter(Partition * partition,
                                QList<QList<Partition *> *> * components,
                                int index)
 {
-    QStack<RecurseInfo *> * recurse = new QStack<RecurseInfo *>();
-    riTracker = new QSet<RecurseInfo *>();
-    riChildrenTracker = new QSet<QList<Partition *> *>();
-    recurse->push(new RecurseInfo(partition, NULL, NULL, -1));
-    riTracker->insert(recurse->top());
+    QStack<QSharedPointer<RecurseInfo> > * recurse = new QStack<QSharedPointer<RecurseInfo> >();
+    recurse->push(QSharedPointer<RecurseInfo>(new RecurseInfo(partition, NULL, NULL, -1)));
     while (recurse->size() > 0)
     {
-        RecurseInfo * ri = recurse->pop();
+        QSharedPointer<RecurseInfo> ri = recurse->pop();
 
         if (ri->cIndex < 0)
         {
@@ -1332,7 +1325,6 @@ int Trace::strong_connect_iter(Partition * partition,
             stack->push(ri->part);
             Q_ASSERT(ri->children == NULL);
             ri->children = new QList<Partition *>();
-            riChildrenTracker->insert(ri->children);
             for (QSet<Partition *>::Iterator child
                  = ri->part->children->begin();
                  child != ri->part->children->end(); ++child)
@@ -1351,21 +1343,6 @@ int Trace::strong_connect_iter(Partition * partition,
                                 recurse, components);
         }
     }
-
-    for (QSet<QList<Partition *> *>::Iterator riC = riChildrenTracker->begin();
-         riC != riChildrenTracker->end(); ++riC)
-    {
-        delete *riC;
-    }
-    for (QSet<RecurseInfo *>::Iterator ri = riTracker->begin();
-         ri != riTracker->end(); ++ri)
-    {
-        delete *ri;
-    }
-    delete riTracker;
-    riTracker = NULL;
-    delete riChildrenTracker;
-    riChildrenTracker = NULL;
     delete recurse;
     return index;
 }

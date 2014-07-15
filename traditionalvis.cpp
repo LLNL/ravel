@@ -665,16 +665,6 @@ void TraditionalVis::paintEvents(QPainter *painter)
                     }
 
                 }
-
-                /*QVector<Message *> * msgs = (*evt)->getMessages();
-                if (msgs)
-                    for (QVector<Message *>::Iterator msg
-                         = msgs->begin();
-                         msg != msgs->end(); ++msg)
-                    {
-                        drawMessages.insert((*msg));
-                    }
-                    */
                 (*evt)->addComms(&drawComms);
             }
         }
