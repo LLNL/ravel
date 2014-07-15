@@ -3,16 +3,15 @@
 
 #include <QPainter>
 #include "visoptions.h"
+#include "commdrawinterface.h"
 
-class VisWidget;
 class CommEvent;
 
 class CommBundle
 {
 public:
-    CommBundle();
     virtual CommEvent * getDesignee()=0; // Event responsible
-    virtual void draw(QPainter * painter, VisWidget * vis)=0;
+    virtual void draw(QPainter * painter, CommDrawInterface * vis)=0;
 };
 
 #endif // COMMBUNDLE_H

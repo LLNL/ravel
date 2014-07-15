@@ -11,8 +11,9 @@
 
 #include "trace.h"
 #include "visoptions.h"
+#include "commdrawinterface.h"
 
-class VisWidget : public QGLWidget
+class VisWidget : public QGLWidget, public CommDrawInterface
 {
     Q_OBJECT
 public:

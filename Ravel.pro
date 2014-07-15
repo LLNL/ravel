@@ -43,7 +43,8 @@ SOURCES  += main.cpp \
     commevent.cpp \
     p2pevent.cpp \
     collectiveevent.cpp \
-    commbundle.cpp
+    commbundle.cpp \
+    commdrawinterface.cpp
 
 
 HEADERS += \
@@ -85,7 +86,8 @@ HEADERS += \
     commevent.h \
     p2pevent.h \
     collectiveevent.h \
-    commbundle.h
+    commbundle.h \
+    commdrawinterface.h
 
 
 FORMS += \

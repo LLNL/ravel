@@ -24,10 +24,7 @@ public:
     QList<CollectiveEvent *> * events;
 
     CommEvent * getDesignee();
-    void draw(QPainter * painter, VisWidget * vis);
-    void drawArc(QPainter * painter, VisWidget * vis,
-                 QPointF * p1, QPointF * p2,
-                 int width, bool forward = true);
+    void draw(QPainter * painter, CommDrawInterface * vis);
 };
 
 #endif // COLLECTIVERECORD_H

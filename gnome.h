@@ -1,6 +1,7 @@
 #ifndef GNOME_H
 #define GNOME_H
 
+#include "commdrawinterface.h"
 #include "rpartition.h"
 #include "function.h"
 #include "visoptions.h"
@@ -21,7 +22,7 @@
 // will allow customization. However, this design with both a detector and
 // a drawing style needs to be factored in some other way. The design right
 // now is suspect.
-class Gnome
+class Gnome : CommDrawInterface
 {
 public:
     Gnome();
@@ -54,6 +55,8 @@ public:
     bool handleHover(QMouseEvent * event);
     void drawHover(QPainter * painter);
 
+    virtual void drawMessage(QPainter * painter, Message * message) { Q_UNUSED(painter); Q_UNUSED(message); }
+    virtual void drawCollective(QPainter * painter, CollectiveRecord * cr) { Q_UNUSED(painter); Q_UNUSED(cr); }
 
     // For clusterings
     struct process_distance {

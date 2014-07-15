@@ -191,8 +191,13 @@ void OTFConverter::matchEvents()
                     P2PEvent * isend = new P2PEvent(isends);
                     isend->comm_prev = isends->first()->comm_prev;
                     isends->first()->comm_prev->comm_next = isend;
+                    makeSingletonPartition(isend);
                     prev = isend;
                     isends = new QList<P2PEvent *>();
+                    if (options->waitallMerge)
+                    {
+                        sendgroup->append(trace->partitions->last());
+                    }
                 }
 
                 // Partition/handle comm events
@@ -285,13 +290,13 @@ void OTFConverter::matchEvents()
                     e = crec->message->sender;
                     if (options->partitionByFunction)
                         commevents->append(crec->message->sender);
-                    else
+                    else if (!options->isendCoalescing || !isendflag)
                         makeSingletonPartition(crec->message->sender);
                     sindex++;
 
                     spartcounter++;
                     // Collect the send for possible waitall merge
-                    if (options->waitallMerge)
+                    if (options->waitallMerge && !(options->isendCoalescing && isendflag))
                     {
                         sendgroup->append(trace->partitions->last());
                     }

@@ -27,29 +27,7 @@ CommEvent * CollectiveRecord::getDesignee()
 }
 
 
-void CollectiveRecord::draw(QPainter * painter, VisWidget * vis)
+void CollectiveRecord::draw(QPainter * painter, CommDrawInterface *vis)
 {
     vis->drawCollective(painter, this);
-}
-
-void CollectiveRecord::drawArc(QPainter * painter, VisWidget * vis,
-                               QPointF * p1, QPointF * p2,
-                               int width, bool forward)
-{
-    QPainterPath path;
-    int effectiveHeight = vis->getHeight();
-    // handle effectiveheight -- find correct span angle & start so
-    // the arc doesn't draw past effective height
-    if (p2->y() > effectiveHeight)
-    {
-        //
-    }
-
-    QRectF bounding(p1->x() - width, p1->y(), width*2, p2->y() - p1->y());
-    path.moveTo(p1->x(), p1->y());
-    if (forward)
-        path.arcTo(bounding, 90, -180);
-    else
-        path.arcTo(bounding, 90, 180);
-    painter->drawPath(path);
 }

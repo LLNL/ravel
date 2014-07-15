@@ -39,7 +39,7 @@ CommEvent * Message::getDesignee()
     return sender;
 }
 
-void Message::draw(QPainter * painter, VisWidget * vis)
+void Message::draw(QPainter * painter, CommDrawInterface *vis)
 {
     vis->drawMessage(painter, this);
 }
