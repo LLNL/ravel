@@ -121,7 +121,7 @@ void P2PEvent::initialize_strides(QList<CommEvent *> * stride_events,
         if (comm_prev && comm_prev->partition == partition)
             last_send = comm_prev;
         // Set last_send based on process
-        while (last_send)
+        while (last_send && last_send->isReceive())
         {
             last_send = last_send->comm_prev;
         }
@@ -130,7 +130,7 @@ void P2PEvent::initialize_strides(QList<CommEvent *> * stride_events,
 
         next_send = comm_next;
         // Set next_send based on process
-        while (next_send)
+        while (next_send && next_send->isReceive())
         {
             next_send = next_send->comm_next;
         }
