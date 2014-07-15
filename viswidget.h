@@ -28,9 +28,11 @@ public:
     void setVisOptions(VisOptions * _options);
     QWidget * container;
 
-    virtual int getX(CommEvent * evt) { Q_UNUSED(evt); return 0; }
-    virtual int getY(CommEvent * evt) { Q_UNUSED(evt); return 0; }
     virtual int getHeight() { return rect().height(); }
+    virtual void drawMessage(QPainter * painter, Message * msg)
+        { Q_UNUSED(painter); Q_UNUSED(msg); }
+    virtual void drawCollective(QPainter * painter, CollectiveRecord * cr)
+        { Q_UNUSED(painter); Q_UNUSED(cr); }
 
 signals:
     void repaintAll();

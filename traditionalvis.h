@@ -18,6 +18,9 @@ public:
     void mouseDoubleClickEvent(QMouseEvent * event);
     void rightDrag(QMouseEvent * event);
 
+    void drawMessage(QPainter * painter, Message * message);
+    void drawCollective(QPainter * painter, CollectiveRecord * cr);
+
 public slots:
     void setSteps(float start, float stop, bool jump = false);
 
@@ -52,6 +55,11 @@ private:
     unsigned long long timeSpan;
     QVector<TimePair* > * stepToTime;
     QRect lassoRect;
+    float blockheight;
+
+    int getX(CommEvent * evt);
+    int getY(CommEvent * evt);
+    int getW(CommEvent * evt);
 };
 
 #endif // TRADITIONALVIS_H

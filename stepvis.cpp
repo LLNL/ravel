@@ -12,7 +12,9 @@ StepVis::StepVis(QWidget* parent, VisOptions * _options)
     colorbar_offset(0),
     lassoRect(QRect()),
     blockwidth(0),
-    blockheight(0)
+    blockheight(0),
+    ellipse_width(0),
+    ellipse_height(0)
 {
 
 }
@@ -730,16 +732,6 @@ void StepVis::paintEvents(QPainter * painter)
 
                 // Save messages for the end since they draw on top
                 (*evt)->addComms(&drawComms);
-                QVector<Message *> * msgs = (*evt)->getMessages();
-                /*if (msgs)
-                    for (QVector<Message *>::Iterator msg = msgs->begin();
-                         msg != msgs->end(); ++msg)
-                    {
-                        drawMessages.insert((*msg));
-                    }
-                if ((*evt)->getCollective())
-                    drawCollectives.insert((*evt)->getCollective());
-                    */
 
                 // Draw aggregate events if necessary
                 if (options->showAggregateSteps) {
@@ -795,67 +787,20 @@ void StepVis::paintEvents(QPainter * painter)
     // for overlap purposes
     if (options->showMessages != VisOptions::NONE)
     {
+        if (blockwidth / 5 > 0)
+            ellipse_width = blockwidth / 5;
+        else
+            ellipse_width = 3;
+        if (blockheight / 5 > 0)
+            ellipse_height = blockheight / 5;
+        else
+            ellipse_height = 3;
+
         for (QSet<CommBundle *>::Iterator comm = drawComms.begin();
              comm != drawComms.end(); ++comm)
         {
-            (*comm)->draw(painter, this, options, blockwidth, blockheight);
+            (*comm)->draw(painter, this);
         }
-        // Draw messages
-        /*if (processSpan <= 32)
-            painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
-        else
-            painter->setPen(QPen(Qt::black, 1, Qt::SolidLine));
-            */
-
-        /*
-        P2PEvent * send_event;
-        P2PEvent * recv_event;
-        QPointF p1, p2;
-        w = barwidth;
-        h = barheight;
-        for (QSet<Message *>::Iterator msg = drawMessages.begin();
-             msg != drawMessages.end(); ++msg)
-        {
-            send_event = (*msg)->sender;
-            recv_event = (*msg)->receiver;
-            y = getY(send_event->process);
-            x = getX(send_event->step);
-            if (options->showMessages == VisOptions::TRUE)
-            {
-                p1 = QPointF(x + w/2.0, y + h/2.0);
-                y = getY(recv_event->process);
-                x = getX(recv_event->step);
-                p2 = QPointF(x + w/2.0, y + h/2.0);
-            }
-            else
-            {
-                p1 = QPointF(x, y + h/2.0);
-                y = getY(recv_event->process);
-                p2 = QPointF(x + w, y + h/2.0);
-            }
-            drawLine(painter, &p1, &p2);
-        }
-        */
-
-        // Draw collectives
-
-        /*int ell_w, ell_h;
-        if (blockwidth / 5 > 0)
-            ell_w = blockwidth / 5;
-        else
-            ell_w = 3;
-        if (blockheight / 5 > 0)
-            ell_h = blockheight / 5;
-        else
-            ell_h = 3;
-            */
-
-        /*for (QSet<CollectiveRecord *>::Iterator cr = drawCollectives.begin();
-             cr != drawCollectives.end(); ++cr)
-        {
-            drawCollective(painter, *cr, ell_w, ell_h, effectiveHeight);
-        }
-        */
     }
 }
 
@@ -880,11 +825,39 @@ int StepVis::getX(CommEvent *evt)
     return x;
 }
 
-void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr,
-                             int ellipse_width, int ellipse_height,
-                             int effectiveHeight)
+void StepVis::drawMessage(QPainter * painter, Message * msg)
 {
-    int root, x, y, prev_x, prev_y, root_x, root_y, position;
+    if (processSpan <= 32)
+        painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
+    else
+        painter->setPen(QPen(Qt::black, 1, Qt::SolidLine));
+
+    QPointF p1, p2;
+    int y = getY(msg->sender);
+    int x = getX(msg->sender);
+    int w = blockwidth;
+    int h = blockheight;
+
+    if (options->showMessages == VisOptions::TRUE)
+    {
+        p1 = QPointF(x + w/2.0, y + h/2.0);
+        y = getY(msg->receiver);
+        x = getX(msg->receiver);
+        p2 = QPointF(x + w/2.0, y + h/2.0);
+    }
+    else
+    {
+        p1 = QPointF(x, y + h/2.0);
+        y = getY(msg->receiver);
+        p2 = QPointF(x + w, y + h/2.0);
+    }
+    drawLine(painter, &p1, &p2);
+}
+
+
+void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
+{
+    int root, x, y, prev_x, prev_y, root_x, root_y;
     CollectiveEvent * coll_event;
     QPointF p1, p2;
 
@@ -912,14 +885,9 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr,
     painter->setPen(QPen(Qt::darkGray, 1, Qt::SolidLine));
     painter->setBrush(QBrush(Qt::darkGray));
     coll_event = cr->events->at(0);
-    position = proc_to_order[coll_event->process];
-    prev_y = floor((position - startProcess) * blockheight) + 1;
-    if (options->showAggregateSteps)
-        prev_x = floor((coll_event->step - startStep) * blockwidth) + 1
-            + labelWidth;
-    else
-        prev_x = floor((coll_event->step - startStep) / 2 * blockwidth) + 1
-            + labelWidth;
+    prev_y = getY(coll_event);
+    prev_x = getX(coll_event);
+
     if (rooted)
     {
         if (coll_event->process == root)
@@ -947,14 +915,8 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr,
             painter->setBrush(QBrush());
         }
 
-        position = proc_to_order[coll_event->process];
-        y = floor((position - startProcess) * blockheight) + 1;
-        if (options->showAggregateSteps)
-            x = floor((coll_event->step - startStep) * blockwidth) + 1
-                + labelWidth;
-        else
-            x = floor((coll_event->step - startStep) / 2 * blockwidth) + 1
-                + labelWidth;
+        y = getY(coll_event);
+        x = getX(coll_event);
         if (rooted)
         {
             if (coll_event->process == root)
@@ -998,7 +960,7 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr,
         painter->setPen(QPen(Qt::black, 1, Qt::DashLine));
         painter->setBrush(QBrush());
         CollectiveEvent * other;
-        int oposition, ox, oy;
+        int ox, oy;
         p1 = QPointF(root_x + w/2, root_y + h/2);
         for (int j = 0; j < cr->events->size(); j++)
         {
@@ -1006,14 +968,8 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr,
             if (other->process == root)
                 continue;
 
-            oposition = proc_to_order[other->process];
-            oy = floor((oposition - startProcess) * blockheight) + 1;
-            if (options->showAggregateSteps)
-                ox = floor((other->step - startStep) * blockwidth) + 1
-                    + labelWidth - root_offset;
-            else
-                ox = floor((other->step - startStep) / 2 * blockwidth) + 1
-                    + labelWidth - root_offset;
+            oy = getY(other);
+            ox = getX(other) - root_offset;
 
             p2 = QPointF(ox + w/2, oy + h/2);
             drawLine(painter, &p1, &p2);

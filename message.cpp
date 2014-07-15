@@ -39,29 +39,7 @@ CommEvent * Message::getDesignee()
     return sender;
 }
 
-void Message::draw(QPainter * painter, VisWidget * vis, VisOptions *options,
-                   int w, int h)
+void Message::draw(QPainter * painter, VisWidget * vis)
 {
-    if (vis->getHeight() / h <= 32)
-        painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
-    else
-        painter->setPen(QPen(Qt::black, 1, Qt::SolidLine));
-
-    QPointF p1, p2;
-    int y = vis->getY(sender);
-    int x = vis->getX(sender);
-    if (options->showMessages == VisOptions::TRUE)
-    {
-        p1 = QPointF(x + w/2.0, y + h/2.0);
-        y = vis->getY(receiver);
-        x = vis->getX(receiver);
-        p2 = QPointF(x + w/2.0, y + h/2.0);
-    }
-    else
-    {
-        p1 = QPointF(x, y + h/2.0);
-        y = vis->getY(receiver);
-        p2 = QPointF(x + w, y + h/2.0);
-    }
-    drawLine(painter, vis, &p1, &p2);
+    vis->drawMessage(painter, this);
 }

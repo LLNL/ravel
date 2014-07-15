@@ -24,8 +24,7 @@ public:
     bool operator>=(const Message &);
     bool operator==(const Message &);
 
-    void draw(QPainter * painter, VisWidget * vis, VisOptions * options,
-              int w, int h);
+    void draw(QPainter * painter, VisWidget * vis);
 };
 
 #endif // MESSAGE_H

@@ -21,9 +21,9 @@ public:
     // Saves colorbar range information
     MetricRangeDialog * metricdialog;
 
-    int getX(CommEvent * evt);
-    int getY(CommEvent *evt);
     int getHeight() { return rect().height() - colorBarHeight; }
+    void drawMessage(QPainter * painter, Message * message);
+    void drawCollective(QPainter * painter, CollectiveRecord * cr);
 
 public slots:
     void setSteps(float start, float stop, bool jump = false);
@@ -44,6 +44,8 @@ protected:
                  int width, bool forward = true);
     void setupMetric();
     void drawColorValue(QPainter * painter);
+    int getX(CommEvent * evt);
+    int getY(CommEvent * evt);
 
 private:
     long long maxMetric;
@@ -55,6 +57,8 @@ private:
     QRect lassoRect;
     float blockwidth;
     float blockheight;
+    int ellipse_width;
+    int ellipse_height;
 
     static const int colorBarHeight = 24;
 };

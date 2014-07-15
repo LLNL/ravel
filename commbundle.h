@@ -12,10 +12,7 @@ class CommBundle
 public:
     CommBundle();
     virtual CommEvent * getDesignee()=0; // Event responsible
-    virtual void draw(QPainter * painter, VisWidget * vis, VisOptions * options,
-                      int w, int h)=0;
-
-    void drawLine(QPainter * painter, VisWidget * vis, QPointF * p1, QPointF * p2);
+    virtual void draw(QPainter * painter, VisWidget * vis)=0;
 };
 
 #endif // COMMBUNDLE_H

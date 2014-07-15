@@ -9,7 +9,8 @@ TraditionalVis::TraditionalVis(QWidget * parent, VisOptions * _options)
     startTime(0),
     timeSpan(0),
     stepToTime(new QVector<TimePair *>()),
-    lassoRect(QRect())
+    lassoRect(QRect()),
+    blockheight(0)
 {
 
 }
@@ -505,7 +506,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
         process_spacing = 3;
 
     float x, y, w, h;
-    float blockheight = floor(canvasHeight / processSpan);
+    blockheight = floor(canvasHeight / processSpan);
     float barheight = blockheight - process_spacing;
     processheight = blockheight;
     int upperStep = startStep + stepSpan + 2;
@@ -518,7 +519,8 @@ void TraditionalVis::paintEvents(QPainter *painter)
 
     int position, step;
     bool complete;
-    QSet<Message *> drawMessages = QSet<Message *>();
+    //QSet<Message *> drawMessages = QSet<Message *>();
+    QSet<CommBundle *> drawComms = QSet<CommBundle *>();
     unsigned long long stopTime = startTime + timeSpan;
     painter->setPen(QPen(QColor(0, 0, 0)));
     Partition * part = NULL;
@@ -560,6 +562,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
            if (position < floor(startProcess)
                    || position > ceil(startProcess + processSpan))
                continue;
+            y = floor((position - startProcess) * blockheight) + 1;
 
             for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
@@ -582,7 +585,6 @@ void TraditionalVis::paintEvents(QPainter *painter)
                         / timeSpan * rect().width();
                 if (w >= 2)
                 {
-                    y = floor((position - startProcess) * blockheight) + 1;
                     x = floor(static_cast<long long>((*evt)->enter - startTime)
                               / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
                     h = barheight;
@@ -664,7 +666,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
 
                 }
 
-                QVector<Message *> * msgs = (*evt)->getMessages();
+                /*QVector<Message *> * msgs = (*evt)->getMessages();
                 if (msgs)
                     for (QVector<Message *>::Iterator msg
                          = msgs->begin();
@@ -672,6 +674,8 @@ void TraditionalVis::paintEvents(QPainter *painter)
                     {
                         drawMessages.insert((*msg));
                     }
+                    */
+                (*evt)->addComms(&drawComms);
             }
         }
     }
@@ -681,35 +685,117 @@ void TraditionalVis::paintEvents(QPainter *painter)
     // for overlap purposes
     if (options->showMessages != VisOptions::NONE)
     {
-        if (processSpan <= 32)
-            painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
-        else
-            painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
-        P2PEvent * send_event;
-        P2PEvent * recv_event;
-        QPointF p1, p2;
-        for (QSet<Message *>::Iterator msg = drawMessages.begin();
-             msg != drawMessages.end(); ++msg)
+        for (QSet<CommBundle *>::Iterator comm = drawComms.begin();
+             comm != drawComms.end(); ++comm)
         {
-            send_event = (*msg)->sender;
-            recv_event = (*msg)->receiver;
-            position = proc_to_order[send_event->process];
-            y = floor((position - startProcess + 0.5) * blockheight) + 1;
-            x = floor(static_cast<long long>(send_event->enter - startTime)
-                      / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
-            p1 = QPointF(x, y);
-            position = proc_to_order[recv_event->process];
-            y = floor((position - startProcess + 0.5) * blockheight) + 1;
-            x = floor(static_cast<long long>(recv_event->exit - startTime)
-                      / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
-            p2 = QPointF(x, y);
-            painter->drawLine(p1, p2);
+            (*comm)->draw(painter, this);
         }
     }
 
     stepSpan = stopStep - startStep;
     painter->fillRect(QRectF(0,canvasHeight,rect().width(),rect().height()),
                       QBrush(QColor(Qt::white)));
+}
+
+void TraditionalVis::drawMessage(QPainter * painter, Message * msg)
+{
+    if (processSpan <= 32)
+        painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
+    else
+        painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
+
+    int y = getY(msg->sender) + blockheight / 2;
+    int x = getX(msg->sender);
+    QPointF p1 = QPointF(x, y);
+    y = getY(msg->receiver) + blockheight / 2;
+    x = getX(msg->receiver) + getW(msg->receiver);
+    QPointF p2 = QPointF(x, y);
+    painter->drawLine(p1, p2);
+}
+
+void TraditionalVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
+{
+    int root, x, y, prev_x, prev_y, root_x, root_y;
+    CollectiveEvent * coll_event;
+    QPointF p1, p2;
+
+    int ell_w = 3;
+    int ell_h = 3;
+    int h = blockheight;
+    int coll_type = (*(trace->collective_definitions))[cr->collective]->type;
+    bool rooted = false;
+
+    // Rooted
+    if (coll_type == 2 || coll_type == 3)
+    {
+        rooted = true;
+        root = cr->root;
+    }
+
+    painter->setPen(QPen(Qt::darkGray, 1, Qt::SolidLine));
+    painter->setBrush(QBrush(Qt::darkGray));
+    coll_event = cr->events->at(0);
+    int w = getW(coll_event);
+    prev_y = getY(coll_event);
+    prev_x = getX(coll_event) + w;
+
+    if (rooted && coll_event->process == root)
+    {
+        painter->setBrush(QBrush());
+        root_x = prev_x;
+        root_y = prev_y;
+    }
+    painter->drawEllipse(prev_x - ell_w/2,
+                         prev_y + h/2 - ell_h/2,
+                         ell_w, ell_h);
+
+    for (int i = 1; i < cr->events->size(); i++)
+    {
+        painter->setPen(QPen(Qt::darkGray, 1, Qt::SolidLine));
+        painter->setBrush(QBrush(Qt::darkGray));
+        coll_event = cr->events->at(i);
+
+        if (rooted && coll_event->process == root)
+        {
+            painter->setBrush(QBrush());
+        }
+
+        y = getY(coll_event);
+        x = getX(coll_event) + getW(coll_event);
+        painter->drawEllipse(x - ell_w/2, y + h/2 - ell_h/2,
+                             ell_w, ell_h);
+
+        // Arc style
+        painter->setPen(QPen(Qt::black, 1, Qt::DashLine));
+        painter->setBrush(QBrush());
+        p1 = QPointF(prev_x, prev_y + h/2.0);
+        p2 = QPointF(x, y + h/2.0);
+        painter->drawLine(p1, p2);
+
+        prev_x = x;
+        prev_y = y;
+    }
+}
+
+int TraditionalVis::getY(CommEvent * evt)
+{
+    int y = 0;
+    int position = proc_to_order[evt->process];
+    y = floor((position - startProcess) * blockheight) + 1;
+    return y;
+}
+
+int TraditionalVis::getX(CommEvent *evt)
+{
+    return floor(static_cast<long long>(evt->enter - startTime)
+                                        / 1.0 / timeSpan * rect().width())
+                                        + 1 + labelWidth;
+}
+
+
+int TraditionalVis::getW(CommEvent *evt)
+{
+    return (evt->exit - evt->enter) / 1.0 / timeSpan * rect().width();
 }
 
 // To make sure events have correct overlapping, this draws from the root down
