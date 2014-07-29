@@ -138,7 +138,7 @@ void OTFConverter::matchEvents()
 
     // Find needed indices for merge options
     int isend_index = -1, waitall_index = -1, testall_index = -1;
-    if (options->isendCoalescing || options->waitallMerge)
+    if ((options->isendCoalescing || options->waitallMerge) && !options->partitionByFunction)
     {
         for (QMap<int, Function * >::Iterator function = trace->functions->begin();
              function != trace->functions->end(); ++function)
@@ -194,7 +194,7 @@ void OTFConverter::matchEvents()
                     makeSingletonPartition(isend);
                     prev = isend;
                     isends = new QList<P2PEvent *>();
-                    if (options->waitallMerge)
+                    if (options->waitallMerge && !options->partitionByFunction)
                     {
                         sendgroup->append(trace->partitions->last());
                     }
@@ -263,7 +263,7 @@ void OTFConverter::matchEvents()
 
                     cpartcounter++;
                     // Any sends beforehand not end in a waitall.
-                    if (options->waitallMerge)
+                    if (options->waitallMerge && !options->partitionByFunction)
                     {
                         sendgroup->clear();
                     }
@@ -296,7 +296,8 @@ void OTFConverter::matchEvents()
 
                     spartcounter++;
                     // Collect the send for possible waitall merge
-                    if (options->waitallMerge && !(options->isendCoalescing && isendflag))
+                    if (options->waitallMerge && !(options->isendCoalescing && isendflag)
+                            && !options->partitionByFunction)
                     {
                         sendgroup->append(trace->partitions->last());
                     }
@@ -339,7 +340,7 @@ void OTFConverter::matchEvents()
 
                     e = msgs->at(0)->receiver;
 
-                    if (options->waitallMerge)
+                    if (options->waitallMerge && !options->partitionByFunction)
                     {
                         // Is this a wait/test all, end the group
                         if ((bgn->value == waitall_index || bgn->value == testall_index)
@@ -360,7 +361,7 @@ void OTFConverter::matchEvents()
                                   bgn->process);
 
                     // Stop by Waitall/Testall
-                    if (options->waitallMerge
+                    if (options->waitallMerge && !options->partitionByFunction
                         && (bgn->value == waitall_index || bgn->value == testall_index)
                         && sendgroup->size() > 0)
                     {
@@ -443,7 +444,7 @@ void OTFConverter::matchEvents()
     delete stack;
     delete sendgroup;
 
-    if (options->waitallMerge)
+    if (options->waitallMerge && !options->partitionByFunction)
     {
         // mergePartitions cleans up the extra structures
         // No we can't use this here because we don't have all
