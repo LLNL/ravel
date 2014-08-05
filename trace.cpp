@@ -12,6 +12,7 @@ Trace::Trace(int np)
       units(-9),
       partitions(new QList<Partition *>()),
       metrics(new QList<QString>()),
+      metric_units(new QMap<QString, QString>()),
       gnomes(new QList<Gnome *>()),
       options(NULL),
       functionGroups(new QMap<int, QString>()),
@@ -39,6 +40,7 @@ Trace::Trace(int np)
 Trace::~Trace()
 {
     delete metrics;
+    delete metric_units;
     delete functionGroups;
 
     for (QMap<int, Function *>::Iterator itr = functions->begin();
@@ -158,6 +160,7 @@ void Trace::gnomify()
 
     traceTimer.start();
     metrics->append("Gnome");
+    (*metric_units)["Gnome"] = "";
     Gnome * gnome;
     float stepPortion = 100.0 / global_max_step;
     int total = 0;
@@ -217,6 +220,7 @@ void Trace::setGnomeMetric(Partition * part, int gnome_index)
 void Trace::addPartitionMetric()
 {
     metrics->append("Partition");
+    (*metric_units)["Partition"] = "";
     long long partition = 0;
     for (QList<Partition *>::Iterator part = partitions->begin();
          part != partitions->end(); ++part)
@@ -380,6 +384,7 @@ void Trace::calculate_differential_lateness(QString metric_name,
                                             QString base_name)
 {
     metrics->append(metric_name);
+    (*metric_units)[metric_name] = metric_units->value(base_name);
 
     long long int max_parent;
     long long int max_agg_parent;
@@ -407,6 +412,7 @@ void Trace::calculate_partition_lateness()
 
     QString p_late = "P. Lateness";
     metrics->append(p_late);
+    (*metric_units)[p_late] = "ns";
 
     unsigned long long int mintime, aggmintime;
 
@@ -461,6 +467,7 @@ void Trace::calculate_partition_lateness()
 void Trace::calculate_lateness()
 {
     metrics->append("Lateness");
+    (*metric_units)["Lateness"] = "ns";
 
     // Go through dag, starting at the beginning
     QSet<Partition *> * active_partitions = new QSet<Partition *>();

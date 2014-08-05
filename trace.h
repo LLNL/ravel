@@ -36,6 +36,7 @@ public:
 
     QList<Partition *> * partitions;
     QList<QString> * metrics;
+    QMap<QString, QString> * metric_units;
     QList<Gnome *> * gnomes;
 
     // Processing options
