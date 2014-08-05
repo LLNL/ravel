@@ -100,13 +100,13 @@ HOME = $$system(echo $HOME)
 
 unix:!macx: LIBS += -lotf
 
-macx: LIBS += -L$$PWD/../../libs/lib/ -lopen-trace-format
+macx: LIBS += -L$${HOME}/opt/lib/ -lopen-trace-format
 
-INCLUDEPATH += $$PWD/../../libs/include/open-trace-format/
-DEPENDPATH += $$PWD/../../libs/include/open-trace-format/
+macx: INCLUDEPATH += $${HOME}/opt/include/open-trace-format/
+macx: DEPENDPATH += $${HOME}/opt/include/open-trace-format/
 
 unix: LIBS += -L$${HOME}/opt/lib -lmuster
 
-INCLUDEPATH += $${HOME}/opt/include
-DEPENDPATH += $${HOME}/opt/include
+unix: INCLUDEPATH += $${HOME}/opt/include
+unix: DEPENDPATH += $${HOME}/opt/include
 

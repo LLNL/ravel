@@ -63,14 +63,14 @@ void CollectiveEvent::set_stride_relationships()
     if (process_next && process_next->partition == partition)
     {
         // Add to everyone in the collective
-        // as a child. This will force the collective to be after
+        // as a parent. This will force the collective to be after
         // anything that happens before any of the collectives.
         for (QList<CollectiveEvent *>::Iterator ev
              = collective->events->begin();
              ev != collective->events->end(); ++ev)
         {
-            stride_children->insert(*ev);
-            (*ev)->stride_parents->insert(this);
+            process_next->stride_parents->insert(*ev);
+            (*ev)->stride_children->insert(process_next);
         }
     }
 }

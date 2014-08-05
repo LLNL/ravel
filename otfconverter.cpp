@@ -503,9 +503,6 @@ void OTFConverter::matchEvents()
         delete *ac;
     }
     delete allcomms;
-
-    std::cout << "Number of partitions: " << trace->partitions->size() << std::endl;
-    std::cout << "Part counters: c = " << cpartcounter << ", s = " << spartcounter << ", r = " << rpartcounter << std::endl;
 }
 
 // This is a lighter weight merge since we know at this stage everything stays
