@@ -440,18 +440,24 @@ void StepVis::drawNativeGL()
     float xoffset = 0;
     float yoffset = 0;
 
-    // How we use density is by feel, we should improve this
+    // How we use density is by feel, we should improve this.
+    // If density is one, we want low opacity for proper blending.
+    // If density is very small, we want high opacity to make things
+    // more visible.
     if (density)
     {
         if (processheight < 1.0)
         {
-            yoffset = 1.0 / processheight / 2 / (10 * density);
-            //opacity = 0.4;
+            double processes_per_pixel = 1.0 / processheight;
+            yoffset = processes_per_pixel / 2;
+            opacity = processheight / density;
         }
         if (stepwidth < 1.0)
         {
-            xoffset = 1.0 / stepwidth / 2 / (10 * density);
-            //opacity = 0.4;
+            double steps_per_pixel = 1.0 / stepwidth;
+            xoffset = steps_per_pixel / 2;
+            if (stepwidth / density > opacity)
+                opacity = stepwidth / density;
         }
     }
 
