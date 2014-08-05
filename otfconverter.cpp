@@ -190,7 +190,8 @@ void OTFConverter::matchEvents()
                 {
                     P2PEvent * isend = new P2PEvent(isends);
                     isend->comm_prev = isends->first()->comm_prev;
-                    isends->first()->comm_prev->comm_next = isend;
+                    if (isend->comm_prev)
+                        isend->comm_prev->comm_next = isend;
                     makeSingletonPartition(isend);
                     prev = isend;
                     isends = new QList<P2PEvent *>();
@@ -429,7 +430,8 @@ void OTFConverter::matchEvents()
         {
             P2PEvent * isend = new P2PEvent(isends);
             isend->comm_prev = isends->first()->comm_prev;
-            isends->first()->comm_prev->comm_next = isend;
+            if (isend->comm_prev)
+                isend->comm_prev->comm_next = isend;
             prev = isend;
         }
         else
