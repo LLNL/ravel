@@ -1050,10 +1050,14 @@ void Trace::mergeGlobalSteps()
                      = (*partition)->children->begin();
                      child != (*partition)->children->end(); ++child)
                 {
-                    if ((*child)->min_global_step <= spanMax) {
+                    if ((*child)->min_global_step <= spanMax
+                        && !working_set->contains(*child))
+                    {
                         toAdd->insert(*child);
                         if ((*child)->max_global_step > spanMax)
+                        {
                             spanMax = (*child)->max_global_step;
+                        }
                         addFlag = true;
                     }
                 }
@@ -1161,6 +1165,7 @@ void Trace::mergeGlobalSteps()
     partitions = new QList<Partition *>();
 
     // Need to calculate new dag_entries
+    std::cout << "New dag..." << std::endl;
     delete dag_entries;
     dag_entries = new QList<Partition *>();
     for (QSet<Partition *>::Iterator partition = new_partitions->begin();

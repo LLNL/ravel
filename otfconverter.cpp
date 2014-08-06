@@ -175,7 +175,6 @@ void OTFConverter::matchEvents()
 
         QVector<CommRecord *> * sendlist = rawtrace->messages->at(i);
         QVector<CommRecord *> * recvlist = rawtrace->messages_r->at(i);
-        std::cout << "Total comm records: " << sendlist->size() << std::endl;
         QList<P2PEvent *> * isends = new QList<P2PEvent *>();
         int sindex = 0, rindex = 0;
         CommEvent * prev = NULL;
