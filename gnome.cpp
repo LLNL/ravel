@@ -11,6 +11,7 @@ Gnome::Gnome()
       mousey(-1),
       metric("Lateness"),
       cluster_leaves(NULL),
+      cluster_map(NULL),
       cluster_root(NULL),
       max_metric_process(-1),
       top_processes(QList<int>()),
@@ -34,6 +35,7 @@ Gnome::~Gnome()
         cluster_root->delete_tree();
         delete cluster_root;
         delete cluster_leaves;
+        delete cluster_map;
     }
 }
 
@@ -60,6 +62,11 @@ void Gnome::preprocess()
              = cluster_leaves->begin(); pc != cluster_leaves->end(); ++pc)
         {
             (pc.value())->makeClusterVectors();
+            for (QList<int>::Iterator member = (pc.value())->members->begin();
+                 member != (pc.value())->members->end(); ++member)
+            {
+                (*cluster_map)[*member] = pc.value();
+            }
         }
         hierarchicalMusters();
     }
@@ -83,6 +90,7 @@ void Gnome::findMusters()
         cluster_root->delete_tree();
         delete cluster_root;
         delete cluster_leaves;
+        delete cluster_map;
     }
     long long int metric, max_metric = LLONG_MIN;
     max_metric_process = -1;
@@ -107,6 +115,7 @@ void Gnome::findMusters()
 
     // Set up clusters structures
     cluster_leaves = new QMap<int, PartitionCluster *>();
+    cluster_map = new QMap<int, PartitionCluster *>();
     for (int i = 0; i < num_clusters; i++) // TODO: Make cluster_leaves a list
         cluster_leaves->insert(i,
                                new PartitionCluster(partition->max_global_step
@@ -193,10 +202,12 @@ void Gnome::findClusters()
         cluster_root->delete_tree();
         delete cluster_root;
         delete cluster_leaves;
+        delete cluster_map;
     }
 
     // Create PartitionClusters for leaves and create distance list
     cluster_leaves = new QMap<int, PartitionCluster *>();
+    cluster_map = new QMap<int, PartitionCluster *>();
     long long int max_metric = LLONG_MIN;
     max_metric_process = -1;
     qSort(processes);
@@ -209,6 +220,7 @@ void Gnome::findClusters()
         cluster_leaves->insert(p1, new PartitionCluster(p1,
                                                         partition->events->value(p1),
                                                         "Lateness"));
+        cluster_map->insert(p1, cluster_leaves->value(p1));
         if (cluster_leaves->value(p1)->max_metric > max_metric)
         {
             max_metric = cluster_leaves->value(p1)->max_metric;
@@ -635,16 +647,19 @@ void Gnome::drawTopLabels(QPainter * painter, QRect extents)
     int total_labels = floor(topHeight / labelHeight);
     int y;
     int skip = 1;
-    if (total_labels < processSpan)
+    if (total_labels < processSpan && total_labels > 0)
     {
         skip = ceil(float(processSpan) / total_labels);
     }
 
-    for (int i = 0; i < top_processes.size(); i+= skip)
+    if (total_labels > 0)
     {
-        y = floor(i * blockheight) + (blockheight + labelHeight) / 2 + 1;
-        if (y < topHeight)
-            painter->drawText(x, y, QString::number(top_processes[i]));
+        for (int i = 0; i < top_processes.size(); i+= skip)
+        {
+            y = floor(i * blockheight) + (blockheight + labelHeight) / 2 + 1;
+            if (y < topHeight)
+                painter->drawText(x, y, QString::number(top_processes[i]));
+        }
     }
 }
 
@@ -822,8 +837,8 @@ void Gnome::drawGnomeQtInterMessages(QPainter * painter, int blockwidth,
          msg != saved_messages.end(); ++msg)
     {
         int x1, y1, x2, y2;
-        PartitionCluster * sender_pc = cluster_leaves->value((*msg)->sender->process)->get_closed_root();
-        PartitionCluster * receiver_pc = cluster_leaves->value((*msg)->receiver->process)->get_closed_root();
+        PartitionCluster * sender_pc = cluster_map->value((*msg)->sender->process)->get_closed_root();
+        PartitionCluster * receiver_pc = cluster_map->value((*msg)->receiver->process)->get_closed_root();
 
         x1 = startx + blockwidth * ((*msg)->sender->step - startStep + 0.5);
 

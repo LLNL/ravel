@@ -134,6 +134,7 @@ protected:
     };
 
     QMap<int, PartitionCluster * > * cluster_leaves;
+    QMap<int, PartitionCluster * > * cluster_map;
     PartitionCluster * cluster_root;
     int max_metric_process;
     QList<int> top_processes; // focus processes really
