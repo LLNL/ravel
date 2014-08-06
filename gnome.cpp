@@ -655,10 +655,8 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
 {
     int effectiveHeight = extents.height();
 
-    int process_spacing = int(blockwidth) - barwidth;
+    int process_spacing = blockwidth - barwidth;
     int step_spacing = process_spacing;
-    if (blockwidth >= 1.0)
-        blockwidth = floor(blockwidth);
 
     float x, y, w, h, xa, wa;
     float blockheight = floor(effectiveHeight / top_processes.size());
@@ -819,8 +817,6 @@ void Gnome::drawGnomeQtInterMessages(QPainter * painter, int blockwidth,
 {
     if (options->showAggregateSteps)
         startStep -= 1;
-    if (blockwidth >= 1.0)
-        blockwidth = floor(blockwidth);
     painter->setPen(QPen(Qt::black, 1.5, Qt::SolidLine));
     for (QSet<Message *>::Iterator msg = saved_messages.begin();
          msg != saved_messages.end(); ++msg)

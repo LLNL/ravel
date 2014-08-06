@@ -111,7 +111,7 @@ void StepVis::setSteps(float start, float stop, bool jump)
     }
     lastStartStep = startStep;
     startStep = start;
-    stepSpan = stop - start + 1;
+    stepSpan = stop - start;
     jumped = jump;
 
     if (!closed)
@@ -611,8 +611,6 @@ void StepVis::paintEvents(QPainter * painter)
     int position;
     bool complete, aggcomplete;
     QSet<CommBundle *> drawComms = QSet<CommBundle *>();
-    //QSet<Message *> drawMessages = QSet<Message *>();
-    //QSet<CollectiveRecord *> drawCollectives = QSet<CollectiveRecord *>();
     painter->setPen(QPen(QColor(0, 0, 0)));
     Partition * part = NULL;
     int topStep = boundStep(startStep + stepSpan) + 1;

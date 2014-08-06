@@ -283,7 +283,7 @@ void TraditionalVis::setSteps(float start, float stop, bool jump)
     }
     lastStartStep = startStep;
     startStep = start;
-    stepSpan = stop - start + 1;
+    stepSpan = stop - start;
     startTime = (*stepToTime)[std::max(boundStep(start)/2, 0)]->start;
     timeSpan = (*stepToTime)[std::min(boundStep(stop)/2,  maxStep/2)]->stop
             - startTime;

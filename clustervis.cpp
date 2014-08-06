@@ -39,7 +39,7 @@ void ClusterVis::setSteps(float start, float stop, bool jump)
     }
     lastStartStep = startStep;
     startStep = start;
-    stepSpan = stop - start + 1;
+    stepSpan = stop - start;
     jumped = jump;
 
     if (!closed)
