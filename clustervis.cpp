@@ -228,6 +228,7 @@ void ClusterVis::clusterChanged()
 // Called before drawing begins
 void ClusterVis::prepaint()
 {
+    closed = false;
     drawnGnomes.clear();
 
     // Figure out what partitions we need to search in hopefully a more

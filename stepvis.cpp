@@ -288,6 +288,7 @@ void StepVis::wheelEvent(QWheelEvent * event)
 
 void StepVis::prepaint()
 {
+    closed = false;
     drawnEvents.clear();
     if (jumped) // We have to redo the active_partitions
     {

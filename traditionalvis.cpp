@@ -296,6 +296,7 @@ void TraditionalVis::setSteps(float start, float stop, bool jump)
 
 void TraditionalVis::prepaint()
 {
+    closed = false;
     drawnEvents.clear();
     if (jumped) // We have to redo the active_partitions
     {
