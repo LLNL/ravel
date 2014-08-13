@@ -389,6 +389,8 @@ void TraditionalVis::drawNativeGL()
     float x, y, w; // true position
     float position; // placement of process
     Partition * part = NULL;
+    int oldStart = startStep;
+    int oldStop = stepSpan + startStep;
     int step, stopStep = 0;
     int upperStep = startStep + stepSpan + 2;
     startStep = maxStep;
@@ -473,6 +475,11 @@ void TraditionalVis::drawNativeGL()
     glDrawArrays(GL_QUADS,0,bars.size()/2);
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_COLOR_ARRAY);
+    if (stopStep == 0 && startStep == maxStep)
+    {
+        stopStep = oldStop;
+        startStep = oldStart;
+    }
     stepSpan = stopStep - startStep;
 }
 
@@ -510,6 +517,8 @@ void TraditionalVis::paintEvents(QPainter *painter)
     blockheight = floor(canvasHeight / processSpan);
     float barheight = blockheight - process_spacing;
     processheight = blockheight;
+    int oldStart = startStep;
+    int oldStop = stepSpan + startStep;
     int upperStep = startStep + stepSpan + 2;
     startStep = maxStep;
     int stopStep = 0;
@@ -683,6 +692,11 @@ void TraditionalVis::paintEvents(QPainter *painter)
         }
     }
 
+    if (stopStep == 0 && startStep == maxStep)
+    {
+        stopStep = oldStop;
+        startStep = oldStart;
+    }
     stepSpan = stopStep - startStep;
     painter->fillRect(QRectF(0,canvasHeight,rect().width(),rect().height()),
                       QBrush(QColor(Qt::white)));
