@@ -296,13 +296,19 @@ void TraditionalVis::setSteps(float start, float stop, bool jump)
 
 void TraditionalVis::prepaint()
 {
+    if (!trace)
+        return;
     closed = false;
     drawnEvents.clear();
+    int bottomStep = floor(startStep) - 1;
+    // Fix bottomStep in the case where there are no steps in the view,
+    // otherwise partition place will be lost
+    while (bottomStep > 0 && stepToTime->value(bottomStep/2)->stop > startTime)
+       bottomStep -= 2;
     if (jumped) // We have to redo the active_partitions
     {
         // We know this list is in order, so we only have to go so far
         //int topStep = boundStep(startStep + stepSpan) + 1;
-        int bottomStep = floor(startStep) - 1;
         Partition * part = NULL;
         for (int i = 0; i < trace->partitions->length(); ++i)
         {
@@ -316,9 +322,8 @@ void TraditionalVis::prepaint()
     }
     else // We nudge the active partitions as necessary
     {
-        int bottomStep = floor(startStep) - 1;
         Partition * part = NULL;
-        if (startStep < lastStartStep) // check earlier partitions
+        if (startStep <= lastStartStep) // check earlier partitions
         {
             // Keep setting the one before until its right
             for (int i = startPartition; i >= 0; --i)
@@ -704,10 +709,15 @@ void TraditionalVis::paintEvents(QPainter *painter)
 
 void TraditionalVis::drawMessage(QPainter * painter, Message * msg)
 {
+    int penwidth = 1;
     if (processSpan <= 32)
-        painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
-    else
-        painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
+        penwidth = 2;
+
+    Qt::GlobalColor pencolor = Qt::black;
+    if (!selected_aggregate
+                && selected_event == msg->sender || selected_event == msg->receiver)
+        pencolor = Qt::yellow;
+
 
     int y = getY(msg->sender) + blockheight / 2;
     int x = getX(msg->sender);
@@ -715,6 +725,7 @@ void TraditionalVis::drawMessage(QPainter * painter, Message * msg)
     y = getY(msg->receiver) + blockheight / 2;
     x = getX(msg->receiver) + getW(msg->receiver);
     QPointF p2 = QPointF(x, y);
+    painter->setPen(QPen(pencolor, penwidth, Qt::SolidLine));
     painter->drawLine(p1, p2);
 }
 

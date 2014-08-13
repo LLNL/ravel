@@ -811,10 +811,14 @@ int StepVis::getX(CommEvent *evt)
 
 void StepVis::drawMessage(QPainter * painter, Message * msg)
 {
+    int penwidth = 1;
     if (processSpan <= 32)
-        painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
-    else
-        painter->setPen(QPen(Qt::black, 1, Qt::SolidLine));
+        penwidth = 2;
+
+    Qt::GlobalColor pencolor = Qt::black;
+    if (!selected_aggregate
+            && selected_event == msg->sender || selected_event == msg->receiver)
+        pencolor = Qt::yellow;
 
     QPointF p1, p2;
     int y = getY(msg->sender);
@@ -835,6 +839,7 @@ void StepVis::drawMessage(QPainter * painter, Message * msg)
         y = getY(msg->receiver);
         p2 = QPointF(x + w, y + h/2.0);
     }
+    painter->setPen(QPen(pencolor, penwidth, Qt::SolidLine));
     drawLine(painter, &p1, &p2);
 }
 
