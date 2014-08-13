@@ -386,8 +386,6 @@ void Trace::calculate_differential_lateness(QString metric_name,
     metrics->append(metric_name);
     (*metric_units)[metric_name] = metric_units->value(base_name);
 
-    long long int max_parent;
-    long long int max_agg_parent;
     for (QList<Partition *>::Iterator part = partitions->begin();
          part != partitions->end(); ++part)
     {
@@ -410,7 +408,7 @@ void Trace::calculate_differential_lateness(QString metric_name,
 void Trace::calculate_partition_lateness()
 {
 
-    QString p_late = "P. Lateness";
+    QString p_late = "Lateness";
     metrics->append(p_late);
     (*metric_units)[p_late] = "ns";
 
@@ -466,8 +464,8 @@ void Trace::calculate_partition_lateness()
 // Calculates lateness per global step
 void Trace::calculate_lateness()
 {
-    metrics->append("Lateness");
-    (*metric_units)["Lateness"] = "ns";
+    metrics->append("G. Lateness");
+    (*metric_units)["G. Lateness"] = "ns";
 
     // Go through dag, starting at the beginning
     QSet<Partition *> * active_partitions = new QSet<Partition *>();
@@ -533,7 +531,7 @@ void Trace::calculate_lateness()
         for (QList<CommEvent *>::Iterator evt = i_list->begin();
              evt != i_list->end(); ++evt)
         {
-            (*evt)->addMetric("Lateness", (*evt)->exit - mintime,
+            (*evt)->addMetric("G. Lateness", (*evt)->exit - mintime,
                               (*evt)->enter - aggmintime);
         }
         delete i_list;
@@ -627,9 +625,9 @@ void Trace::assignSteps()
     traceTimer.start();
 
     calculate_lateness();
-    calculate_differential_lateness("D. Lateness", "Lateness");
+    calculate_differential_lateness("D.G. Lateness", "G. Lateness");
     calculate_partition_lateness();
-    calculate_differential_lateness("DP Lateness", "P. Lateness");
+    calculate_differential_lateness("D. Lateness", "Lateness");
 
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "Lateness Calculation: ";
