@@ -8,6 +8,8 @@ RawTrace::RawTrace(int np)
       messages_r(NULL),
       communicators(NULL),
       collective_definitions(NULL),
+      counters(NULL),
+      counter_records(NULL),
       collectives(NULL),
       collectiveMap(NULL),
       num_processes(np)

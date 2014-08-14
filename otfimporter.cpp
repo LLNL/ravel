@@ -23,6 +23,7 @@ OTFImporter::OTFImporter()
       functions(NULL),
       communicators(NULL),
       collective_definitions(NULL),
+      counters(NULL),
       collectives(NULL),
       collectiveMap(NULL)
 {
@@ -87,6 +88,7 @@ RawTrace * OTFImporter::importOTF(const char* otf_file)
     communicators = new QMap<int, Communicator *>();
     collective_definitions = new QMap<int, OTFCollective *>();
     collectives = new QMap<unsigned long long, CollectiveRecord *>();
+    counters = new QMap<unsigned int, Counter *>();
 
     std::cout << "Reading definitions" << std::endl;
     OTF_Reader_readDefinitions(otfReader, handlerArray);
@@ -97,9 +99,11 @@ RawTrace * OTFImporter::importOTF(const char* otf_file)
     rawtrace->communicators = communicators;
     rawtrace->collective_definitions = collective_definitions;
     rawtrace->collectives = collectives;
+    rawtrace->counters = counters;
     rawtrace->events = new QVector<QVector<EventRecord *> *>(num_processes);
     rawtrace->messages = new QVector<QVector<CommRecord *> *>(num_processes);
     rawtrace->messages_r = new QVector<QVector<CommRecord *> *>(num_processes);
+    rawtrace->counter_records = new QVector<QVector<CounterRecord *> *>(num_processes);
 
 
 
@@ -116,6 +120,7 @@ RawTrace * OTFImporter::importOTF(const char* otf_file)
         (*(rawtrace->events))[i] = new QVector<EventRecord *>();
         (*(rawtrace->messages))[i] = new QVector<CommRecord *>();
         (*(rawtrace->messages_r))[i] = new QVector<CommRecord *>();
+        (*(rawtrace->counter_records))[i] = new QVector<CounterRecord *>();
     }
 
     std::cout << "Reading events" << std::endl;
@@ -329,13 +334,12 @@ int OTFImporter::handleDefCounter(void * userData, uint32_t stream,
                                   uint32_t properties, uint32_t counterGroup,
                                   const char* unit)
 {
-    Q_UNUSED(userData);
     Q_UNUSED(stream);
-    Q_UNUSED(counter);
-    Q_UNUSED(name);
     Q_UNUSED(properties);
     Q_UNUSED(counterGroup);
-    Q_UNUSED(unit);
+    (*(((OTFImporter*) userData)->counters))[counter] = new Counter(counter,
+                                                                    QString(name),
+                                                                    QString(unit));
     return 0;
 }
 
@@ -460,11 +464,8 @@ int OTFImporter::handleCounter(void * userData, uint64_t time,
                                uint32_t process, uint32_t counter,
                                uint64_t value)
 {
-    Q_UNUSED(userData);
-    Q_UNUSED(time);
-    Q_UNUSED(process);
-    Q_UNUSED(counter);
-    Q_UNUSED(value);
+    CounterRecord * cr = new CounterRecord(counter, time, value);
+    (*((((OTFImporter *) userData)->rawtrace)->counter_records))[process - 1]->append(cr);
     return 0;
 }
 

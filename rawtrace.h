@@ -7,6 +7,8 @@
 #include "otfcollective.h"
 #include "collectiverecord.h"
 #include "function.h"
+#include "counter.h"
+#include "counterrecord.h"
 #include <QMap>
 #include <QVector>
 
@@ -24,6 +26,8 @@ public:
     QVector<QVector<CommRecord *> *> * messages_r; // by receiver instead of sender
     QMap<int, Communicator *> * communicators;
     QMap<int, OTFCollective *> * collective_definitions;
+    QMap<unsigned int, Counter *> * counters;
+    QVector<QVector<CounterRecord * > *> * counter_records;
 
     QMap<unsigned long long, CollectiveRecord *> * collectives;
     QVector<QMap<unsigned long long, CollectiveRecord *> *> * collectiveMap;

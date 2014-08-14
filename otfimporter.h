@@ -103,6 +103,7 @@ private:
     QMap<int, Function *> * functions;
     QMap<int, Communicator *> * communicators;
     QMap<int, OTFCollective *> * collective_definitions;
+    QMap<unsigned int, Counter *> * counters;
 
     QMap<unsigned long long, CollectiveRecord *> * collectives;
     QVector<QMap<unsigned long long, CollectiveRecord *> *> * collectiveMap;
