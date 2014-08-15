@@ -35,6 +35,16 @@ Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
     traceTimer.start();
     trace = new Trace(rawtrace->num_processes);
 
+    // Set up collective metrics
+    for (QMap<unsigned int, Counter *>::Iterator counter = rawtrace->counters->begin();
+         counter != rawtrace->counters->end(); ++counter)
+    {
+        trace->metrics->append((counter.value())->name);
+        //trace->metric_units->insert((counter.value())->name, (counter.value())->unit);
+        trace->metric_units->insert((counter.value())->name,
+                                    (counter.value())->name + " / time");
+    }
+
     // Start setting up new Trace
     delete trace->functions;
     trace->functions = rawtrace->functions;
@@ -115,6 +125,10 @@ void OTFConverter::matchEvents()
     // We can handle each set of events separately
     QStack<EventRecord *> * stack = new QStack<EventRecord *>();
 
+    // Keep track of the counters at that time
+    QStack<CounterRecord *> * counterstack = new QStack<CounterRecord *>();
+    QMap<unsigned int, CounterRecord *> * lastcounters = new QMap<unsigned int, CounterRecord *>();
+
     // May be used later to do partition by function
     QList<QList<CommEvent *> *> * allcomms = new QList<QList<CommEvent *> *>();
 
@@ -156,7 +170,6 @@ void OTFConverter::matchEvents()
     }
 
     int spartcounter = 0, rpartcounter = 0, cpartcounter = 0;
-    std::cout << "Num collectives " << rawtrace->collectives->size() << std::endl;
     for (int i = 0; i < rawtrace->events->size(); i++)
     {
         QVector<EventRecord *> * event_list = rawtrace->events->at(i);
@@ -169,6 +182,10 @@ void OTFConverter::matchEvents()
             emit(matchingUpdate(1 + currentPortion, "Constructing events..."));
         }
         ++currentIter;
+
+        QVector<CounterRecord *> * counters = rawtrace->counter_records->at(i);
+        lastcounters->clear();
+        int counter_index = 0;
 
         QList<CommEvent *> * commevents = new QList<CommEvent *>();
         allcomms->append(commevents);
@@ -255,6 +272,12 @@ void OTFConverter::matchEvents()
                     if (prev)
                         prev->comm_next = cr->events->last();
                     prev = cr->events->last();
+
+                    counter_index = advanceCounters(cr->events->last(),
+                                                    counterstack,
+                                                    counters, counter_index,
+                                                    lastcounters);
+
                     e = cr->events->last();
                     if (options->partitionByFunction)
                         commevents->append(cr->events->last());
@@ -287,6 +310,12 @@ void OTFConverter::matchEvents()
                     if (prev)
                         prev->comm_next = crec->message->sender;
                     prev = crec->message->sender;
+
+                    counter_index = advanceCounters(crec->message->sender,
+                                                    counterstack,
+                                                    counters, counter_index,
+                                                    lastcounters);
+
                     e = crec->message->sender;
                     if (options->partitionByFunction)
                         commevents->append(crec->message->sender);
@@ -338,6 +367,11 @@ void OTFConverter::matchEvents()
 
                     rpartcounter++;
 
+                    counter_index = advanceCounters(msgs->at(0)->receiver,
+                                                    counterstack,
+                                                    counters, counter_index,
+                                                    lastcounters);
+
                     e = msgs->at(0)->receiver;
 
                     if (options->waitallMerge && !options->partitionByFunction)
@@ -355,7 +389,7 @@ void OTFConverter::matchEvents()
                         }
                     }
                 }
-                else
+                else // Non-com event
                 {
                     e = new Event(bgn->time, (*evt)->time, bgn->value,
                                   bgn->process);
@@ -367,6 +401,17 @@ void OTFConverter::matchEvents()
                     {
                         waitallgroups->append(sendgroup);
                         sendgroup = new QList<Partition *>();
+                    }
+
+                    // Squelch counter values that we're not keeping track of here (for now)
+                    while (!counterstack->isEmpty() && counterstack->top()->time == bgn->time)
+                    {
+                        counterstack->pop();
+                    }
+                    while (counters->size() > counter_index
+                           && counters->at(counter_index)->time == (*evt)->time)
+                    {
+                        counter_index++;
                     }
                 }
 
@@ -399,6 +444,19 @@ void OTFConverter::matchEvents()
                 }
                 depth++;
                 stack->push(*evt);
+                while (counters->size() > counter_index
+                       && counters->at(counter_index)->time == (*evt)->time)
+                {
+                    counterstack->push(counters->at(counter_index));
+                    counter_index++;
+
+                    // Set the first one to the beginning of the trace
+                    if (lastcounters->value(counters->at(counter_index)->counter) == NULL)
+                    {
+                        lastcounters->insert(counters->at(counter_index)->counter,
+                                             counters->at(counter_index));
+                    }
+                }
             }
         }
 
@@ -504,6 +562,64 @@ void OTFConverter::matchEvents()
         delete *ac;
     }
     delete allcomms;
+}
+
+// We only do this with comm events right now, so we know we won't have nesting
+int OTFConverter::advanceCounters(CommEvent * evt, QStack<CounterRecord *> * counterstack,
+                                   QVector<CounterRecord *> * counters, int index,
+                                   QMap<unsigned int, CounterRecord *> * lastcounters)
+{
+    CounterRecord * begin, * last, * end;
+    int tmpIndex;
+
+    // We know we can't have too many counters recorded, so we can search in them
+    while (!counterstack->isEmpty() && counterstack->top()->time == evt->enter)
+    {
+        begin = counterstack->pop();
+        last = lastcounters->value(begin->counter);
+        end = NULL;
+
+        tmpIndex = index;
+        while(!end && tmpIndex < counters->size())
+        {
+            if (counters->at(tmpIndex)->time == evt->exit
+                    && counters->at(tmpIndex)->counter == begin->counter)
+            {
+                end = counters->at(tmpIndex);
+            }
+            tmpIndex++;
+        }
+
+        if (end)
+        {
+            // Add metric
+            double evt_time = evt->exit - evt->enter;
+            double agg_time = evt->enter;
+            if (evt->comm_prev)
+                agg_time = evt->enter - evt->comm_prev->exit;
+            evt->addMetric(rawtrace->counters->value(begin->counter)->name,
+                           (end->value - begin->value) / 1.0 / evt_time,
+                           (begin->value - last->value) / 1.0 / agg_time);
+
+            // Update last counters
+            lastcounters->insert(end->counter, end);
+
+        }
+        else
+        {
+            // Error in some way since matching counter not found
+            std::cout << "Matching counter not found!" << std::endl;
+        }
+
+    }
+
+    // Advance counters index
+    while(index < counters->size()
+          && counters->at(index)->time <= evt->exit)
+    {
+        index++;
+    }
+    return index;
 }
 
 // This is a lighter weight merge since we know at this stage everything stays

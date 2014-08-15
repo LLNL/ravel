@@ -38,8 +38,8 @@ CommEvent::~CommEvent()
 
 
 
-void CommEvent::addMetric(QString name, long long event_value,
-                      long long aggregate_value)
+void CommEvent::addMetric(QString name, double event_value,
+                      double aggregate_value)
 {
     (*metrics)[name] = new MetricPair(event_value, aggregate_value);
 }
@@ -49,7 +49,7 @@ bool CommEvent::hasMetric(QString name)
     return metrics->contains(name);
 }
 
-long long CommEvent::getMetric(QString name, bool aggregate)
+double CommEvent::getMetric(QString name, bool aggregate)
 {
     if (aggregate)
         return ((*metrics)[name])->aggregate;
@@ -66,8 +66,8 @@ void CommEvent::calculate_differential_metric(QString metric_name,
         max_agg_parent = (comm_prev->getMetric(base_name));
 
     addMetric(metric_name,
-              std::max(0LL,
+              std::max(0.,
                        getMetric(base_name)- max_parent),
-              std::max(0LL,
+              std::max(0.,
                        getMetric(base_name, true)- max_agg_parent));
 }

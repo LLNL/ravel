@@ -48,7 +48,7 @@ protected:
     int getY(CommEvent * evt);
 
 private:
-    long long maxMetric;
+    double maxMetric;
     QString cacheMetric;
     QString maxMetricText;
     QString hoverText;

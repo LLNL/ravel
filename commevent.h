@@ -13,10 +13,10 @@ public:
               int _function, int _process, int _phase);
     ~CommEvent();
 
-    void addMetric(QString name, long long event_value,
-                   long long aggregate_value = 0);
+    void addMetric(QString name, double event_value,
+                   double aggregate_value = 0);
     bool hasMetric(QString name);
-    long long getMetric(QString name, bool aggregate = false);
+    double getMetric(QString name, bool aggregate = false);
 
     bool isCommEvent() { return true; }
     virtual bool isP2P() { return false; }
@@ -41,11 +41,11 @@ public:
 
     class MetricPair {
     public:
-        MetricPair(long long _e, long long _a)
+        MetricPair(double _e, double _a)
             : event(_e), aggregate(_a) {}
 
-        long long event; // value at event
-        long long aggregate; // value at prev. aggregate event
+        double event; // value at event
+        double aggregate; // value at prev. aggregate event
     };
 
     QMap<QString, MetricPair *> * metrics; // Lateness or Counters etc

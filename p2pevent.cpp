@@ -19,6 +19,8 @@ P2PEvent::P2PEvent(QList<P2PEvent *> * _subevents)
       is_recv(_subevents->first()->is_recv)
 {
     this->depth = _subevents->first()->depth;
+
+    // Take over submessages
     for (QList<P2PEvent *>::Iterator evt = _subevents->begin();
          evt != subevents->end(); ++evt)
     {
@@ -31,6 +33,22 @@ P2PEvent::P2PEvent(QList<P2PEvent *> * _subevents)
                 (*msg)->sender = this;
             messages->append(*msg);
         }
+    }
+
+    // Aggregate existing metrics
+    P2PEvent * first = _subevents->first();
+    for (QMap<QString, MetricPair *>::Iterator counter = first->metrics->begin();
+         counter != first->metrics->end(); ++ counter)
+    {
+        QString name = counter.key();
+        unsigned long long metric = 0, agg = 0;
+        for (QList<P2PEvent *>::Iterator evt = _subevents->begin();
+             evt != subevents->end(); ++evt)
+        {
+            metric += (*evt)->getMetric(name);
+            agg += (*evt)->getMetric(name, true);
+        }
+        addMetric(name, metric, agg);
     }
 }
 
@@ -90,9 +108,9 @@ void P2PEvent::calculate_differential_metric(QString metric_name,
     }
 
     addMetric(metric_name,
-              std::max(0LL,
+              std::max(0.,
                        getMetric(base_name)- max_parent),
-              std::max(0LL,
+              std::max(0.,
                        getMetric(base_name, true)- max_agg_parent));
 }
 

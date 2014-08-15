@@ -464,7 +464,7 @@ int OTFImporter::handleCounter(void * userData, uint64_t time,
                                uint32_t process, uint32_t counter,
                                uint64_t value)
 {
-    CounterRecord * cr = new CounterRecord(counter, time, value);
+    CounterRecord * cr = new CounterRecord(counter, convertTime(userData, time), value);
     (*((((OTFImporter *) userData)->rawtrace)->counter_records))[process - 1]->append(cr);
     return 0;
 }

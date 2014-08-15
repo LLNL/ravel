@@ -29,6 +29,9 @@ private:
     void matchEvents();
     void makeSingletonPartition(CommEvent * evt);
     void mergeForWaitall(QList<QList<Partition * > *> * groups);
+    int advanceCounters(CommEvent * evt, QStack<CounterRecord *> * counterstack,
+                        QVector<CounterRecord *> * counters, int index,
+                        QMap<unsigned int, CounterRecord *> * lastcounters);
 
     RawTrace * rawtrace;
     Trace * trace;

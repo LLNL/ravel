@@ -75,7 +75,7 @@ void StepVis::setupMetric()
     if (options->colormap->isCategorical())
         maxMetricText = "";
     else
-        maxMetricText = systemlocale.toString(maxMetric)
+        maxMetricText = systemlocale.toString(maxMetric) + " "
                         + trace->metric_units->value(options->metric);
 
     // For colorbar range
@@ -94,7 +94,7 @@ void StepVis::setMaxMetric(long long int new_max)
     if (options->colormap->isCategorical())
         maxMetricText = "";
     else
-        maxMetricText = systemlocale.toString(new_max)
+        maxMetricText = systemlocale.toString(new_max) + " "
                         + trace->metric_units->value(options->metric);
     repaint();
 }
