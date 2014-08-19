@@ -282,3 +282,16 @@ void P2PEvent::addComms(QSet<CommBundle *> * bundleset)
          msg != messages->end(); ++msg)
         bundleset->insert(*msg);
 }
+
+QList<int> P2PEvent::neighborProcesses()
+{
+    QSet<int> neighbors = QSet<int>();
+    for (QVector<Message *>::Iterator msg = messages->begin();
+         msg != messages->end(); ++msg)
+    {
+        neighbors.insert((*msg)->receiver->process);
+        neighbors.insert((*msg)->sender->process);
+    }
+    neighbors.remove(process);
+    return neighbors.toList();
+}

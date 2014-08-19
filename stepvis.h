@@ -34,6 +34,7 @@ protected:
     void drawNativeGL();
     void paintEvents(QPainter *painter);
     void prepaint();
+    void overdrawSelected(QPainter *painter, QList<int> processes);
     void drawColorBarGL();
     void drawColorBarText(QPainter * painter);
     void drawCollective(QPainter * painter, CollectiveRecord * cr,
@@ -59,6 +60,7 @@ private:
     float blockheight;
     int ellipse_width;
     int ellipse_height;
+    QMap<int, int> * overdrawYMap;
 
     static const int colorBarHeight = 24;
 };

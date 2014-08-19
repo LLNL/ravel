@@ -457,10 +457,10 @@ void ClusterVis::changeNeighborRadius(int neighbors)
 }
 
 // Selected event comes from other vis
-void ClusterVis::selectEvent(Event * event, bool aggregate)
+void ClusterVis::selectEvent(Event * event, bool aggregate, bool overdraw)
 {
     if (selected_gnome)
         selected_gnome->clearSelectedPartitionCluster();
-    TimelineVis::selectEvent(event, aggregate);
+    TimelineVis::selectEvent(event, aggregate, overdraw);
 
 }

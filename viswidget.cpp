@@ -17,6 +17,7 @@ VisWidget::VisWidget(QWidget *parent, VisOptions * _options) :
     selected_event(NULL),
     hover_event(NULL),
     selected_aggregate(false),
+    overdraw_selected(false),
     hover_aggregate(NULL),
     closed(false)
 {

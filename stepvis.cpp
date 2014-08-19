@@ -14,14 +14,15 @@ StepVis::StepVis(QWidget* parent, VisOptions * _options)
     blockwidth(0),
     blockheight(0),
     ellipse_width(0),
-    ellipse_height(0)
+    ellipse_height(0),
+    overdrawYMap(new QMap<int, int>())
 {
 
 }
 
 StepVis::~StepVis()
 {
-
+    delete overdrawYMap;
 }
 
 void StepVis::setTrace(Trace * t)
@@ -620,6 +621,8 @@ void StepVis::paintEvents(QPainter * painter)
     if (selected_gnome && !selected_processes.isEmpty())
         opacity = 0.50;
 
+    QList<int> overdraw_processes;
+
     // Only do partitions in our range
     for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
@@ -716,6 +719,8 @@ void StepVis::paintEvents(QPainter * painter)
 
                 // Save messages for the end since they draw on top
                 (*evt)->addComms(&drawComms);
+                if (*evt == selected_event && overdraw_selected)
+                    overdraw_processes = (*evt)->neighborProcesses();
 
                 // Draw aggregate events if necessary
                 if (options->showAggregateSteps) {
@@ -786,6 +791,70 @@ void StepVis::paintEvents(QPainter * painter)
             (*comm)->draw(painter, this);
         }
     }
+
+    if (overdraw_selected)
+        overdrawSelected(painter, overdraw_processes);
+}
+
+// Might want to use something like this to also have a lens feature
+void StepVis::overdrawSelected(QPainter * painter, QList<int> processes)
+{
+    // Figure out how big the overdraw window should be
+    int selected_position = proc_to_order[selected_event->process];
+    QList<int> before_processes = QList<int>();
+    QList<int> after_processes = QList<int>();
+    QMap<int, int> position_map = QMap<int, int>();
+    for (int i = 0; i < processes.size(); i++)
+    {
+        if (proc_to_order[processes[i]] < selected_position)
+        {
+            before_processes.append(proc_to_order[processes[i]]);
+        }
+        else
+        {
+            after_processes.append(proc_to_order[processes[i]]);
+        }
+    }
+    qSort(before_processes);
+    qSort(after_processes);
+    for (int i = 0; i < before_processes.size(); i++)
+        position_map.insert(before_processes[i], i);
+    for (int i = 0; i < after_processes.size(); i++)
+        position_map.insert(after_processes[i], i);
+
+    if (blockheight > 3) // keep same height for non-GL
+    {
+        // We leave the selected where it is and draw the rest as floating
+
+        // Prepare for comms
+        QSet<CommBundle *> drawBundles = QSet<CommBundle *>();
+
+        // First we draw the background as white rectangles
+        // Above
+        painter->fillRect(QRect(labelWidth,
+                                selected_position - blockheight * before_processes.size(),
+                                rect().width(), blockheight * before_processes.size()),
+                          QBrush(Qt::white));
+        // Below
+        painter->fillRect(QRect(labelWidth,
+                                selected_position + blockheight,
+                                rect().width(),
+                                blockheight * after_processes.size()),
+                          QBrush(Qt::white));
+
+    }
+    else // do something palatable for GL
+    {
+        // We will move the selected as needed since this acts much more like
+        // a special lens
+
+        // We may want to make this relative to how much screen space we have
+        // but I'm not sure we want to use all of it because then we'll lose
+        // context
+        int overdraw_height = 12;
+    }
+
+
 }
 
 int StepVis::getY(CommEvent * evt)
@@ -1100,6 +1169,7 @@ void StepVis::mouseDoubleClickEvent(QMouseEvent * event)
     if (!visProcessed)
         return;
 
+    // Special handling for color bar
     if (event->y() >= rect().height() - colorBarHeight)
     {
         if (event->x() < rect().width() - colorbar_offset

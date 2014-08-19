@@ -131,7 +131,7 @@ void TraditionalVis::mouseDoubleClickEvent(QMouseEvent * event)
         }
 
     changeSource = true;
-    emit eventClicked(selected_event, false);
+    emit eventClicked(selected_event, false, false);
     repaint();
 }
 

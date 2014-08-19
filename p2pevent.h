@@ -21,6 +21,7 @@ public:
                                        QString base_name);
 
     void addComms(QSet<CommBundle *> * bundleset);
+    QList<int> neighborProcesses();
     QVector<Message *> * getMessages() { return messages; }
     QSet<Partition *> * mergeForMessagesHelper();
 

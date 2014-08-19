@@ -25,7 +25,7 @@ public slots:
     void setSteps(float start, float stop, bool jump = false);
     void clusterChanged(); // for cluster selection
     void changeNeighborRadius(int neighbors); // neighborhood radius of top processes
-    void selectEvent(Event * event, bool aggregate);
+    void selectEvent(Event * event, bool aggregate, bool overdraw);
 
 protected:
     void qtPaint(QPainter *painter);

@@ -22,7 +22,7 @@ public:
     virtual void rightDrag(QMouseEvent * event) { Q_UNUSED(event); }
 
 public slots:
-    virtual void selectEvent(Event * event, bool aggregate);
+    virtual void selectEvent(Event * event, bool aggregate, bool overdraw);
     void selectProcesses(QList<int> processes, Gnome *gnome);
 
 protected:

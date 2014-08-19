@@ -34,6 +34,7 @@ public:
                                    long long divider)=0;
 
     virtual void addComms(QSet<CommBundle *> * bundleset)=0;
+    virtual QList<int> neighborProcesses()=0;
     virtual QVector<Message *> * getMessages() { return NULL; }
     virtual CollectiveRecord * getCollective() { return NULL; }
 

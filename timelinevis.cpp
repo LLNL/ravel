@@ -72,9 +72,9 @@ void TimelineVis::mouseDoubleClickEvent(QMouseEvent * event)
     for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin();
          evt != drawnEvents.end(); ++evt)
     {
-        if (evt.value().contains(x,y))
+        if (evt.value().contains(x,y)) // We've found the event
         {
-            if (evt.key() == selected_event)
+            if (evt.key() == selected_event) // We were in this event
             {
                 if (options->showAggregateSteps)
                 {
@@ -106,7 +106,7 @@ void TimelineVis::mouseDoubleClickEvent(QMouseEvent * event)
                 else
                     selected_event = NULL;
             }
-            else
+            else // This is a new event to us
             {
                 // we're in the aggregate event
                 if (options->showAggregateSteps
@@ -124,8 +124,15 @@ void TimelineVis::mouseDoubleClickEvent(QMouseEvent * event)
         }
     }
 
+    overdraw_selected = false;
+    if (Qt::MetaModifier && event->modifiers()
+        && selected_event && !selected_aggregate)
+    {
+        overdraw_selected = true;
+    }
+
     changeSource = true;
-    emit eventClicked(selected_event, selected_aggregate);
+    emit eventClicked(selected_event, selected_aggregate, overdraw_selected);
     repaint();
 }
 
@@ -163,12 +170,13 @@ void TimelineVis::leaveEvent(QEvent *event)
 
 // We can either select a single event exclusive-or select a
 // number of processes in a gnome right now.
-void TimelineVis::selectEvent(Event * event, bool aggregate)
+void TimelineVis::selectEvent(Event * event, bool aggregate, bool overdraw)
 {
     selected_processes.clear();
     selected_gnome = NULL;
     selected_event = event;
     selected_aggregate = aggregate;
+    overdraw_selected = overdraw;
     if (changeSource) {
         changeSource = false;
         return;

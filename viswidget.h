@@ -38,7 +38,7 @@ public:
 signals:
     void repaintAll();
     void stepsChanged(float start, float stop, bool jump);
-    void eventClicked(Event * evt, bool aggregate);
+    void eventClicked(Event * evt, bool aggregate, bool overdraw);
     void processesSelected(QList<int> processes, Gnome * gnome);
 
 public slots:
@@ -78,6 +78,7 @@ protected:
     Gnome * selected_gnome;
     Event * selected_event;
     bool selected_aggregate;
+    bool overdraw_selected;
     Event * hover_event;
     bool hover_aggregate;
     bool closed;

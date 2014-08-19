@@ -18,6 +18,7 @@ public:
                             QList<CommEvent *> * recv_events);
 
     void addComms(QSet<CommBundle *> * bundleset) { bundleset->insert(collective); }
+    QList<int> neighborProcesses();
     CollectiveRecord * getCollective() { return collective; }
     QSet<Partition *> * mergeForMessagesHelper();
 

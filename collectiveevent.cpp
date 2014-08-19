@@ -132,3 +132,15 @@ void CollectiveEvent::addToClusterEvent(ClusterEvent * ce, QString metric,
     ce->addMetric(1, agg_metric, ClusterEvent::AGG,
                   ClusterEvent::COLL, aggthreshhold);
 }
+
+QList<int> CollectiveEvent::neighborProcesses()
+{
+    QList<int> neighbors = QList<int>();
+    for (QList<CollectiveEvent *>::Iterator evt = collective->events->begin();
+         evt != collective->events->end(); ++evt)
+    {
+        neighbors.append((*evt)->process);
+    }
+    neighbors.removeOne(process);
+    return neighbors;
+}
