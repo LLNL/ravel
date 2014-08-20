@@ -15,6 +15,8 @@ public:
 
     void addMetric(QString name, double event_value,
                    double aggregate_value = 0);
+    void setMetric(QString name, double event_value,
+                   double aggregate_value = 0);
     bool hasMetric(QString name);
     double getMetric(QString name, bool aggregate = false);
 

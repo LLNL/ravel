@@ -593,13 +593,17 @@ int OTFConverter::advanceCounters(CommEvent * evt, QStack<CounterRecord *> * cou
         if (end)
         {
             // Add metric
-            double evt_time = evt->exit - evt->enter;
+            /*double evt_time = evt->exit - evt->enter;
             double agg_time = evt->enter;
             if (evt->comm_prev)
                 agg_time = evt->enter - evt->comm_prev->exit;
             evt->addMetric(rawtrace->counters->value(begin->counter)->name,
                            (end->value - begin->value) / 1.0 / evt_time,
                            (begin->value - last->value) / 1.0 / agg_time);
+                           */
+            evt->addMetric(rawtrace->counters->value(begin->counter)->name,
+                           end->value - begin->value,
+                           begin->value - last->value);
 
             // Update last counters
             lastcounters->insert(end->counter, end);

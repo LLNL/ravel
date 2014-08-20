@@ -39,9 +39,17 @@ CommEvent::~CommEvent()
 
 
 void CommEvent::addMetric(QString name, double event_value,
-                      double aggregate_value)
+                          double aggregate_value)
 {
     (*metrics)[name] = new MetricPair(event_value, aggregate_value);
+}
+
+void CommEvent::setMetric(QString name, double event_value,
+                          double aggregate_value)
+{
+    MetricPair * mp = metrics->value(name);
+    mp->event = event_value;
+    mp->aggregate = aggregate_value;
 }
 
 bool CommEvent::hasMetric(QString name)

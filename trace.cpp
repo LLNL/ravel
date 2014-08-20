@@ -407,10 +407,24 @@ void Trace::calculate_differential_lateness(QString metric_name,
 // Calculates lateness per partition rather than global step
 void Trace::calculate_partition_lateness()
 {
+    QList<QString> counterlist = QList<QString>();
+    for (int i = 0; i < metrics->size(); i++)
+        counterlist.append(metrics->at(i));
+
+    QList<double> valueslist = QList<double>();
 
     QString p_late = "Lateness";
     metrics->append(p_late);
     (*metric_units)[p_late] = "ns";
+
+
+    for (int i = 0; i < counterlist.size(); i++)
+    {
+        metrics->append("Step " + counterlist[i]);
+        metric_units->insert("Step " + counterlist[i], counterlist[i]);
+        valueslist.append(0);
+        valueslist.append(0);
+    }
 
     unsigned long long int mintime, aggmintime;
 
@@ -439,6 +453,8 @@ void Trace::calculate_partition_lateness()
             // Find min leave time
             mintime = ULLONG_MAX;
             aggmintime = ULLONG_MAX;
+            for (int j = 0; j < valueslist.size(); j++)
+                valueslist[j] = DBL_MAX;
             for (QList<CommEvent *>::Iterator evt = i_list->begin();
                  evt != i_list->end(); ++evt)
             {
@@ -446,6 +462,13 @@ void Trace::calculate_partition_lateness()
                     mintime = (*evt)->exit;
                 if ((*evt)->enter < aggmintime)
                     aggmintime = (*evt)->enter;
+                for (int j = 0; j < counterlist.size(); j++)
+                {
+                    if ((*evt)->getMetric(counterlist[j]) < valueslist[2*j])
+                        valueslist[2*j] = (*evt)->getMetric(counterlist[j]);
+                    if ((*evt)->getMetric(counterlist[j],true) < valueslist[2*j+1])
+                        valueslist[2*j+1] = (*evt)->getMetric(counterlist[j], true);
+                }
             }
 
             // Set lateness;
@@ -454,6 +477,19 @@ void Trace::calculate_partition_lateness()
             {
                 (*evt)->addMetric(p_late, (*evt)->exit - mintime,
                                   (*evt)->enter - aggmintime);
+                double evt_time = (*evt)->exit - (*evt)->enter;
+                double agg_time = (*evt)->enter;
+                if ((*evt)->comm_prev)
+                    agg_time = (*evt)->enter - (*evt)->comm_prev->exit;
+                for (int j = 0; j < counterlist.size(); j++)
+                {
+                    (*evt)->addMetric("Step " + counterlist[j],
+                                     (*evt)->getMetric(counterlist[j]) - valueslist[2*j],
+                                     (*evt)->getMetric(counterlist[j], true) - valueslist[2*j+1]);
+                    (*evt)->setMetric(counterlist[j],
+                                      (*evt)->getMetric(counterlist[j]) / 1.0 / evt_time,
+                                      (*evt)->getMetric(counterlist[j], true) / 1.0 / agg_time);
+                }
             }
             delete i_list;
         }
