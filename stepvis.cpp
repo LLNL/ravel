@@ -613,6 +613,7 @@ void StepVis::paintEvents(QPainter * painter)
     int position;
     bool complete, aggcomplete;
     QSet<CommBundle *> drawComms = QSet<CommBundle *>();
+    QSet<CommBundle *> selectedComms = QSet<CommBundle *>();
     painter->setPen(QPen(QColor(0, 0, 0)));
     Partition * part = NULL;
     int topStep = boundStep(startStep + stepSpan) + 1;
@@ -719,8 +720,12 @@ void StepVis::paintEvents(QPainter * painter)
 
                 // Save messages for the end since they draw on top
                 (*evt)->addComms(&drawComms);
-                if (*evt == selected_event && overdraw_selected)
-                    overdraw_processes = (*evt)->neighborProcesses();
+                if (*evt == selected_event)
+                {
+                    if (overdraw_selected)
+                        overdraw_processes = (*evt)->neighborProcesses();
+                    (*evt)->addComms(&selectedComms);
+                }
 
                 // Draw aggregate events if necessary
                 if (options->showAggregateSteps) {
@@ -787,6 +792,14 @@ void StepVis::paintEvents(QPainter * painter)
 
         for (QSet<CommBundle *>::Iterator comm = drawComms.begin();
              comm != drawComms.end(); ++comm)
+        {
+            if (!selectedComms.contains(*comm))
+                (*comm)->draw(painter, this);
+        }
+
+        // Now draw selected
+        for (QSet<CommBundle *>::Iterator comm = selectedComms.begin();
+             comm != selectedComms.end(); ++comm)
         {
             (*comm)->draw(painter, this);
         }

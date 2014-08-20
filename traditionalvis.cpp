@@ -536,6 +536,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
     bool complete;
     //QSet<Message *> drawMessages = QSet<Message *>();
     QSet<CommBundle *> drawComms = QSet<CommBundle *>();
+    QSet<CommBundle *> selectedComms = QSet<CommBundle *>();
     unsigned long long stopTime = startTime + timeSpan;
     painter->setPen(QPen(QColor(0, 0, 0)));
     Partition * part = NULL;
@@ -681,6 +682,8 @@ void TraditionalVis::paintEvents(QPainter *painter)
 
                 }
                 (*evt)->addComms(&drawComms);
+                if (*evt == selected_event)
+                    (*evt)->addComms(&selectedComms);
             }
         }
     }
@@ -692,6 +695,13 @@ void TraditionalVis::paintEvents(QPainter *painter)
     {
         for (QSet<CommBundle *>::Iterator comm = drawComms.begin();
              comm != drawComms.end(); ++comm)
+        {
+            if (!selectedComms.contains(*comm))
+                (*comm)->draw(painter, this);
+        }
+
+        for (QSet<CommBundle *>::Iterator comm = selectedComms.begin();
+             comm != selectedComms.end(); ++comm)
         {
             (*comm)->draw(painter, this);
         }
