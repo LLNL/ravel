@@ -56,7 +56,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect((stepvis), SIGNAL(stepsChanged(float, float, bool)), this,
             SLOT(pushSteps(float, float, bool)));
-    connect((stepvis), SIGNAL(eventClicked(Event *, bool)), this,
+    connect((stepvis), SIGNAL(eventClicked(Event *, bool, bool)), this,
             SLOT(selectEvent(Event *, bool)));
     viswidgets.push_back(stepvis);
     splitterMap.push_back(0);
@@ -72,7 +72,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect((timevis), SIGNAL(stepsChanged(float, float, bool)), this,
             SLOT(pushSteps(float, float, bool)));
-    connect((timevis), SIGNAL(eventClicked(Event *, bool)), this,
+    connect((timevis), SIGNAL(eventClicked(Event *, bool, bool)), this,
             SLOT(selectEvent(Event *, bool)));
     viswidgets.push_back(timevis);
     splitterMap.push_back(2);
@@ -91,8 +91,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect((clustervis), SIGNAL(stepsChanged(float, float, bool)), this,
             SLOT(pushSteps(float, float, bool)));
-    connect((clustervis), SIGNAL(eventClicked(Event *, bool)), this,
-            SLOT(selectEvent(Event *, bool)));
+    connect((clustervis), SIGNAL(eventClicked(Event *, bool, bool)), this,
+            SLOT(selectEvent(Event *, bool, bool)));
     connect((clustervis), SIGNAL(processesSelected(QList<int>, Gnome*)), this,
             SLOT(selectProcesses(QList<int>, Gnome*)));
 
