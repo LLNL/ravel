@@ -35,7 +35,7 @@ public slots:
 
     // Signal relays
     void pushSteps(float start, float stop, bool jump = false);
-    void selectEvent(Event * event, bool aggregate);
+    void selectEvent(Event * event, bool aggregate, bool overdraw);
     void selectProcesses(QList<int> processes, Gnome *gnome);
 
     // Importing & Progress Bar

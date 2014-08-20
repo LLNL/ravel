@@ -57,7 +57,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect((stepvis), SIGNAL(stepsChanged(float, float, bool)), this,
             SLOT(pushSteps(float, float, bool)));
     connect((stepvis), SIGNAL(eventClicked(Event *, bool, bool)), this,
-            SLOT(selectEvent(Event *, bool)));
+            SLOT(selectEvent(Event *, bool, bool)));
     viswidgets.push_back(stepvis);
     splitterMap.push_back(0);
 
@@ -73,7 +73,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect((timevis), SIGNAL(stepsChanged(float, float, bool)), this,
             SLOT(pushSteps(float, float, bool)));
     connect((timevis), SIGNAL(eventClicked(Event *, bool, bool)), this,
-            SLOT(selectEvent(Event *, bool)));
+            SLOT(selectEvent(Event *, bool, bool)));
     viswidgets.push_back(timevis);
     splitterMap.push_back(2);
 
@@ -191,11 +191,11 @@ void MainWindow::pushSteps(float start, float stop, bool jump)
     }
 }
 
-void MainWindow::selectEvent(Event * event, bool aggregate)
+void MainWindow::selectEvent(Event * event, bool aggregate, bool overdraw)
 {
     for(int i = 0; i < viswidgets.size(); i++)
     {
-        viswidgets[i]->selectEvent(event, aggregate);
+        viswidgets[i]->selectEvent(event, aggregate, overdraw);
     }
 }
 

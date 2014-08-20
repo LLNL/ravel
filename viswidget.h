@@ -43,7 +43,7 @@ signals:
 
 public slots:
     virtual void setSteps(float start, float stop, bool jump = false);
-    virtual void selectEvent(Event *, bool);
+    virtual void selectEvent(Event *, bool, bool);
     virtual void selectProcesses(QList<int> processes, Gnome * gnome);
 
 protected:

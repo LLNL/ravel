@@ -49,10 +49,11 @@ void VisWidget::setSteps(float start, float stop, bool jump)
     Q_UNUSED(jump);
 }
 
-void VisWidget::selectEvent(Event * evt, bool aggregate)
+void VisWidget::selectEvent(Event * evt, bool aggregate, bool overdraw)
 {
     Q_UNUSED(evt);
     Q_UNUSED(aggregate);
+    Q_UNUSED(overdraw);
 }
 
 void VisWidget::selectProcesses(QList<int> processes, Gnome *gnome)
