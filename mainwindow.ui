@@ -458,7 +458,7 @@
   </action>
   <action name="actionOpen_OTF">
    <property name="text">
-    <string>Open OTF</string>
+    <string>Open Trace</string>
    </property>
   </action>
   <action name="actionOTF_Importing">

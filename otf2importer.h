@@ -88,6 +88,25 @@ public:
         uint32_t line_end;
     };
 
+    class OTF2Group {
+    public:
+        OTF2Group(OTF2_GroupRef _self,
+                  OTF2_StringRef _name,
+                  OTF2_GroupType _type,
+                  OTF2_Paradigm _paradigm,
+                  OTF2_GroupFlag _flags)
+            : self(_self), name(_name), type(_type),
+              paradigm(_paradigm), flags(_flags),
+              members(QList<uint64_t>()) {}
+
+        OTF2_GroupRef self;
+        OTF2_StringRef name;
+        OTF2_GroupType type;
+        OTF2_Paradigm paradigm;
+        OTF2_GroupFlag flags;
+        QList<uint64_t> members;
+    };
+
 
     // Callbacks per OTF2
 
@@ -125,6 +144,14 @@ public:
                                                OTF2_StringRef sourceFile,
                                                uint32_t beginLineNumber,
                                                uint32_t endLineNumber);
+    static OTF2_CallbackCode callbackDefGroup(void* userData,
+                                              OTF2_GroupRef self,
+                                              OTF2_StringRef name,
+                                              OTF2_GroupType groupType,
+                                              OTF2_Paradigm paradigm,
+                                              OTF2_GroupFlag groupFlags,
+                                              uint32_t numberOfMembers,
+                                              const uint64_t* members );
 
     // TODO: Metrics might be akin to counters
 
@@ -235,6 +262,7 @@ private:
     QMap<OTF2_LocationGroupRef, OTF2LocationGroup *> * locationGroupMap;
     QMap<OTF2_RegionRef, OTF2Region *> * regionMap;
     QMap<OTF2_CommRef, OTF2Comm *> * commMap;
+    QMap<OTF2_GroupRef, OTF2Group *> * groupMap;
 
     QMap<OTF2_CommRef, int> * commIndexMap;
     QMap<OTF2_RegionRef, int> * regionIndexMap;

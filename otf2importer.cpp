@@ -14,6 +14,17 @@ OTF2Importer::OTF2Importer()
       sendcount(0),
       recvcount(0),
       otfReader(NULL),
+      global_def_callbacks(NULL),
+      global_evt_callbacks(NULL),
+      stringMap(new QMap<OTF2_StringRef, QString>()),
+      locationMap(new QMap<OTF2_LocationRef, OTF2Location *>()),
+      locationGroupMap(new QMap<OTF2_LocationGroupRef, OTF2LocationGroup *>()),
+      regionMap(new QMap<OTF2_RegionRef, OTF2Region *>()),
+      groupMap(new QMap<OTF2_GroupRef, OTF2Group *>()),
+      commMap(new QMap<OTF2_CommRef, OTF2Comm *>()),
+      commIndexMap(new QMap<OTF2_CommRef, int>()),
+      regionIndexMap(new QMap<OTF2_RegionRef, int>()),
+      locationIndexMap(new QMap<OTF2_LocationRef, int>()),
       unmatched_recvs(new QVector<QLinkedList<CommRecord *> *>()),
       unmatched_sends(new QVector<QLinkedList<CommRecord *> *>()),
       rawtrace(NULL),
@@ -30,6 +41,15 @@ OTF2Importer::OTF2Importer()
 
 OTF2Importer::~OTF2Importer()
 {
+    delete stringMap;
+    delete locationMap;
+    delete locationGroupMap;
+    delete regionMap;
+    delete groupMap;
+    delete commMap;
+    delete commIndexMap;
+    delete regionIndexMap;
+    delete locationIndexMap;
 
     for (QVector<QLinkedList<CommRecord *> *>::Iterator eitr
          = unmatched_recvs->begin(); eitr != unmatched_recvs->end(); ++eitr)
@@ -90,7 +110,7 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file)
     OTF2_GlobalDefReaderCallbacks_Delete( global_def_callbacks );
 
     // Read definitions
-        std::cout << "Reading definitions" << std::endl;
+    std::cout << "Reading definitions" << std::endl;
     uint64_t definitions_read = 0;
     OTF2_Reader_ReadAllGlobalDefinitions( otfReader,
                                           global_def_reader,
@@ -118,7 +138,35 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file)
     rawtrace->messages_r = new QVector<QVector<CommRecord *> *>(num_processes);
     rawtrace->counter_records = new QVector<QVector<CounterRecord *> *>(num_processes);
 
+    // Adding locations
+    // Use the locationIndexMap to only chooes the ones we can handle (right now just MPI)
+    for (QMap<OTF2_LocationRef, int>::Iterator loc = locationIndexMap->begin();
+         loc != locationIndexMap->end(); ++loc)
+    {
+        OTF2_Reader_SelectLocation(otfReader, loc.key());
+    }
 
+    bool def_files_success = OTF2_Reader_OpenDefFiles(otfReader) == OTF2_SUCCESS;
+    OTF2_Reader_OpenEvtFiles(otfReader);
+    for (QMap<OTF2_LocationRef, int>::Iterator loc = locationIndexMap->begin();
+         loc != locationIndexMap->end(); ++loc)
+    {
+        if (def_files_success)
+        {
+            OTF2_DefReader * def_reader = OTF2_Reader_GetDefReader(otfReader, loc.key());
+            if (def_reader)
+            {
+                uint64_t def_reads = 0;
+                OTF2_Reader_ReadAllLocalDefinitions( otfReader,
+                                                     def_reader,
+                                                     &def_reads );
+                OTF2_Reader_CloseDefReader( otfReader, def_reader );
+            }
+        }
+        OTF2_EvtReader * unused = OTF2_Reader_GetEvtReader(otfReader, loc.key());
+    }
+    if (def_files_success)
+        OTF2_Reader_CloseDefFiles(otfReader);
 
     std::cout << "Reading events" << std::endl;
     delete unmatched_recvs;
@@ -149,8 +197,11 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file)
                                             global_evt_callbacks,
                                             this ); // Register userdata as this
 
-
-
+    OTF2_GlobalEvtReaderCallbacks_Delete( global_evt_callbacks );
+    uint64_t events_read = 0;
+    OTF2_Reader_ReadAllGlobalEvents( otfReader,
+                                     global_evt_reader,
+                                     &events_read );
 
 
     rawtrace->collectiveMap = collectiveMap;
@@ -220,6 +271,8 @@ void OTF2Importer::setDefCallbacks()
     // Comm
     OTF2_GlobalDefReaderCallbacks_SetCommCallback(global_def_callbacks,
                                                   callbackDefComm);
+    OTF2_GlobalDefReaderCallbacks_SetGroupCallback(global_def_callbacks,
+                                                  callbackDefGroup);
 
     // Region
     OTF2_GlobalDefReaderCallbacks_SetRegionCallback(global_def_callbacks,
@@ -246,19 +299,32 @@ void OTF2Importer::processDefinitions()
     {
         commIndexMap->insert(comm.key(), index);
         Communicator * c = new Communicator(index, stringMap->value((comm.value())->name));
-        // How to add processses? Figure out later I guess.
+        OTF2Group * g = groupMap->value((comm.value())->group);
+        for (QList<uint64_t>::Iterator member = g->members.begin();
+             member != g->members.end(); ++member)
+        {
+            c->processes->append(*member);
+        }
         communicators->insert(index, c);
         index++;
     }
 
-    index = 0;
     for (QMap<OTF2_LocationRef, OTF2Location *>::Iterator loc = locationMap->begin();
          loc != locationMap->end(); ++loc)
     {
-        locationIndexMap->insert(loc.key(), index);
-        std::cout << "Location: " << stringMap->value((loc.value())->name).toStdString().c_str() << std::endl;
-        index++;
+        QString group = stringMap->value((locationGroupMap->value((loc.value())->group))->name);
+        if (group.startsWith("MPI Rank "))
+        {
+            QString name = stringMap->value((loc.value())->name);
+            if (name.startsWith("Master thread"))
+            {
+                int process = group.remove(0, 9).toInt();
+                std::cout << "Adding " << process << std::endl;
+                locationIndexMap->insert(loc.key(), process);
+            }
+        }
     }
+
 }
 
 void OTF2Importer::setEvtCallbacks()
@@ -390,6 +456,22 @@ OTF2_CallbackCode OTF2Importer::callbackDefRegion(void * userData,
     return OTF2_CALLBACK_SUCCESS;
 }
 
+OTF2_CallbackCode OTF2Importer::callbackDefGroup(void* userData,
+                                                 OTF2_GroupRef self,
+                                                 OTF2_StringRef name,
+                                                 OTF2_GroupType groupType,
+                                                 OTF2_Paradigm paradigm,
+                                                 OTF2_GroupFlag groupFlags,
+                                                 uint32_t numberOfMembers,
+                                                 const uint64_t* members)
+{
+    OTF2Group * g = new OTF2Group(self, name, groupType, paradigm, groupFlags);
+    for (uint32_t i = 0; i < numberOfMembers; i++)
+        g->members.append(members[i]);
+    (*(((OTF2Importer*) userData)->groupMap))[self] = g;
+    return OTF2_CALLBACK_SUCCESS;
+}
+
 OTF2_CallbackCode OTF2Importer::callbackEnter(OTF2_LocationRef locationID,
                                               OTF2_TimeStamp time,
                                               void * userData,
@@ -451,12 +533,15 @@ OTF2_CallbackCode OTF2Importer::callbackMPISend(OTF2_LocationRef locationID,
     // to see if it has a match
     time = convertTime(userData, time);
     int sender = ((OTF2Importer *) userData)->locationIndexMap->value(locationID);
+    OTF2Comm * comm = ((OTF2Importer *) userData)->commMap->value(communicator);
+    OTF2Group * group = ((OTF2Importer *) userData)->groupMap->value(comm->group);
+    int world_receiver = group->members.at(receiver);
     CommRecord * cr = NULL;
     QLinkedList<CommRecord *> * unmatched = (*(((OTF2Importer *) userData)->unmatched_recvs))[sender];
     for (QLinkedList<CommRecord *>::Iterator itr = unmatched->begin();
          itr != unmatched->end(); ++itr)
     {
-        if (OTF2Importer::compareComms((*itr), sender, receiver, msgTag, msgLength))
+        if (OTF2Importer::compareComms((*itr), sender, world_receiver, msgTag, msgLength))
         {
             cr = *itr;
             cr->send_time = time;
@@ -474,7 +559,7 @@ OTF2_CallbackCode OTF2Importer::callbackMPISend(OTF2_LocationRef locationID,
     }
     else
     {
-        cr = new CommRecord(sender, time, receiver, 0, msgLength, msgTag);
+        cr = new CommRecord(sender, time, world_receiver, 0, msgLength, msgTag);
         (*((((OTF2Importer*) userData)->rawtrace)->messages))[sender]->append(cr);
         (*(((OTF2Importer *) userData)->unmatched_sends))[sender]->append(cr);
     }
@@ -577,12 +662,15 @@ OTF2_CallbackCode OTF2Importer::callbackMPIRecv(OTF2_LocationRef locationID,
     // Look for match in unmatched_sends
     time = convertTime(userData, time);
     int receiver = ((OTF2Importer *) userData)->locationIndexMap->value(locationID);
+    OTF2Comm * comm = ((OTF2Importer *) userData)->commMap->value(communicator);
+    OTF2Group * group = ((OTF2Importer *) userData)->groupMap->value(comm->group);
+    int world_sender = group->members.at(sender);
     CommRecord * cr = NULL;
-    QLinkedList<CommRecord *> * unmatched = (*(((OTF2Importer*) userData)->unmatched_sends))[sender];
+    QLinkedList<CommRecord *> * unmatched = (*(((OTF2Importer*) userData)->unmatched_sends))[world_sender];
     for (QLinkedList<CommRecord *>::Iterator itr = unmatched->begin();
          itr != unmatched->end(); ++itr)
     {
-        if (OTF2Importer::compareComms((*itr), sender, receiver,
+        if (OTF2Importer::compareComms((*itr), world_sender, receiver,
                                        msgTag, msgLength))
         {
             cr = *itr;
@@ -595,12 +683,12 @@ OTF2_CallbackCode OTF2Importer::callbackMPIRecv(OTF2_LocationRef locationID,
     // a new unmatched recv record
     if (cr)
     {
-        (*(((OTF2Importer *) userData)->unmatched_sends))[sender]->removeOne(cr);
+        (*(((OTF2Importer *) userData)->unmatched_sends))[world_sender]->removeOne(cr);
     }
     else
     {
-        cr = new CommRecord(sender, 0, receiver, time, msgLength, msgTag);
-        ((*(((OTF2Importer*) userData)->unmatched_recvs))[sender])->append(cr);
+        cr = new CommRecord(world_sender, 0, receiver, time, msgLength, msgTag);
+        ((*(((OTF2Importer*) userData)->unmatched_recvs))[world_sender])->append(cr);
     }
     (*((((OTF2Importer*) userData)->rawtrace)->messages_r))[receiver]->append(cr);
 

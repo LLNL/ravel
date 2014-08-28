@@ -255,8 +255,8 @@ void MainWindow::importOTFbyGUI()
 
 void MainWindow::importTrace(QString dataFileName){
 
-    progress = new QProgressDialog("Reading OTF...", "", 0, 0, this);
-    progress->setWindowTitle("Importing OTF...");
+    progress = new QProgressDialog("Reading Trace...", "", 0, 0, this);
+    progress->setWindowTitle("Importing Trace...");
     progress->setCancelButton(0);
     progress->show();
 
