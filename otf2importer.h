@@ -10,92 +10,6 @@
 #include <otf2/otf2.h>
 #include <QLinkedList>
 
-class OTF2LocationGroup {
-public:
-    OTF2LocationGroup(OTF2_LocationGroupRef _self,
-                      OTF2_StringRef _name,
-                      OTF2_LocationGroupType _type,
-                      OTF2_SystemTreeNodeRef _parent)
-        : self(_self), name(_name), type(_type), parent(_parent) {}
-
-    OTF2_LocationGroupRef self;
-    OTF2_StringRef name;
-    OTF2_LocationGroupType type;
-    OTF2_SystemTreeNodeRef parent;
-};
-
-class OTF2Location {
-public:
-    OTF2Location(OTF2_LocationRef _self,
-                 OTF2_StringRef _name,
-                 uint64_t _num,
-                 OTF2_LocationType _type,
-                 OTF2_LocationGroupRef _group)
-        : self(_self), name(_name), num_events(_num),
-          type(_type), group(_group) {}
-
-    OTF2_LocationRef self;
-    OTF2_StringRef name;
-    uint64_t num_events;
-    OTF2_LocationType type;
-    OTF2_LocationGroupRef group;
-};
-
-class OTF2Comm {
-public:
-    OTF2Comm(OTF2_CommRef _self,
-             OTF2_StringRef _name,
-             OTF2_GroupRef _group,
-             OTF2_CommRef _parent)
-        : self(_self), name(_name), group(_group), parent(_parent) {}
-
-    OTF2_CommRef self;
-    OTF2_StringRef name;
-    OTF2_GroupRef group;
-    OTF2_CommRef parent;
-};
-
-class OTF2Comm {
-public:
-    OTF2Comm(OTF2_CommRef _self,
-             OTF2_StringRef _name,
-             OTF2_GroupRef _group,
-             OTF2_CommRef _parent)
-        : self(_self), name(_name), group(_group), parent(_parent) {}
-
-    OTF2_CommRef self;
-    OTF2_StringRef name;
-    OTF2_GroupRef group;
-    OTF2_CommRef parent;
-};
-
-class OTF2Region {
-public:
-    OTF2Region(OTF2_RegionRef _self,
-               OTF2_StringRef _name,
-               OTF2_StringRef _canon,
-               OTF2_RegionRole _role,
-               OTF2_Paradigm _paradigm,
-               OTF2_RegionFlag _flag,
-               OTF2_StringRef _source,
-               uint32_t _line,
-               uint32_t _end)
-        : self(_self), name(_name), canon(_canon), role(_role),
-          paradigm(_paradigm), flag(_flag), source(_source),
-          line(_line), line_end(_end) {}
-
-    OTF2_RegionRef self;
-    OTF2_StringRef name;
-    OTF2_StringRef canon;
-    OTF2_RegionRole role;
-    OTF2_Paradigm paradigm;
-    OTF2_RegionFlag flag;
-    OTF2_StringRef source;
-    uint32_t line;
-    uint32_t line_end;
-};
-
-
 class OTF2Importer
 {
 public:
@@ -103,15 +17,87 @@ public:
     ~OTF2Importer();
     RawTrace * importOTF2(const char* otf_file);
 
+    class OTF2LocationGroup {
+    public:
+        OTF2LocationGroup(OTF2_LocationGroupRef _self,
+                          OTF2_StringRef _name,
+                          OTF2_LocationGroupType _type,
+                          OTF2_SystemTreeNodeRef _parent)
+            : self(_self), name(_name), type(_type), parent(_parent) {}
+
+        OTF2_LocationGroupRef self;
+        OTF2_StringRef name;
+        OTF2_LocationGroupType type;
+        OTF2_SystemTreeNodeRef parent;
+    };
+
+    class OTF2Location {
+    public:
+        OTF2Location(OTF2_LocationRef _self,
+                     OTF2_StringRef _name,
+                     uint64_t _num,
+                     OTF2_LocationType _type,
+                     OTF2_LocationGroupRef _group)
+            : self(_self), name(_name), num_events(_num),
+              type(_type), group(_group) {}
+
+        OTF2_LocationRef self;
+        OTF2_StringRef name;
+        uint64_t num_events;
+        OTF2_LocationType type;
+        OTF2_LocationGroupRef group;
+    };
+
+    class OTF2Comm {
+    public:
+        OTF2Comm(OTF2_CommRef _self,
+                 OTF2_StringRef _name,
+                 OTF2_GroupRef _group,
+                 OTF2_CommRef _parent)
+            : self(_self), name(_name), group(_group), parent(_parent) {}
+
+        OTF2_CommRef self;
+        OTF2_StringRef name;
+        OTF2_GroupRef group;
+        OTF2_CommRef parent;
+    };
+
+    class OTF2Region {
+    public:
+        OTF2Region(OTF2_RegionRef _self,
+                   OTF2_StringRef _name,
+                   OTF2_StringRef _canon,
+                   OTF2_RegionRole _role,
+                   OTF2_Paradigm _paradigm,
+                   OTF2_RegionFlag _flag,
+                   OTF2_StringRef _source,
+                   uint32_t _line,
+                   uint32_t _end)
+            : self(_self), name(_name), canon(_canon), role(_role),
+              paradigm(_paradigm), flag(_flag), source(_source),
+              line(_line), line_end(_end) {}
+
+        OTF2_RegionRef self;
+        OTF2_StringRef name;
+        OTF2_StringRef canon;
+        OTF2_RegionRole role;
+        OTF2_Paradigm paradigm;
+        OTF2_RegionFlag flag;
+        OTF2_StringRef source;
+        uint32_t line;
+        uint32_t line_end;
+    };
+
+
     // Callbacks per OTF2
 
     static OTF2_CallbackCode callbackDefClockProperties(void * userData,
-                                                        unit64_t timerResolution,
+                                                        uint64_t timerResolution,
                                                         uint64_t globalOffset,
                                                         uint64_t traceLength);
-    static OTF2_CallbackCode callbackString(void * userData,
-                                            OTF2_StringRef self,
-                                            const char * string);
+    static OTF2_CallbackCode callbackDefString(void * userData,
+                                               OTF2_StringRef self,
+                                               const char * string);
     static OTF2_CallbackCode callbackDefLocationGroup(void * userData,
                                                       OTF2_LocationGroupRef self,
                                                       OTF2_StringRef name,
@@ -167,14 +153,15 @@ public:
                                               uint32_t receiver,
                                               OTF2_CommRef communicator,
                                               uint32_t msgTag,
-                                              uint64_t msgLength);
+                                              uint64_t msgLength,
+                                              uint64_t requestID);
     static OTF2_CallbackCode callbackMPIIsendComplete(OTF2_LocationRef locationID,
                                                       OTF2_TimeStamp time,
                                                       void * userData,
                                                       OTF2_AttributeList * attributeList,
                                                       uint64_t requestID);
     static OTF2_CallbackCode callbackMPIIrecvRequest(OTF2_LocationRef locationID,
-                                                     OTF2_Timestamp time,
+                                                     OTF2_TimeStamp time,
                                                      void * userData,
                                                      OTF2_AttributeList * attributeList,
                                                      uint64_t requestID);
@@ -193,7 +180,8 @@ public:
                                               uint32_t sender,
                                               OTF2_CommRef communicator,
                                               uint32_t msgTag,
-                                              uint64_t msgLength);
+                                              uint64_t msgLength,
+                                              uint64_t requestID);
     /*static OTF2_CallbackCode callbackMPIRequestTest(OTF2_LocationRef locationID,
                                                     OTF2_TimeStamp time,
                                                     void * userData,
@@ -221,7 +209,7 @@ public:
                              unsigned int size);
 
 
-    static uint64_t convertTime(void* userData, uint64_t time);
+    static uint64_t convertTime(void* userData, OTF2_TimeStamp time);
 
     unsigned long long int ticks_per_second;
     double time_conversion_factor;
@@ -232,7 +220,9 @@ public:
     int sendcount;
     int recvcount;
 
+
 private:
+    void processDefinitions();
     void setDefCallbacks();
     void setEvtCallbacks();
 
@@ -254,6 +244,7 @@ private:
     QVector<QLinkedList<CommRecord *> *> * unmatched_sends;
 
     RawTrace * rawtrace;
+
     QMap<int, QString> * functionGroups;
     QMap<int, Function *> * functions;
     QMap<int, Communicator *> * communicators;

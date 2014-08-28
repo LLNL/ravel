@@ -110,7 +110,7 @@ unix:!macx: LIBS += -lotf -lz
 unix: INCLUDEPATH += /opt/otf2/include
 unix: DEPENDPATH += /opt/otf2/include
 
-unix:!macx: LIBS += -L/opt/lib -lotf2
+unix:!macx: LIBS += -L/opt/otf2/lib -lotf2
 
 macx: LIBS += -L$${HOME}/opt/lib/ -lopen-trace-format
 

@@ -2,6 +2,7 @@
 #define OTFCONVERTER_H
 
 #include "otfimporter.h"
+#include "otf2importer.h"
 #include "otfimportoptions.h"
 #include "rawtrace.h"
 #include "trace.h"
@@ -20,12 +21,14 @@ public:
     OTFConverter();
     ~OTFConverter();
     Trace * importOTF(QString filename, OTFImportOptions * _options);
+    Trace * importOTF2(QString filename, OTFImportOptions * _options);
 
 signals:
     void finishRead();
     void matchingUpdate(int, QString);
 
 private:
+    void convert();
     void matchEvents();
     void makeSingletonPartition(CommEvent * evt);
     void mergeForWaitall(QList<QList<Partition * > *> * groups);

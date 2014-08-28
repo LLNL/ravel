@@ -20,7 +20,7 @@ void OTFImportFunctor::doImportOTF2(QString dataFileName)
     connect(importer, SIGNAL(finishRead()), this, SLOT(finishInitialRead()));
     connect(importer, SIGNAL(matchingUpdate(int, QString)), this,
             SLOT(updateMatching(int, QString)));
-    Trace* trace = importer->importOTF(dataFileName, options);
+    Trace* trace = importer->importOTF2(dataFileName, options);
     delete importer;
     connect(trace, SIGNAL(updatePreprocess(int, QString)), this,
             SLOT(updatePreprocess(int, QString)));

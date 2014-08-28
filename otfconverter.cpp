@@ -29,6 +29,30 @@ Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
     rawtrace = importer->importOTF(filename.toStdString().c_str());
     emit(finishRead());
 
+    convert();
+
+    delete importer;
+    return trace;
+}
+
+Trace * OTFConverter::importOTF2(QString filename, OTFImportOptions *_options)
+{
+    // Keep track of options
+    options = _options;
+
+    // Start with the rawtrace similar to what we got from PARAVER
+    OTF2Importer * importer = new OTF2Importer();
+    rawtrace = importer->importOTF2(filename.toStdString().c_str());
+    emit(finishRead());
+
+    convert();
+
+    delete importer;
+    return trace;
+}
+
+void OTFConverter::convert()
+{
     // Time the rest of this
     QElapsedTimer traceTimer;
     qint64 traceElapsed;
@@ -103,10 +127,8 @@ Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
     gu_printTime(traceElapsed);
     std::cout << std::endl;
 
-    delete importer;
-    delete rawtrace;
 
-    return trace;
+    delete rawtrace;
 }
 
 void OTFConverter::makeSingletonPartition(CommEvent * evt)
