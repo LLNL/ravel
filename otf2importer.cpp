@@ -586,7 +586,7 @@ OTF2_CallbackCode OTF2Importer::callbackMPIIsend(OTF2_LocationRef locationID,
 
     // Every time we find a send, check the unmatched recvs
     // to see if it has a match
-    time = convertTime(userData, time);
+    unsigned long long converted_time = convertTime(userData, time);
     int sender = ((OTF2Importer *) userData)->locationIndexMap->value(locationID);
     CommRecord * cr = NULL;
     QLinkedList<CommRecord *> * unmatched = (*(((OTF2Importer *) userData)->unmatched_recvs))[sender];
@@ -596,7 +596,7 @@ OTF2_CallbackCode OTF2Importer::callbackMPIIsend(OTF2_LocationRef locationID,
         if (OTF2Importer::compareComms((*itr), sender, receiver, msgTag, msgLength))
         {
             cr = *itr;
-            cr->send_time = time;
+            cr->send_time = converted_time;
             ((*((((OTF2Importer*) userData)->rawtrace)->messages))[sender])->append((cr));
             break;
         }
@@ -611,7 +611,7 @@ OTF2_CallbackCode OTF2Importer::callbackMPIIsend(OTF2_LocationRef locationID,
     }
     else
     {
-        cr = new CommRecord(sender, time, receiver, 0, msgLength, msgTag);
+        cr = new CommRecord(sender, converted_time, receiver, 0, msgLength, msgTag);
         (*((((OTF2Importer*) userData)->rawtrace)->messages))[sender]->append(cr);
         (*(((OTF2Importer *) userData)->unmatched_sends))[sender]->append(cr);
     }
@@ -714,7 +714,7 @@ OTF2_CallbackCode OTF2Importer::callbackMPIIrecv(OTF2_LocationRef locationID,
     Q_UNUSED(requestID);
 
     // Look for match in unmatched_sends
-    uint64_t converted_time = convertTime(userData, time);
+    unsigned long long converted_time = convertTime(userData, time);
     int receiver = ((OTF2Importer *) userData)->locationIndexMap->value(locationID);
     CommRecord * cr = NULL;
     QLinkedList<CommRecord *> * unmatched = (*(((OTF2Importer*) userData)->unmatched_sends))[sender];
