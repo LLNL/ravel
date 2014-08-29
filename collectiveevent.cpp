@@ -97,19 +97,19 @@ ClusterEvent * CollectiveEvent::createClusterEvent(QString metric, long long int
 {
     long long evt_metric = getMetric(metric);
     long long agg_metric = getMetric(metric, true);
-    ClusterEvent::Threshhold threshhold = ClusterEvent::HIGH;
+    ClusterEvent::Threshhold threshhold = ClusterEvent::CE_THRESH_HIGH;
     if (evt_metric < divider)
-        threshhold = ClusterEvent::LOW;
-    ClusterEvent::Threshhold aggthreshhold = ClusterEvent::HIGH;
+        threshhold = ClusterEvent::CE_THRESH_LOW;
+    ClusterEvent::Threshhold aggthreshhold = ClusterEvent::CE_THRESH_HIGH;
     if (agg_metric < divider)
-        aggthreshhold = ClusterEvent::LOW;
+        aggthreshhold = ClusterEvent::CE_THRESH_LOW;
 
     ClusterEvent * ce = new ClusterEvent(step);
 
-    ce->setMetric(1, evt_metric, ClusterEvent::COMM,
-                  ClusterEvent::COLL, threshhold);
-    ce->setMetric(1, agg_metric, ClusterEvent::AGG,
-                  ClusterEvent::COLL, aggthreshhold);
+    ce->setMetric(1, evt_metric, ClusterEvent::CE_EVENT_COMM,
+                  ClusterEvent::CE_COMM_COLL, threshhold);
+    ce->setMetric(1, agg_metric, ClusterEvent::CE_EVENT_AGG,
+                  ClusterEvent::CE_COMM_COLL, aggthreshhold);
 
     return ce;
 }
@@ -119,18 +119,18 @@ void CollectiveEvent::addToClusterEvent(ClusterEvent * ce, QString metric,
 {
     long long evt_metric = getMetric(metric);
     long long agg_metric = getMetric(metric, true);
-    ClusterEvent::Threshhold threshhold = ClusterEvent::HIGH;
+    ClusterEvent::Threshhold threshhold = ClusterEvent::CE_THRESH_HIGH;
     if (evt_metric < divider)
-        threshhold = ClusterEvent::LOW;
-    ClusterEvent::Threshhold aggthreshhold = ClusterEvent::HIGH;
+        threshhold = ClusterEvent::CE_THRESH_LOW;
+    ClusterEvent::Threshhold aggthreshhold = ClusterEvent::CE_THRESH_HIGH;
     if (agg_metric < divider)
-        aggthreshhold = ClusterEvent::LOW;
+        aggthreshhold = ClusterEvent::CE_THRESH_LOW;
 
 
-    ce->addMetric(1, evt_metric, ClusterEvent::COMM,
-                  ClusterEvent::COLL, threshhold);
-    ce->addMetric(1, agg_metric, ClusterEvent::AGG,
-                  ClusterEvent::COLL, aggthreshhold);
+    ce->addMetric(1, evt_metric, ClusterEvent::CE_EVENT_COMM,
+                  ClusterEvent::CE_COMM_COLL, threshhold);
+    ce->addMetric(1, agg_metric, ClusterEvent::CE_EVENT_AGG,
+                  ClusterEvent::CE_COMM_COLL, aggthreshhold);
 }
 
 QList<int> CollectiveEvent::neighborProcesses()

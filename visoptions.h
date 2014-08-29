@@ -12,8 +12,8 @@ public:
     VisOptions(const VisOptions& copy);
     void setRange(double low, double high);
 
-    enum ColorMapType { SEQUENTIAL, DIVERGING, CATEGORICAL };
-    enum MessageType { NONE, TRUE, SINGLE };
+    enum ColorMapType { COLOR_SEQUENTIAL, COLOR_DIVERGING, COLOR_CATEGORICAL };
+    enum MessageType { MSG_NONE, MSG_TRUE, MSG_SINGLE };
 
     bool showAggregateSteps;
     bool colorTraditionalByMetric; // color physical timeline by metric

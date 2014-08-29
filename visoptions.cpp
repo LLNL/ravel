@@ -5,11 +5,11 @@ VisOptions::VisOptions(bool _showAgg,
                  QString _metric)
     : showAggregateSteps(_showAgg),
       colorTraditionalByMetric(_metricTraditional),
-      showMessages(TRUE),
+      showMessages(MSG_TRUE),
       topByCentroid(false),
       showInactiveSteps(true),
       metric(_metric),
-      maptype(DIVERGING),
+      maptype(COLOR_DIVERGING),
       divergentmap(new ColorMap(QColor(173, 216, 230), 0)),
       rampmap(new ColorMap(QColor(255, 247, 222), 0)),
       catcolormap(new ColorMap(QColor(158, 218, 229), 0, true)), // divergent blue
@@ -58,9 +58,9 @@ VisOptions::VisOptions(const VisOptions& copy)
     divergentmap = new ColorMap(*(copy.divergentmap));
     catcolormap = new ColorMap(*(copy.catcolormap));
     rampmap = new ColorMap(*(copy.rampmap));
-    if (maptype == SEQUENTIAL)
+    if (maptype == COLOR_SEQUENTIAL)
         colormap = rampmap;
-    else if (maptype == CATEGORICAL)
+    else if (maptype == COLOR_CATEGORICAL)
         colormap = catcolormap;
     else
         colormap = divergentmap;

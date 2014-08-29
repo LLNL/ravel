@@ -691,7 +691,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
     // Messages
     // We need to do all of the message drawing after the event drawing
     // for overlap purposes
-    if (options->showMessages != VisOptions::NONE)
+    if (options->showMessages != VisOptions::MSG_NONE)
     {
         for (QSet<CommBundle *>::Iterator comm = drawComms.begin();
              comm != drawComms.end(); ++comm)

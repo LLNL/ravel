@@ -28,7 +28,7 @@ public:
     Gnome();
     ~Gnome();
 
-    enum ChangeType { CLUSTER, SELECTION, NONE };
+    enum ChangeType { CHANGE_CLUSTER, CHANGE_SELECTION, CHANGE_NONE };
 
     virtual bool detectGnome(Partition * part);
     virtual Gnome * create();

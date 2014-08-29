@@ -210,33 +210,33 @@ ClusterEvent * P2PEvent::createClusterEvent(QString metric, long long int divide
 {
     long long evt_metric = getMetric(metric);
     long long agg_metric = getMetric(metric, true);
-    ClusterEvent::Threshhold threshhold = ClusterEvent::HIGH;
+    ClusterEvent::Threshhold threshhold = ClusterEvent::CE_THRESH_HIGH;
     if (evt_metric < divider)
-        threshhold = ClusterEvent::LOW;
-    ClusterEvent::Threshhold aggthreshhold = ClusterEvent::HIGH;
+        threshhold = ClusterEvent::CE_THRESH_LOW;
+    ClusterEvent::Threshhold aggthreshhold = ClusterEvent::CE_THRESH_HIGH;
     if (agg_metric < divider)
-        aggthreshhold = ClusterEvent::LOW;
+        aggthreshhold = ClusterEvent::CE_THRESH_LOW;
 
     ClusterEvent * ce = new ClusterEvent(step);
-    ClusterEvent::CommType commtype = ClusterEvent::SEND;
+    ClusterEvent::CommType commtype = ClusterEvent::CE_COMM_SEND;
     if (is_recv && messages->size() > 1)
     {
-        commtype = ClusterEvent::WAITALL;
+        commtype = ClusterEvent::CE_COMM_WAITALL;
         ce->waitallrecvs += messages->size();
     }
     else if (is_recv)
     {
-        commtype = ClusterEvent::RECV;
+        commtype = ClusterEvent::CE_COMM_RECV;
     }
     else if (messages->size() > 1)
     {
-        commtype = ClusterEvent::ISEND;
+        commtype = ClusterEvent::CE_COMM_ISEND;
         ce->isends += messages->size();
     }
 
-    ce->setMetric(1, evt_metric, ClusterEvent::COMM,
+    ce->setMetric(1, evt_metric, ClusterEvent::CE_EVENT_COMM,
                   commtype, threshhold);
-    ce->setMetric(1, agg_metric, ClusterEvent::AGG,
+    ce->setMetric(1, agg_metric, ClusterEvent::CE_EVENT_AGG,
                   commtype, aggthreshhold);
 
     return ce;
@@ -247,32 +247,32 @@ void P2PEvent::addToClusterEvent(ClusterEvent * ce, QString metric,
 {
     long long evt_metric = getMetric(metric);
     long long agg_metric = getMetric(metric, true);
-    ClusterEvent::Threshhold threshhold = ClusterEvent::HIGH;
+    ClusterEvent::Threshhold threshhold = ClusterEvent::CE_THRESH_HIGH;
     if (evt_metric < divider)
-        threshhold = ClusterEvent::LOW;
-    ClusterEvent::Threshhold aggthreshhold = ClusterEvent::HIGH;
+        threshhold = ClusterEvent::CE_THRESH_LOW;
+    ClusterEvent::Threshhold aggthreshhold = ClusterEvent::CE_THRESH_HIGH;
     if (agg_metric < divider)
-        aggthreshhold = ClusterEvent::LOW;
+        aggthreshhold = ClusterEvent::CE_THRESH_LOW;
 
-    ClusterEvent::CommType commtype = ClusterEvent::SEND;
+    ClusterEvent::CommType commtype = ClusterEvent::CE_COMM_SEND;
     if (is_recv && messages->size() > 1)
     {
-        commtype = ClusterEvent::WAITALL;
+        commtype = ClusterEvent::CE_COMM_WAITALL;
         ce->waitallrecvs += messages->size();
     }
     else if (is_recv)
     {
-        commtype = ClusterEvent::RECV;
+        commtype = ClusterEvent::CE_COMM_RECV;
     }
     else if (messages->size() > 1)
     {
-        commtype = ClusterEvent::ISEND;
+        commtype = ClusterEvent::CE_COMM_ISEND;
         ce->isends += messages->size();
     }
 
-    ce->addMetric(1, evt_metric, ClusterEvent::COMM,
+    ce->addMetric(1, evt_metric, ClusterEvent::CE_EVENT_COMM,
                   commtype, threshhold);
-    ce->addMetric(1, agg_metric, ClusterEvent::AGG,
+    ce->addMetric(1, agg_metric, ClusterEvent::CE_EVENT_AGG,
                   commtype, aggthreshhold);
 }
 

@@ -25,7 +25,7 @@ protected:
 
 private:
     // send-receive, sends-receives, sends-waitall
-    enum ExchangeType { SRSR, SSRR, SSWA, UNKNOWN };
+    enum ExchangeType { EXCH_SRSR, EXCH_SSRR, EXCH_SSWA, EXCH_UNKNOWN };
     ExchangeType type;
     ExchangeType findType();
 

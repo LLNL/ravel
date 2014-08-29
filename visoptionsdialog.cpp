@@ -86,11 +86,11 @@ void VisOptionsDialog::onShowAggregate(bool showAggregate)
 void VisOptionsDialog::onShowMessages(int showMessages)
 {
     if (showMessages == 0)
-        options->showMessages = VisOptions::NONE;
+        options->showMessages = VisOptions::MSG_NONE;
     else if (showMessages == 1)
-        options->showMessages = VisOptions::TRUE;
+        options->showMessages = VisOptions::MSG_TRUE;
     else if (showMessages == 2)
-        options->showMessages = VisOptions::SINGLE;
+        options->showMessages = VisOptions::MSG_SINGLE;
 }
 
 void VisOptionsDialog::onShowInactive(bool showInactive)
@@ -104,13 +104,13 @@ void VisOptionsDialog::onColorCombo(QString type)
         return;
 
     if (type == "Sequential") {
-        options->maptype = VisOptions::SEQUENTIAL;
+        options->maptype = VisOptions::COLOR_SEQUENTIAL;
         options->colormap = options->rampmap;
     } else if (type == "Categorical") {
-        options->maptype = VisOptions::CATEGORICAL;
+        options->maptype = VisOptions::COLOR_CATEGORICAL;
         options->colormap = options->catcolormap;
     } else {
-        options->maptype = VisOptions::DIVERGING;
+        options->maptype = VisOptions::COLOR_DIVERGING;
         options->colormap = options->divergentmap;
     }
 }
@@ -132,16 +132,16 @@ void VisOptionsDialog::setUIState()
     else
         ui->inactiveCheckBox->setChecked(false);
 
-    if (options->maptype == VisOptions::SEQUENTIAL)
+    if (options->maptype == VisOptions::COLOR_SEQUENTIAL)
         ui->colorComboBox->setCurrentIndex(0);
-    else if (options->maptype == VisOptions::CATEGORICAL)
+    else if (options->maptype == VisOptions::COLOR_CATEGORICAL)
         ui->colorComboBox->setCurrentIndex(2);
     else
         ui->colorComboBox->setCurrentIndex(1);
 
-    if (options->showMessages == VisOptions::NONE)
+    if (options->showMessages == VisOptions::MSG_NONE)
         ui->messageComboBox->setCurrentIndex(0);
-    else if (options->showMessages == VisOptions::TRUE)
+    else if (options->showMessages == VisOptions::MSG_TRUE)
         ui->messageComboBox->setCurrentIndex(1);
     else
         ui->messageComboBox->setCurrentIndex(2);

@@ -7,7 +7,7 @@
 
 ExchangeGnome::ExchangeGnome()
     : Gnome(),
-      type(UNKNOWN),
+      type(EXCH_UNKNOWN),
       SRSRmap(QMap<int, int>()),
       SRSRpatterns(QSet<int>()),
       maxWAsize(0)
@@ -64,7 +64,7 @@ void ExchangeGnome::preprocess()
 {
     // Possibly determine type
     type = findType();
-    if (type != SRSR)
+    if (type != EXCH_SRSR)
     {
         SRSRmap.clear();
         SRSRpatterns.clear();
@@ -75,8 +75,8 @@ void ExchangeGnome::preprocess()
 
 ExchangeGnome::ExchangeType ExchangeGnome::findType()
 {
-    int types[UNKNOWN + 1];
-    for (int i = 0; i <= UNKNOWN; i++)
+    int types[EXCH_UNKNOWN + 1];
+    for (int i = 0; i <= EXCH_UNKNOWN; i++)
         types[i] = 0;
     for (QMap<int, QList<CommEvent *> *>::Iterator event_list
          = partition->events->begin();
@@ -158,7 +158,7 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
                 odd = !odd;
             }
             if (!(b_ssrr || b_sswa || b_srsr)) { // Unknown, we can stop now
-                types[UNKNOWN]++;
+                types[EXCH_UNKNOWN]++;
                 break;
             }
         }
@@ -168,37 +168,38 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
             b_srsr = false;
 
         if (b_srsr) {
-            types[SRSR]++;
+            types[EXCH_SRSR]++;
             SRSRmap[event_list.key()] = srsr_pattern;
             SRSRpatterns.insert(srsr_pattern);
         }
         if (b_ssrr)
-            types[SSRR]++;
+            types[EXCH_SSRR]++;
         if (b_sswa)
-            types[SSWA]++;
+            types[EXCH_SSWA]++;
         if (!(b_ssrr || b_sswa || b_srsr))
-            types[UNKNOWN]++;
+            types[EXCH_UNKNOWN]++;
     }
 
     // If we made it down here, we do the final checks to figure out what
     // patterns we have based on all processes
-    if (types[SRSR] > 0 && (types[SSRR] > 0 || types[SSWA] > 0))
+    if (types[EXCH_SRSR] > 0 && (types[EXCH_SSRR] > 0 || types[EXCH_SSWA] > 0))
         // If we have this going on, too confusing to pick one
-        return UNKNOWN;
-    else if (types[UNKNOWN] > types[SRSR] && types[UNKNOWN] > types[SSRR]
-             && types[UNKNOWN] > types[SSWA])
+        return EXCH_UNKNOWN;
+    else if (types[EXCH_UNKNOWN] > types[EXCH_SRSR]
+             && types[EXCH_UNKNOWN] > types[EXCH_SSRR]
+             && types[EXCH_UNKNOWN] > types[EXCH_SSWA])
         // Mostly unknown
-        return UNKNOWN;
-    else if (types[SRSR] > 0)
+        return EXCH_UNKNOWN;
+    else if (types[EXCH_SRSR] > 0)
         // If we make it to here and have SRSR, then the others are 0
         // (based on first if) so we pick it
-        return SRSR;
-    else if (types[SSWA] > types[SSRR])
+        return EXCH_SRSR;
+    else if (types[EXCH_SSWA] > types[EXCH_SSRR])
         // Some SSWA might look like SSRR and thus be double counted,
         // so we give precedence to SSWA
-        return SSWA;
+        return EXCH_SSWA;
     else
-        return SSRR;
+        return EXCH_SSRR;
 }
 
 
@@ -210,7 +211,7 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
 void ExchangeGnome::generateTopProcesses()
 {
 
-    if (type == SRSR && neighbors < 0)
+    if (type == EXCH_SRSR && neighbors < 0)
     {
         top_processes.clear();
         QList<CommEvent *> * elist = partition->events->value(max_metric_process);
@@ -352,8 +353,8 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy,
             x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1
                 + startxy.x();
         w = barwidth;
-        nsends = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND);
-        nwaits = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::WAITALL);
+        nsends = (*evt)->getCount(ClusterEvent::CE_EVENT_COMM, ClusterEvent::CE_COMM_SEND);
+        nwaits = (*evt)->getCount(ClusterEvent::CE_EVENT_COMM, ClusterEvent::CE_COMM_WAITALL);
         int divisor = pc->members->size();
         if (!options->showInactiveSteps)
             divisor = nsends + nwaits;
@@ -365,17 +366,17 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy,
 
         // Draw the event
         if (nsends) {
-            QColor sendColor = options->colormap->color((*evt)->getMetric(ClusterEvent::COMM,
-                                                                          ClusterEvent::SEND,
-                                                                          ClusterEvent::BOTH)
+            QColor sendColor = options->colormap->color((*evt)->getMetric(ClusterEvent::CE_EVENT_COMM,
+                                                                          ClusterEvent::CE_COMM_SEND,
+                                                                          ClusterEvent::CE_THRESH_BOTH)
                                                         / nsends);
             painter->fillRect(QRectF(x, ys, w, hs), QBrush(sendColor));
         }
          if (nwaits)
          {
-            QColor waitColor = options->colormap->color((*evt)->getMetric(ClusterEvent::COMM,
-                                                                          ClusterEvent::WAITALL,
-                                                                          ClusterEvent::BOTH)
+            QColor waitColor = options->colormap->color((*evt)->getMetric(ClusterEvent::CE_EVENT_COMM,
+                                                                          ClusterEvent::CE_COMM_WAITALL,
+                                                                          ClusterEvent::CE_THRESH_BOTH)
                                                         / nwaits );
             painter->fillRect(QRectF(x, yw, w, hw), QBrush(waitColor));
          }
@@ -426,16 +427,16 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy,
 
             if (nsends)
                 painter->fillRect(QRectF(xa, ys, wa, hs),
-                              QBrush(options->colormap->color((*evt)->getMetric(ClusterEvent::AGG,
-                                                                                ClusterEvent::SEND,
-                                                                                ClusterEvent::BOTH)
+                              QBrush(options->colormap->color((*evt)->getMetric(ClusterEvent::CE_EVENT_AGG,
+                                                                                ClusterEvent::CE_COMM_SEND,
+                                                                                ClusterEvent::CE_THRESH_BOTH)
                                                               / nsends)));
 
             if (nwaits)
                 painter->fillRect(QRectF(xa, yw, wa, hw),
-                              QBrush(options->colormap->color((*evt)->getMetric(ClusterEvent::AGG,
-                                                                                ClusterEvent::WAITALL,
-                                                                                ClusterEvent::BOTH)
+                              QBrush(options->colormap->color((*evt)->getMetric(ClusterEvent::CE_EVENT_AGG,
+                                                                                ClusterEvent::CE_COMM_WAITALL,
+                                                                                ClusterEvent::CE_THRESH_BOTH)
                                                               / nwaits)));
 
             if (blockwidth != w)
@@ -517,12 +518,12 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy,
 
             // Draw the event
             painter->fillRect(QRectF(x, y, w, h),
-                              QBrush(options->colormap->color(evt->getMetric(ClusterEvent::COMM,
-                                                                             ClusterEvent::ALL,
-                                                                             ClusterEvent::BOTH)
-                                                             / evt->getCount(ClusterEvent::COMM,
-                                                                             ClusterEvent::ALL,
-                                                                             ClusterEvent::BOTH)
+                              QBrush(options->colormap->color(evt->getMetric(ClusterEvent::CE_EVENT_COMM,
+                                                                             ClusterEvent::CE_COMM_ALL,
+                                                                             ClusterEvent::CE_THRESH_BOTH)
+                                                             / evt->getCount(ClusterEvent::CE_EVENT_COMM,
+                                                                             ClusterEvent::CE_COMM_ALL,
+                                                                             ClusterEvent::CE_THRESH_BOTH)
                                                              )));
 
             // Draw border but only if we're doing spacing, otherwise too messy
@@ -532,12 +533,12 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy,
             // Draw the aggregate & border too if necessary
             if (options->showAggregateSteps) {
                 painter->fillRect(QRectF(xa, y, wa, h),
-                                  QBrush(options->colormap->color(evt->getMetric(ClusterEvent::AGG,
-                                                                                 ClusterEvent::ALL,
-                                                                                 ClusterEvent::BOTH)
-                                                                  / evt->getCount(ClusterEvent::AGG,
-                                                                                  ClusterEvent::ALL,
-                                                                                  ClusterEvent::BOTH)
+                                  QBrush(options->colormap->color(evt->getMetric(ClusterEvent::CE_EVENT_AGG,
+                                                                                 ClusterEvent::CE_COMM_ALL,
+                                                                                 ClusterEvent::CE_THRESH_BOTH)
+                                                                  / evt->getCount(ClusterEvent::CE_EVENT_AGG,
+                                                                                  ClusterEvent::CE_COMM_ALL,
+                                                                                  ClusterEvent::CE_THRESH_BOTH)
                                                                        )));
                 if (blockwidth != w)
                     painter->drawRect(QRectF(xa, y, wa, h));
@@ -545,7 +546,7 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy,
 
             // Save message info here to be drawn later. We get its weight as
             // well as its start and end positions
-            if (evt->getCount(ClusterEvent::COMM, ClusterEvent::SEND) > 0)
+            if (evt->getCount(ClusterEvent::CE_EVENT_COMM, ClusterEvent::CE_COMM_SEND) > 0)
             {
                 if (y == base_y)
                     yr = base_y + blockheight;
@@ -553,15 +554,15 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy,
                     yr = base_y;
                 msgs.append(new DrawMessage(QPoint(x + w/2, y + h/2),
                                             QPoint(x + w/2 + xr, yr + h/2),
-                                            evt->getCount(ClusterEvent::COMM,
-                                                          ClusterEvent::SEND)));
+                                            evt->getCount(ClusterEvent::CE_EVENT_COMM,
+                                                          ClusterEvent::CE_COMM_SEND)));
             }
-            if (evt->getCount(ClusterEvent::COMM, ClusterEvent::RECV) > 0
+            if (evt->getCount(ClusterEvent::CE_EVENT_COMM, ClusterEvent::CE_COMM_RECV) > 0
                     && !msgs.isEmpty())
             {
                 DrawMessage * dm = msgs.last();
-                dm->nrecvs = evt->getCount(ClusterEvent::COMM,
-                                           ClusterEvent::RECV);
+                dm->nrecvs = evt->getCount(ClusterEvent::CE_EVENT_COMM,
+                                           ClusterEvent::CE_COMM_RECV);
             }
             events_index++;
             if (events_index < pc->events->size())
@@ -610,10 +611,10 @@ void ExchangeGnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect,
                                           int blockwidth, int blockheight,
                                           int startStep)
 {
-    if (type == SRSR)
+    if (type == EXCH_SRSR)
         drawGnomeQtClusterSRSR(painter, clusterRect, pc, barwidth, barheight,
                                blockwidth, blockheight, startStep);
-    else if (type == SSWA)
+    else if (type == EXCH_SSWA)
         drawGnomeQtClusterSSWA(painter, clusterRect, pc, barwidth, barheight,
                                blockwidth, blockheight, startStep);
     else

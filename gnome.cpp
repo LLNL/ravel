@@ -781,7 +781,7 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
     // Messages
     // We need to do all of the message drawing after the event drawing
     // for overlap purposes
-    if (options->showMessages != VisOptions::NONE)
+    if (options->showMessages != VisOptions::MSG_NONE)
     {
         if (top_processes.size() <= 32)
             painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
@@ -803,7 +803,7 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
             else
                 x = floor((send_event->step - startStep) / 2 * blockwidth) + 1
                     + extents.x();
-            if (options->showMessages == VisOptions::TRUE)
+            if (options->showMessages == VisOptions::MSG_TRUE)
             {
                 p1 = QPointF(x + w/2.0, y + h/2.0);
                 y = processYs[recv_event->process];
@@ -1123,14 +1123,14 @@ Gnome::ChangeType Gnome::handleDoubleClick(QMouseEvent * event)
                 // Focus processes on centroid of this cluster
                 options->topByCentroid = true;
                 generateTopProcesses(pc);
-                return NONE;
+                return CHANGE_NONE;
             }
             else if (Qt::ControlModifier && event->modifiers())
             {
                 // Focus processes on max metric
                 options->topByCentroid = false;
                 generateTopProcesses(pc);
-                return NONE;
+                return CHANGE_NONE;
             }
             else if (event->button() == Qt::RightButton)
             {
@@ -1143,18 +1143,18 @@ Gnome::ChangeType Gnome::handleDoubleClick(QMouseEvent * event)
                 {
                     selected_pc = pc;
                 }
-                return SELECTION;
+                return CHANGE_SELECTION;
             }
             else if (!pc->children->isEmpty())
             {
                 // Open a cluster if possible
                 pc->open = true;
-                return CLUSTER;
+                return CHANGE_CLUSTER;
             }
         }
     }
 
-    return NONE;
+    return CHANGE_NONE;
 }
 
 // Click on tree navigation (close clusters)
@@ -1222,11 +1222,11 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect,
             x = floor(((*evt)->step - startStep) / 2 * blockwidth) + 1
                 + clusterRect.x();
         w = barwidth;
-        nsends = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::SEND)
-                 + (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::ISEND);
-        nrecvs = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::RECV)
-                 + (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::WAITALL);
-        ncolls = (*evt)->getCount(ClusterEvent::COMM, ClusterEvent::COLL);
+        nsends = (*evt)->getCount(ClusterEvent::CE_EVENT_COMM, ClusterEvent::CE_COMM_SEND)
+                 + (*evt)->getCount(ClusterEvent::CE_EVENT_COMM, ClusterEvent::CE_COMM_ISEND);
+        nrecvs = (*evt)->getCount(ClusterEvent::CE_EVENT_COMM, ClusterEvent::CE_COMM_RECV)
+                 + (*evt)->getCount(ClusterEvent::CE_EVENT_COMM, ClusterEvent::CE_COMM_WAITALL);
+        ncolls = (*evt)->getCount(ClusterEvent::CE_EVENT_COMM, ClusterEvent::CE_COMM_COLL);
 
         int divisor = pc->members->size();
         if (!options->showInactiveSteps)
@@ -1243,27 +1243,27 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect,
         // Draw the event
         if (nsends)
             painter->fillRect(QRectF(x, ys, w, hs),
-                              QBrush(options->colormap->color(((*evt)->getMetric(ClusterEvent::COMM,
-                                                                                ClusterEvent::SEND,
-                                                                                ClusterEvent::BOTH)
-                                                              + (*evt)->getMetric(ClusterEvent::COMM,
-                                                                                  ClusterEvent::ISEND,
-                                                                                  ClusterEvent::BOTH))
+                              QBrush(options->colormap->color(((*evt)->getMetric(ClusterEvent::CE_EVENT_COMM,
+                                                                                ClusterEvent::CE_COMM_SEND,
+                                                                                ClusterEvent::CE_THRESH_BOTH)
+                                                              + (*evt)->getMetric(ClusterEvent::CE_EVENT_COMM,
+                                                                                  ClusterEvent::CE_COMM_ISEND,
+                                                                                  ClusterEvent::CE_THRESH_BOTH))
                                                               / nsends)));
         if (nrecvs)
             painter->fillRect(QRectF(x, yr, w, hr),
-                              QBrush(options->colormap->color(((*evt)->getMetric(ClusterEvent::COMM,
-                                                                                 ClusterEvent::RECV,
-                                                                                 ClusterEvent::BOTH)
-                                                              + (*evt)->getMetric(ClusterEvent::COMM,
-                                                                                  ClusterEvent::WAITALL,
-                                                                                  ClusterEvent::BOTH))
+                              QBrush(options->colormap->color(((*evt)->getMetric(ClusterEvent::CE_EVENT_COMM,
+                                                                                 ClusterEvent::CE_COMM_RECV,
+                                                                                 ClusterEvent::CE_THRESH_BOTH)
+                                                              + (*evt)->getMetric(ClusterEvent::CE_EVENT_COMM,
+                                                                                  ClusterEvent::CE_COMM_WAITALL,
+                                                                                  ClusterEvent::CE_THRESH_BOTH))
                                                               / nrecvs)));
         if (ncolls)
             painter->fillRect(QRectF(x, yc, w, hc),
-                              QBrush(options->colormap->color((*evt)->getMetric(ClusterEvent::COMM,
-                                                                                ClusterEvent::COLL,
-                                                                                ClusterEvent::BOTH)
+                              QBrush(options->colormap->color((*evt)->getMetric(ClusterEvent::CE_EVENT_COMM,
+                                                                                ClusterEvent::CE_COMM_COLL,
+                                                                                ClusterEvent::CE_THRESH_BOTH)
                                                               / ncolls)));
 
         // Draw border but only if we're doing spacing, otherwise too messy
@@ -1315,27 +1315,27 @@ void Gnome::drawGnomeQtClusterEnd(QPainter * painter, QRect clusterRect,
 
             if (nsends)
                 painter->fillRect(QRectF(xa, ys, wa, hs),
-                                  QBrush(options->colormap->color(((*evt)->getMetric(ClusterEvent::AGG,
-                                                                                    ClusterEvent::SEND,
-                                                                                    ClusterEvent::BOTH)
-                                                                  + (*evt)->getMetric(ClusterEvent::AGG,
-                                                                                      ClusterEvent::ISEND,
-                                                                                      ClusterEvent::BOTH))
+                                  QBrush(options->colormap->color(((*evt)->getMetric(ClusterEvent::CE_EVENT_AGG,
+                                                                                    ClusterEvent::CE_COMM_SEND,
+                                                                                    ClusterEvent::CE_THRESH_BOTH)
+                                                                  + (*evt)->getMetric(ClusterEvent::CE_EVENT_AGG,
+                                                                                      ClusterEvent::CE_COMM_ISEND,
+                                                                                      ClusterEvent::CE_THRESH_BOTH))
                                                                   / nsends)));
             if (nrecvs)
                 painter->fillRect(QRectF(xa, yr, wa, hr),
-                                  QBrush(options->colormap->color(((*evt)->getMetric(ClusterEvent::AGG,
-                                                                                     ClusterEvent::RECV,
-                                                                                     ClusterEvent::BOTH)
-                                                                  + (*evt)->getMetric(ClusterEvent::AGG,
-                                                                                      ClusterEvent::WAITALL,
-                                                                                      ClusterEvent::BOTH))
+                                  QBrush(options->colormap->color(((*evt)->getMetric(ClusterEvent::CE_EVENT_AGG,
+                                                                                     ClusterEvent::CE_COMM_RECV,
+                                                                                     ClusterEvent::CE_THRESH_BOTH)
+                                                                  + (*evt)->getMetric(ClusterEvent::CE_EVENT_AGG,
+                                                                                      ClusterEvent::CE_COMM_WAITALL,
+                                                                                      ClusterEvent::CE_THRESH_BOTH))
                                                                  / nrecvs)));
             if (ncolls)
                 painter->fillRect(QRectF(xa, yc, wa, hc),
-                                  QBrush(options->colormap->color((*evt)->getMetric(ClusterEvent::AGG,
-                                                                                    ClusterEvent::COLL,
-                                                                                    ClusterEvent::BOTH)
+                                  QBrush(options->colormap->color((*evt)->getMetric(ClusterEvent::CE_EVENT_AGG,
+                                                                                    ClusterEvent::CE_COMM_COLL,
+                                                                                    ClusterEvent::CE_THRESH_BOTH)
                                                                   / ncolls)));
             if (blockwidth != w)
             {

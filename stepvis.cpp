@@ -779,7 +779,7 @@ void StepVis::paintEvents(QPainter * painter)
     // Messages
     // We need to do all of the message drawing after the event drawing
     // for overlap purposes
-    if (options->showMessages != VisOptions::NONE)
+    if (options->showMessages != VisOptions::MSG_NONE)
     {
         if (blockwidth / 5 > 0)
             ellipse_width = blockwidth / 5;
@@ -908,7 +908,7 @@ void StepVis::drawMessage(QPainter * painter, Message * msg)
     int w = blockwidth;
     int h = blockheight;
 
-    if (options->showMessages == VisOptions::TRUE)
+    if (options->showMessages == VisOptions::MSG_TRUE)
     {
         p1 = QPointF(x + w/2.0, y + h/2.0);
         y = getY(msg->receiver);

@@ -10,24 +10,25 @@ public:
     ClusterEvent(int _step, const ClusterEvent * copy1,
                  const ClusterEvent * copy2);
 
-    enum EventType { COMM, AGG };
-    enum CommType { SEND, ISEND, RECV, WAITALL, COLL, ALL };
-    enum Threshhold { LOW, HIGH, BOTH };
+    enum EventType { CE_EVENT_COMM, CE_EVENT_AGG };
+    enum CommType { CE_COMM_SEND, CE_COMM_ISEND, CE_COMM_RECV,
+                    CE_COMM_WAITALL, CE_COMM_COLL, CE_COMM_ALL };
+    enum Threshhold { CE_THRESH_LOW, CE_THRESH_HIGH, CE_THRESH_BOTH };
 
     void setMetric(int count, long long int value,
-                   EventType etype = COMM,
-                   CommType ctype = SEND,
-                   Threshhold thresh = LOW);
+                   EventType etype = CE_EVENT_COMM,
+                   CommType ctype = CE_COMM_SEND,
+                   Threshhold thresh = CE_THRESH_LOW);
     void addMetric(int count, long long int value,
-                   EventType etype = COMM,
-                   CommType ctype = SEND,
-                   Threshhold thresh = LOW);
-    long long int getMetric(EventType etype = COMM,
-                            CommType ctype = ALL,
-                            Threshhold thresh = BOTH);
-    int getCount(EventType etype = COMM,
-                 CommType ctype = ALL,
-                 Threshhold thresh = BOTH);
+                   EventType etype = CE_EVENT_COMM,
+                   CommType ctype = CE_COMM_SEND,
+                   Threshhold thresh = CE_THRESH_LOW);
+    long long int getMetric(EventType etype = CE_EVENT_COMM,
+                            CommType ctype = CE_COMM_ALL,
+                            Threshhold thresh = CE_THRESH_BOTH);
+    int getCount(EventType etype = CE_EVENT_COMM,
+                 CommType ctype = CE_COMM_ALL,
+                 Threshhold thresh = CE_THRESH_BOTH);
 
     int step;
     int waitallrecvs; // How many individual receives there are

@@ -182,12 +182,12 @@ void ClusterVis::mouseDoubleClickEvent(QMouseEvent * event)
             Gnome * g = gnome.key();
             Gnome::ChangeType change = g->handleDoubleClick(event);
             repaint();
-            if (change == Gnome::CLUSTER) // Clicked to open Cluster
+            if (change == Gnome::CHANGE_CLUSTER) // Clicked to open Cluster
             {
                 changeSource = true;
                 emit(clusterChange());
             }
-            else if (change == Gnome::SELECTION) // Selected a cluster
+            else if (change == Gnome::CHANGE_SELECTION) // Selected a cluster
             {
                 changeSource = true;
                 PartitionCluster * pc = g->getSelectedPartitionCluster();
