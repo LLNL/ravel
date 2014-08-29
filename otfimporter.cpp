@@ -350,7 +350,8 @@ int OTFImporter::handleEnter(void * userData, uint64_t time, uint32_t function,
     ((*((((OTFImporter*) userData)->rawtrace)->events))[process - 1])->append(new EventRecord(process - 1,
                                                                                               convertTime(userData,
                                                                                                           time),
-                                                                                              function));
+                                                                                              function,
+                                                                                              true));
     return 0;
 }
 
@@ -361,7 +362,8 @@ int OTFImporter::handleLeave(void * userData, uint64_t time, uint32_t function,
     ((*((((OTFImporter*) userData)->rawtrace)->events))[process - 1])->append(new EventRecord(process - 1,
                                                                                               convertTime(userData,
                                                                                                           time),
-                                                                                              function));
+                                                                                              function,
+                                                                                              false));
     return 0;
 }
 

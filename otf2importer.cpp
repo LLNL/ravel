@@ -289,9 +289,13 @@ void OTF2Importer::processDefinitions()
          region != regionMap->end(); ++region)
     {
         regionIndexMap->insert(region.key(), index);
-        functions->insert(index, new Function(stringMap->value(region.value()->name), 0));
+        functions->insert(index, new Function(stringMap->value(region.value()->name),
+                                              (region.value())->paradigm));
+        std::cout << "Function: " << stringMap->value(region.value()->name).toStdString().c_str() << std::endl;
         index++;
     }
+
+    functionGroups->insert(OTF2_PARADIGM_MPI, "MPI");
 
     index = 0;
     for (QMap<OTF2_CommRef, OTF2Comm *>::Iterator comm = commMap->begin();
@@ -319,8 +323,8 @@ void OTF2Importer::processDefinitions()
             if (name.startsWith("Master thread"))
             {
                 int process = group.remove(0, 9).toInt();
-                std::cout << "Adding " << process << std::endl;
                 locationIndexMap->insert(loc.key(), process);
+                num_processes++;
             }
         }
     }
@@ -418,8 +422,6 @@ OTF2_CallbackCode OTF2Importer::callbackDefLocation(void * userData,
                                           numberOfEvents, locationGroup);
     (*(((OTF2Importer*) userData)->locationMap))[self] = loc;
 
-    ((OTF2Importer*) userData)->num_processes++;
-
     return OTF2_CALLBACK_SUCCESS;
 }
 
@@ -484,7 +486,8 @@ OTF2_CallbackCode OTF2Importer::callbackEnter(OTF2_LocationRef locationID,
     ((*((((OTF2Importer*) userData)->rawtrace)->events))[process])->append(new EventRecord(process,
                                                                                            convertTime(userData,
                                                                                                        time),
-                                                                                           function));
+                                                                                           function,
+                                                                                           true));
     return OTF2_CALLBACK_SUCCESS;
 }
 
@@ -500,7 +503,8 @@ OTF2_CallbackCode OTF2Importer::callbackLeave(OTF2_LocationRef locationID,
     ((*((((OTF2Importer*) userData)->rawtrace)->events))[process])->append(new EventRecord(process,
                                                                                            convertTime(userData,
                                                                                                        time),
-                                                                                           function));
+                                                                                           function,
+                                                                                           false));
     return OTF2_CALLBACK_SUCCESS;
 }
 

@@ -220,7 +220,7 @@ void OTFConverter::matchEvents()
         for (QVector<EventRecord *>::Iterator evt = event_list->begin();
              evt != event_list->end(); ++evt)
         {
-            if ((*evt)->value == 0) // End of a subroutine
+            if (!((*evt)->enter)) // End of a subroutine
             {
                 EventRecord * bgn = stack->pop();
 
@@ -260,10 +260,10 @@ void OTFConverter::matchEvents()
                         }
                         else if (bgn->time > sendlist->at(sindex)->send_time)
                         {
-                            sindex++;
                             std::cout << "Error, skipping message (by send) at ";
                             std::cout << sendlist->at(sindex)->send_time << " on ";
                             std::cout << (*evt)->process << std::endl;
+                            sindex++;
                         }
                     }
 
@@ -275,10 +275,10 @@ void OTFConverter::matchEvents()
                         }
                         else if (!sflag && (*evt)->time > recvlist->at(rindex)->recv_time)
                         {
-                            rindex++;
                             std::cout << "Error, skipping message (by recv) at ";
                             std::cout << recvlist->at(rindex)->send_time << " on ";
                             std::cout << (*evt)->process << std::endl;
+                            rindex++;
                         }
                     }
                 }
