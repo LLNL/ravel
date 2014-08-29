@@ -291,7 +291,6 @@ void OTF2Importer::processDefinitions()
         regionIndexMap->insert(region.key(), index);
         functions->insert(index, new Function(stringMap->value(region.value()->name),
                                               (region.value())->paradigm));
-        std::cout << "Function: " << stringMap->value(region.value()->name).toStdString().c_str() << std::endl;
         index++;
     }
 
@@ -313,6 +312,7 @@ void OTF2Importer::processDefinitions()
         index++;
     }
 
+    // Grab only the MPI locations
     for (QMap<OTF2_LocationRef, OTF2Location *>::Iterator loc = locationMap->begin();
          loc != locationMap->end(); ++loc)
     {
@@ -535,7 +535,7 @@ OTF2_CallbackCode OTF2Importer::callbackMPISend(OTF2_LocationRef locationID,
 
     // Every time we find a send, check the unmatched recvs
     // to see if it has a match
-    time = convertTime(userData, time);
+    unsigned long long converted_time = convertTime(userData, time);
     int sender = ((OTF2Importer *) userData)->locationIndexMap->value(locationID);
     OTF2Comm * comm = ((OTF2Importer *) userData)->commMap->value(communicator);
     OTF2Group * group = ((OTF2Importer *) userData)->groupMap->value(comm->group);
@@ -548,7 +548,7 @@ OTF2_CallbackCode OTF2Importer::callbackMPISend(OTF2_LocationRef locationID,
         if (OTF2Importer::compareComms((*itr), sender, world_receiver, msgTag, msgLength))
         {
             cr = *itr;
-            cr->send_time = time;
+            cr->send_time = converted_time;
             ((*((((OTF2Importer*) userData)->rawtrace)->messages))[sender])->append((cr));
             break;
         }
@@ -563,7 +563,7 @@ OTF2_CallbackCode OTF2Importer::callbackMPISend(OTF2_LocationRef locationID,
     }
     else
     {
-        cr = new CommRecord(sender, time, world_receiver, 0, msgLength, msgTag);
+        cr = new CommRecord(sender, converted_time, world_receiver, 0, msgLength, msgTag);
         (*((((OTF2Importer*) userData)->rawtrace)->messages))[sender]->append(cr);
         (*(((OTF2Importer *) userData)->unmatched_sends))[sender]->append(cr);
     }
@@ -664,7 +664,7 @@ OTF2_CallbackCode OTF2Importer::callbackMPIRecv(OTF2_LocationRef locationID,
     Q_UNUSED(communicator);
 
     // Look for match in unmatched_sends
-    time = convertTime(userData, time);
+    unsigned long long converted_time = convertTime(userData, time);
     int receiver = ((OTF2Importer *) userData)->locationIndexMap->value(locationID);
     OTF2Comm * comm = ((OTF2Importer *) userData)->commMap->value(communicator);
     OTF2Group * group = ((OTF2Importer *) userData)->groupMap->value(comm->group);
@@ -678,7 +678,7 @@ OTF2_CallbackCode OTF2Importer::callbackMPIRecv(OTF2_LocationRef locationID,
                                        msgTag, msgLength))
         {
             cr = *itr;
-            cr->recv_time = time;
+            cr->recv_time = converted_time;
             break;
         }
     }
@@ -691,7 +691,7 @@ OTF2_CallbackCode OTF2Importer::callbackMPIRecv(OTF2_LocationRef locationID,
     }
     else
     {
-        cr = new CommRecord(world_sender, 0, receiver, time, msgLength, msgTag);
+        cr = new CommRecord(world_sender, 0, receiver, converted_time, msgLength, msgTag);
         ((*(((OTF2Importer*) userData)->unmatched_recvs))[world_sender])->append(cr);
     }
     (*((((OTF2Importer*) userData)->rawtrace)->messages_r))[receiver]->append(cr);

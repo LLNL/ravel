@@ -252,7 +252,8 @@ void OTFConverter::matchEvents()
 
                     if (sindex < sendlist->size())
                     {
-                        if (bgn->time == sendlist->at(sindex)->send_time)
+                        if (bgn->time <= sendlist->at(sindex)->send_time
+                                && (*evt)->time >= sendlist->at(sindex)->send_time)
                         {
                             sflag = true;
                             if (bgn->value == isend_index)
@@ -269,7 +270,8 @@ void OTFConverter::matchEvents()
 
                     if (rindex < recvlist->size())
                     {
-                        if (!sflag && (*evt)->time == recvlist->at(rindex)->recv_time)
+                        if (!sflag && (*evt)->time >= recvlist->at(rindex)->recv_time
+                                && bgn->time <= recvlist->at(rindex)->recv_time)
                         {
                             rflag = true;
                         }
@@ -357,7 +359,8 @@ void OTFConverter::matchEvents()
                 {
                     QVector<Message *> * msgs = new QVector<Message *>();
                     CommRecord * crec = NULL;
-                    while (rindex < recvlist->size() && (*evt)->time == recvlist->at(rindex)->recv_time)
+                    while (rindex < recvlist->size() && (*evt)->time >= recvlist->at(rindex)->recv_time
+                           && bgn->time <= recvlist->at(rindex)->recv_time)
                     {
                         crec = recvlist->at(rindex);
                         if (!(crec->message))
