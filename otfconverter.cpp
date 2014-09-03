@@ -509,8 +509,8 @@ void OTFConverter::matchEvents()
                 {
                     stack->top()->children.append(e);
                 }
-                for (QList<Event *>::Iterator child = (*evt)->children.begin();
-                     child != (*evt)->children.end(); ++child)
+                for (QList<Event *>::Iterator child = bgn->children.begin();
+                     child != bgn->children.end(); ++child)
                 {
                     e->callees->append(*child);
                     (*child)->caller = e;
