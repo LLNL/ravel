@@ -1,4 +1,5 @@
 #include "otfimportfunctor.h"
+#include "charmimporter.h"
 #include "general_util.h"
 #include <QElapsedTimer>
 
@@ -11,6 +12,38 @@ OTFImportFunctor::OTFImportFunctor(OTFImportOptions * _options)
     : options(_options),
       trace(NULL)
 {
+}
+
+void OTFImportFunctor::doImportCharm(QString dataFileName)
+{
+    std::cout << "Processing " << dataFileName.toStdString().c_str() << std::endl;
+    QElapsedTimer traceTimer;
+    qint64 traceElapsed;
+
+    traceTimer.start();
+
+    CharmImporter * importer = new CharmImporter();
+    importer->importCharmLog(dataFileName, options);
+    /*
+    connect(importer, SIGNAL(finishRead()), this, SLOT(finishInitialRead()));
+    connect(importer, SIGNAL(matchingUpdate(int, QString)), this,
+            SLOT(updateMatching(int, QString)));
+    Trace* trace = importer->importOTF(dataFileName, options);
+    delete importer;
+    connect(trace, SIGNAL(updatePreprocess(int, QString)), this,
+            SLOT(updatePreprocess(int, QString)));
+    connect(trace, SIGNAL(updateClustering(int)), this,
+            SLOT(updateClustering(int)));
+    connect(trace, SIGNAL(startClustering()), this, SLOT(switchProgress()));
+    trace->preprocess(options);
+    */
+
+    traceElapsed = traceTimer.nsecsElapsed();
+    std::cout << "Total trace: ";
+    gu_printTime(traceElapsed);
+    std::cout << std::endl;
+
+    emit(done(trace));
 }
 
 void OTFImportFunctor::doImportOTF2(QString dataFileName)

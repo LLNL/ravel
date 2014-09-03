@@ -336,9 +336,9 @@ void MainWindow::importOTFbyGUI()
 {
     // Now get the OTF File
     QString dataFileName = "";
-    QString fileTypes = "Trace Files (*.otf2)";
+    QString fileTypes = "Trace Files (*.otf2 *.sts)";
 #ifdef OTF1LIB
-    fileTypes = "Trace Files (*.otf2 *.otf)";
+    fileTypes = "Trace Files (*.otf2 *.sts *.otf)";
 #endif
     dataFileName = QFileDialog::getOpenFileName(this,
                                                 tr("Import Trace Data"),

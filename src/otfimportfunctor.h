@@ -18,6 +18,7 @@ public:
 public slots:
     void doImportOTF(QString dataFileName);
     void doImportOTF2(QString dataFileName);
+    void doImportCharm(QString dataFileName);
     void finishInitialRead();
     void updateMatching(int portion, QString msg);
     void updatePreprocess(int portion, QString msg);
