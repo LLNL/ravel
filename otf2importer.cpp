@@ -27,16 +27,41 @@ OTF2Importer::OTF2Importer()
       locationIndexMap(new QMap<OTF2_LocationRef, int>()),
       unmatched_recvs(new QVector<QLinkedList<CommRecord *> *>()),
       unmatched_sends(new QVector<QLinkedList<CommRecord *> *>()),
+      unfinished_collectives(new QMap<int, QLinkedList<CollectiveRecord *> *>()),
       rawtrace(NULL),
       functionGroups(NULL),
       functions(NULL),
       communicators(NULL),
-      collective_definitions(NULL),
+      collective_definitions(new QMap<int, OTFCollective *>()),
       counters(NULL),
       collectives(NULL),
-      collectiveMap(NULL)
+      collectiveMap(NULL),
+      collectiveId(0),
+      collective_begins(NULL)
 {
-
+    collective_definitions->insert(0, new OTFCollective(0, 1, "Barrier"));
+    collective_definitions->insert(1, new OTFCollective(1, 2, "Bcast"));
+    collective_definitions->insert(2, new OTFCollective(2, 3, "Gather"));
+    collective_definitions->insert(3, new OTFCollective(3, 3, "Gatherv"));
+    collective_definitions->insert(4, new OTFCollective(4, 2, "Scatter"));
+    collective_definitions->insert(5, new OTFCollective(5, 2, "Scatterv"));
+    collective_definitions->insert(6, new OTFCollective(6, 4, "Allgather"));
+    collective_definitions->insert(7, new OTFCollective(7, 4, "Allgatherv"));
+    collective_definitions->insert(8, new OTFCollective(8, 4, "Alltoall"));
+    collective_definitions->insert(9, new OTFCollective(9, 4, "Alltoallv"));
+    collective_definitions->insert(10, new OTFCollective(10, 4, "Alltoallw"));
+    collective_definitions->insert(11, new OTFCollective(11, 4, "Allreduce"));
+    collective_definitions->insert(12, new OTFCollective(12, 3, "Reduce"));
+    collective_definitions->insert(13, new OTFCollective(13, 4, "ReduceScatter"));
+    collective_definitions->insert(14, new OTFCollective(14, 4, "Scan"));
+    collective_definitions->insert(15, new OTFCollective(15, 4, "Exscan"));
+    collective_definitions->insert(16, new OTFCollective(16, 4, "ReduceScatterBlock"));
+    collective_definitions->insert(17, new OTFCollective(17, 4, "CreateHandle"));
+    collective_definitions->insert(18, new OTFCollective(18, 4, "DestroyHandle"));
+    collective_definitions->insert(19, new OTFCollective(19, 4, "Allocate"));
+    collective_definitions->insert(20, new OTFCollective(20, 4, "Deallocate"));
+    collective_definitions->insert(21, new OTFCollective(21, 4, "CreateAllocate"));
+    collective_definitions->insert(22, new OTFCollective(22, 4, "DestroyDeallocate"));
 }
 
 OTF2Importer::~OTF2Importer()
@@ -50,6 +75,7 @@ OTF2Importer::~OTF2Importer()
     delete commIndexMap;
     delete regionIndexMap;
     delete locationIndexMap;
+    delete collective_begins;
 
     for (QVector<QLinkedList<CommRecord *> *>::Iterator eitr
          = unmatched_recvs->begin(); eitr != unmatched_recvs->end(); ++eitr)
@@ -80,6 +106,14 @@ OTF2Importer::~OTF2Importer()
         *eitr = NULL;
     }
     delete unmatched_sends;
+
+    for (QMap<int, QLinkedList<CollectiveRecord *> *>::Iterator eitr
+         = unfinished_collectives->begin();
+         eitr != unfinished_collectives->end(); ++eitr)
+    {
+        delete eitr.value();
+    }
+    delete unfinished_collectives;
 }
 
 RawTrace * OTF2Importer::importOTF2(const char* otf_file)
@@ -120,7 +154,6 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file)
     functionGroups = new QMap<int, QString>();
     functions = new QMap<int, Function *>();
     communicators = new QMap<int, Communicator *>();
-    collective_definitions = new QMap<int, OTFCollective *>();
     collectives = new QMap<unsigned long long, CollectiveRecord *>();
     counters = new QMap<unsigned int, Counter *>();
 
@@ -175,6 +208,7 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file)
     unmatched_sends = new QVector<QLinkedList<CommRecord *> *>(num_processes);
     delete collectiveMap;
     collectiveMap = new QVector<QMap<unsigned long long, CollectiveRecord *> *>(num_processes);
+    collective_begins = new QVector<uint64_t>(num_processes);
     for (int i = 0; i < num_processes; i++) {
         (*unmatched_recvs)[i] = new QLinkedList<CommRecord *>();
         (*unmatched_sends)[i] = new QLinkedList<CommRecord *>();
@@ -309,6 +343,7 @@ void OTF2Importer::processDefinitions()
             c->processes->append(*member);
         }
         communicators->insert(index, c);
+        unfinished_collectives->insert(index, new QLinkedList<CollectiveRecord *>());
         index++;
     }
 
@@ -347,8 +382,8 @@ void OTF2Importer::setEvtCallbacks()
                                                       &OTF2Importer::callbackMPIIsend);
     OTF2_GlobalEvtReaderCallbacks_SetMpiIsendCompleteCallback(global_evt_callbacks,
                                                               &OTF2Importer::callbackMPIIsendComplete);
-    OTF2_GlobalEvtReaderCallbacks_SetMpiIrecvRequestCallback(global_evt_callbacks,
-                                                             &OTF2Importer::callbackMPIIrecvRequest);
+    //OTF2_GlobalEvtReaderCallbacks_SetMpiIrecvRequestCallback(global_evt_callbacks,
+    //                                                         &OTF2Importer::callbackMPIIrecvRequest);
     OTF2_GlobalEvtReaderCallbacks_SetMpiIrecvCallback(global_evt_callbacks,
                                                       &OTF2Importer::callbackMPIIrecv);
     OTF2_GlobalEvtReaderCallbacks_SetMpiRecvCallback(global_evt_callbacks,
@@ -356,11 +391,11 @@ void OTF2Importer::setEvtCallbacks()
 
 
     // Collective
-    /*OTF2_GlobalEvtReaderCallbacks_SetMpiCollectiveBeginCallback(global_evt_callbacks,
+    OTF2_GlobalEvtReaderCallbacks_SetMpiCollectiveBeginCallback(global_evt_callbacks,
                                                                   callbackMPICollectiveBegin);
     OTF2_GlobalEvtReaderCallbacks_SetMpiCollectiveEndCallback(global_evt_callbacks,
                                                                callbackMPICollectiveEnd);
-                                                             */
+
 
 
 }
@@ -755,9 +790,12 @@ OTF2_CallbackCode OTF2Importer::callbackMPICollectiveBegin(OTF2_LocationRef loca
                                                            OTF2_AttributeList * attributeList)
 {
     Q_UNUSED(locationID);
-    Q_UNUSED(time);
-    Q_UNUSED(userData);
     Q_UNUSED(attributeList);
+
+    int process = ((OTF2Importer *) userData)->locationIndexMap->value(locationID);
+    uint64_t converted_time = convertTime(userData, time);
+    ((OTF2Importer *) userData)->collective_begins->insert(process, converted_time);
+
     return OTF2_CALLBACK_SUCCESS;
 }
 
@@ -778,21 +816,32 @@ OTF2_CallbackCode OTF2Importer::callbackMPICollectiveEnd(OTF2_LocationRef locati
     // Convert rootProc to 0..p-1 space if it truly is a root and not unrooted value
     //if (root > 0)
     //    root--;
-    //int process = ((OTF2Importer *) userData)->locationIndexMap->value(locationID);
-    //int comm = ((OTF2Importer *) userData)->commIndexMap->value(communicator);
+    int process = ((OTF2Importer *) userData)->locationIndexMap->value(locationID);
+    int comm = ((OTF2Importer *) userData)->commIndexMap->value(communicator);
 
-    // Create collective record if it doesn't yet exist
-    /*if (!(*(((OTF2Importer *) userData)->collectives)).contains(matchingId))
-        (*(((OTF2Importer *) userData)->collectives))[matchingId]
-            = new CollectiveRecord(matchingId, root, collective, comm);
+    QLinkedList<CollectiveRecord *> * commlist = (((OTF2Importer *) userData)->unfinished_collectives)->value(comm);
 
-    // Get the matching collective record
-    CollectiveRecord * cr = (*(((OTF2Importer *) userData)->collectives))[matchingId];
+    CollectiveRecord * cr = NULL;
+    for (QLinkedList<CollectiveRecord *>::Iterator rec = commlist->begin();
+         rec != commlist->end(); ++rec)
+    {
+        if ((*rec)->collective == collectiveOp)
+            cr = *rec;
+    }
+    if (!cr)
+    {
+        cr = new CollectiveRecord(0, root, collectiveOp, comm);
+        commlist->append(cr);
+    }
 
-    // Map process/time to the collective record
-    time = convertTime(userData, time);
-    (*(*(((OTF2Importer *) userData)->collectiveMap))[process])[time] = cr;
-    */
+    cr->matchingId += 1; // Using matchingId to see if we meet the comm
+    if (cr->matchingId ==  ((OTF2Importer *) userData)->communicators->value(comm)->processes->size())
+    {
+        commlist->removeOne(cr);
+        cr->matchingId = ((OTF2Importer *) userData)->collectiveId;
+        (*(*(((OTF2Importer *) userData)->collectiveMap))[process])[((OTF2Importer *) userData)->collective_begins->value(process)] = cr;
+        ((OTF2Importer *) userData)->collectiveId++;
+    }
 
     return OTF2_CALLBACK_SUCCESS;
 }

@@ -9,7 +9,8 @@ OTFImportOptions::OTFImportOptions(bool _waitall, bool _leap, bool _skip,
       globalMerge(true),
       cluster(true),
       isendCoalescing(false),
-      partitionFunction(_fxn)
+      partitionFunction(_fxn),
+      origin(OF_NONE)
 {
 }
 

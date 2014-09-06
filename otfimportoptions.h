@@ -12,6 +12,8 @@ public:
                      bool _partition = false, QString _fxn = "");
     OTFImportOptions(const OTFImportOptions& copy);
 
+    enum OriginFormat { OF_NONE, OF_OTF, OF_OTF2, OF_CHARM };
+
     bool waitallMerge; // use waitall heuristic
     bool leapMerge; // merge to complete leaps
         bool leapSkip; // but skip if you can't gain processes
@@ -19,6 +21,7 @@ public:
     bool globalMerge; // merge across steps
     bool cluster; // clustering on gnomes should be done
     bool isendCoalescing; // group consecutive isends
+    OriginFormat origin;
     QString partitionFunction;
 };
 

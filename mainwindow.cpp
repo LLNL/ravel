@@ -266,11 +266,13 @@ void MainWindow::importTrace(QString dataFileName){
 
     if (dataFileName.endsWith("otf", Qt::CaseInsensitive))
     {
+        otfoptions->origin = OTFImportOptions::OF_OTF;
         connect(this, SIGNAL(operate(QString)), importWorker,
                 SLOT(doImportOTF(QString)));
     }
     else //(dataFileName.endsWith("otf2", Qt::CaseInsensitive))
     {
+        otfoptions->origin = OTFImportOptions::OF_OTF2;
         connect(this, SIGNAL(operate(QString)), importWorker,
                 SLOT(doImportOTF2(QString)));
     }

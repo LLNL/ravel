@@ -270,6 +270,7 @@ private:
 
     QVector<QLinkedList<CommRecord *> *> * unmatched_recvs;
     QVector<QLinkedList<CommRecord *> *> * unmatched_sends;
+    QMap<int, QLinkedList<CollectiveRecord *> *> * unfinished_collectives;
 
     RawTrace * rawtrace;
 
@@ -281,6 +282,9 @@ private:
 
     QMap<unsigned long long, CollectiveRecord *> * collectives;
     QVector<QMap<unsigned long long, CollectiveRecord *> *> * collectiveMap;
+
+    int collectiveId;
+    QVector<uint64_t> * collective_begins;
 };
 
 #endif // OTF2IMPORTER_H
