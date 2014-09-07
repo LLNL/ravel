@@ -12,7 +12,7 @@ public:
 
     int id;
     QString name;
-    QList<int> * processes;
+    QList<unsigned int> * processes;
 
 };
 

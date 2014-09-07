@@ -27,7 +27,6 @@ OTF2Importer::OTF2Importer()
       locationIndexMap(new QMap<OTF2_LocationRef, int>()),
       unmatched_recvs(new QVector<QLinkedList<CommRecord *> *>()),
       unmatched_sends(new QVector<QLinkedList<CommRecord *> *>()),
-      unfinished_collectives(new QMap<int, QLinkedList<CollectiveRecord *> *>()),
       rawtrace(NULL),
       functionGroups(NULL),
       functions(NULL),
@@ -36,8 +35,8 @@ OTF2Importer::OTF2Importer()
       counters(NULL),
       collectives(NULL),
       collectiveMap(NULL),
-      collectiveId(0),
-      collective_begins(NULL)
+      collective_begins(NULL),
+      collective_fragments(NULL)
 {
     collective_definitions->insert(0, new OTFCollective(0, 1, "Barrier"));
     collective_definitions->insert(1, new OTFCollective(1, 2, "Bcast"));
@@ -67,14 +66,6 @@ OTF2Importer::OTF2Importer()
 OTF2Importer::~OTF2Importer()
 {
     delete stringMap;
-    delete locationMap;
-    delete locationGroupMap;
-    delete regionMap;
-    delete groupMap;
-    delete commMap;
-    delete commIndexMap;
-    delete regionIndexMap;
-    delete locationIndexMap;
     delete collective_begins;
 
     for (QVector<QLinkedList<CommRecord *> *>::Iterator eitr
@@ -107,13 +98,62 @@ OTF2Importer::~OTF2Importer()
     }
     delete unmatched_sends;
 
-    for (QMap<int, QLinkedList<CollectiveRecord *> *>::Iterator eitr
-         = unfinished_collectives->begin();
-         eitr != unfinished_collectives->end(); ++eitr)
+    for(QVector<QLinkedList<OTF2CollectiveFragment *> *>::Iterator eitr
+        = collective_fragments->begin();
+        eitr != collective_fragments->end(); ++eitr)
+    {
+        for (QLinkedList<OTF2CollectiveFragment *>::Iterator itr
+             = (*eitr)->begin(); itr != (*eitr)->end(); ++itr)
+        {
+            delete *itr;
+            *itr = NULL;
+        }
+        delete *eitr;
+        *eitr = NULL;
+    }
+    delete collective_fragments;
+
+    for (QMap<OTF2_LocationRef, OTF2Location *>::Iterator eitr
+         = locationMap->begin();
+         eitr != locationMap->end(); ++eitr)
     {
         delete eitr.value();
     }
-    delete unfinished_collectives;
+    delete locationMap;
+
+    for (QMap<OTF2_LocationGroupRef, OTF2LocationGroup *>::Iterator eitr
+         = locationGroupMap->begin();
+         eitr != locationGroupMap->end(); ++eitr)
+    {
+        delete eitr.value();
+    }
+    delete locationGroupMap;
+
+    for (QMap<OTF2_RegionRef, OTF2Region *>::Iterator eitr
+         = regionMap->begin();
+         eitr != regionMap->end(); ++eitr)
+    {
+        delete eitr.value();
+    }
+    delete regionMap;
+
+    // Don't delete members from OTF2Group, those becomes
+    // processes in kept communicators
+    for (QMap<OTF2_GroupRef, OTF2Group *>::Iterator eitr
+         = groupMap->begin();
+         eitr != groupMap->end(); ++eitr)
+    {
+        delete eitr.value();
+    }
+    delete groupMap;
+
+    for (QMap<OTF2_CommRef, OTF2Comm *>::Iterator eitr
+         = commMap->begin();
+         eitr != commMap->end(); ++eitr)
+    {
+        delete eitr.value();
+    }
+    delete commMap;
 }
 
 RawTrace * OTF2Importer::importOTF2(const char* otf_file)
@@ -208,7 +248,10 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file)
     unmatched_sends = new QVector<QLinkedList<CommRecord *> *>(num_processes);
     delete collectiveMap;
     collectiveMap = new QVector<QMap<unsigned long long, CollectiveRecord *> *>(num_processes);
-    collective_begins = new QVector<uint64_t>(num_processes);
+    delete collective_begins;
+    collective_begins = new QVector<QLinkedList<uint64_t> *>(num_processes);
+    delete collective_fragments;
+    collective_fragments = new QVector<QLinkedList<OTF2CollectiveFragment *> *>(num_processes);
     for (int i = 0; i < num_processes; i++) {
         (*unmatched_recvs)[i] = new QLinkedList<CommRecord *>();
         (*unmatched_sends)[i] = new QLinkedList<CommRecord *>();
@@ -217,6 +260,8 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file)
         (*(rawtrace->messages))[i] = new QVector<CommRecord *>();
         (*(rawtrace->messages_r))[i] = new QVector<CommRecord *>();
         (*(rawtrace->counter_records))[i] = new QVector<CounterRecord *>();
+        (*collective_begins)[i] = new QLinkedList<uint64_t>();
+        (*collective_fragments)[i] = new QLinkedList<OTF2CollectiveFragment *>();
     }
 
 
@@ -237,6 +282,8 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file)
                                      global_evt_reader,
                                      &events_read );
 
+
+    processCollectives();
 
     rawtrace->collectiveMap = collectiveMap;
 
@@ -336,14 +383,9 @@ void OTF2Importer::processDefinitions()
     {
         commIndexMap->insert(comm.key(), index);
         Communicator * c = new Communicator(index, stringMap->value((comm.value())->name));
-        OTF2Group * g = groupMap->value((comm.value())->group);
-        for (QList<uint64_t>::Iterator member = g->members.begin();
-             member != g->members.end(); ++member)
-        {
-            c->processes->append(*member);
-        }
+        delete c->processes;
+        c->processes = groupMap->value((comm.value())->group)->members;
         communicators->insert(index, c);
-        unfinished_collectives->insert(index, new QLinkedList<CollectiveRecord *>());
         index++;
     }
 
@@ -504,7 +546,7 @@ OTF2_CallbackCode OTF2Importer::callbackDefGroup(void* userData,
 {
     OTF2Group * g = new OTF2Group(self, name, groupType, paradigm, groupFlags);
     for (uint32_t i = 0; i < numberOfMembers; i++)
-        g->members.append(members[i]);
+        g->members->append(members[i]);
     (*(((OTF2Importer*) userData)->groupMap))[self] = g;
     return OTF2_CALLBACK_SUCCESS;
 }
@@ -574,7 +616,7 @@ OTF2_CallbackCode OTF2Importer::callbackMPISend(OTF2_LocationRef locationID,
     int sender = ((OTF2Importer *) userData)->locationIndexMap->value(locationID);
     OTF2Comm * comm = ((OTF2Importer *) userData)->commMap->value(communicator);
     OTF2Group * group = ((OTF2Importer *) userData)->groupMap->value(comm->group);
-    int world_receiver = group->members.at(receiver);
+    int world_receiver = group->members->at(receiver);
     CommRecord * cr = NULL;
     QLinkedList<CommRecord *> * unmatched = (*(((OTF2Importer *) userData)->unmatched_recvs))[sender];
     for (QLinkedList<CommRecord *>::Iterator itr = unmatched->begin();
@@ -703,7 +745,7 @@ OTF2_CallbackCode OTF2Importer::callbackMPIRecv(OTF2_LocationRef locationID,
     int receiver = ((OTF2Importer *) userData)->locationIndexMap->value(locationID);
     OTF2Comm * comm = ((OTF2Importer *) userData)->commMap->value(communicator);
     OTF2Group * group = ((OTF2Importer *) userData)->groupMap->value(comm->group);
-    int world_sender = group->members.at(sender);
+    int world_sender = group->members->at(sender);
     CommRecord * cr = NULL;
     QLinkedList<CommRecord *> * unmatched = (*(((OTF2Importer*) userData)->unmatched_sends))[world_sender];
     for (QLinkedList<CommRecord *>::Iterator itr = unmatched->begin();
@@ -781,9 +823,9 @@ OTF2_CallbackCode OTF2Importer::callbackMPIIrecv(OTF2_LocationRef locationID,
     return OTF2_CALLBACK_SUCCESS;
 }
 
-
-
-
+// We have to just collect the Collective information for now and then go through
+// it in order later because we are not guaranteed on order for begin/end and
+// interleaving between processes.
 OTF2_CallbackCode OTF2Importer::callbackMPICollectiveBegin(OTF2_LocationRef locationID,
                                                            OTF2_TimeStamp time,
                                                            void * userData,
@@ -794,8 +836,7 @@ OTF2_CallbackCode OTF2Importer::callbackMPICollectiveBegin(OTF2_LocationRef loca
 
     int process = ((OTF2Importer *) userData)->locationIndexMap->value(locationID);
     uint64_t converted_time = convertTime(userData, time);
-    ((OTF2Importer *) userData)->collective_begins->insert(process, converted_time);
-
+    ((OTF2Importer *) userData)->collective_begins->at(process)->append(converted_time);
     return OTF2_CALLBACK_SUCCESS;
 }
 
@@ -812,37 +853,74 @@ OTF2_CallbackCode OTF2Importer::callbackMPICollectiveEnd(OTF2_LocationRef locati
     Q_UNUSED(attributeList);
     Q_UNUSED(sizeSent);
     Q_UNUSED(sizeReceived);
+    //Q_UNUSED(time);
 
-    // Convert rootProc to 0..p-1 space if it truly is a root and not unrooted value
-    //if (root > 0)
-    //    root--;
     int process = ((OTF2Importer *) userData)->locationIndexMap->value(locationID);
-    int comm = ((OTF2Importer *) userData)->commIndexMap->value(communicator);
 
-    QLinkedList<CollectiveRecord *> * commlist = (((OTF2Importer *) userData)->unfinished_collectives)->value(comm);
-
-    CollectiveRecord * cr = NULL;
-    for (QLinkedList<CollectiveRecord *>::Iterator rec = commlist->begin();
-         rec != commlist->end(); ++rec)
-    {
-        if ((*rec)->collective == collectiveOp)
-            cr = *rec;
-    }
-    if (!cr)
-    {
-        cr = new CollectiveRecord(0, root, collectiveOp, comm);
-        commlist->append(cr);
-    }
-
-    cr->matchingId += 1; // Using matchingId to see if we meet the comm
-    if (cr->matchingId ==  ((OTF2Importer *) userData)->communicators->value(comm)->processes->size())
-    {
-        commlist->removeOne(cr);
-        cr->matchingId = ((OTF2Importer *) userData)->collectiveId;
-        (*(*(((OTF2Importer *) userData)->collectiveMap))[process])[((OTF2Importer *) userData)->collective_begins->value(process)] = cr;
-        ((OTF2Importer *) userData)->collectiveId++;
-    }
-
+    ((OTF2Importer *) userData)->collective_fragments->at(process)->append(new OTF2CollectiveFragment(convertTime(userData, time),
+                                                                                                      collectiveOp,
+                                                                                                      communicator,
+                                                                                                      root));
     return OTF2_CALLBACK_SUCCESS;
 }
 
+void OTF2Importer::processCollectives()
+{
+    int id = 0;
+
+    // Have to check each process in case of single process communicator
+    // But probably later processes will not have many fragments left
+    // after processing by earlier fragments
+    for (int i = 0; i < num_processes; i++)
+    {
+        QLinkedList<OTF2CollectiveFragment *> * fragments = collective_fragments->at(i);
+        while (!fragments->isEmpty())
+        {
+            OTF2CollectiveFragment * fragment = fragments->first();
+            CollectiveRecord * cr = new CollectiveRecord(id, fragment->root,
+                                                         fragment->op,
+                                                         commIndexMap->value(fragment->comm));
+            collectives->insert(id, cr);
+            QList<uint32_t> * members = groupMap->value(commMap->value(fragment->comm)->group)->members;
+            for (QList<uint32_t>::Iterator process = members->begin();
+                 process != members->end(); ++process)
+            {
+                OTF2CollectiveFragment * match = NULL;
+                for (QLinkedList<OTF2CollectiveFragment *>::Iterator cf
+                     = collective_fragments->at(*process)->begin();
+                     cf != collective_fragments->at(*process)->end(); ++cf)
+                {
+                    // A match!
+                    if ((*cf)->op == fragment->op
+                        && (*cf)->comm == fragment->comm
+                        && (*cf)->root == fragment->root)
+                    {
+                        match = *cf;
+                        break;
+                    }
+                }
+
+                if (!match)
+                {
+                    std::cout << "Error, no matching collective found for";
+                    std::cout << " collective type " << int(fragment->op);
+                    std::cout << " on communicator ";
+                    std::cout << stringMap->value(commMap->value(fragment->comm)->name).toStdString().c_str();
+                    std::cout << " for process " << *process << std::endl;
+                }
+                else
+                {
+                    // It's kind of weird that I can't expect the fragments to be in order
+                    // but I have to rely on the begin_times being in order... we'll see
+                    // if they actually work out.
+                    uint64_t begin_time = collective_begins->at(*process)->takeFirst();
+                    collective_fragments->at(*process)->removeOne(match);
+
+                    collectiveMap->at(*process)->insert(begin_time, cr);
+                }
+            }
+
+            id++;
+        }
+    }
+}

@@ -17,6 +17,18 @@ public:
     ~OTF2Importer();
     RawTrace * importOTF2(const char* otf_file);
 
+    class OTF2CollectiveFragment {
+    public:
+        OTF2CollectiveFragment(uint64_t _time, OTF2_CollectiveOp _op,
+                               OTF2_CommRef _comm, uint32_t _root)
+            : time(_time), op(_op), comm(_comm), root(_root) {}
+
+        uint64_t time;
+        OTF2_CollectiveOp op;
+        OTF2_CommRef comm;
+        uint32_t root;
+    };
+
     class OTF2LocationGroup {
     public:
         OTF2LocationGroup(OTF2_LocationGroupRef _self,
@@ -97,14 +109,14 @@ public:
                   OTF2_GroupFlag _flags)
             : self(_self), name(_name), type(_type),
               paradigm(_paradigm), flags(_flags),
-              members(QList<uint64_t>()) {}
+              members(new QList<uint32_t>()) {}
 
         OTF2_GroupRef self;
         OTF2_StringRef name;
         OTF2_GroupType type;
         OTF2_Paradigm paradigm;
         OTF2_GroupFlag flags;
-        QList<uint64_t> members;
+        QList<uint32_t> * members;
     };
 
 
@@ -252,6 +264,7 @@ private:
     void processDefinitions();
     void setDefCallbacks();
     void setEvtCallbacks();
+    void processCollectives();
 
     OTF2_Reader * otfReader;
     OTF2_GlobalDefReaderCallbacks * global_def_callbacks;
@@ -270,7 +283,6 @@ private:
 
     QVector<QLinkedList<CommRecord *> *> * unmatched_recvs;
     QVector<QLinkedList<CommRecord *> *> * unmatched_sends;
-    QMap<int, QLinkedList<CollectiveRecord *> *> * unfinished_collectives;
 
     RawTrace * rawtrace;
 
@@ -280,11 +292,11 @@ private:
     QMap<int, OTFCollective *> * collective_definitions;
     QMap<unsigned int, Counter *> * counters;
 
-    QMap<unsigned long long, CollectiveRecord *> * collectives;
-    QVector<QMap<unsigned long long, CollectiveRecord *> *> * collectiveMap;
+    QMap<unsigned long long, CollectiveRecord *> * collectives; // matchingId to CR <-- REMOVE ME
+    QVector<QMap<unsigned long long, CollectiveRecord *> *> * collectiveMap; // process/time to CR
 
-    int collectiveId;
-    QVector<uint64_t> * collective_begins;
+    QVector<QLinkedList<uint64_t> *> * collective_begins;
+    QVector<QLinkedList<OTF2CollectiveFragment *> *> * collective_fragments;
 };
 
 #endif // OTF2IMPORTER_H

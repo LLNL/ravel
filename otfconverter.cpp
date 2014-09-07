@@ -245,10 +245,20 @@ void OTFConverter::matchEvents()
                 if (((*(trace->functions))[bgn->value])->group
                         == trace->mpi_group)
                 {
-                    if (rawtrace->collectiveMap->at((*evt)->process)->contains(bgn->time))
-                    {
-                        cr = (*(rawtrace->collectiveMap->at((*evt)->process)))[bgn->time];
-                    }
+                    //if (options->origin == OTFImportOptions::OF_OTF)
+                    //{
+                        if (rawtrace->collectiveMap->at((*evt)->process)->contains(bgn->time))
+                        {
+                            cr = (*(rawtrace->collectiveMap->at((*evt)->process)))[bgn->time];
+                        }
+                    //}
+                    //else if (options->origin == OTFImportOptions::OF_OTF2)
+                    //{
+                    //    if (rawtrace->collectiveMap->at((*evt)->process)->contains((*evt)->time))
+                    //    {
+                    //        cr = (*(rawtrace->collectiveMap->at((*evt)->process)))[(*evt)->time];
+                    //    }
+                    //}
 
                     if (sindex < sendlist->size())
                     {
