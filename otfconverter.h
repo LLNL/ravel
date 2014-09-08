@@ -6,6 +6,7 @@
 #include "otfimportoptions.h"
 #include "rawtrace.h"
 #include "trace.h"
+#include "requestmessage.h"
 #include <QStack>
 #include <QSet>
 #include <cmath>

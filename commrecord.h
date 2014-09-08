@@ -10,7 +10,8 @@ class CommRecord
 public:
     CommRecord(unsigned int _s, unsigned long long int _st,
                unsigned int _r, unsigned long long int _rt,
-               unsigned int _size, unsigned int _tag);
+               unsigned int _size, unsigned int _tag,
+               unsigned long long int _request = 0);
 
     unsigned int sender;
     unsigned long long int send_time;
@@ -20,6 +21,8 @@ public:
     unsigned int size;
     unsigned int tag;
     unsigned int type;
+    unsigned long long int send_request;
+    unsigned long long int send_complete;
     bool matched;
 
     Message * message;

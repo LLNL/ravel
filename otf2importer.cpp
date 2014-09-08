@@ -27,6 +27,8 @@ OTF2Importer::OTF2Importer()
       locationIndexMap(new QMap<OTF2_LocationRef, int>()),
       unmatched_recvs(new QVector<QLinkedList<CommRecord *> *>()),
       unmatched_sends(new QVector<QLinkedList<CommRecord *> *>()),
+      unmatched_send_requests(new QVector<QLinkedList<CommRecord *> *>()),
+      unmatched_send_completes(new QVector<QLinkedList<OTF2IsendComplete *> *>()),
       rawtrace(NULL),
       functionGroups(NULL),
       functions(NULL),
@@ -97,6 +99,38 @@ OTF2Importer::~OTF2Importer()
         *eitr = NULL;
     }
     delete unmatched_sends;
+
+
+    for (QVector<QLinkedList<CommRecord *> *>::Iterator eitr
+         = unmatched_send_requests->begin();
+         eitr != unmatched_send_requests->end(); ++eitr)
+    {
+        // Don't delete, used elsewhere
+        /*for (QLinkedList<CommRecord *>::Iterator itr = (*eitr)->begin();
+         itr != (*eitr)->end(); ++itr)
+        {
+            delete *itr;
+            *itr = NULL;
+        }*/
+        delete *eitr;
+        *eitr = NULL;
+    }
+    delete unmatched_send_requests;
+
+
+    for (QVector<QLinkedList<OTF2IsendComplete *> *>::Iterator eitr
+         = unmatched_send_completes->begin(); eitr != unmatched_send_completes->end(); ++eitr)
+    {
+        for (QLinkedList<OTF2IsendComplete *>::Iterator itr = (*eitr)->begin();
+             itr != (*eitr)->end(); ++itr)
+        {
+            delete *itr;
+            *itr = NULL;
+        }
+        delete *eitr;
+        *eitr = NULL;
+    }
+    delete unmatched_send_completes;
 
     for(QVector<QLinkedList<OTF2CollectiveFragment *> *>::Iterator eitr
         = collective_fragments->begin();
@@ -246,6 +280,10 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file)
     unmatched_recvs = new QVector<QLinkedList<CommRecord *> *>(num_processes);
     delete unmatched_sends;
     unmatched_sends = new QVector<QLinkedList<CommRecord *> *>(num_processes);
+    delete unmatched_send_requests;
+    unmatched_send_requests = new QVector<QLinkedList<CommRecord *> *>(num_processes);
+    delete unmatched_send_completes;
+    unmatched_send_completes = new QVector<QLinkedList<OTF2IsendComplete *> *>(num_processes);
     delete collectiveMap;
     collectiveMap = new QVector<QMap<unsigned long long, CollectiveRecord *> *>(num_processes);
     delete collective_begins;
@@ -255,6 +293,8 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file)
     for (int i = 0; i < num_processes; i++) {
         (*unmatched_recvs)[i] = new QLinkedList<CommRecord *>();
         (*unmatched_sends)[i] = new QLinkedList<CommRecord *>();
+        (*unmatched_send_requests)[i] = new QLinkedList<CommRecord *>();
+        (*unmatched_send_completes)[i] = new QLinkedList<OTF2IsendComplete *>();
         (*collectiveMap)[i] = new QMap<unsigned long long, CollectiveRecord *>();
         (*(rawtrace->events))[i] = new QVector<EventRecord *>();
         (*(rawtrace->messages))[i] = new QVector<CommRecord *>();
@@ -456,11 +496,17 @@ OTF2_CallbackCode OTF2Importer::callbackDefClockProperties(void * userData,
                                                            uint64_t globalOffset,
                                                            uint64_t traceLength)
 {
+    Q_UNUSED(globalOffset);
+    Q_UNUSED(traceLength);
+
     ((OTF2Importer*) userData)->ticks_per_second = timerResolution;
 
+    // Use the timer resolution to convert to seconds and
+    // multiply by the magnitude of this factor to get into
+    // fractions of a second befitting the recorded unit.
     double conversion_factor;
-    conversion_factor = pow(10, (int) floor(log10(timerResolution)))
-            / ((double) timerResolution);
+    conversion_factor = pow(10, (int) floor(log10(timerResolution))) // Convert to ms, ns, fs etc
+            / ((double) timerResolution); // Convert to seconds
 
     ((OTF2Importer*) userData)->time_conversion_factor = conversion_factor;
     return OTF2_CALLBACK_SUCCESS;
@@ -679,7 +725,6 @@ OTF2_CallbackCode OTF2Importer::callbackMPIIsend(OTF2_LocationRef locationID,
         }
     }
 
-
     // If we did find a match, remove it from the unmatched.
     // Otherwise, create a new unmatched send record
     if (cr)
@@ -688,10 +733,36 @@ OTF2_CallbackCode OTF2Importer::callbackMPIIsend(OTF2_LocationRef locationID,
     }
     else
     {
-        cr = new CommRecord(sender, converted_time, receiver, 0, msgLength, msgTag);
+        cr = new CommRecord(sender, converted_time, receiver, 0, msgLength,
+                            msgTag, requestID);
         (*((((OTF2Importer*) userData)->rawtrace)->messages))[sender]->append(cr);
         (*(((OTF2Importer *) userData)->unmatched_sends))[sender]->append(cr);
     }
+
+    // Also check the complete time stuff
+    OTF2IsendComplete * complete = NULL;
+    QLinkedList<OTF2IsendComplete *> * completes
+            = (*(((OTF2Importer *) userData)->unmatched_send_completes))[sender];
+    for (QLinkedList<OTF2IsendComplete *>::Iterator itr = completes->begin();
+         itr != completes->end(); ++itr)
+    {
+        if (requestID ==(*itr)->request)
+        {
+            complete = *itr;
+            cr->send_complete = (*itr)->time;
+            break;
+        }
+    }
+
+    if (complete)
+    {
+        (*(((OTF2Importer *) userData)->unmatched_send_completes))[sender]->removeOne(complete);
+    }
+    else
+    {
+        (*(((OTF2Importer *) userData)->unmatched_send_requests))[sender]->append(cr);
+    }
+
     return OTF2_CALLBACK_SUCCESS;
 }
 
@@ -703,11 +774,38 @@ OTF2_CallbackCode OTF2Importer::callbackMPIIsendComplete(OTF2_LocationRef locati
                                                          OTF2_AttributeList * attributeList,
                                                          uint64_t requestID)
 {
-    Q_UNUSED(locationID);
-    Q_UNUSED(time);
-    Q_UNUSED(userData);
     Q_UNUSED(attributeList);
-    Q_UNUSED(requestID);
+
+    // Check to see if we have a matching send request
+    unsigned long long converted_time = convertTime(userData, time);
+    int sender = ((OTF2Importer *) userData)->locationIndexMap->value(locationID);
+    CommRecord * cr = NULL;
+    QLinkedList<CommRecord *> * unmatched = (*(((OTF2Importer *) userData)->unmatched_send_requests))[sender];
+    for (QLinkedList<CommRecord *>::Iterator itr = unmatched->begin();
+         itr != unmatched->end(); ++itr)
+    {
+        if ((*itr)->send_request == requestID)
+        {
+            cr = *itr;
+            cr->send_complete = converted_time;
+            break;
+        }
+    }
+
+    // If we did find a match, remove it from the unmatched.
+    // Otherwise, create a new unmatched send record
+    if (cr)
+    {
+        (*(((OTF2Importer *) userData)->unmatched_send_requests))[sender]->removeOne(cr);
+    }
+    else
+    {
+        (*(((OTF2Importer *) userData)->unmatched_send_completes))[sender]->append(new OTF2IsendComplete(converted_time,
+                                                                                                         requestID));
+    }
+
+    if (sender == 0)
+        std::cout << "Isend complete " << converted_time << " of request " << requestID << std::endl;
 
     return OTF2_CALLBACK_SUCCESS;
 }

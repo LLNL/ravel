@@ -17,6 +17,15 @@ public:
     ~OTF2Importer();
     RawTrace * importOTF2(const char* otf_file);
 
+    class OTF2IsendComplete {
+    public:
+        OTF2IsendComplete(uint64_t _time, uint64_t _request)
+            : time(_time), request(_request) {}
+
+        uint64_t time;
+        uint64_t request;
+    };
+
     class OTF2CollectiveFragment {
     public:
         OTF2CollectiveFragment(uint64_t _time, OTF2_CollectiveOp _op,
@@ -283,6 +292,8 @@ private:
 
     QVector<QLinkedList<CommRecord *> *> * unmatched_recvs;
     QVector<QLinkedList<CommRecord *> *> * unmatched_sends;
+    QVector<QLinkedList<CommRecord *> *> * unmatched_send_requests;
+    QVector<QLinkedList<OTF2IsendComplete *> *> * unmatched_send_completes;
 
     RawTrace * rawtrace;
 

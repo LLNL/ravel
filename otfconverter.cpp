@@ -154,7 +154,7 @@ void OTFConverter::matchEvents()
     // May be used later to do partition by function
     QList<QList<CommEvent *> *> * allcomms = new QList<QList<CommEvent *> *>();
 
-    // Used for waitall merging
+    // Used for heuristic waitall merging
     // We're now making groups of sends that must end in a Waitall/Testall
     // and not be interrupted by a Collective or a Receive.
     // This is backwards from the previous algorithm. We will end up collecting
@@ -163,6 +163,9 @@ void OTFConverter::matchEvents()
     // keep looking.
     QList<QList<Partition *> *> * waitallgroups = new QList<QList<Partition *> *>();
     QList<Partition *> * sendgroup = new QList<Partition *>();
+
+    // Used for true waitalls
+    QLinkedList<RequestMessage *> * requests = new QLinkedList<RequestMessage *>();
 
 
     emit(matchingUpdate(1, "Constructing events..."));
@@ -245,20 +248,13 @@ void OTFConverter::matchEvents()
                 if (((*(trace->functions))[bgn->value])->group
                         == trace->mpi_group)
                 {
+                    // Since OTF2 is the present/future, perhaps we should do this by
+                    // end time instead of begin time so we don't have to match on the OTF2 side.
                     //if (options->origin == OTFImportOptions::OF_OTF)
-                    //{
-                        if (rawtrace->collectiveMap->at((*evt)->process)->contains(bgn->time))
-                        {
-                            cr = (*(rawtrace->collectiveMap->at((*evt)->process)))[bgn->time];
-                        }
-                    //}
-                    //else if (options->origin == OTFImportOptions::OF_OTF2)
-                    //{
-                    //    if (rawtrace->collectiveMap->at((*evt)->process)->contains((*evt)->time))
-                    //    {
-                    //        cr = (*(rawtrace->collectiveMap->at((*evt)->process)))[(*evt)->time];
-                    //    }
-                    //}
+                    if (rawtrace->collectiveMap->at((*evt)->process)->contains(bgn->time))
+                    {
+                        cr = (*(rawtrace->collectiveMap->at((*evt)->process)))[bgn->time];
+                    }
 
                     if (sindex < sendlist->size())
                     {
@@ -331,7 +327,23 @@ void OTFConverter::matchEvents()
                     CommRecord * crec = sendlist->at(sindex);
                     if (!(crec->message))
                     {
-                        crec->message = new Message(crec->send_time, crec->recv_time);
+                        if (crec->send_complete)
+                        {
+                            RequestMessage * rm = new RequestMessage(crec->send_time,
+                                                                     crec->recv_time,
+                                                                     crec->send_request,
+                                                                     crec->send_complete);
+                            requests->append(rm);
+                            crec->message = rm;
+                        }
+                        else
+                        {
+                            crec->message = new Message(crec->send_time, crec->recv_time);
+                        }
+                    }
+                    else if (crec->send_complete) // From the receiving process
+                    {
+                        requests->append((RequestMessage *)crec->message);
                     }
                     msgs->append(crec->message);
                     crec->message->sender = new P2PEvent(bgn->time, (*evt)->time,
@@ -375,7 +387,13 @@ void OTFConverter::matchEvents()
                         crec = recvlist->at(rindex);
                         if (!(crec->message))
                         {
-                            crec->message = new Message(crec->send_time, crec->recv_time);
+                            if (crec->send_complete)
+                                crec->message = new RequestMessage(crec->send_time,
+                                                                   crec->recv_time,
+                                                                   crec->send_request,
+                                                                   crec->send_complete);
+                            else
+                                crec->message = new Message(crec->send_time, crec->recv_time);
                         }
                         msgs->append(crec->message);
                         rindex++;
@@ -534,9 +552,11 @@ void OTFConverter::matchEvents()
         // Prepare for next process
         stack->clear();
         sendgroup->clear();
+        requests->clear(); // Just in case -- shouldn't be needed for wellformed trace
     }
     delete stack;
     delete sendgroup;
+    delete requests;
 
     if (options->waitallMerge && !options->partitionByFunction)
     {
