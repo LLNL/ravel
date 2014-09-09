@@ -82,6 +82,7 @@ public:
     unsigned long long int ticks_per_second;
     double time_conversion_factor;
     int num_processes;
+    int second_magnitude;
 
     int entercount;
     int exitcount;

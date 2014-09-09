@@ -21,6 +21,9 @@ public:
     void drawMessage(QPainter * painter, Message * message);
     void drawCollective(QPainter * painter, CollectiveRecord * cr);
 
+signals:
+    void timeScaleString(QString);
+
 public slots:
     void setSteps(float start, float stop, bool jump = false);
 

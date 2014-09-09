@@ -213,6 +213,11 @@
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
+              <layout class="QVBoxLayout" name="verticalLayout_8">
+               <property name="bottomMargin">
+                <number>0</number>
+               </property>
+              </layout>
              </widget>
             </item>
            </layout>

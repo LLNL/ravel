@@ -69,11 +69,17 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->traditionalLabelWidget->setLayout(new QVBoxLayout());
     ui->traditionalLabelWidget->layout()->addWidget(new VerticalLabel("Physical",
                                                                       ui->traditionalLabelWidget));
+    QLabel * timescaleLabel = new QLabel(ui->traditionalLabelWidget);
+    timescaleLabel->setFont(QFont("Helvetica", 10));
+    ui->traditionalLabelWidget->layout()->addWidget(timescaleLabel);
+    timescaleLabel->setAlignment(Qt::AlignRight | Qt::AlignBottom);
 
     connect((timevis), SIGNAL(stepsChanged(float, float, bool)), this,
             SLOT(pushSteps(float, float, bool)));
     connect((timevis), SIGNAL(eventClicked(Event *, bool, bool)), this,
             SLOT(selectEvent(Event *, bool, bool)));
+    connect((timevis), SIGNAL(timeScaleString(QString)), timescaleLabel,
+            SLOT(setText(QString)));
     viswidgets.push_back(timevis);
     splitterMap.push_back(2);
 

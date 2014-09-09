@@ -10,6 +10,25 @@ bool dereferencedLessThan(T * o1, T * o2) {
     return *o1 < *o2;
 }
 
+// For units
+static QString getUnits(int zeros)
+{
+    if (zeros >= 18)
+        return "as";
+    else if (zeros >= 15)
+        return "fs";
+    else if (zeros >= 12)
+        return "ps";
+    else if (zeros >= 9)
+        return "ns";
+    else if (zeros >= 6)
+        return "us";
+    else if (zeros >= 3)
+        return "ms";
+    else
+        return "s";
+}
+
 // For timing information
 static void gu_printTime(qint64 nanos)
 {

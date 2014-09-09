@@ -415,7 +415,7 @@ void Trace::calculate_partition_lateness()
 
     QString p_late = "Lateness";
     metrics->append(p_late);
-    (*metric_units)[p_late] = "ns";
+    (*metric_units)[p_late] = getUnits(units);
 
 
     for (int i = 0; i < counterlist.size(); i++)
@@ -501,7 +501,7 @@ void Trace::calculate_partition_lateness()
 void Trace::calculate_lateness()
 {
     metrics->append("G. Lateness");
-    (*metric_units)["G. Lateness"] = "ns";
+    (*metric_units)["G. Lateness"] = getUnits(units);
 
     // Go through dag, starting at the beginning
     QSet<Partition *> * active_partitions = new QSet<Partition *>();

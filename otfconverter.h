@@ -6,7 +6,6 @@
 #include "otfimportoptions.h"
 #include "rawtrace.h"
 #include "trace.h"
-#include "requestmessage.h"
 #include <QStack>
 #include <QSet>
 #include <cmath>
@@ -42,8 +41,8 @@ private:
     OTFImportOptions * options;
     int phaseFunction;
 
-    static const int event_match_portion = 14;
-    static const int message_match_portion = 10;
+    static const int event_match_portion = 24;
+    static const int message_match_portion = 0;
     static const QString collectives_string;
 
 };

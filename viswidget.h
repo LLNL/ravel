@@ -56,7 +56,7 @@ protected:
     virtual void drawNativeGL();
     virtual void qtPaint(QPainter *painter);
     virtual void prepaint();
-    void drawTimescale(QPainter * painter, unsigned long long start,
+    QString drawTimescale(QPainter * painter, unsigned long long start,
                        unsigned long long span, int margin = 0);
 
 private:

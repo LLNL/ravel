@@ -260,8 +260,10 @@ public:
     static uint64_t convertTime(void* userData, OTF2_TimeStamp time);
 
     unsigned long long int ticks_per_second;
+    unsigned long long int time_offset;
     double time_conversion_factor;
     int num_processes;
+    int second_magnitude;
 
     int entercount;
     int exitcount;

@@ -77,8 +77,11 @@
           <layout class="QVBoxLayout" name="verticalLayout_6">
            <item>
             <widget class="QCheckBox" name="waitallCheckbox">
+             <property name="toolTip">
+              <string>If requests are recorded, this option is ignored.</string>
+             </property>
              <property name="text">
-              <string>use Waitall heuristic</string>
+              <string>use Waitall heuristic if requests not recorded</string>
              </property>
              <property name="checked">
               <bool>true</bool>
@@ -152,7 +155,11 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="functionEdit"/>
+        <widget class="QLineEdit" name="functionEdit">
+         <property name="toolTip">
+          <string>function name</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </item>

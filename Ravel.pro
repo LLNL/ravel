@@ -47,8 +47,7 @@ SOURCES  += main.cpp \
     commdrawinterface.cpp \
     counter.cpp \
     counterrecord.cpp \
-    otf2importer.cpp \
-    requestmessage.cpp
+    otf2importer.cpp
 
 HEADERS += \
     trace.h \

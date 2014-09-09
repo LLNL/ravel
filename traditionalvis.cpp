@@ -499,7 +499,8 @@ void TraditionalVis::qtPaint(QPainter *painter)
 
     drawProcessLabels(painter, rect().height() - timescaleHeight,
                       processheight);
-    drawTimescale(painter, startTime, timeSpan);
+    QString seconds = drawTimescale(painter, startTime, timeSpan);
+    emit(timeScaleString(seconds));
     drawHover(painter);
 
     if (!lassoRect.isNull())

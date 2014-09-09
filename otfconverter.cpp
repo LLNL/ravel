@@ -58,6 +58,8 @@ void OTFConverter::convert()
     qint64 traceElapsed;
     traceTimer.start();
     trace = new Trace(rawtrace->num_processes);
+    trace->units = rawtrace->second_magnitude;
+    std::cout << "Trace units are " << trace->units << std::endl;
 
     // Set up collective metrics
     for (QMap<unsigned int, Counter *>::Iterator counter = rawtrace->counters->begin();
@@ -164,9 +166,11 @@ void OTFConverter::matchEvents()
     QList<QList<Partition *> *> * waitallgroups = new QList<QList<Partition *> *>();
     QList<Partition *> * sendgroup = new QList<Partition *>();
 
-    // Used for true waitalls
-    QLinkedList<RequestMessage *> * requests = new QLinkedList<RequestMessage *>();
-
+    // In the case of true waitall merging, we still use the waitallgroups and the
+    // sendgroups but with a different algorithm.
+    // max_complete is 0 if we're not in the midst of request-waitall events
+    // and is the max found complete time within if we are
+    unsigned long long int max_complete = 0;
 
     emit(matchingUpdate(1, "Constructing events..."));
     int progressPortion = std::max(round(rawtrace->num_processes / 1.0
@@ -201,6 +205,7 @@ void OTFConverter::matchEvents()
         int depth = 0;
         int phase = 0;
         unsigned long long endtime = 0;
+        max_complete = 0;
         if (round(currentIter / progressPortion) > currentPortion)
         {
             ++currentPortion;
@@ -239,6 +244,12 @@ void OTFConverter::matchEvents()
                     if (options->waitallMerge && !options->partitionByFunction)
                     {
                         sendgroup->append(trace->partitions->last());
+                    }
+
+                    if (!options->partitionByFunction
+                        && (max_complete > 0 || options->waitallMerge))
+                    {
+                            sendgroup->append(trace->partitions->last());
                     }
                 }
 
@@ -315,10 +326,17 @@ void OTFConverter::matchEvents()
                         makeSingletonPartition(cr->events->last());
 
                     cpartcounter++;
-                    // Any sends beforehand not end in a waitall.
-                    if (options->waitallMerge && !options->partitionByFunction)
+
+                    if (!options->partitionByFunction)
                     {
-                        sendgroup->clear();
+                        // We are still collecting
+                        if (max_complete > 0)
+                            sendgroup->append(trace->partitions->last());
+
+                        // Any sends beforehand not end in a waitall.
+                        else if (options->waitallMerge)
+                            sendgroup->clear();
+
                     }
                 }
                 else if (sflag)
@@ -327,24 +345,10 @@ void OTFConverter::matchEvents()
                     CommRecord * crec = sendlist->at(sindex);
                     if (!(crec->message))
                     {
-                        if (crec->send_complete)
-                        {
-                            RequestMessage * rm = new RequestMessage(crec->send_time,
-                                                                     crec->recv_time,
-                                                                     crec->send_request,
-                                                                     crec->send_complete);
-                            requests->append(rm);
-                            crec->message = rm;
-                        }
-                        else
-                        {
-                            crec->message = new Message(crec->send_time, crec->recv_time);
-                        }
+                        crec->message = new Message(crec->send_time, crec->recv_time);
                     }
-                    else if (crec->send_complete) // From the receiving process
-                    {
-                        requests->append((RequestMessage *)crec->message);
-                    }
+                    if (crec->send_complete > max_complete)
+                        max_complete = crec->send_complete;
                     msgs->append(crec->message);
                     crec->message->sender = new P2PEvent(bgn->time, (*evt)->time,
                                                          bgn->value,
@@ -371,8 +375,9 @@ void OTFConverter::matchEvents()
 
                     spartcounter++;
                     // Collect the send for possible waitall merge
-                    if (options->waitallMerge && !(options->isendCoalescing && isendflag)
-                            && !options->partitionByFunction)
+                    if ((max_complete > 0 || options->waitallMerge)
+                        && !(options->isendCoalescing && isendflag)
+                        && !options->partitionByFunction)
                     {
                         sendgroup->append(trace->partitions->last());
                     }
@@ -387,13 +392,7 @@ void OTFConverter::matchEvents()
                         crec = recvlist->at(rindex);
                         if (!(crec->message))
                         {
-                            if (crec->send_complete)
-                                crec->message = new RequestMessage(crec->send_time,
-                                                                   crec->recv_time,
-                                                                   crec->send_request,
-                                                                   crec->send_complete);
-                            else
-                                crec->message = new Message(crec->send_time, crec->recv_time);
+                            crec->message = new Message(crec->send_time, crec->recv_time);
                         }
                         msgs->append(crec->message);
                         rindex++;
@@ -427,18 +426,37 @@ void OTFConverter::matchEvents()
 
                     e = msgs->at(0)->receiver;
 
-                    if (options->waitallMerge && !options->partitionByFunction)
+                    if (!options->partitionByFunction)
                     {
-                        // Is this a wait/test all, end the group
-                        if ((bgn->value == waitall_index || bgn->value == testall_index)
-                                && sendgroup->size() > 0)
+                        if (max_complete > 0)
                         {
-                            waitallgroups->append(sendgroup);
-                            sendgroup = new QList<Partition *>();
+                            // This contains the max complete time, end the group
+                            if (e->enter <= max_complete && e->exit >= max_complete
+                                    && sendgroup->size() > 0)
+                            {
+                                waitallgroups->append(sendgroup);
+                                sendgroup = new QList<Partition *>();
+                                max_complete = 0;
+                            }
+                            else
+                            {
+                                sendgroup->append(trace->partitions->last());
+                            }
                         }
-                        else // Break the send group, not a waitall
+
+                        else if (options->waitallMerge)
                         {
-                            sendgroup->clear();
+                            // Is this a wait/test all, end the group
+                            if ((bgn->value == waitall_index || bgn->value == testall_index)
+                                    && sendgroup->size() > 0)
+                            {
+                                waitallgroups->append(sendgroup);
+                                sendgroup = new QList<Partition *>();
+                            }
+                            else // Break the send group, not a waitall
+                            {
+                                sendgroup->clear();
+                            }
                         }
                     }
                 }
@@ -448,12 +466,28 @@ void OTFConverter::matchEvents()
                                   bgn->process);
 
                     // Stop by Waitall/Testall
-                    if (options->waitallMerge && !options->partitionByFunction
-                        && (bgn->value == waitall_index || bgn->value == testall_index)
-                        && sendgroup->size() > 0)
+                    if (!options->partitionByFunction)
                     {
-                        waitallgroups->append(sendgroup);
-                        sendgroup = new QList<Partition *>();
+                        // true waitall
+                        if (max_complete > 0)
+                        {
+                            // This contains the max complete time, end the group
+                            if (e->enter <= max_complete && e->exit >= max_complete
+                                    && sendgroup->size() > 0)
+                            {
+                                waitallgroups->append(sendgroup);
+                                sendgroup = new QList<Partition *>();
+                                max_complete = 0;
+                            }
+                        }
+
+                        // waitall heuristic
+                        else if (options->waitallMerge && sendgroup->size() > 0
+                            && (bgn->value == waitall_index || bgn->value == testall_index))
+                        {
+                            waitallgroups->append(sendgroup);
+                            sendgroup = new QList<Partition *>();
+                        }
                     }
 
                     // Squelch counter values that we're not keeping track of here (for now)
@@ -536,6 +570,8 @@ void OTFConverter::matchEvents()
         }
 
         // Finish off last isend list
+        // This really shouldn't be needed because we expect
+        // something handling their request to come after them
         if (options->isendCoalescing && isends->size() > 0)
         {
             P2PEvent * isend = new P2PEvent(isends);
@@ -552,18 +588,14 @@ void OTFConverter::matchEvents()
         // Prepare for next process
         stack->clear();
         sendgroup->clear();
-        requests->clear(); // Just in case -- shouldn't be needed for wellformed trace
     }
     delete stack;
     delete sendgroup;
-    delete requests;
 
-    if (options->waitallMerge && !options->partitionByFunction)
+    if (!options->partitionByFunction
+            && (options->waitallMerge
+                || options->origin == OTFImportOptions::OF_OTF2))
     {
-        // mergePartitions cleans up the extra structures
-        // No we can't use this here because we don't have all
-        // partitions, this will delete things not covered by a Waitall.
-        // FIXME
         mergeForWaitall(waitallgroups);
     }
 

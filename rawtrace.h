@@ -32,6 +32,7 @@ public:
     QMap<unsigned long long, CollectiveRecord *> * collectives;
     QVector<QMap<unsigned long long, CollectiveRecord *> *> * collectiveMap;
     int num_processes;
+    int second_magnitude; // seconds are 10^this over the smallest smaple unit
 };
 
 #endif // RAWTRACE_H

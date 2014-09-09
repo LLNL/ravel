@@ -7,8 +7,10 @@
 
 OTF2Importer::OTF2Importer()
     : ticks_per_second(0),
+      time_offset(0),
       time_conversion_factor(0),
       num_processes(0),
+      second_magnitude(1),
       entercount(0),
       exitcount(0),
       sendcount(0),
@@ -234,6 +236,7 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file)
     processDefinitions();
 
     rawtrace = new RawTrace(num_processes);
+    rawtrace->second_magnitude = second_magnitude;
     rawtrace->functions = functions;
     rawtrace->functionGroups = functionGroups;
     rawtrace->communicators = communicators;
@@ -485,7 +488,7 @@ void OTF2Importer::setEvtCallbacks()
 // Find timescale
 uint64_t OTF2Importer::convertTime(void* userData, OTF2_TimeStamp time)
 {
-    return (uint64_t) ((double) time)
+    return (uint64_t) ((double) (time - ((OTF2Importer *) userData)->time_offset))
             * ((OTF2Importer *) userData)->time_conversion_factor;
 }
 
@@ -496,16 +499,19 @@ OTF2_CallbackCode OTF2Importer::callbackDefClockProperties(void * userData,
                                                            uint64_t globalOffset,
                                                            uint64_t traceLength)
 {
-    Q_UNUSED(globalOffset);
     Q_UNUSED(traceLength);
 
     ((OTF2Importer*) userData)->ticks_per_second = timerResolution;
+    ((OTF2Importer*) userData)->time_offset = globalOffset;
+    ((OTF2Importer*) userData)->second_magnitude
+            = (int) floor(log10(timerResolution));
 
     // Use the timer resolution to convert to seconds and
     // multiply by the magnitude of this factor to get into
     // fractions of a second befitting the recorded unit.
     double conversion_factor;
-    conversion_factor = pow(10, (int) floor(log10(timerResolution))) // Convert to ms, ns, fs etc
+    conversion_factor = pow(10,
+                            ((OTF2Importer*) userData)->second_magnitude) // Convert to ms, ns, fs etc
             / ((double) timerResolution); // Convert to seconds
 
     ((OTF2Importer*) userData)->time_conversion_factor = conversion_factor;
@@ -803,9 +809,6 @@ OTF2_CallbackCode OTF2Importer::callbackMPIIsendComplete(OTF2_LocationRef locati
         (*(((OTF2Importer *) userData)->unmatched_send_completes))[sender]->append(new OTF2IsendComplete(converted_time,
                                                                                                          requestID));
     }
-
-    if (sender == 0)
-        std::cout << "Isend complete " << converted_time << " of request " << requestID << std::endl;
 
     return OTF2_CALLBACK_SUCCESS;
 }

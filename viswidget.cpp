@@ -197,7 +197,7 @@ void VisWidget::setVisOptions(VisOptions * _options)
 
 // Draws a timescale (physical). Note this can fail if the span is short
 // enough which can happen when we find no events.
-void VisWidget::drawTimescale(QPainter * painter, unsigned long long start,
+QString VisWidget::drawTimescale(QPainter * painter, unsigned long long start,
                               unsigned long long span, int margin)
 {
     // Draw the scale bar
@@ -206,7 +206,7 @@ void VisWidget::drawTimescale(QPainter * painter, unsigned long long start,
     painter->drawLine(margin, lineHeight, rect().width() - margin, lineHeight);
 
     if (!visProcessed)
-        return;
+        return "";
 
     painter->setFont(QFont("Helvetica", 10));
     QFontMetrics font_metrics = this->fontMetrics();
@@ -234,16 +234,38 @@ void VisWidget::drawTimescale(QPainter * painter, unsigned long long start,
     // because then panning doesn't work.
     unsigned long long tick = (tick_span - start % tick_span) + start;
 
+    // TODO: MAKE THIS PART OPTIONAL
+    QString seconds = "";
+    int tick_divisor = 1;
+    unsigned long long tick_base = 0;
+    if (true)
+    {
+        tick_base = tick - tick_span;
+        int span_unit = (int) floor(log10(tick_span));
+        tick_divisor = pow10(3 * floor(span_unit / 3));
+        if (!tick_divisor)
+            tick_divisor = 1;
+        seconds = systemlocale.toString(tick_base
+                                        / pow10((double) trace->units),
+                                        'f', trace->units - span_unit)
+                                        + "s + "
+                                        + getUnits(trace->units
+                                                   - 3 * floor(span_unit / 3))
+                                        + ":";
+    }
+
+
     // And now we draw
     while (tick < start + span)
     {
         int x = margin + round((tick - start) / 1.0 / span
                                * (rect().width() - 2*margin));
         painter->drawLine(x, lineHeight, x, lineHeight + timescaleTickHeight);
-        text = systemlocale.toString(tick);
+        text = systemlocale.toString((tick - tick_base) / tick_divisor);
         textWidth = font_metrics.width(text) / 3;
         painter->drawText(x - textWidth, y, text);
 
         tick += tick_span;
     }
+    return seconds;
 }

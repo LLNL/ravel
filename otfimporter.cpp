@@ -9,6 +9,7 @@ OTFImporter::OTFImporter()
     : ticks_per_second(0),
       time_conversion_factor(0),
       num_processes(0),
+      second_magnitude(1),
       entercount(0),
       exitcount(0),
       sendcount(0),
@@ -94,6 +95,7 @@ RawTrace * OTFImporter::importOTF(const char* otf_file)
     OTF_Reader_readDefinitions(otfReader, handlerArray);
 
     rawtrace = new RawTrace(num_processes);
+    rawtrace->second_magnitude = second_magnitude;
     rawtrace->functions = functions;
     rawtrace->functionGroups = functionGroups;
     rawtrace->communicators = communicators;
@@ -282,9 +284,11 @@ int OTFImporter::handleDefTimerResolution(void* userData, uint32_t stream,
 {
     Q_UNUSED(stream);
     ((OTFImporter*) userData)->ticks_per_second = ticksPerSecond;
+    ((OTFImporter*) userData)->second_magnitude
+            = (int) floor(log10(ticksPerSecond));
 
     double conversion_factor;
-    conversion_factor = pow(10, (int) floor(log10(ticksPerSecond)))
+    conversion_factor = pow(10, ((OTFImporter*) userData)->second_magnitude)
             / ((double) ticksPerSecond);
 
     ((OTFImporter*) userData)->time_conversion_factor = conversion_factor;
