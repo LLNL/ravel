@@ -23,6 +23,8 @@ public:
     bool operator>=(const Event &);
     bool operator==(const Event &);
 
+    Event * findChild(unsigned long long time);
+    unsigned long long getVisibleEnd(unsigned long long start);
     virtual bool isCommEvent() { return false; }
     virtual bool isReceive() { return false; }
     virtual bool isCollective() { return false; }

@@ -29,6 +29,7 @@ public:
     void assignSteps();
     void gnomify();
     void mergePartitions(QList<QList<Partition *> *> * components);
+    Event * findEvent(int process, unsigned long long time);
 
     QString name;
     int num_processes;

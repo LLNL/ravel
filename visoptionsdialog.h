@@ -23,6 +23,7 @@ public:
 public slots:
     void onCancel();
     void onOK();
+    void onAbsoluteTime(bool absolute);
     void onMetricColorTraditional(bool metricColor);
     void onMetric(QString metric);
     void onShowAggregate(bool showAggregate);

@@ -24,6 +24,8 @@ VisOptionsDialog::VisOptionsDialog(QWidget *parent, VisOptions * _options,
     connect(ui->buttonBox, SIGNAL(rejected()), this, SLOT(onCancel()));
     connect(ui->metricColorTraditionalCheckBox, SIGNAL(clicked(bool)), this,
             SLOT(onMetricColorTraditional(bool)));
+    connect(ui->absoluteTimeCheckBox, SIGNAL(clicked(bool)), this,
+            SLOT(onAbsoluteTime(bool)));
     connect(ui->metricComboBox, SIGNAL(currentIndexChanged(QString)), this,
             SLOT(onMetric(QString)));
     connect(ui->showAggregateCheckBox, SIGNAL(clicked(bool)), this,
@@ -64,6 +66,12 @@ void VisOptionsDialog::onCancel()
     *options = saved;
     setUIState();
 }
+
+void VisOptionsDialog::onAbsoluteTime(bool absolute)
+{
+    options->absoluteTime = absolute;
+}
+
 
 void VisOptionsDialog::onMetricColorTraditional(bool metricColor)
 {
@@ -117,6 +125,11 @@ void VisOptionsDialog::onColorCombo(QString type)
 
 void VisOptionsDialog::setUIState()
 {
+    if (options->absoluteTime)
+        ui->absoluteTimeCheckBox->setChecked(true);
+    else
+        ui->absoluteTimeCheckBox->setChecked(true);
+
     if (options->colorTraditionalByMetric)
         ui->metricColorTraditionalCheckBox->setChecked(true);
     else

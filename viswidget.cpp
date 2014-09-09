@@ -15,9 +15,9 @@ VisWidget::VisWidget(QWidget *parent, VisOptions * _options) :
     selected_processes(QList<int>()),
     selected_gnome(NULL),
     selected_event(NULL),
-    hover_event(NULL),
     selected_aggregate(false),
     overdraw_selected(false),
+    hover_event(NULL),
     hover_aggregate(NULL),
     closed(false)
 {
@@ -235,10 +235,10 @@ QString VisWidget::drawTimescale(QPainter * painter, unsigned long long start,
     unsigned long long tick = (tick_span - start % tick_span) + start;
 
     // TODO: MAKE THIS PART OPTIONAL
-    QString seconds = "";
+    QString seconds = getUnits(trace->units);
     int tick_divisor = 1;
     unsigned long long tick_base = 0;
-    if (true)
+    if (options->absoluteTime)
     {
         tick_base = tick - tick_span;
         int span_unit = (int) floor(log10(tick_span));

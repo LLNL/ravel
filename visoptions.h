@@ -15,6 +15,7 @@ public:
     enum ColorMapType { COLOR_SEQUENTIAL, COLOR_DIVERGING, COLOR_CATEGORICAL };
     enum MessageType { MSG_NONE, MSG_TRUE, MSG_SINGLE };
 
+    bool absoluteTime;
     bool showAggregateSteps;
     bool colorTraditionalByMetric; // color physical timeline by metric
     MessageType showMessages; // draw message lines

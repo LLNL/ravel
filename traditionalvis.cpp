@@ -226,12 +226,19 @@ void TraditionalVis::mouseMoveEvent(QMouseEvent * event)
         if (hover_event == NULL
                 || !drawnEvents[hover_event].contains(mousex, mousey))
         {
-            hover_event = NULL;
-            for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin();
-                 evt != drawnEvents.end(); ++evt)
-                if (evt.value().contains(mousex, mousey))
-                    hover_event = evt.key();
-
+            // Hover for all events! Note since we only save comm events in the
+            // drawnEvents, this will recalculate for non-comm events each move
+            if (mousey > blockheight * processSpan)
+                hover_event = NULL;
+            else
+            {
+                int hover_proc = order_to_proc[floor((mousey - 1) / blockheight)
+                                                + startProcess];
+                unsigned long long hover_time = (mousex - 1 - labelWidth)
+                                                / 1.0 / rect().width()
+                                                * timeSpan + startTime;
+                hover_event = trace->findEvent(hover_proc, hover_time);
+            }
             repaint();
         }
     }
@@ -663,9 +670,12 @@ void TraditionalVis::paintEvents(QPainter *painter)
 
                     drawnEvents[*evt] = QRect(x, y, w, h);
 
+                    int drawnEnter = std::max(startTime, (*evt)->enter);
+                    int available_w = ((*evt)->exit - drawnEnter)
+                                        / 1.0 / timeSpan * rect().width() + 2;
                     QString fxnName = ((*(trace->functions))[(*evt)->function])->name;
-                    QRect fxnRect = font_metrics.boundingRect(fxnName);
-                    if (fxnRect.width() < w && fxnRect.height() < h)
+                    QRect fxnRect = painter->fontMetrics().boundingRect(fxnName);
+                    if (fxnRect.width() < available_w && fxnRect.height() < h)
                         painter->drawText(x + 2, y + fxnRect.height(), fxnName);
 
                     // Selected aggregate
@@ -899,9 +909,14 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
         // Replace this with something else that handles tree
         //drawnEvents[*evt] = QRect(x, y, w, h);
 
+        int drawnEnter = std::max(startTime, evt->enter);
+        int available_w = (evt->getVisibleEnd(drawnEnter)
+                           - drawnEnter)
+                            / 1.0 / timeSpan * rect().width() + 2;
+
         QString fxnName = ((*(trace->functions))[evt->function])->name;
         QRect fxnRect = painter->fontMetrics().boundingRect(fxnName);
-        if (fxnRect.width() < w && fxnRect.height() < h)
+        if (fxnRect.width() < available_w && fxnRect.height() < h)
             painter->drawText(x + 2, y + fxnRect.height(), fxnName);
     }
 

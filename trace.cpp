@@ -1760,6 +1760,20 @@ long long int Trace::getAggregateFunctionRecurse(Event * evt,
     return overlap;
 }
 
+Event * Trace::findEvent(int process, unsigned long long time)
+{
+    Event * found = NULL;
+    for (QVector<Event *>::Iterator root = roots->at(process)->begin();
+         root != roots->at(process)->end(); ++root)
+    {
+        found = (*root)->findChild(time);
+        if (found)
+            return found;
+    }
+
+    return found;
+}
+
 // use GraphViz to see partition graph for debugging
 void Trace::output_graph(QString filename, bool byparent)
 {

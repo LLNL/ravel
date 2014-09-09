@@ -44,3 +44,39 @@ bool Event::operator==(const Event &event)
 {
     return enter == event.enter;
 }
+
+Event * Event::findChild(unsigned long long time)
+{
+    Event * result = NULL;
+    Event * child_match = NULL;
+    if (enter <= time && exit >= time)
+    {
+        result = this;
+        for (QVector<Event *>::Iterator child = callees->begin();
+             child != callees->end(); ++child)
+        {
+            child_match = (*child)->findChild(time);
+            if (child_match)
+            {
+                result = child_match;
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+unsigned long long Event::getVisibleEnd(unsigned long long start)
+{
+    unsigned long long end = exit;
+    for (QVector<Event *>::Iterator child = callees->begin();
+         child != callees->end(); ++child)
+    {
+        if ((*child)->enter > start)
+        {
+            end = (*child)->enter;
+            break;
+        }
+    }
+    return end;
+}

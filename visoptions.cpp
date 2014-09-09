@@ -3,7 +3,8 @@
 VisOptions::VisOptions(bool _showAgg,
                  bool _metricTraditional,
                  QString _metric)
-    : showAggregateSteps(_showAgg),
+    : absoluteTime(true),
+      showAggregateSteps(_showAgg),
       colorTraditionalByMetric(_metricTraditional),
       showMessages(MSG_TRUE),
       topByCentroid(false),
@@ -48,6 +49,7 @@ VisOptions::VisOptions(bool _showAgg,
 
 VisOptions::VisOptions(const VisOptions& copy)
 {
+    absoluteTime = copy.absoluteTime;
     showAggregateSteps = copy.showAggregateSteps;
     colorTraditionalByMetric = copy.colorTraditionalByMetric;
     showMessages = copy.showMessages;
