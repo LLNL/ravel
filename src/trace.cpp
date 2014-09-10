@@ -776,10 +776,10 @@ void Trace::assignSteps()
     std::cout << "Calculating lateness..." << std::endl;
     traceTimer.start();
 
-    calculate_lateness();
-    calculate_differential_lateness("D.G. Lateness", "G. Lateness");
     calculate_partition_lateness();
     calculate_differential_lateness("D. Lateness", "Lateness");
+    calculate_lateness();
+    calculate_differential_lateness("D.G. Lateness", "G. Lateness");
 
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "Lateness Calculation: ";

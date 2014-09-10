@@ -3,11 +3,12 @@
 #include <QStringList>
 #include <QDir>
 #include <QFileInfo>
+#include <QStack>
 
 CharmImporter::CharmImporter()
-    : version(""),
+    : version(0),
       processes(0),
-      chares(new QMap<int, QString>()),
+      chares(new QMap<int, Chare*>()),
       entries(new QMap<int, Entry *>())
 {
 }
@@ -24,6 +25,108 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
 
     QFileInfo file_info = QFileInfo(dataFileName);
     QDir directory = file_info.dir();
+    QString basename = file_info.baseName();
+    QString suffix = ".log";
+    QString path = file_info.absolutePath();
+    bool gzflag = false;
+    if (directory.exists(basename + ".0.log.gz"))
+    {
+        gzflag = true;
+        suffix += ".gz";
+    }
+    for (int i = 0; i < processes; i++)
+        readLog(path + "/" + basename + "." + QString::number(i) + suffix,
+                gzflag);
+}
+
+void CharmImporter::readLog(QString logFileName, bool gzipped)
+{
+    std::cout << "Reading " << logFileName.toStdString().c_str() << std::endl;
+    if (gzipped)
+    {
+        gzFile logfile = gzopen(logFileName.toStdString().c_str(), "r");
+        char * buffer = new char[1024];
+        gzgets(logfile, buffer, 1024); // Skip first line
+        while (gzgets(logfile, buffer, 1024))
+            parseLine(QString::fromUtf8(buffer).simplified());
+
+        gzclose(logfile);
+    }
+    else
+    {
+        std::ifstream logfile(logFileName.toStdString().c_str());
+        std::string line;
+        std::getline(logfile, line); // Skip first line
+        while(std::getline(logfile, line))
+            parseLine(QString::fromStdString(line));
+
+        logfile.close();
+    }
+}
+
+void CharmImporter::parseLine(QString line)
+{
+    int index, mtype, entry, event, pe, id[4];
+    long time, msglen, recvTime, cpuStart;
+    QStack<CharmEvt *> * events_stack = new QStack<CharmEvt *>();
+    QVector<CharmEvt *> * processing_events = new QVector<CharmEvt *>();
+    QVector<CharmEvt *> * events = new QVector<CharmEvt *>();
+
+    std::cout << line.toStdString().c_str() << std::endl;
+    QStringList lineList = line.split(" ");
+    int rectype = lineList.at(0).toInt();
+    if (rectype == BEGIN_PROCESSING)
+    {
+        mtype = lineList.at(1).toInt();
+        entry = lineList.at(2).toInt();
+        time = lineList.at(3).toLong();
+        event = lineList.at(4).toInt();
+        pe = lineList.at(5).toInt();
+        index = 6;
+        msglen = -1;
+        if (version >= 2.0)
+        {
+            msglen = lineList.at(index).toLong();
+            index++;
+        }
+        if (version >= 4.0)
+        {
+            recvTime = lineList.at(index).toLong();
+            index++;
+            for (int i = 0; i < 3; i++)
+            {
+                id[i] = lineList.at(index).toInt();
+                index++;
+            }
+        }
+        if (version >= 7.0)
+        {
+            id[3] = lineList.at(index).toInt();
+            index++;
+        }
+        if (version >= 6.5)
+        {
+            cpuStart = lineList.at(index).toLong();
+            index++;
+        }
+        if (version >= 6.6)
+        {
+            // PerfCount stuff... skip for now.
+        }
+
+        CharmEvt * evt = new CharmEvt(BEGIN_PROCESSING, time, pe);
+        evt->chare = entries->value(entry)->chare;
+        evt->entry = entry;
+        for (int i = 0; i < 4; i++)
+            evt->chareIndex[i] = id[i];
+        events_stack->push(evt);
+        chares->value(evt->chare)->indices->insert(evt->indexToString());
+    }
+    else if (rectype == END_PROCESSING)
+    {
+
+    }
+
 }
 
 // STS is never gzipped
@@ -42,15 +145,18 @@ void CharmImporter::readSts(QString dataFileName)
         }
         else if (lineList.at(0) == "CHARE")
         {
-            chares->insert(lineList.at(1).toInt(), lineList.at(2));
+            chares->insert(lineList.at(1).toInt(),
+                           new Chare(lineList.at(2)));
         }
         else if (lineList.at(0) == "VERSION")
         {
-            version = lineList.at(1);
+            version = lineList.at(1).toFloat();
         }
         else if (lineList.at(0) == "PROCESSORS")
         {
             processes = lineList.at(1).toInt();
         }
     }
+
+    stsfile.close();
 }

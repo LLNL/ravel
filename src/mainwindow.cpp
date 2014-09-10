@@ -386,6 +386,10 @@ void MainWindow::importTrace(QString dataFileName){
     }
     else
     {
+        otfoptions->origin = OTFImportOptions::OF_CHARM;
+        otfoptions->waitallMerge = false; // Not applicable
+        otfoptions->leapMerge = false; // Not applicable
+        otfoptions->isendCoalescing = false; // Not applicable
         connect(this, SIGNAL(operate(QString)), importWorker,
                 SLOT(doImportCharm(QString)));
     }
