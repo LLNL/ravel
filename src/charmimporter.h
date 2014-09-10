@@ -24,11 +24,12 @@ private:
 
     class Entry {
     public:
-        Entry(int _chare, QString _name)
-            : chare(_chare), name(_name) {}
+        Entry(int _chare, QString _name, int _msg)
+            : chare(_chare), name(_name), msgid(_msg) {}
 
         int chare;
         QString name;
+        int msgid;
     };
 
     class Chare {

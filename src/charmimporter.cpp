@@ -66,8 +66,8 @@ void CharmImporter::readLog(QString logFileName, bool gzipped)
 
 void CharmImporter::parseLine(QString line)
 {
-    int index, mtype, entry, event, pe, id[4];
-    long time, msglen, recvTime, cpuStart;
+    int index, mtype, entry, event, pe, numpes, id[4];
+    long time, msglen, sendTime, recvTime, cpuStart, cpuEnd;
     QStack<CharmEvt *> * events_stack = new QStack<CharmEvt *>();
     QVector<CharmEvt *> * processing_events = new QVector<CharmEvt *>();
     QVector<CharmEvt *> * events = new QVector<CharmEvt *>();
@@ -75,7 +75,31 @@ void CharmImporter::parseLine(QString line)
     std::cout << line.toStdString().c_str() << std::endl;
     QStringList lineList = line.split(" ");
     int rectype = lineList.at(0).toInt();
-    if (rectype == BEGIN_PROCESSING)
+    if (rectype == CREATION || rectype == CREATION_BCAST)
+    {
+        mtype = lineList.at(1).toInt();
+        entry = lineList.at(2).toInt();
+        time = lineList.at(3).toLong();
+        event = lineList.at(4).toInt();
+        pe = lineList.at(5).toInt();
+        msglen = -1;
+        index = 6;
+        if (version >= 2.0)
+        {
+            msglen = lineList.at(5).toLong();
+            index++;
+        }
+        if (version >= 5.0)
+        {
+            sendTime = lineList.at(index).toLong();
+            index++;
+        }
+        if (rectype == CREATION_BCAST)
+        {
+            numpes = lineList.at(index).toInt();
+        }
+    }
+    else if (rectype == BEGIN_PROCESSING)
     {
         mtype = lineList.at(1).toInt();
         entry = lineList.at(2).toInt();
@@ -124,8 +148,29 @@ void CharmImporter::parseLine(QString line)
     }
     else if (rectype == END_PROCESSING)
     {
-
+        mtype = lineList.at(1).toInt();
+        entry = lineList.at(2).toInt();
+        time = lineList.at(3).toLong();
+        event = lineList.at(4).toInt();
+        pe = lineList.at(5).toInt();
+        index = 6;
+        msglen = -1;
+        if (version >= 2.0)
+        {
+            msglen = lineList.at(index).toLong();
+            index++;
+        }
+        if (version >= 6.5)
+        {
+            cpuEnd = lineList.at(index).toLong();
+            index++;
+        }
+        if (version >= 6.6)
+        {
+            // PerfCount stuff... skip for now.
+        }
     }
+
 
 }
 
@@ -141,7 +186,8 @@ void CharmImporter::readSts(QString dataFileName)
         if (lineList.at(0) == "ENTRY" && lineList.at(1) == "CHARE")
         {
             entries->insert(lineList.at(2).toInt(),
-                            new Entry(lineList.at(4).toInt(), lineList.at(3)));
+                            new Entry(lineList.at(4).toInt(), lineList.at(3),
+                                      lineList.at(5).toInt()));
         }
         else if (lineList.at(0) == "CHARE")
         {
