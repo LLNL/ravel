@@ -29,6 +29,7 @@ public:
 
     Trace * importOTF(QString filename, OTFImportOptions * _options);
     Trace * importOTF2(QString filename, OTFImportOptions * _options);
+    Trace * importCharm(RawTrace *, OTFImportOptions * _options);
 
 signals:
     void finishRead();

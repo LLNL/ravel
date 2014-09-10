@@ -84,6 +84,18 @@ Trace * OTFConverter::importOTF2(QString filename, OTFImportOptions *_options)
     return trace;
 }
 
+Trace * OTFConverter::importCharm(RawTrace * rt, OTFImportOptions *_options)
+{
+    options = _options;
+
+    rawtrace = rt;
+    emit(finishRead());
+
+    convert();
+
+    return trace;
+}
+
 void OTFConverter::convert()
 {
     // Time the rest of this

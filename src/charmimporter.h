@@ -4,11 +4,14 @@
 #include <QString>
 #include <QMap>
 #include <QSet>
+#include <QLinkedList>
 #include <zlib.h>
 #include <sstream>
 #include <fstream>
 #include "otfimportoptions.h"
 #include "function.h"
+
+#include "rawtrace.h"
 
 class CharmImporter
 {
@@ -16,11 +19,14 @@ public:
     CharmImporter();
     ~CharmImporter();
     void importCharmLog(QString filename, OTFImportOptions *_options);
+    RawTrace * getRawTrace() { return rawtrace; }
 
 private:
     void readSts(QString dataFileName);
-    void readLog(QString logFileName, bool gzipped);
-    void parseLine(QString line);
+    void readLog(QString logFileName, bool gzipped, int pe);
+    void parseLine(QString line, int my_pe);
+    void processDefinitions();
+    void processMessages();
 
     class Entry {
     public:
@@ -44,14 +50,17 @@ private:
 
     class CharmEvt {
     public:
-        CharmEvt(int _type, unsigned long long _start, int _pe)
-            : evt_type(_type), enter(_start), pe(_pe),
+        CharmEvt(int _type, unsigned long long _start, int _pe,
+                 bool _leave = false)
+            : evt_type(_type), enter(_start), pe(_pe), leave(_leave),
               chare(-1), chareIndex({0, 0, 0, 0}), entry(-1) {}
 
         int evt_type;
         unsigned long long enter;
         unsigned long long exit;
         int pe;
+        bool leave;
+
         int chare;
         int chareIndex[4];
         int entry;
@@ -65,11 +74,34 @@ private:
         }
     };
 
+    class CharmMsg {
+    public:
+        CharmMsg(int _mtype, long _mlen, int _pe, int _entry, int _event, int _mype)
+            : sendtime(0), recvtime(0), msg_type(_mtype), msg_len(_mlen),
+              pe(_pe), entry(_entry), event(_event), my_pe(_mype) {}
+
+        unsigned long long sendtime;
+        unsigned long long recvtime;
+        int msg_type;
+        long msg_len;
+        int pe;
+        int entry;
+        int event;
+        int my_pe;
+    };
+
+    bool matchingMessages(CharmMsg * send, CharmMsg * recv);
+
     QMap<int, Chare *> * chares;
     QMap<int, Entry *> * entries;
 
     float version;
     int processes;
+
+    RawTrace * rawtrace;
+
+    QVector<QLinkedList<CharmMsg *> *> * unmatched_recvs; // map event to recv
+    QVector<QLinkedList<CharmMsg *> *> * unmatched_sends;
 
     static const int CREATION = 1;
     static const int BEGIN_PROCESSING = 2;

@@ -24,19 +24,23 @@ void OTFImportFunctor::doImportCharm(QString dataFileName)
 
     CharmImporter * importer = new CharmImporter();
     importer->importCharmLog(dataFileName, options);
-    /*
-    connect(importer, SIGNAL(finishRead()), this, SLOT(finishInitialRead()));
-    connect(importer, SIGNAL(matchingUpdate(int, QString)), this,
+    RawTrace * rt = importer->getRawTrace();
+
+    OTFConverter * converter = new OTFConverter();
+
+    connect(converter, SIGNAL(finishRead()), this, SLOT(finishInitialRead()));
+    connect(converter, SIGNAL(matchingUpdate(int, QString)), this,
             SLOT(updateMatching(int, QString)));
-    Trace* trace = importer->importOTF(dataFileName, options);
+    Trace* trace = converter->importCharm(rt, options);
     delete importer;
+    delete converter;
     connect(trace, SIGNAL(updatePreprocess(int, QString)), this,
             SLOT(updatePreprocess(int, QString)));
     connect(trace, SIGNAL(updateClustering(int)), this,
             SLOT(updateClustering(int)));
     connect(trace, SIGNAL(startClustering()), this, SLOT(switchProgress()));
     trace->preprocess(options);
-    */
+
 
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "Total trace: ";

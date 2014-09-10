@@ -158,9 +158,9 @@ private:
     //QSet<RecurseInfo *> * riTracker;
     //QSet<QList<Partition *> *> * riChildrenTracker;
 
-    static const int partition_portion = 45;
-    static const int lateness_portion = 35;
-    static const int steps_portion = 20;
+    static const int partition_portion = 25;
+    static const int lateness_portion = 45;
+    static const int steps_portion = 30;
     static const QString collectives_string;
 };
 
