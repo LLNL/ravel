@@ -114,7 +114,6 @@ void CharmImporter::parseLine(QString line, int my_pe)
     QLinkedList<CharmMsg *> * sends = new QLinkedList<CharmMsg *>();
     QLinkedList<CharmMsg *> * receives = new QLinkedList<CharmMsg *>();
 
-    std::cout << line.toStdString().c_str() << std::endl;
     QStringList lineList = line.split(" ");
     int rectype = lineList.at(0).toInt();
     if (rectype == CREATION || rectype == CREATION_BCAST)
@@ -158,18 +157,21 @@ void CharmImporter::parseLine(QString line, int my_pe)
             msg->sendtime = time;
             sends->append(msg);
             unmatched_sends->at(pe)->append(msg);
+            std::cout << "Send on " << pe << " of " << entries->value(entry)->name.toStdString().c_str() << std::endl;
+            std::cout << "     Event: " << event << ", msg_type: " << mtype << std::endl;
         }
         else
         {
-            /*
-            for (int i = 0; i < numpes; i++)
+            /*for (int i = 0; i < numpes; i++)
             {
                 CharmMsg * msg = new CharmMsg(mtype, msglen, pe, entry, event, my_pe);
                 msg->sendtime = time;
                 sends->append(msg);
                 unmatched_sends->at(pe)->append(msg);
-            }
-            */
+            }*/
+            std::cout << "Bcast on " << pe << " of " << entries->value(entry)->name.toStdString().c_str() << std::endl;
+            std::cout << "     Event: " << event << ", msg_type: " << mtype << std::endl;
+
         }
 
         rawtrace->events->at(my_pe)->append(new EventRecord(my_pe,
@@ -230,6 +232,13 @@ void CharmImporter::parseLine(QString line, int my_pe)
         events_stack->push(evt);
         chares->value(evt->chare)->indices->insert(evt->indexToString());
 
+
+        // Real Event
+        rawtrace->events->at(my_pe)->append(new EventRecord(my_pe,
+                                                            time,
+                                                            entry,
+                                                            true));
+
         // RECV
         rawtrace->events->at(my_pe)->append(new EventRecord(my_pe,
                                                             time,
@@ -239,12 +248,6 @@ void CharmImporter::parseLine(QString line, int my_pe)
                                                             time,
                                                             999999,
                                                             false));
-
-        // Real Event
-        rawtrace->events->at(my_pe)->append(new EventRecord(my_pe,
-                                                            time + 1,
-                                                            entry,
-                                                            true));
 
         CharmMsg * msg = new CharmMsg(mtype, msglen, pe, entry, event, my_pe);
         msg->recvtime = time;
@@ -286,6 +289,10 @@ void CharmImporter::parseLine(QString line, int my_pe)
                                                             entry,
                                                             false));
     }
+    else if (rectype == END_PROCESSING)
+    {
+        std::cout << "Message Recv!" << std::endl;
+    }
 
 
 }
@@ -298,51 +305,9 @@ void CharmImporter::processMessages()
     QLinkedList<CharmMsg *> * sends = NULL;
     QLinkedList<CharmMsg *> * recvs = NULL;
 
-    // Sends
-    /*
-    for (int i = 0; i < processes; i++)
-    {
-        std::cout << "Trying sends of pe " << i << std::endl;
-        sends = unmatched_sends->at(i);
-
-        for (QLinkedList<CharmMsg *>::Iterator send = sends->begin();
-             send != sends->end(); ++send)
-        {
-            match = NULL;
-            recvs = unmatched_recvs->at((*send)->pe);
-            for (QLinkedList<CharmMsg *>::Iterator recv = recvs->begin();
-                 recv != recvs->end(); ++recv)
-            {
-                if (matchingMessages(*send, *recv))
-                {
-                    match = *recv;
-                    break;
-                }
-            }
-
-            if (match)
-            {
-                CommRecord * cr = new CommRecord((*send)->pe,
-                                                 (*send)->sendtime,
-                                                 match->my_pe,
-                                                 match->recvtime,
-                                                 match->msg_len,
-                                                 match->event);
-                rawtrace->messages->at(i)->append(cr);
-
-            }
-            else
-            {
-                std::cout << "     No match" << std::endl;
-            }
-        }
-    }
-    */
-
     // Receives
     for (int i = 0; i < processes; i++)
     {
-        std::cout << "Trying recvs of pe " << i << std::endl;
         recvs = unmatched_recvs->at(i);
 
         for (QLinkedList<CharmMsg *>::Iterator recv = recvs->begin();
@@ -360,7 +325,7 @@ void CharmImporter::processMessages()
                 }
             }
 
-            if (match)
+            if (match && match->my_pe != (*recv)->my_pe) // Skip on pe for now -- Ravel bug for single process partition/message
             {
                 CommRecord * cr = new CommRecord(match->pe,
                                                  match->sendtime,
@@ -371,6 +336,12 @@ void CharmImporter::processMessages()
                 rawtrace->messages_r->at(i)->append(cr);
                 rawtrace->messages->at(match->my_pe)->append(cr);// Sort later
 
+            }
+            else
+            {
+                std::cout << "No match for receive on " << i << " from " << (*recv)->pe << " with entry ";
+                std::cout << entries->value((*recv)->entry)->name.toStdString().c_str() << std::endl;
+                std::cout << "     Event: " << (*recv)->event << ", msg_type: " << (*recv)->msg_type << std::endl;
             }
         }
     }
@@ -387,8 +358,8 @@ void CharmImporter::processMessages()
 bool CharmImporter::matchingMessages(CharmMsg * send, CharmMsg * recv)
 {
     if (send->entry == recv->entry && send->event == recv->event
-            && send->pe == recv->pe //&& send->msg_len == recv->msg_len
-            && send->msg_type == recv->msg_type)
+            && send->pe == recv->pe) //&& send->msg_len == recv->msg_len
+            //&& send->msg_type == recv->msg_type)
         return true;
     return false;
 }
@@ -404,9 +375,13 @@ void CharmImporter::readSts(QString dataFileName)
         QStringList lineList = QString::fromStdString(line).split(" ");
         if (lineList.at(0) == "ENTRY" && lineList.at(1) == "CHARE")
         {
+            int len = lineList.length();
+            QString name = lineList.at(3);
+            for (int i = 4; i < len - 2; i++)
+                name += " " + lineList.at(i);
             entries->insert(lineList.at(2).toInt(),
-                            new Entry(lineList.at(4).toInt(), lineList.at(3),
-                                      lineList.at(5).toInt()));
+                            new Entry(lineList.at(len-2).toInt(), name,
+                                      lineList.at(len-1).toInt()));
         }
         else if (lineList.at(0) == "CHARE")
         {

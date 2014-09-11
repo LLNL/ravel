@@ -772,6 +772,8 @@ void Trace::assignSteps()
     std::cout << "Num partitions " << partitions->length() << std::endl;
 
 
+    output_graph("/home/kate/charmgraph.dot");
+
     // Calculate Step metrics
     std::cout << "Calculating lateness..." << std::endl;
     traceTimer.start();
