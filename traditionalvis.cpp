@@ -909,8 +909,8 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
         // Replace this with something else that handles tree
         //drawnEvents[*evt] = QRect(x, y, w, h);
 
-        int drawnEnter = std::max(startTime, evt->enter);
-        int available_w = (evt->getVisibleEnd(drawnEnter)
+        unsigned long long drawnEnter = std::max(startTime, evt->enter);
+        unsigned long long available_w = (evt->getVisibleEnd(drawnEnter)
                            - drawnEnter)
                             / 1.0 / timeSpan * rect().width() + 2;
 
