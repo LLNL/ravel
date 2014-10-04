@@ -105,19 +105,26 @@ HOME = $$system(echo $HOME)
 
 unix:!macx: LIBS += -lotf -lz
 
+unix: INCLUDEPATH += $${HOME}/opt/include
+unix: DEPENDPATH += $${HOME}/opt/include
 
-unix: INCLUDEPATH += /opt/otf2/include
-unix: DEPENDPATH += /opt/otf2/include
+unix:!macx: INCLUDEPATH += /opt/otf2/include
+unix:!macx: DEPENDPATH += /opt/otf2/include
 
 unix:!macx: LIBS += -L/opt/otf2/lib -lotf2
 
-macx: LIBS += -L$${HOME}/opt/lib/ -lopen-trace-format
+macx: LIBS += -lz
+macx: LIBS += -L$${HOME}/opt/lib -lopen-trace-format -lotf2
 
 macx: INCLUDEPATH += $${HOME}/opt/include/open-trace-format/
 macx: DEPENDPATH += $${HOME}/opt/include/open-trace-format/
 
-unix: LIBS += -L$${HOME}/opt/lib -lmuster
+macx: INCLUDEPATH += $${HOME}/opt/include/otf2/
+macx: DEPENDPATH += $${HOME}/opt/include/otf2/
 
-unix: INCLUDEPATH += $${HOME}/opt/include
-unix: DEPENDPATH += $${HOME}/opt/include
+unix:!macx: LIBS += -L$${HOME}/opt/lib -lmuster
+
+macx: LIBS += -L$${HOME}/opt/muster/lib -lmuster
+macx: INCLUDEPATH += $${HOME}/opt/muster/include
+macx: DEPENDPATH += $${HOME}/opt/muster/include
 

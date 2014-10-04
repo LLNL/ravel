@@ -1,5 +1,6 @@
 #include "viswidget.h"
 #include <iostream>
+#include <math.h>
 
 VisWidget::VisWidget(QWidget *parent, VisOptions * _options) :
     QGLWidget(QGLFormat(QGL::SampleBuffers), parent),
@@ -242,11 +243,11 @@ QString VisWidget::drawTimescale(QPainter * painter, unsigned long long start,
     {
         tick_base = tick - tick_span;
         int span_unit = (int) floor(log10(tick_span));
-        tick_divisor = pow10(3 * floor(span_unit / 3));
+        tick_divisor = pow(3 * floor(span_unit / 3), 10);
         if (!tick_divisor)
             tick_divisor = 1;
         seconds = systemlocale.toString(tick_base
-                                        / pow10((double) trace->units),
+                                        / pow((double) trace->units, 10),
                                         'f', trace->units - span_unit)
                                         + "s + "
                                         + getUnits(trace->units

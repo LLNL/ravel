@@ -251,7 +251,7 @@ void MainWindow::importOTFbyGUI()
     repaint();
     importTrace(dataFileName);
 
-    QStringList fileinfo = dataFileName.split("\/");
+    QStringList fileinfo = dataFileName.split('\/');
     int fisize = fileinfo.size();
     if (fisize > 1)
         activetracename = fileinfo[fisize-2] + "/" + fileinfo[fisize-1];
