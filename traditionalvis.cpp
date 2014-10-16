@@ -670,8 +670,8 @@ void TraditionalVis::paintEvents(QPainter *painter)
 
                     drawnEvents[*evt] = QRect(x, y, w, h);
 
-                    int drawnEnter = std::max(startTime, (*evt)->enter);
-                    int available_w = ((*evt)->exit - drawnEnter)
+                    unsigned long long drawnEnter = std::max(startTime, (*evt)->enter);
+                    unsigned long long available_w = ((*evt)->exit - drawnEnter)
                                         / 1.0 / timeSpan * rect().width() + 2;
                     QString fxnName = ((*(trace->functions))[(*evt)->function])->name;
                     QRect fxnRect = painter->fontMetrics().boundingRect(fxnName);

@@ -193,6 +193,23 @@
      </property>
     </widget>
    </item>
+   <item>
+    <widget class="QCheckBox" name="messageSizeCheckBox">
+     <property name="toolTip">
+      <string>Some trace utilities may store message size in only one place</string>
+     </property>
+     <property name="text">
+      <string>send/recv must have the same message size</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="Line" name="line_3">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
    <item alignment="Qt::AlignBottom">
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="orientation">

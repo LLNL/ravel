@@ -29,6 +29,8 @@ ImportOptionsDialog::ImportOptionsDialog(QWidget *parent,
             SLOT(onCluster(bool)));
     connect(ui->isendCheckbox, SIGNAL(clicked(bool)), this,
             SLOT(onIsend(bool)));
+    connect(ui->messageSizeCheckBox, SIGNAL(clicked(bool)), this,
+            SLOT(onMessageSize(bool)));
 
     setUIState();
 }
@@ -92,6 +94,12 @@ void ImportOptionsDialog::onIsend(bool coalesce)
     options->isendCoalescing = coalesce;
 }
 
+
+void ImportOptionsDialog::onMessageSize(bool enforce)
+{
+    options->enforceMessageSizes = enforce;
+}
+
 void ImportOptionsDialog::onFunctionEdit(const QString& text)
 {
     options->partitionFunction = text;
@@ -138,6 +146,13 @@ void ImportOptionsDialog::setUIState()
         ui->isendCheckbox->setChecked(true);
     else
         ui->isendCheckbox->setChecked(false);
+
+
+    if (options->enforceMessageSizes)
+        ui->messageSizeCheckBox->setChecked(true);
+    else
+        ui->messageSizeCheckBox->setChecked(false);
+
 
     ui->functionEdit->setText(options->partitionFunction);
 

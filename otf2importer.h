@@ -15,7 +15,7 @@ class OTF2Importer
 public:
     OTF2Importer();
     ~OTF2Importer();
-    RawTrace * importOTF2(const char* otf_file);
+    RawTrace * importOTF2(const char* otf_file, bool _enforceMessageSize);
 
     class OTF2IsendComplete {
     public:
@@ -255,6 +255,8 @@ public:
     static bool compareComms(CommRecord * comm, unsigned int sender,
                              unsigned int receiver, unsigned int tag,
                              unsigned int size);
+    static bool compareComms(CommRecord * comm, unsigned int sender,
+                             unsigned int receiver, unsigned int tag);
 
 
     static uint64_t convertTime(void* userData, OTF2_TimeStamp time);
@@ -276,6 +278,8 @@ private:
     void setDefCallbacks();
     void setEvtCallbacks();
     void processCollectives();
+
+    bool enforceMessageSize;
 
     OTF2_Reader * otfReader;
     OTF2_GlobalDefReaderCallbacks * global_def_callbacks;

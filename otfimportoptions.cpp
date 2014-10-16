@@ -9,6 +9,7 @@ OTFImportOptions::OTFImportOptions(bool _waitall, bool _leap, bool _skip,
       globalMerge(true),
       cluster(true),
       isendCoalescing(false),
+      enforceMessageSizes(false),
       partitionFunction(_fxn),
       origin(OF_NONE)
 {
@@ -23,5 +24,6 @@ OTFImportOptions::OTFImportOptions(const OTFImportOptions& copy)
     globalMerge = copy.globalMerge;
     cluster = copy.cluster;
     isendCoalescing = copy.isendCoalescing;
+    enforceMessageSizes = copy.enforceMessageSizes;
     partitionFunction = copy.partitionFunction;
 }

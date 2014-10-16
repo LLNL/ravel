@@ -16,7 +16,7 @@ class OTFImporter
 public:
     OTFImporter();
     ~OTFImporter();
-    RawTrace * importOTF(const char* otf_file);
+    RawTrace * importOTF(const char* otf_file, bool _enforceMessageSize);
 
     // Handlers per OTF
     static int handleDefTimerResolution(void * userData, uint32_t stream,
@@ -75,6 +75,8 @@ public:
     static bool compareComms(CommRecord * comm, unsigned int sender,
                              unsigned int receiver, unsigned int tag,
                              unsigned int size);
+    static bool compareComms(CommRecord * comm, unsigned int sender,
+                             unsigned int receiver, unsigned int tag);
 
 
     static uint64_t convertTime(void* userData, uint64_t time);
@@ -91,6 +93,8 @@ public:
 
 private:
     void setHandlers();
+
+    bool enforceMessageSize;
 
     OTF_FileManager * fileManager;
     OTF_Reader * otfReader;

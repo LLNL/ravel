@@ -26,7 +26,8 @@ Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
 
     // Start with the rawtrace similar to what we got from PARAVER
     OTFImporter * importer = new OTFImporter();
-    rawtrace = importer->importOTF(filename.toStdString().c_str());
+    rawtrace = importer->importOTF(filename.toStdString().c_str(),
+                                   options->enforceMessageSizes);
     emit(finishRead());
 
     convert();
@@ -42,7 +43,8 @@ Trace * OTFConverter::importOTF2(QString filename, OTFImportOptions *_options)
 
     // Start with the rawtrace similar to what we got from PARAVER
     OTF2Importer * importer = new OTF2Importer();
-    rawtrace = importer->importOTF2(filename.toStdString().c_str());
+    rawtrace = importer->importOTF2(filename.toStdString().c_str(),
+                                    options->enforceMessageSizes);
     emit(finishRead());
 
     convert();
@@ -645,6 +647,16 @@ void OTFConverter::matchEvents()
         delete *ac;
     }
     delete allcomms;
+
+    // Check partitions
+    /*int part_counter = 0;
+    for (QList<Partition *>::Iterator part = trace->partitions->begin();
+         part != trace->partitions->end(); ++part)
+    {
+        if ((*part)->events->size() < 1)
+            std::cout << "Empty partition!  number: " << part_counter << std::endl;
+        part_counter++;
+    }*/
 }
 
 // We only do this with comm events right now, so we know we won't have nesting

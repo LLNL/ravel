@@ -21,6 +21,7 @@ public:
     bool globalMerge; // merge across steps
     bool cluster; // clustering on gnomes should be done
     bool isendCoalescing; // group consecutive isends
+    bool enforceMessageSizes; // send/recv size must match
     OriginFormat origin;
     QString partitionFunction;
 };

@@ -28,6 +28,7 @@ public slots:
     void onLeapSkip(bool skip);
     void onGlobalMerge(bool merge);
     void onIsend(bool coalesce);
+    void onMessageSize(bool enforce);
     void onFunctionEdit(const QString& text);
     void onCluster(bool cluster);
 
