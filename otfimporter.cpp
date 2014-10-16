@@ -14,6 +14,7 @@ OTFImporter::OTFImporter()
       exitcount(0),
       sendcount(0),
       recvcount(0),
+      enforceMessageSize(false),
       fileManager(NULL),
       otfReader(NULL),
       handlerArray(NULL),

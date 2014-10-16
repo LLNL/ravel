@@ -15,6 +15,7 @@ OTF2Importer::OTF2Importer()
       exitcount(0),
       sendcount(0),
       recvcount(0),
+      enforceMessageSize(false),
       otfReader(NULL),
       global_def_callbacks(NULL),
       global_evt_callbacks(NULL),
@@ -207,6 +208,7 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file, bool _enforceMessageSi
 
     // Setup
     otfReader = OTF2_Reader_Open(otf_file);
+    OTF2_Reader_SetSerialCollectiveCallbacks(otfReader);
     OTF2_GlobalDefReader * global_def_reader = OTF2_Reader_GetGlobalDefReader(otfReader);
     global_def_callbacks = OTF2_GlobalDefReaderCallbacks_New();
 
@@ -436,13 +438,13 @@ void OTF2Importer::processDefinitions()
     for (QMap<OTF2_LocationRef, OTF2Location *>::Iterator loc = locationMap->begin();
          loc != locationMap->end(); ++loc)
     {
-        QString group = stringMap->value((locationGroupMap->value((loc.value())->group))->name);
-        if (group.startsWith("MPI Rank "))
+        OTF2_LocationGroupType group = (locationGroupMap->value((loc.value())->group))->type;
+        if (group == OTF2_LOCATION_GROUP_TYPE_PROCESS)
         {
-            QString name = stringMap->value((loc.value())->name);
-            if (name.startsWith("Master thread"))
+            OTF2_LocationType type = (loc.value())->type;
+            if (type == OTF2_LOCATION_TYPE_CPU_THREAD)
             {
-                int process = group.remove(0, 9).toInt();
+                int process = (loc.value())->self;
                 locationIndexMap->insert(loc.key(), process);
                 num_processes++;
             }

@@ -56,8 +56,8 @@ public:
     public:
         OTF2Location(OTF2_LocationRef _self,
                      OTF2_StringRef _name,
-                     uint64_t _num,
                      OTF2_LocationType _type,
+                     uint64_t _num,
                      OTF2_LocationGroupRef _group)
             : self(_self), name(_name), num_events(_num),
               type(_type), group(_group) {}
