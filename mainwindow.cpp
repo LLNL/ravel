@@ -11,6 +11,7 @@
 #include "verticallabel.h"
 
 #include <QFileDialog>
+#include <QMessageBox>
 #include "qtconcurrentrun.h"
 #include <iostream>
 #include <string>
@@ -310,14 +311,22 @@ void MainWindow::traceFinished(Trace * trace)
 {
     progress->close();
 
+    delete importWorker;
+    delete progress;
+    delete importThread;
+
+    if (trace->partitions->size() < 1)
+    {
+        QMessageBox msgBox;
+        msgBox.setText("Error: No communication phases found. Abandoning trace.");
+        msgBox.exec();
+        return;
+    }
+
     this->traces.push_back(trace);
     if (activeTrace >= 0)
         ui->menuTraces->actions().at(activeTrace)->setChecked(false);
     activeTrace = traces.size() - 1;
-
-    delete importWorker;
-    delete progress;
-    delete importThread;
 
     trace->name = activetracename;
     QAction * action = ui->menuTraces->addAction(activetracename);
