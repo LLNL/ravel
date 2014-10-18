@@ -36,13 +36,13 @@ public:
     unsigned long long enter;
     unsigned long long exit;
     int function;
-    int process;
+    int task;
     int depth;
 };
 
-static bool eventProcessLessThan(const Event * evt1, const Event * evt2)
+static bool eventTaskLessThan(const Event * evt1, const Event * evt2)
 {
-    return evt1->process < evt2->process;
+    return evt1->task < evt2->task;
 }
 
 #endif // EVENT_H

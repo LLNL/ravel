@@ -21,6 +21,7 @@ OTFImporter::OTFImporter()
       unmatched_recvs(new QVector<QLinkedList<CommRecord *> *>()),
       unmatched_sends(new QVector<QLinkedList<CommRecord *> *>()),
       rawtrace(NULL),
+      tasks(NULL),
       functionGroups(NULL),
       functions(NULL),
       communicators(NULL),
@@ -85,9 +86,10 @@ RawTrace * OTFImporter::importOTF(const char* otf_file, bool _enforceMessageSize
 
     setHandlers();
 
+    tasks = new QMap<int, Task *>();
     functionGroups = new QMap<int, QString>();
     functions = new QMap<int, Function *>();
-    communicators = new QMap<int, Communicator *>();
+    taskgroups = new QMap<int, TaskGroup *>();
     collective_definitions = new QMap<int, OTFCollective *>();
     collectives = new QMap<unsigned long long, CollectiveRecord *>();
     counters = new QMap<unsigned int, Counter *>();
@@ -96,10 +98,11 @@ RawTrace * OTFImporter::importOTF(const char* otf_file, bool _enforceMessageSize
     OTF_Reader_readDefinitions(otfReader, handlerArray);
 
     rawtrace = new RawTrace(num_processes);
+    rawtrace->tasks = tasks;
     rawtrace->second_magnitude = second_magnitude;
     rawtrace->functions = functions;
     rawtrace->functionGroups = functionGroups;
-    rawtrace->communicators = communicators;
+    rawtrace->taskgroups = taskgroups;
     rawtrace->collective_definitions = collective_definitions;
     rawtrace->collectives = collectives;
     rawtrace->counters = counters;
@@ -327,10 +330,9 @@ int OTFImporter::handleDefProcess(void * userData, uint32_t stream,
 {
     Q_UNUSED(stream);
     Q_UNUSED(parent);
-    Q_UNUSED(name);
-    Q_UNUSED(process);
 
-    ((OTFImporter*) userData)->num_processes++;
+    ((OTFImporter *) userData)->tasks->insert(process, new Task(process, QString(name)));
+    ((OTFImporter *) userData)->num_processes++;
     return 0;
 }
 
@@ -400,8 +402,6 @@ int OTFImporter::handleSend(void * userData, uint64_t time, uint32_t sender,
                             uint32_t length, uint32_t source)
 {
     Q_UNUSED(source);
-    Q_UNUSED(group);
-
 
     // Every time we find a send, check the unmatched recvs
     // to see if it has a match
@@ -431,7 +431,7 @@ int OTFImporter::handleSend(void * userData, uint64_t time, uint32_t sender,
     }
     else
     {
-        cr = new CommRecord(sender - 1, time, receiver - 1, 0, length, type);
+        cr = new CommRecord(sender - 1, time, receiver - 1, 0, length, type, group);
         (*((((OTFImporter*) userData)->rawtrace)->messages))[sender - 1]->append(cr);
         (*(((OTFImporter *) userData)->unmatched_sends))[sender - 1]->append(cr);
     }
@@ -444,7 +444,6 @@ int OTFImporter::handleRecv(void * userData, uint64_t time, uint32_t receiver,
                             uint32_t length, uint32_t source)
 {
     Q_UNUSED(source);
-    Q_UNUSED(group);
 
     // Look for match in unmatched_sends
     time = convertTime(userData, time);
@@ -471,7 +470,7 @@ int OTFImporter::handleRecv(void * userData, uint64_t time, uint32_t receiver,
     }
     else
     {
-        cr = new CommRecord(sender - 1, 0, receiver - 1, time, length, type);
+        cr = new CommRecord(sender - 1, 0, receiver - 1, time, length, type, group);
         ((*(((OTFImporter*) userData)->unmatched_recvs))[sender - 1])->append(cr);
     }
     (*((((OTFImporter*) userData)->rawtrace)->messages_r))[receiver - 1]->append(cr);
@@ -500,12 +499,13 @@ int OTFImporter::handleDefProcessGroup(void * userData, uint32_t stream,
     if (qname.contains("MPI_COMM_SELF")) // Probably won't use this
         return 0;
 
-    Communicator * c = new Communicator(procGroup, qname);
+    TaskGroup * t = new TaskGroup(procGroup, qname);
     for (int i = 0; i < numberOfProcs; i++)
     {
-        c->processes->append(procs[i]);
+        t->tasks->append(procs[i]);
+        t->taskorder->insert(procs[i], i);
     }
-    (*(((OTFImporter*) userData)->communicators))[procGroup] = c;
+    (*(((OTFImporter*) userData)->taskgroups))[procGroup] = t;
 
     return 0;
 }

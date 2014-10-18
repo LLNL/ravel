@@ -39,12 +39,12 @@ signals:
     void repaintAll();
     void stepsChanged(float start, float stop, bool jump);
     void eventClicked(Event * evt, bool aggregate, bool overdraw);
-    void processesSelected(QList<int> processes, Gnome * gnome);
+    void tasksSelected(QList<int> processes, Gnome * gnome);
 
 public slots:
     virtual void setSteps(float start, float stop, bool jump = false);
     virtual void selectEvent(Event *, bool, bool);
-    virtual void selectProcesses(QList<int> processes, Gnome * gnome);
+    virtual void selectTasks(QList<int> tasks, Gnome * gnome);
 
 protected:
     void initializeGL();
@@ -74,7 +74,7 @@ protected:
 
     // Interactions
     QMap<Event *, QRect> drawnEvents;
-    QList<int> selected_processes;
+    QList<int> selected_tasks;
     Gnome * selected_gnome;
     Event * selected_event;
     bool selected_aggregate;

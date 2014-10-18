@@ -1,9 +1,9 @@
 #include "p2pevent.h"
 
 P2PEvent::P2PEvent(unsigned long long _enter, unsigned long long _exit,
-                   int _function, int _process, int _phase,
+                   int _function, int _task, int _phase,
                    QVector<Message *> *_messages)
-    : CommEvent(_enter, _exit, _function, _process, _phase),
+    : CommEvent(_enter, _exit, _function, _task, _phase),
       subevents(NULL),
       messages(_messages),
       is_recv(false)
@@ -12,7 +12,7 @@ P2PEvent::P2PEvent(unsigned long long _enter, unsigned long long _exit,
 
 P2PEvent::P2PEvent(QList<P2PEvent *> * _subevents)
     : CommEvent(_subevents->first()->enter, _subevents->last()->exit,
-                _subevents->first()->function, _subevents->first()->process,
+                _subevents->first()->function, _subevents->first()->task,
                 _subevents->first()->phase),
       subevents(_subevents),
       messages(new QVector<Message *>()),
@@ -122,11 +122,11 @@ void P2PEvent::initialize_strides(QList<CommEvent *> * stride_events,
     {
         stride_events->append(this);
 
-        // The next one in the process is a stride child
+        // The next one in the task is a stride child
         set_stride_relationships(this);
 
         // Follow messages to their receives and then along
-        // the new process to find more stride children
+        // the new task to find more stride children
         for (QVector<Message *>::Iterator msg = messages->begin();
              msg != messages->end(); ++msg)
         {
@@ -138,7 +138,7 @@ void P2PEvent::initialize_strides(QList<CommEvent *> * stride_events,
         recv_events->append(this);
         if (comm_prev && comm_prev->partition == partition)
             last_send = comm_prev;
-        // Set last_send based on process
+        // Set last_send based on task
         while (last_send && last_send->isReceive())
         {
             last_send = last_send->comm_prev;
@@ -147,7 +147,7 @@ void P2PEvent::initialize_strides(QList<CommEvent *> * stride_events,
             last_send = NULL;
 
         next_send = comm_next;
-        // Set next_send based on process
+        // Set next_send based on task
         while (next_send && next_send->isReceive())
         {
             next_send = next_send->comm_next;
@@ -160,18 +160,18 @@ void P2PEvent::initialize_strides(QList<CommEvent *> * stride_events,
 
 void P2PEvent::set_stride_relationships(CommEvent * base)
 {
-    CommEvent * process_next = base->comm_next;
+    CommEvent * task_next = base->comm_next;
 
     // while we have receives
-    while (process_next && process_next->isReceive())
+    while (task_next && task_next->isReceive())
     {
-        process_next = process_next->comm_next;
+        task_next = task_next->comm_next;
     }
 
-    if (process_next && process_next->partition == partition)
+    if (task_next && task_next->partition == partition)
     {
-        stride_children->insert(process_next);
-        process_next->stride_parents->insert(this);
+        stride_children->insert(task_next);
+        task_next->stride_parents->insert(this);
     }
 }
 
@@ -283,15 +283,15 @@ void P2PEvent::addComms(QSet<CommBundle *> * bundleset)
         bundleset->insert(*msg);
 }
 
-QList<int> P2PEvent::neighborProcesses()
+QList<int> P2PEvent::neighborTasks()
 {
     QSet<int> neighbors = QSet<int>();
     for (QVector<Message *>::Iterator msg = messages->begin();
          msg != messages->end(); ++msg)
     {
-        neighbors.insert((*msg)->receiver->process);
-        neighbors.insert((*msg)->sender->process);
+        neighbors.insert((*msg)->receiver->task);
+        neighbors.insert((*msg)->sender->task);
     }
-    neighbors.remove(process);
+    neighbors.remove(task);
     return neighbors.toList();
 }

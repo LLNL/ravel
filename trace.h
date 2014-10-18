@@ -1,6 +1,7 @@
 #ifndef TRACE_H
 #define TRACE_H
 
+#include "task.h"
 #include "event.h"
 #include "commevent.h"
 #include "p2pevent.h"
@@ -9,7 +10,7 @@
 #include "rpartition.h"
 #include "otfimportoptions.h"
 #include "gnome.h"
-#include "communicator.h"
+#include "taskgroup.h"
 #include "otfcollective.h"
 #include <QMap>
 #include <QVector>
@@ -21,7 +22,7 @@ class Trace : public QObject
 {
     Q_OBJECT
 public:
-    Trace(int np);
+    Trace(int nt);
     ~Trace();
 
     void preprocess(OTFImportOptions * _options);
@@ -29,10 +30,10 @@ public:
     void assignSteps();
     void gnomify();
     void mergePartitions(QList<QList<Partition *> *> * components);
-    Event * findEvent(int process, unsigned long long time);
+    Event * findEvent(int task, unsigned long long time);
 
     QString name;
-    int num_processes;
+    int num_tasks;
     int units;
 
     QList<Partition *> * partitions;
@@ -47,7 +48,8 @@ public:
     QMap<int, QString> * functionGroups;
     QMap<int, Function *> * functions;
 
-    QMap<int, Communicator *> * communicators;
+    QMap<int, Task *> * tasks;
+    QMap<int, TaskGroup *> * taskgroups;
     QMap<int, OTFCollective *> * collective_definitions;
 
     QMap<unsigned long long, CollectiveRecord *> * collectives;

@@ -34,8 +34,8 @@ void TraditionalVis::setTrace(Trace * t)
     // Initial conditions
     startStep = 0;
     int stopStep = startStep + initStepSpan;
-    startProcess = 0;
-    processSpan = trace->num_processes;
+    startTask = 0;
+    taskSpan = trace->num_tasks;
     startPartition = 0;
 
     // Determine/save time information
@@ -159,22 +159,22 @@ void TraditionalVis::rightDrag(QMouseEvent * event)
 
     if (pressy < event->y())
     {
-        startProcess = startProcess + processSpan * pressy
+        startTask = startTask + taskSpan * pressy
                 / (rect().height() - timescaleHeight);
-        processSpan = processSpan * (event->y() - pressy)
+        taskSpan = taskSpan * (event->y() - pressy)
                 / (rect().height() - timescaleHeight);
     }
     else
     {
-        startProcess = startProcess + processSpan * event->y()
+        startTask = startTask + taskSpan * event->y()
                 / (rect().height() - timescaleHeight);
-        processSpan = processSpan * (pressy - event->y())
+        taskSpan = taskSpan * (pressy - event->y())
                 / (rect().height() - timescaleHeight);
     }
-    if (startProcess + processSpan > trace->num_processes)
-        startProcess = trace->num_processes - processSpan;
-    if (startProcess < 0)
-        startProcess = 0;
+    if (startTask + taskSpan > trace->num_tasks)
+        startTask = trace->num_tasks - taskSpan;
+    if (startTask < 0)
+        startTask = 0;
 
 
     repaint();
@@ -194,17 +194,17 @@ void TraditionalVis::mouseMoveEvent(QMouseEvent * event)
         int diffx = mousex - event->x();
         int diffy = mousey - event->y();
         startTime += timeSpan / 1.0 / rect().width() * diffx;
-        startProcess += diffy / 1.0 / processheight;
+        startTask += diffy / 1.0 / taskheight;
 
         if (startTime < minTime)
             startTime = minTime;
         if (startTime > maxTime)
             startTime = maxTime;
 
-        if (startProcess + processSpan > trace->num_processes)
-            startProcess = trace->num_processes - processSpan;
-        if (startProcess < 0)
-            startProcess = 0;
+        if (startTask + taskSpan > trace->num_tasks)
+            startTask = trace->num_tasks - taskSpan;
+        if (startTask < 0)
+            startTask = 0;
 
 
         mousex = event->x();
@@ -228,12 +228,12 @@ void TraditionalVis::mouseMoveEvent(QMouseEvent * event)
         {
             // Hover for all events! Note since we only save comm events in the
             // drawnEvents, this will recalculate for non-comm events each move
-            if (mousey > blockheight * processSpan)
+            if (mousey > blockheight * taskSpan)
                 hover_event = NULL;
             else
             {
                 int hover_proc = order_to_proc[floor((mousey - 1) / blockheight)
-                                                + startProcess];
+                                                + startTask];
                 unsigned long long hover_time = (mousex - 1 - labelWidth)
                                                 / 1.0 / rect().width()
                                                 * timeSpan + startTime;
@@ -261,9 +261,9 @@ void TraditionalVis::wheelEvent(QWheelEvent * event)
     scale = 1 + clicks * 0.05;
     if (Qt::MetaModifier && event->modifiers()) {
         // Vertical
-        float avgProc = startProcess + processSpan / 2.0;
-        processSpan *= scale;
-        startProcess = avgProc - processSpan / 2.0;
+        float avgProc = startTask + taskSpan / 2.0;
+        taskSpan *= scale;
+        startTask = avgProc - taskSpan / 2.0;
     } else {
         // Horizontal
         lastStartStep = startStep;
@@ -370,7 +370,7 @@ void TraditionalVis::drawNativeGL()
         return;
 
     int effectiveHeight = rect().height() - timescaleHeight;
-    if (effectiveHeight / processSpan >= 3 && rect().width() / stepSpan >= 3)
+    if (effectiveHeight / taskSpan >= 3 && rect().width() / stepSpan >= 3)
         return;
 
     QString metric(options->metric);
@@ -387,10 +387,10 @@ void TraditionalVis::drawNativeGL()
                height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho(0, effectiveSpan, 0, processSpan, 0, 1);
+    glOrtho(0, effectiveSpan, 0, taskSpan, 0, 1);
 
     float barheight = 1.0;
-    processheight = height/ processSpan;
+    taskheight = height/ taskSpan;
 
     // Generate buffers to hold each bar. We don't know how many there will
     // be since we draw one per event.
@@ -399,7 +399,7 @@ void TraditionalVis::drawNativeGL()
 
     // Process events for values
     float x, y, w; // true position
-    float position; // placement of process
+    float position; // placement of task
     Partition * part = NULL;
     int oldStart = startStep;
     int oldStop = stepSpan + startStep;
@@ -407,7 +407,7 @@ void TraditionalVis::drawNativeGL()
     int upperStep = startStep + stepSpan + 2;
     startStep = maxStep;
     QColor color;
-    float maxProcess = processSpan + startProcess;
+    float maxTask = taskSpan + startTask;
     for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
         part = trace->partitions->at(i);
@@ -419,11 +419,11 @@ void TraditionalVis::drawNativeGL()
              ++event_list)
         {
             position = proc_to_order[event_list.key()];
-             // Out of process span test
-            if (position < floor(startProcess)
-                    || position > ceil(startProcess + processSpan))
+             // Out of task span test
+            if (position < floor(startTask)
+                    || position > ceil(startTask + taskSpan))
                 continue;
-            y = (maxProcess - position) * barheight - 1;
+            y = (maxTask - position) * barheight - 1;
             for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
             {
@@ -501,11 +501,11 @@ void TraditionalVis::qtPaint(QPainter *painter)
     if(!visProcessed)
         return;
 
-    if ((rect().height() - timescaleHeight) / processSpan >= 3)
+    if ((rect().height() - timescaleHeight) / taskSpan >= 3)
         paintEvents(painter);
 
-    drawProcessLabels(painter, rect().height() - timescaleHeight,
-                      processheight);
+    drawTaskLabels(painter, rect().height() - timescaleHeight,
+                      taskheight);
     QString seconds = drawTimescale(painter, startTime, timeSpan);
     emit(timeScaleString(seconds));
     drawHover(painter);
@@ -522,14 +522,14 @@ void TraditionalVis::paintEvents(QPainter *painter)
 {
     int canvasHeight = rect().height() - timescaleHeight;
 
-    int process_spacing = 0;
-    if (canvasHeight / processSpan > 12)
-        process_spacing = 3;
+    int task_spacing = 0;
+    if (canvasHeight / taskSpan > 12)
+        task_spacing = 3;
 
     float x, y, w, h;
-    blockheight = floor(canvasHeight / processSpan);
-    float barheight = blockheight - process_spacing;
-    processheight = blockheight;
+    blockheight = floor(canvasHeight / taskSpan);
+    float barheight = blockheight - task_spacing;
+    taskheight = blockheight;
     int oldStart = startStep;
     int oldStop = stepSpan + startStep;
     int upperStep = startStep + stepSpan + 2;
@@ -549,9 +549,9 @@ void TraditionalVis::paintEvents(QPainter *painter)
     painter->setPen(QPen(QColor(0, 0, 0)));
     Partition * part = NULL;
 
-    int start = std::max(int(floor(startProcess)), 0);
-    int end = std::min(int(ceil(startProcess + processSpan)),
-                       trace->num_processes - 1);
+    int start = std::max(int(floor(startTask)), 0);
+    int end = std::min(int(ceil(startTask + taskSpan)),
+                       trace->num_tasks - 1);
     for (int i = start; i <= end; ++i)
     {
         position = order_to_proc[i];
@@ -559,7 +559,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
         for (QVector<Event *>::Iterator root = roots->begin();
              root != roots->end(); ++root)
         {
-            paintNotStepEvents(painter, *root, position, process_spacing,
+            paintNotStepEvents(painter, *root, position, task_spacing,
                                barheight, blockheight, &extents);
         }
     }
@@ -576,17 +576,17 @@ void TraditionalVis::paintEvents(QPainter *painter)
         {
             bool selected = false;
             if (part->gnome == selected_gnome
-                && selected_processes.contains(proc_to_order[event_list.key()]))
+                && selected_tasks.contains(proc_to_order[event_list.key()]))
             {
                 selected = true;
             }
 
             position = proc_to_order[event_list.key()];
-            // Out of process span test
-           if (position < floor(startProcess)
-                   || position > ceil(startProcess + processSpan))
+            // Out of task span test
+           if (position < floor(startTask)
+                   || position > ceil(startTask + taskSpan))
                continue;
-            y = floor((position - startProcess) * blockheight) + 1;
+            y = floor((position - startTask) * blockheight) + 1;
 
             for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
@@ -656,7 +656,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
                     }
 
                     // Draw border
-                    if (process_spacing > 0)
+                    if (task_spacing > 0)
                     {
                         if (complete)
                             painter->drawRect(QRectF(x,y,w,h));
@@ -731,7 +731,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
 void TraditionalVis::drawMessage(QPainter * painter, Message * msg)
 {
     int penwidth = 1;
-    if (processSpan <= 32)
+    if (taskSpan <= 32)
         penwidth = 2;
 
     Qt::GlobalColor pencolor = Qt::black;
@@ -776,7 +776,7 @@ void TraditionalVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
     prev_y = getY(coll_event);
     prev_x = getX(coll_event) + w;
 
-    if (rooted && coll_event->process == root)
+    if (rooted && coll_event->task == root)
     {
         painter->setBrush(QBrush());
         root_x = prev_x;
@@ -792,7 +792,7 @@ void TraditionalVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
         painter->setBrush(QBrush(Qt::darkGray));
         coll_event = cr->events->at(i);
 
-        if (rooted && coll_event->process == root)
+        if (rooted && coll_event->task == root)
         {
             painter->setBrush(QBrush());
         }
@@ -817,8 +817,8 @@ void TraditionalVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
 int TraditionalVis::getY(CommEvent * evt)
 {
     int y = 0;
-    int position = proc_to_order[evt->process];
-    y = floor((position - startProcess) * blockheight) + 1;
+    int position = proc_to_order[evt->task];
+    y = floor((position - startTask) * blockheight) + 1;
     return y;
 }
 
@@ -838,7 +838,7 @@ int TraditionalVis::getW(CommEvent *evt)
 // To make sure events have correct overlapping, this draws from the root down
 // TODO: Have a level cut off so we don't descend all the way down the tree
 void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
-                                        float position, int process_spacing,
+                                        float position, int task_spacing,
                                         float barheight, float blockheight,
                                         QRect * extents)
 {
@@ -851,7 +851,7 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
     w = (evt->exit - evt->enter) / 1.0 / timeSpan * rect().width();
     if (w >= 2) // Don't draw tiny events
     {
-        y = floor((position - startProcess) * blockheight) + 1;
+        y = floor((position - startTask) * blockheight) + 1;
         x = floor(static_cast<long long>(evt->enter - startTime) / 1.0
                   / timeSpan * rect().width()) + 1 + labelWidth;
         h = barheight;
@@ -894,7 +894,7 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
 
 
         // Draw border
-        if (process_spacing > 0)
+        if (task_spacing > 0)
         {
             if (complete)
                 painter->drawRect(QRectF(x,y,w,h));
@@ -923,7 +923,7 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
     for (QVector<Event *>::Iterator child = evt->callees->begin();
          child != evt->callees->end(); ++child)
     {
-        paintNotStepEvents(painter, *child, position, process_spacing,
+        paintNotStepEvents(painter, *child, position, task_spacing,
                            barheight, blockheight, extents);
     }
 

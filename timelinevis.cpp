@@ -11,16 +11,16 @@ TimelineVis::TimelineVis(QWidget* parent, VisOptions * _options)
       pressx(0),
       pressy(0),
       stepwidth(0),
-      processheight(0),
+      taskheight(0),
       labelWidth(0),
       labelHeight(0),
       labelDescent(0),
       maxStep(0),
       startPartition(0),
       startStep(0),
-      startProcess(0),
+      startTask(0),
       stepSpan(0),
-      processSpan(0),
+      taskSpan(0),
       lastStartStep(0),
       proc_to_order(QMap<int, int>()),
       order_to_proc(QMap<int, int>())
@@ -37,20 +37,20 @@ void TimelineVis::processVis()
 {
     proc_to_order = QMap<int, int>();
     order_to_proc = QMap<int, int>();
-    for (int i = 0; i < trace->num_processes; i++) {
+    for (int i = 0; i < trace->num_tasks; i++) {
         proc_to_order[i] = i;
         order_to_proc[i] = i;
     }
 
     // Determine needs for process labels
-    int max_process = pow(10,ceil(log10(trace->num_processes)) + 1) - 1;
+    int max_task = pow(10,ceil(log10(trace->num_tasks)) + 1) - 1;
     QPainter * painter = new QPainter();
     painter->begin(this);
     painter->setPen(Qt::black);
     painter->setFont(QFont("Helvetica", 10));
     QLocale systemlocale = QLocale::system();
     QFontMetrics font_metrics = painter->fontMetrics();
-    QString testString = systemlocale.toString(max_process);
+    QString testString = systemlocale.toString(max_task);
     labelWidth = font_metrics.width(testString);
     labelHeight = font_metrics.height();
     labelDescent = font_metrics.descent();
@@ -169,10 +169,10 @@ void TimelineVis::leaveEvent(QEvent *event)
 }
 
 // We can either select a single event exclusive-or select a
-// number of processes in a gnome right now.
+// number of tasks in a gnome right now.
 void TimelineVis::selectEvent(Event * event, bool aggregate, bool overdraw)
 {
-    selected_processes.clear();
+    selected_tasks.clear();
     selected_gnome = NULL;
     selected_event = event;
     selected_aggregate = aggregate;
@@ -185,9 +185,9 @@ void TimelineVis::selectEvent(Event * event, bool aggregate, bool overdraw)
         repaint();
 }
 
-void TimelineVis::selectProcesses(QList<int> processes, Gnome * gnome)
+void TimelineVis::selectTasks(QList<int> tasks, Gnome * gnome)
 {
-    selected_processes = processes;
+    selected_tasks = tasks;
     selected_gnome = gnome;
     selected_event = NULL;
     if (changeSource) {
@@ -235,7 +235,7 @@ void TimelineVis::drawHover(QPainter * painter)
     painter->drawText(mousex + 2, mousey + textRect.height() - 2, text);
 }
 
-void TimelineVis::drawProcessLabels(QPainter * painter, int effectiveHeight,
+void TimelineVis::drawTaskLabels(QPainter * painter, int effectiveHeight,
                                     float barHeight)
 {
     painter->setPen(Qt::black);
@@ -244,17 +244,17 @@ void TimelineVis::drawProcessLabels(QPainter * painter, int effectiveHeight,
     int total_labels = floor(effectiveHeight / labelHeight);
     int y;
     int skip = 1;
-    if (total_labels < processSpan)
+    if (total_labels < taskSpan)
     {
-        skip = ceil(float(processSpan) / total_labels);
+        skip = ceil(float(taskSpan) / total_labels);
     }
 
-    int start = std::max(floor(startProcess), 0.0);
-    int end = std::min(ceil(startProcess + processSpan),
-                       trace->num_processes - 1.0);
+    int start = std::max(floor(startTask), 0.0);
+    int end = std::min(ceil(startTask + taskSpan),
+                       trace->num_tasks - 1.0);
     for (int i = start; i <= end; i+= skip) // Do this by order
     {
-        y = floor((i - startProcess) * barHeight) + 1 + barHeight / 2
+        y = floor((i - startTask) * barHeight) + 1 + barHeight / 2
             + labelDescent;
         if (y < effectiveHeight)
             painter->drawText(1, y, QString::number(order_to_proc[i]));

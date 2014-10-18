@@ -7,9 +7,9 @@
 class EventRecord
 {
 public:
-    EventRecord(unsigned int _p, unsigned long long int _t, unsigned int _v, bool _e = true);
+    EventRecord(unsigned int _task, unsigned long long int _t, unsigned int _v, bool _e = true);
 
-    unsigned int process;
+    unsigned int task;
     unsigned long long int time;
     unsigned int value;
     bool enter;

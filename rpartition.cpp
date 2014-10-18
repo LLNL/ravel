@@ -20,7 +20,7 @@ Partition::Partition()
       gvid(""),
       gnome(NULL),
       gnome_type(0),
-      cluster_processes(new QVector<ClusterProcess *>()),
+      cluster_tasks(new QVector<ClusterTask *>()),
       cluster_vectors(new QMap<int, QVector<long long int> *>()),
       cluster_step_starts(new QMap<int, int>()),
       debug_mark(false),
@@ -99,14 +99,14 @@ bool Partition::operator==(const Partition &partition)
 // Does not order, just places them at the end
 void Partition::addEvent(CommEvent * e)
 {
-    if (events->contains(e->process))
+    if (events->contains(e->task))
     {
-        ((*events)[e->process])->append(e);
+        ((*events)[e->task])->append(e);
     }
     else
     {
-        (*events)[e->process] = new QList<CommEvent *>();
-        ((*events)[e->process])->append(e);
+        (*events)[e->task] = new QList<CommEvent *>();
+        ((*events)[e->task])->append(e);
     }
 }
 
@@ -120,8 +120,8 @@ void Partition::sortEvents(){
 }
 
 
-// The minimum over all processes of the time difference between the last event
-// in one partition and the first event in another, per process
+// The minimum over all tasks of the time difference between the last event
+// in one partition and the first event in another, per task
 unsigned long long int Partition::distance(Partition * other)
 {
     unsigned long long int dist = ULLONG_MAX;
@@ -195,26 +195,26 @@ void Partition::step()
     // This may be somewhat similar to restep/finalize... but slightly
     // different so look into that.
     max_step = -1;
-    int process;
+    int task;
     CommEvent * evt;
-    QList<int> processes = events->keys();
+    QList<int> tasks = events->keys();
     QMap<int, CommEvent*> next_step = QMap<int, CommEvent*>();
-    for (int i = 0; i < processes.size(); i++)
+    for (int i = 0; i < tasks.size(); i++)
     {
-        if ((*events)[processes[i]]->size() > 0) {
-            next_step[processes[i]] = (*events)[processes[i]]->at(0);
+        if ((*events)[tasks[i]]->size() > 0) {
+            next_step[tasks[i]] = (*events)[tasks[i]]->at(0);
         }
         else
-            next_step[processes[i]] = NULL;
+            next_step[tasks[i]] = NULL;
     }
 
     for (int stride = 0; stride <= max_stride; stride++)
     {
         // Step the sends that come before this stride
-        for (int i = 0; i < processes.size(); i++)
+        for (int i = 0; i < tasks.size(); i++)
         {
-            process = processes[i];
-            evt = next_step[process];
+            task = tasks[i];
+            evt = next_step[task];
 
             // We want recvs that can be set at this stride and are blocking
             // the current send strides from being sent. That means the
@@ -230,7 +230,7 @@ void Partition::step()
                     // It has to go after its previous event but it also
                     // has to go after any of its sends. The maximum
                     // step of any of its sends will be in last_send.
-                    // (If last_send is its process-previous, then
+                    // (If last_send is its task-previous, then
                     // it will be covered by comm_prev).
                     evt->step = 1 + std::max(evt->comm_prev->step,
                                               evt->last_send->step);
@@ -247,24 +247,24 @@ void Partition::step()
             }
 
             // Save where we are
-            next_step[process] = evt;
+            next_step[task] = evt;
         }
 
         // Now we know that the stride should be at max_step + 1
         // So set all of those
         bool increaseMax = false;
-        for (int i = 0; i < processes.size(); i++)
+        for (int i = 0; i < tasks.size(); i++)
         {
-            process = processes[i];
-            evt = next_step[process];
+            task = tasks[i];
+            evt = next_step[task];
 
             if (evt && evt->stride == stride)
             {
                 evt->step = max_step + 1;
                 if (evt->comm_next && evt->comm_next->partition == this)
-                    next_step[process] = evt->comm_next;
+                    next_step[task] = evt->comm_next;
                 else
-                    next_step[process] = NULL;
+                    next_step[task] = NULL;
 
                 increaseMax = true;
             }
@@ -274,10 +274,10 @@ void Partition::step()
     }
 
     // Now handle all of the left over recvs
-    for (int i = 0; i < processes.size(); i++)
+    for (int i = 0; i < tasks.size(); i++)
     {
-        process = processes[i];
-        evt = next_step[process];
+        task = tasks[i];
+        evt = next_step[task];
 
         // We only want things in the current partition
         while (evt && evt->partition == this)
@@ -295,7 +295,7 @@ void Partition::step()
     }
 
     // Now that we have finished, we should also have a correct max_step
-    // for this process.
+    // for this task.
 }
 
 int Partition::set_stride_dag(QList<CommEvent *> * stride_events)
@@ -376,17 +376,17 @@ void Partition::makeClusterVectors(QString metric)
     {
         delete itr.value();
     }
-    for (QVector<ClusterProcess *>::Iterator itr
-         = cluster_processes->begin(); itr != cluster_processes->end(); ++itr)
+    for (QVector<ClusterTask *>::Iterator itr
+         = cluster_tasks->begin(); itr != cluster_tasks->end(); ++itr)
     {
         delete *itr;
     }
-    cluster_processes->clear();
+    cluster_tasks->clear();
     cluster_vectors->clear();
     cluster_step_starts->clear();
 
 
-    // Create a ClusterProcess for each process and in each set metric_events
+    // Create a ClusterTask for each task and in each set metric_events
     // so it fills in the missing steps with the previous metric value.
     for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
@@ -396,8 +396,8 @@ void Partition::makeClusterVectors(QString metric)
         long long int last_value = 0;
         int last_step = (event_list.value())->at(0)->step;
         (*cluster_step_starts)[event_list.key()] = last_step;
-        ClusterProcess * cp = new ClusterProcess(event_list.key(), last_step);
-        cluster_processes->append(cp);
+        ClusterTask * cp = new ClusterTask(event_list.key(), last_step);
+        cluster_tasks->append(cp);
         for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
         {

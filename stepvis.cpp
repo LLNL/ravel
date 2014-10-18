@@ -474,7 +474,7 @@ void StepVis::drawNativeGL()
     QColor color;
     float maxProcess = processSpan + startProcess;
     float myopacity, opacity_multiplier = 1.0;
-    if (selected_gnome && !selected_processes.isEmpty())
+    if (selected_gnome && !selected_tasks.isEmpty())
         opacity_multiplier = 0.50;
     for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
@@ -488,7 +488,7 @@ void StepVis::drawNativeGL()
         {
             bool selected = false;
             if (part->gnome == selected_gnome
-                && selected_processes.contains(proc_to_order[event_list.key()]))
+                && selected_tasks.contains(proc_to_order[event_list.key()]))
             {
                 selected = true;
             }
@@ -619,7 +619,7 @@ void StepVis::paintEvents(QPainter * painter)
     int topStep = boundStep(startStep + stepSpan) + 1;
     int bottomStep = floor(startStep) - 1;
     float myopacity, opacity = 1.0;
-    if (selected_gnome && !selected_processes.isEmpty())
+    if (selected_gnome && !selected_tasks.isEmpty())
         opacity = 0.50;
 
     QList<int> overdraw_processes;
@@ -640,7 +640,7 @@ void StepVis::paintEvents(QPainter * painter)
         {
             bool selected = false;
             if (part->gnome == selected_gnome
-                && selected_processes.contains(proc_to_order[event_list.key()]))
+                && selected_tasks.contains(proc_to_order[event_list.key()]))
             {
                 selected = true;
             }

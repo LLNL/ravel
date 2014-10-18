@@ -6,7 +6,7 @@
 #include "p2pevent.h"
 #include "collectiveevent.h"
 #include "general_util.h"
-#include "clusterprocess.h"
+#include "clustertask.h"
 #include <QList>
 #include <QSet>
 #include <QVector>
@@ -74,7 +74,7 @@ public:
     // between processes but don't aid performance so may be wasteful
     Gnome * gnome;
     int gnome_type;
-    QVector<ClusterProcess *> * cluster_processes;
+    QVector<ClusterTask *> * cluster_tasks;
     void makeClusterVectors(QString metric);
     QMap<int, QVector<long long int> *> * cluster_vectors;
     QMap<int, int> * cluster_step_starts;

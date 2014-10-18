@@ -1,11 +1,12 @@
 #ifndef OTFIMPORTER_H
 #define OTFIMPORTER_H
 
+#include "task.h"
 #include "rawtrace.h"
 #include "commrecord.h"
 #include "eventrecord.h"
 #include "collectiverecord.h"
-#include "communicator.h"
+#include "taskgroup.h"
 #include "otfcollective.h"
 #include "otf.h"
 #include <QLinkedList>
@@ -104,9 +105,10 @@ private:
     QVector<QLinkedList<CommRecord *> *> * unmatched_sends;
 
     RawTrace * rawtrace;
+    QMap<int, Task *> * tasks;
     QMap<int, QString> * functionGroups;
     QMap<int, Function *> * functions;
-    QMap<int, Communicator *> * communicators;
+    QMap<int, TaskGroup *> * taskgroups;
     QMap<int, OTFCollective *> * collective_definitions;
     QMap<unsigned int, Counter *> * counters;
 

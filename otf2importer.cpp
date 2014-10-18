@@ -33,9 +33,10 @@ OTF2Importer::OTF2Importer()
       unmatched_send_requests(new QVector<QLinkedList<CommRecord *> *>()),
       unmatched_send_completes(new QVector<QLinkedList<OTF2IsendComplete *> *>()),
       rawtrace(NULL),
+      tasks(NULL),
       functionGroups(NULL),
       functions(NULL),
-      communicators(NULL),
+      taskgroups(NULL),
       collective_definitions(new QMap<int, OTFCollective *>()),
       counters(NULL),
       collectives(NULL),
@@ -229,19 +230,21 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file, bool _enforceMessageSi
                                           &definitions_read );
 
 
+    tasks = new QMap<int, Task *>();
     functionGroups = new QMap<int, QString>();
     functions = new QMap<int, Function *>();
-    communicators = new QMap<int, Communicator *>();
+    taskgroups = new QMap<int, TaskGroup *>();
     collectives = new QMap<unsigned long long, CollectiveRecord *>();
     counters = new QMap<unsigned int, Counter *>();
 
     processDefinitions();
 
     rawtrace = new RawTrace(num_processes);
+    rawtrace->tasks = tasks;
     rawtrace->second_magnitude = second_magnitude;
     rawtrace->functions = functions;
     rawtrace->functionGroups = functionGroups;
-    rawtrace->communicators = communicators;
+    rawtrace->taskgroups = taskgroups;
     rawtrace->collective_definitions = collective_definitions;
     rawtrace->collectives = collectives;
     rawtrace->counters = counters;
@@ -427,10 +430,12 @@ void OTF2Importer::processDefinitions()
          comm != commMap->end(); ++comm)
     {
         commIndexMap->insert(comm.key(), index);
-        Communicator * c = new Communicator(index, stringMap->value((comm.value())->name));
-        delete c->processes;
-        c->processes = groupMap->value((comm.value())->group)->members;
-        communicators->insert(index, c);
+        TaskGroup * t = new TaskGroup(index, stringMap->value((comm.value())->name));
+        delete t->tasks;
+        t->tasks = groupMap->value((comm.value())->group)->members;
+        for (int i = 0; i < t->tasks->size(); i++)
+            t->taskorder->insert(t->tasks->at(i), i);
+        taskgroups->insert(index, t);
         index++;
     }
 
@@ -445,6 +450,7 @@ void OTF2Importer::processDefinitions()
             if (type == OTF2_LOCATION_TYPE_CPU_THREAD)
             {
                 int process = (loc.value())->self;
+                tasks->insert(process, new Task(process, loc.value()->name));
                 locationIndexMap->insert(loc.key(), process);
                 num_processes++;
             }
@@ -672,13 +678,11 @@ OTF2_CallbackCode OTF2Importer::callbackMPISend(OTF2_LocationRef locationID,
                                                 uint64_t msgLength)
 {
     Q_UNUSED(attributeList);
-    Q_UNUSED(communicator);
 
     // Every time we find a send, check the unmatched recvs
     // to see if it has a match
     unsigned long long converted_time = convertTime(userData, time);
     int sender = ((OTF2Importer *) userData)->locationIndexMap->value(locationID);
-    OTF2Comm * comm = ((OTF2Importer *) userData)->commMap->value(communicator);
     OTF2Group * group = ((OTF2Importer *) userData)->groupMap->value(comm->group);
     int world_receiver = group->members->at(receiver);
     CommRecord * cr = NULL;
@@ -706,7 +710,8 @@ OTF2_CallbackCode OTF2Importer::callbackMPISend(OTF2_LocationRef locationID,
     }
     else
     {
-        cr = new CommRecord(sender, converted_time, world_receiver, 0, msgLength, msgTag);
+        int taskgroup = ((OTF2Importer *) userData)->commIndexMap->value(communicator);
+        cr = new CommRecord(sender, converted_time, world_receiver, 0, msgLength, msgTag, taskgroup);
         (*((((OTF2Importer*) userData)->rawtrace)->messages))[sender]->append(cr);
         (*(((OTF2Importer *) userData)->unmatched_sends))[sender]->append(cr);
     }
@@ -724,8 +729,6 @@ OTF2_CallbackCode OTF2Importer::callbackMPIIsend(OTF2_LocationRef locationID,
                                                  uint64_t requestID)
 {
     Q_UNUSED(attributeList);
-    Q_UNUSED(communicator);
-    Q_UNUSED(requestID);
 
     // Every time we find a send, check the unmatched recvs
     // to see if it has a match
@@ -755,8 +758,9 @@ OTF2_CallbackCode OTF2Importer::callbackMPIIsend(OTF2_LocationRef locationID,
     }
     else
     {
+        int taskgroup = ((OTF2Importer *) userData)->commIndexMap->value(communicator);
         cr = new CommRecord(sender, converted_time, receiver, 0, msgLength,
-                            msgTag, requestID);
+                            msgTag, taskgroup, requestID);
         (*((((OTF2Importer*) userData)->rawtrace)->messages))[sender]->append(cr);
         (*(((OTF2Importer *) userData)->unmatched_sends))[sender]->append(cr);
     }
@@ -855,7 +859,6 @@ OTF2_CallbackCode OTF2Importer::callbackMPIRecv(OTF2_LocationRef locationID,
                                                 uint64_t msgLength)
 {
     Q_UNUSED(attributeList);
-    Q_UNUSED(communicator);
 
     // Look for match in unmatched_sends
     unsigned long long converted_time = convertTime(userData, time);
@@ -886,7 +889,8 @@ OTF2_CallbackCode OTF2Importer::callbackMPIRecv(OTF2_LocationRef locationID,
     }
     else
     {
-        cr = new CommRecord(world_sender, 0, receiver, converted_time, msgLength, msgTag);
+        int taskgroup = ((OTF2Importer *) userData)->commIndexMap->value(communicator);
+        cr = new CommRecord(world_sender, 0, receiver, converted_time, msgLength, msgTag, taskgroup);
         ((*(((OTF2Importer*) userData)->unmatched_recvs))[world_sender])->append(cr);
     }
     (*((((OTF2Importer*) userData)->rawtrace)->messages_r))[receiver]->append(cr);
@@ -905,7 +909,6 @@ OTF2_CallbackCode OTF2Importer::callbackMPIIrecv(OTF2_LocationRef locationID,
                                                  uint64_t requestID)
 {
     Q_UNUSED(attributeList);
-    Q_UNUSED(communicator);
     Q_UNUSED(requestID);
 
     // Look for match in unmatched_sends
@@ -934,7 +937,8 @@ OTF2_CallbackCode OTF2Importer::callbackMPIIrecv(OTF2_LocationRef locationID,
     }
     else
     {
-        cr = new CommRecord(sender, 0, receiver, converted_time, msgLength, msgTag);
+        int taskgroup = ((OTF2Importer *) userData)->commIndexMap->value(communicator);
+        cr = new CommRecord(sender, 0, receiver, converted_time, msgLength, msgTag, taskgroup);
         ((*(((OTF2Importer*) userData)->unmatched_recvs))[sender])->append(cr);
     }
     (*((((OTF2Importer*) userData)->rawtrace)->messages_r))[receiver]->append(cr);

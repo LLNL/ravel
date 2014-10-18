@@ -6,9 +6,9 @@
 #include "general_util.h"
 #include <cmath>
 
-Trace::Trace(int np)
+Trace::Trace(int nt)
     : name(""),
-      num_processes(np),
+      num_tasks(nt),
       units(-9),
       partitions(new QList<Partition *>()),
       metrics(new QList<QString>()),
@@ -17,19 +17,20 @@ Trace::Trace(int np)
       options(NULL),
       functionGroups(new QMap<int, QString>()),
       functions(new QMap<int, Function *>()),
-      communicators(NULL),
+      tasks(NULL),
+      taskgroups(NULL),
       collective_definitions(NULL),
       collectives(NULL),
       collectiveMap(NULL),
-      events(new QVector<QVector<Event *> *>(np)),
-      roots(new QVector<QVector<Event *> *>(np)),
+      events(new QVector<QVector<Event *> *>(nt)),
+      roots(new QVector<QVector<Event *> *>(nt)),
       mpi_group(-1),
       global_max_step(-1),
       dag_entries(new QList<Partition *>()),
       dag_step_dict(new QMap<int, QSet<Partition *> *>()),
       isProcessed(false)
 {
-    for (int i = 0; i < np; i++) {
+    for (int i = 0; i < nt; i++) {
         (*events)[i] = new QVector<Event *>();
         (*roots)[i] = new QVector<Event *>();
     }
@@ -91,13 +92,13 @@ Trace::~Trace()
     }
     delete gnomes;
 
-    for (QMap<int, Communicator *>::Iterator comm = communicators->begin();
-         comm != communicators->end(); ++comm)
+    for (QMap<int, TaskGroup *>::Iterator comm = taskgroups->begin();
+         comm != taskgroups->end(); ++comm)
     {
         delete *comm;
         *comm = NULL;
     }
-    delete communicators;
+    delete taskgroups;
 
     for (QMap<int, OTFCollective *>::Iterator cdef = collective_definitions->begin();
          cdef != collective_definitions->end(); ++cdef)
@@ -119,6 +120,15 @@ Trace::~Trace()
 
     delete dag_entries;
     delete dag_step_dict;
+
+
+    for (QMap<int, Task *>::Iterator comm = tasks->begin();
+         comm != tasks->end(); ++comm)
+    {
+        delete *comm;
+        *comm = NULL;
+    }
+    delete taskgroups;
 }
 
 void Trace::preprocess(OTFImportOptions * _options)
@@ -686,20 +696,20 @@ void Trace::mergeByLeap()
     }
     while (!current_leap->isEmpty())
     {
-        QSet<int> processes = QSet<int>();
+        QSet<int> tasks = QSet<int>();
         QSet<Partition *> * next_leap = new QSet<Partition *>();
         for (QSet<Partition *>::Iterator partition = current_leap->begin();
              partition != current_leap->end(); ++partition)
         {
-            processes += QSet<int>::fromList((*partition)->events->keys());
+            tasks += QSet<int>::fromList((*partition)->events->keys());
         }
 
 
-        // If this leap doesn't have all the processes we have to do something
-        if (processes.size() < num_processes)
+        // If this leap doesn't have all the tasks we have to do something
+        if (tasks.size() < num_tasks)
         {
             QSet<Partition *> * new_leap_parts = new QSet<Partition *>();
-            QSet<int> added_processes = QSet<int>();
+            QSet<int> added_tasks = QSet<int>();
             bool back_merge = false;
             for (QSet<Partition *>::Iterator partition = current_leap->begin();
                  partition != current_leap->end(); ++partition)
@@ -765,10 +775,10 @@ void Trace::mergeByLeap()
                     {
                         if ((*child)->dag_leap == (*partition)->dag_leap + 1
                              && ((QSet<int>::fromList((*child)->events->keys())
-                                  - processes)).size() > 0)
+                                  - tasks)).size() > 0)
                         {
-                            added_processes += (QSet<int>::fromList((*child)->events->keys())
-                                                                     - processes);
+                            added_tasks += (QSet<int>::fromList((*child)->events->keys())
+                                                                     - tasks);
                             (*partition)->group->unite(*((*child)->group));
                             for (QSet<Partition *>::Iterator group_member
                                  = (*partition)->group->begin();
@@ -787,7 +797,7 @@ void Trace::mergeByLeap()
                 // Groups created now
             }
 
-            if (!back_merge && added_processes.size() <= 0)
+            if (!back_merge && added_tasks.size() <= 0)
             {
                 // Skip leap if we didn't add anything
                 if (options.leapSkip)
@@ -979,7 +989,7 @@ void Trace::mergeByLeap()
             current_leap = next_leap;
 
             delete new_leap_parts;
-        } // End If Processes Incomplete
+        } // End If Tasks Incomplete
         else
         {
             for (QSet<Partition *>::Iterator partition
@@ -1594,7 +1604,7 @@ void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
 
 
 // Set all the parents/children in the partition by checking where first and
-// last events in each process pointer.
+// last events in each task pointer.
 void Trace::set_partition_dag()
 {
     dag_entries->clear();
@@ -1712,8 +1722,7 @@ QList<Trace::FunctionPair> Trace::getAggregateFunctions(CommEvent * evt)
     if (evt->comm_prev)
         starttime = evt->comm_prev->exit;
 
-    int process = evt->process;
-    QVector<Event *> * proots = roots->at(process);
+    QVector<Event *> * proots = roots->at(evt->task);
     QMap<int, FunctionPair> * fpMap = new QMap<int, FunctionPair>();
 
     for (QVector<Event *>::Iterator root = proots->begin();
@@ -1760,11 +1769,11 @@ long long int Trace::getAggregateFunctionRecurse(Event * evt,
     return overlap;
 }
 
-Event * Trace::findEvent(int process, unsigned long long time)
+Event * Trace::findEvent(int task, unsigned long long time)
 {
     Event * found = NULL;
-    for (QVector<Event *>::Iterator root = roots->at(process)->begin();
-         root != roots->at(process)->end(); ++root)
+    for (QVector<Event *>::Iterator root = roots->at(task)->begin();
+         root != roots->at(task)->end(); ++root)
     {
         found = (*root)->findChild(time);
         if (found)

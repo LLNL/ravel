@@ -6,12 +6,12 @@
 CollectiveRecord::CollectiveRecord(unsigned long long _matching,
                                    unsigned int _root,
                                    unsigned int _collective,
-                                   unsigned int _communicator)
+                                   unsigned int _taskgroup)
     : CommBundle(),
       matchingId(_matching),
       root(_root),
       collective(_collective),
-      communicator(_communicator),
+      taskgroup(_taskgroup),
       mark(false),
       events(new QList<CollectiveEvent *>())/*,
       times(new QMap<int,

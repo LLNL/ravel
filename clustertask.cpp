@@ -1,23 +1,23 @@
-#include "clusterprocess.h"
+#include "clustertask.h"
 #include <float.h>
 
-ClusterProcess::ClusterProcess(int _p, int _step)
-    : process(_p),
+ClusterTask::ClusterTask(int _t, int _step)
+    : task(_t),
       startStep(_step),
       metric_events(new QVector<long long int>())
 {
 }
 
-ClusterProcess::ClusterProcess()
-    : process(0),
+ClusterTask::ClusterTask()
+    : task(0),
       startStep(0),
       metric_events(new QVector<long long int>())
 {
 
 }
 
-ClusterProcess::ClusterProcess(const ClusterProcess & other)
-    : process(other.process),
+ClusterTask::ClusterTask(const ClusterTask & other)
+    : task(other.task),
       startStep(other.startStep),
       metric_events(new QVector<long long int>())
 {
@@ -25,15 +25,15 @@ ClusterProcess::ClusterProcess(const ClusterProcess & other)
         metric_events->append(other.metric_events->at(i));
 }
 
-ClusterProcess::~ClusterProcess()
+ClusterTask::~ClusterTask()
 {
     delete metric_events;
 }
 
-// Distance between this ClusterProcess and another. Since metric_events fills
+// Distance between this ClusterTask and another. Since metric_events fills
 // in the missing steps with the previous value, we can just go straight
 // through from the startStep of the shorter one.
-double ClusterProcess::calculateMetricDistance(const ClusterProcess& other) const
+double ClusterTask::calculateMetricDistance(const ClusterTask& other) const
 {
     int num_matches = metric_events->size();
     double total_difference = 0;
@@ -63,9 +63,9 @@ double ClusterProcess::calculateMetricDistance(const ClusterProcess& other) cons
     return total_difference / num_matches;
 }
 
-// Adds the metric_events of the second ClusterProcess, ignores
-// any possible process this is represented (process field in classs)
-ClusterProcess& ClusterProcess::operator+(const ClusterProcess & other)
+// Adds the metric_events of the second ClusterTask, ignores
+// any possible task this is represented (task field in classs)
+ClusterTask& ClusterTask::operator+(const ClusterTask & other)
 {
     int offset = 0;
     if (metric_events->size() && other.metric_events->size())
@@ -97,7 +97,7 @@ ClusterProcess& ClusterProcess::operator+(const ClusterProcess & other)
     return *this;
 }
 
-ClusterProcess& ClusterProcess::operator/(const int divisor)
+ClusterTask& ClusterTask::operator/(const int divisor)
 {
     for (int i = 0; i < metric_events->size(); i++)
     {
@@ -106,9 +106,9 @@ ClusterProcess& ClusterProcess::operator/(const int divisor)
     return *this;
 }
 
-ClusterProcess& ClusterProcess::operator=(const ClusterProcess & other)
+ClusterTask& ClusterTask::operator=(const ClusterTask & other)
 {
-    process = other.process;
+    task = other.task;
     startStep = other.startStep;
     metric_events->clear();
     for (int i = 0; i < other.metric_events->size(); i++)

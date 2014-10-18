@@ -2,7 +2,7 @@
 #define PARTITIONCLUSTER_H
 
 #include "clusterevent.h"
-#include "clusterprocess.h"
+#include "clustertask.h"
 #include "event.h"
 #include "commevent.h"
 #include <QSet>
@@ -19,7 +19,7 @@ public:
     PartitionCluster(long long int distance, PartitionCluster * c1,
                      PartitionCluster * c2);
     ~PartitionCluster();
-    long long int addMember(ClusterProcess * cp, QList<CommEvent *> *elist,
+    long long int addMember(ClusterTask * cp, QList<CommEvent *> *elist,
                             QString metric);
     long long int distance(PartitionCluster * other);
     void makeClusterVectors();
@@ -43,7 +43,7 @@ public:
 
 
     int startStep;
-    int max_process;
+    int max_task;
     bool open; // Whether children are drawn
     bool drawnOut;
     long long int max_distance; // max within cluster distance
@@ -51,7 +51,7 @@ public:
     long long int divider; // For threshholding (currently unused)
     PartitionCluster * parent;
     QList<PartitionCluster *> * children;
-    QList<int> * members; // Processes in the cluster
+    QList<int> * members; // Tasks in the cluster
     QList<ClusterEvent *> * events; // Represented events
     QRect extents; // Where it was drawn
 

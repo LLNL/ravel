@@ -2,13 +2,13 @@
 #include <iostream>
 
 Event::Event(unsigned long long _enter, unsigned long long _exit,
-             int _function, int _process)
+             int _function, int _task)
     : caller(NULL),
       callees(new QVector<Event *>()),
       enter(_enter),
       exit(_exit),
       function(_function),
-      process(_process),
+      task(_task),
       depth(-1)
 {
 

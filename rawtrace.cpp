@@ -1,18 +1,19 @@
 #include "rawtrace.h"
 
-RawTrace::RawTrace(int np)
-    : functionGroups(NULL),
+RawTrace::RawTrace(int nt)
+    : tasks(NULL),
+      functionGroups(NULL),
       functions(NULL),
       events(NULL),
       messages(NULL),
       messages_r(NULL),
-      communicators(NULL),
+      taskgroups(NULL),
       collective_definitions(NULL),
       counters(NULL),
       counter_records(NULL),
       collectives(NULL),
       collectiveMap(NULL),
-      num_processes(np)
+      num_tasks(nt)
 {
 
 }

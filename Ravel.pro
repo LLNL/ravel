@@ -36,9 +36,7 @@ SOURCES  += main.cpp \
     clustertreevis.cpp \
     verticallabel.cpp \
     rpartition.cpp \
-    clusterprocess.cpp \
     metricrangedialog.cpp \
-    communicator.cpp \
     otfcollective.cpp \
     commevent.cpp \
     p2pevent.cpp \
@@ -47,7 +45,10 @@ SOURCES  += main.cpp \
     commdrawinterface.cpp \
     counter.cpp \
     counterrecord.cpp \
-    otf2importer.cpp
+    otf2importer.cpp \
+    task.cpp \
+    clustertask.cpp \
+    taskgroup.cpp
 
 HEADERS += \
     trace.h \
@@ -81,9 +82,7 @@ HEADERS += \
     clustertreevis.h \
     verticallabel.h \
     rpartition.h \
-    clusterprocess.h \
     metricrangedialog.h \
-    communicator.h \
     otfcollective.h \
     commevent.h \
     p2pevent.h \
@@ -93,7 +92,10 @@ HEADERS += \
     counter.h \
     counterrecord.h \
     otf2importer.h \
-    requestmessage.h
+    requestmessage.h \
+    task.h \
+    clustertask.h \
+    taskgroup.h
 
 FORMS += \
     mainwindow.ui \

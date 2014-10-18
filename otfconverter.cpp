@@ -59,7 +59,7 @@ void OTFConverter::convert()
     QElapsedTimer traceTimer;
     qint64 traceElapsed;
     traceTimer.start();
-    trace = new Trace(rawtrace->num_processes);
+    trace = new Trace(rawtrace->num_tasks);
     trace->units = rawtrace->second_magnitude;
     std::cout << "Trace units are " << trace->units << std::endl;
 
@@ -96,13 +96,12 @@ void OTFConverter::convert()
     }
 
     delete trace->functionGroups;
+    trace->tasks = rawtrace->tasks;
     trace->functionGroups = rawtrace->functionGroups;
     trace->collectives = rawtrace->collectives;
     trace->collectiveMap = rawtrace->collectiveMap;
 
-    // Not sure we need the communicators yet but it would be nice for
-    // extra user information later
-    trace->communicators = rawtrace->communicators;
+    trace->taskgroups = rawtrace->taskgroups;
     trace->collective_definitions = rawtrace->collective_definitions;
 
     // Find the MPI Group key
@@ -175,7 +174,7 @@ void OTFConverter::matchEvents()
     unsigned long long int max_complete = 0;
 
     emit(matchingUpdate(1, "Constructing events..."));
-    int progressPortion = std::max(round(rawtrace->num_processes / 1.0
+    int progressPortion = std::max(round(rawtrace->num_tasks / 1.0
                                          / event_match_portion), 1.0);
     int currentPortion = 0;
     int currentIter = 0;
@@ -260,9 +259,9 @@ void OTFConverter::matchEvents()
                     // Since OTF2 is the present/future, perhaps we should do this by
                     // end time instead of begin time so we don't have to match on the OTF2 side.
                     //if (options->origin == OTFImportOptions::OF_OTF)
-                    if (rawtrace->collectiveMap->at((*evt)->process)->contains(bgn->time))
+                    if (rawtrace->collectiveMap->at((*evt)->task)->contains(bgn->time))
                     {
-                        cr = (*(rawtrace->collectiveMap->at((*evt)->process)))[bgn->time];
+                        cr = (*(rawtrace->collectiveMap->at((*evt)->task)))[bgn->time];
                     }
 
                     if (sindex < sendlist->size())
@@ -278,7 +277,7 @@ void OTFConverter::matchEvents()
                         {
                             std::cout << "Error, skipping message (by send) at ";
                             std::cout << sendlist->at(sindex)->send_time << " on ";
-                            std::cout << (*evt)->process << std::endl;
+                            std::cout << (*evt)->task << std::endl;
                             sindex++;
                         }
                     }
@@ -294,7 +293,7 @@ void OTFConverter::matchEvents()
                         {
                             std::cout << "Error, skipping message (by recv) at ";
                             std::cout << recvlist->at(rindex)->send_time << " on ";
-                            std::cout << (*evt)->process << std::endl;
+                            std::cout << (*evt)->task << std::endl;
                             rindex++;
                         }
                     }
@@ -305,7 +304,7 @@ void OTFConverter::matchEvents()
                 if (cr)
                 {
                     cr->events->append(new CollectiveEvent(bgn->time, (*evt)->time,
-                                            bgn->value, bgn->process,
+                                            bgn->value, bgn->task,
                                             phase, cr));
                     cr->events->last()->comm_prev = prev;
                     if (prev)
@@ -350,7 +349,7 @@ void OTFConverter::matchEvents()
                     msgs->append(crec->message);
                     crec->message->sender = new P2PEvent(bgn->time, (*evt)->time,
                                                          bgn->value,
-                                                         bgn->process, phase,
+                                                         bgn->task, phase,
                                                          msgs);
                     if (isendflag)
                         isends->append(crec->message->sender);
@@ -397,7 +396,7 @@ void OTFConverter::matchEvents()
                     }
                     msgs->at(0)->receiver = new P2PEvent(bgn->time, (*evt)->time,
                                                          bgn->value,
-                                                         bgn->process, phase,
+                                                         bgn->task, phase,
                                                          msgs);
                     for (int i = 1; i < msgs->size(); i++)
                     {
@@ -461,7 +460,7 @@ void OTFConverter::matchEvents()
                 else // Non-com event
                 {
                     e = new Event(bgn->time, (*evt)->time, bgn->value,
-                                  bgn->process);
+                                  bgn->task);
 
                     // Stop by Waitall/Testall
                     if (!options->partitionByFunction)
@@ -503,7 +502,7 @@ void OTFConverter::matchEvents()
                 depth--;
                 e->depth = depth;
                 if (depth == 0)
-                    (*(trace->roots))[(*evt)->process]->append(e);
+                    (*(trace->roots))[(*evt)->task]->append(e);
 
                 if (e->exit > endtime)
                     endtime = e->exit;
@@ -518,7 +517,7 @@ void OTFConverter::matchEvents()
                     (*child)->caller = e;
                 }
 
-                (*(trace->events))[(*evt)->process]->append(e);
+                (*(trace->events))[(*evt)->task]->append(e);
             }
             else // Begin a subroutine
             {
@@ -552,7 +551,7 @@ void OTFConverter::matchEvents()
             EventRecord * bgn = stack->pop();
             endtime = std::max(endtime, bgn->time);
             Event * e = new Event(bgn->time, endtime, bgn->value,
-                          bgn->process);
+                          bgn->task);
             if (!stack->isEmpty())
             {
                 stack->top()->children.append(e);
@@ -563,7 +562,7 @@ void OTFConverter::matchEvents()
                 e->callees->append(*child);
                 (*child)->caller = e;
             }
-            (*(trace->events))[bgn->process]->append(e);
+            (*(trace->events))[bgn->task]->append(e);
             depth--;
         }
 
@@ -583,7 +582,7 @@ void OTFConverter::matchEvents()
             delete isends;
         }
 
-        // Prepare for next process
+        // Prepare for next task
         stack->clear();
         sendgroup->clear();
     }
@@ -722,7 +721,7 @@ int OTFConverter::advanceCounters(CommEvent * evt, QStack<CounterRecord *> * cou
 }
 
 // This is a lighter weight merge since we know at this stage everything stays
-// within its own process and the partitions that must be merged are contiguous
+// within its own task and the partitions that must be merged are contiguous
 // Therefore we only need to merge the groups and remove the previous ones
 // from the partition list -- so we create the new ones and point the old
 // ones toward it so we can make a single pass to remove those that point to

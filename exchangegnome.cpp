@@ -14,9 +14,9 @@ ExchangeGnome::ExchangeGnome()
 {
 }
 
-// Check that the send-to processes and receive-from processes are the same.
+// Check that the send-to tasks and receive-from tasks are the same.
 // Note right now this doesn't check number, only identity, so it could false
-// positive if you send-to a process twice but only receive from it once.
+// positive if you send-to a task twice but only receive from it once.
 bool ExchangeGnome::detectGnome(Partition * part)
 {
     bool gnome = true;
@@ -39,11 +39,11 @@ bool ExchangeGnome::detectGnome(Partition * part)
             {
                 if ((*msg)->sender == (*evt))
                 {
-                    recvs.insert((*msg)->receiver->process);
+                    recvs.insert((*msg)->receiver->task);
                 }
                 else
                 {
-                    sends.insert((*msg)->sender->process);
+                    sends.insert((*msg)->sender->task);
                 }
             }
         }
@@ -60,7 +60,7 @@ Gnome * ExchangeGnome::create()
     return new ExchangeGnome();
 }
 
-void ExchangeGnome::preprocess()
+void ExchangeGnome::pretask()
 {
     // Possibly determine type
     type = findType();
@@ -70,7 +70,7 @@ void ExchangeGnome::preprocess()
         SRSRpatterns.clear();
     }
 
-    Gnome::preprocess();
+    Gnome::pretask();
 }
 
 ExchangeGnome::ExchangeType ExchangeGnome::findType()
@@ -85,7 +85,7 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
         // Odd keeps track of whether the step in the SRSR order is even or
         // odd. We need to keep track of pairs which can be SR or RS, so we use
         // odd to keep track of where we were in the pair.
-        // Note this could be kind of off in pF3D because some processes only
+        // Note this could be kind of off in pF3D because some tasks only
         // send or only recv in a pair... but when they do that, in that pair of
         // pairs they tend to form an SR or an RS, so it works for now.
         bool b_ssrr = true, b_srsr = true, b_sswa = true, first = true,
@@ -93,7 +93,7 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
         int recv_dist_2 = 0, recv_dist_not_2 = 0;
 
         // srsr_pattern compresses the send/recv steps into a single number to
-        // be looked at in focus process generation. It puts a 1 where each
+        // be looked at in focus task generation. It puts a 1 where each
         // send is. It doesn't however place where the receives are so again,
         // this might do  something odd for the pair of pairs, which is why
         // this isn't in use yet or maybe ever.
@@ -108,7 +108,7 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
                 if (msg->receiver == *evt) // Receive
                 {
                     sentlast = false;
-                    // Can't be these patterns since a process starts on a recv
+                    // Can't be these patterns since a task starts on a recv
                     // & we know it must have a send since this is an exchange
                     b_ssrr = false;
                     b_sswa = false;
@@ -181,7 +181,7 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
     }
 
     // If we made it down here, we do the final checks to figure out what
-    // patterns we have based on all processes
+    // patterns we have based on all tasks
     if (types[EXCH_SRSR] > 0 && (types[EXCH_SSRR] > 0 || types[EXCH_SSWA] > 0))
         // If we have this going on, too confusing to pick one
         return EXCH_UNKNOWN;
@@ -203,23 +203,23 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
 }
 
 
-// We have a special generator for top processes for SRSR based on trying to
+// We have a special generator for top tasks for SRSR based on trying to
 // find which number of neighbors best represents the different patterns.
 // We add all neighbors and then search those partners for the missing strings
 // We only do this when the neighbor number has not been otherwise set
 // (e.g. by the slider)
-void ExchangeGnome::generateTopProcesses()
+void ExchangeGnome::generateTopTasks()
 {
 
     if (type == EXCH_SRSR && neighbors < 0)
     {
-        top_processes.clear();
-        QList<CommEvent *> * elist = partition->events->value(max_metric_process);
-        QSet<int> add_processes = QSet<int>();
-        QSet<int> level_processes = QSet<int>();
+        top_tasks.clear();
+        QList<CommEvent *> * elist = partition->events->value(max_metric_task);
+        QSet<int> add_tasks = QSet<int>();
+        QSet<int> level_tasks = QSet<int>();
         QSet<int> patterns = QSet<int>();
-        patterns.insert(SRSRmap[max_metric_process]);
-        add_processes.insert(max_metric_process);
+        patterns.insert(SRSRmap[max_metric_task]);
+        add_tasks.insert(max_metric_task);
         // Always add the 1-neighborhood:
         for (QList<CommEvent *>::Iterator evt = elist->begin();
              evt != elist->end(); ++evt)
@@ -230,20 +230,20 @@ void ExchangeGnome::generateTopProcesses()
             {
                 if (*evt == (*msg)->sender)
                 {
-                    if (!add_processes.contains((*msg)->receiver->process))
+                    if (!add_tasks.contains((*msg)->receiver->task))
                     {
-                        add_processes.insert((*msg)->receiver->process);
-                        level_processes.insert((*msg)->receiver->process);
-                        patterns.insert(SRSRmap[(*msg)->receiver->process]);
+                        add_tasks.insert((*msg)->receiver->task);
+                        level_tasks.insert((*msg)->receiver->task);
+                        patterns.insert(SRSRmap[(*msg)->receiver->task]);
                     }
                 }
                 else
                 {
-                    if (!add_processes.contains((*msg)->sender->process))
+                    if (!add_tasks.contains((*msg)->sender->task))
                     {
-                        add_processes.insert((*msg)->sender->process);
-                        level_processes.insert((*msg)->sender->process);
-                        patterns.insert(SRSRmap[(*msg)->sender->process]);
+                        add_tasks.insert((*msg)->sender->task);
+                        level_tasks.insert((*msg)->sender->task);
+                        patterns.insert(SRSRmap[(*msg)->sender->task]);
                     }
                 }
             }
@@ -253,10 +253,10 @@ void ExchangeGnome::generateTopProcesses()
         int neighbor_depth = 1;
         while (patterns.size() / 1.0 / SRSRpatterns.size() < 0.5)
         {
-            QList<int> check_group = level_processes.toList();
-            level_processes.clear();
+            QList<int> check_group = level_tasks.toList();
+            level_tasks.clear();
 
-            // Future, possibly sort by something else than process id, like metric
+            // Future, possibly sort by something else than task id, like metric
             qSort(check_group);
 
             // Now see about adding things from the check group, as long as they
@@ -275,20 +275,20 @@ void ExchangeGnome::generateTopProcesses()
                     {
                         if (*evt == (*msg)->sender)
                         {
-                            if (!add_processes.contains((*msg)->receiver->process))
+                            if (!add_tasks.contains((*msg)->receiver->task))
                             {
-                                add_processes.insert((*msg)->receiver->process);
-                                level_processes.insert((*msg)->receiver->process);
-                                patterns.insert(SRSRmap[(*msg)->receiver->process]);
+                                add_tasks.insert((*msg)->receiver->task);
+                                level_tasks.insert((*msg)->receiver->task);
+                                patterns.insert(SRSRmap[(*msg)->receiver->task]);
                             }
                         }
                         else
                         {
-                            if (!add_processes.contains((*msg)->sender->process))
+                            if (!add_tasks.contains((*msg)->sender->task))
                             {
-                                add_processes.insert((*msg)->sender->process);
-                                level_processes.insert((*msg)->sender->process);
-                                patterns.insert(SRSRmap[(*msg)->sender->process]);
+                                add_tasks.insert((*msg)->sender->task);
+                                level_tasks.insert((*msg)->sender->task);
+                                patterns.insert(SRSRmap[(*msg)->sender->task]);
                             }
                         }
                     }
@@ -298,15 +298,15 @@ void ExchangeGnome::generateTopProcesses()
             check_group.clear();
             neighbor_depth++;
         }
-        top_processes += add_processes.toList();
-        qSort(top_processes);
+        top_tasks += add_tasks.toList();
+        qSort(top_tasks);
         // We need to somehow get the neighbor_depth (neighbor_radius) set on
         // this gnome and known by the tree vis
         neighbors = neighbor_depth;
     }
     else
     {
-        Gnome::generateTopProcesses();
+        Gnome::generateTopTasks();
     }
 }
 
@@ -451,8 +451,8 @@ void ExchangeGnome::drawGnomeQtClusterSSWA(QPainter * painter, QRect startxy,
 }
 
 // For SRSR instead of doing a single combined box for each step, we divide in
-// half and draw each half as either the active or waiting process. All active
-// processes are aggregated onto the active step in the drawing, regardless of
+// half and draw each half as either the active or waiting task. All active
+// tasks are aggregated onto the active step in the drawing, regardless of
 // what they are doing. This is the most distoring because it is showing a
 // simplified diagram of what is not going on to give the general idea.
 void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy,

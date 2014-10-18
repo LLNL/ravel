@@ -195,12 +195,12 @@ void ClusterVis::mouseDoubleClickEvent(QMouseEvent * event)
                 {
                     changeSource = false;
                     g->setSelected(true);
-                    emit(processesSelected(*(pc->members), g));
+                    emit(tasksSelected(*(pc->members), g));
 
                 }
                 else
                 {
-                    emit(processesSelected(QList<int>(), NULL));
+                    emit(tasksSelected(QList<int>(), NULL));
                 }
             }
             return;

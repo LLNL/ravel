@@ -23,11 +23,11 @@ public:
 
 public slots:
     virtual void selectEvent(Event * event, bool aggregate, bool overdraw);
-    void selectProcesses(QList<int> processes, Gnome *gnome);
+    void selectTasks(QList<int> tasks, Gnome *gnome);
 
 protected:
     void drawHover(QPainter *painter);
-    void drawProcessLabels(QPainter * painter, int effectiveHeight,
+    void drawTaskLabels(QPainter * painter, int effectiveHeight,
                            float barHeight);
 
     bool jumped;
@@ -38,7 +38,7 @@ protected:
     int pressx;
     int pressy;
     float stepwidth;
-    float processheight;
+    float taskheight;
     int labelWidth;
     int labelHeight;
     int labelDescent;
@@ -46,9 +46,9 @@ protected:
     int maxStep;
     int startPartition;
     float startStep;
-    float startProcess; // refers to order rather than process really
+    float startTask; // refers to order rather than process really
     float stepSpan;
-    float processSpan;
+    float taskSpan;
     float lastStartStep;
     QMap<int, int> proc_to_order;
     QMap<int, int> order_to_proc;

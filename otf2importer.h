@@ -5,7 +5,7 @@
 #include "commrecord.h"
 #include "eventrecord.h"
 #include "collectiverecord.h"
-#include "communicator.h"
+#include "taskgroup.h"
 #include "otfcollective.h"
 #include <otf2/otf2.h>
 #include <QLinkedList>
@@ -303,9 +303,10 @@ private:
 
     RawTrace * rawtrace;
 
+    QMap<int, Task *> * tasks;
     QMap<int, QString> * functionGroups;
     QMap<int, Function *> * functions;
-    QMap<int, Communicator *> * communicators;
+    QMap<int, TaskGroup *> * taskgroups;
     QMap<int, OTFCollective *> * collective_definitions;
     QMap<unsigned int, Counter *> * counters;
 

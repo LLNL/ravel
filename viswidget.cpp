@@ -13,7 +13,7 @@ VisWidget::VisWidget(QWidget *parent, VisOptions * _options) :
     changeSource(false),
     border(20),
     drawnEvents(QMap<Event *, QRect>()),
-    selected_processes(QList<int>()),
+    selected_tasks(QList<int>()),
     selected_gnome(NULL),
     selected_event(NULL),
     selected_aggregate(false),
@@ -57,9 +57,9 @@ void VisWidget::selectEvent(Event * evt, bool aggregate, bool overdraw)
     Q_UNUSED(overdraw);
 }
 
-void VisWidget::selectProcesses(QList<int> processes, Gnome *gnome)
+void VisWidget::selectTasks(QList<int> tasks, Gnome *gnome)
 {
-    Q_UNUSED(processes);
+    Q_UNUSED(tasks);
     Q_UNUSED(gnome);
 }
 
