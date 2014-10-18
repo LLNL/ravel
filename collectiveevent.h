@@ -7,7 +7,7 @@ class CollectiveEvent : public CommEvent
 {
 public:
     CollectiveEvent(unsigned long long _enter, unsigned long long _exit,
-                    int _function, int _process, int _phase,
+                    int _function, int _task, int _phase,
                     CollectiveRecord * _collective);
     ~CollectiveEvent();
     bool isP2P() { return false; }

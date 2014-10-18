@@ -46,21 +46,21 @@ void CollectiveEvent::initialize_strides(QList<CommEvent *> * stride_events,
     Q_UNUSED(recv_events);
     stride_events->append(this);
 
-    // The next one in the process is a stride child
+    // The next one in the task is a stride child
     set_stride_relationships();
 }
 
 void CollectiveEvent::set_stride_relationships()
 {
-    CommEvent * process_next = comm_next;
+    CommEvent * task_next = comm_next;
 
     // while we have receives
-    while (process_next && process_next->isReceive())
+    while (task_next && task_next->isReceive())
     {
-        process_next = process_next->comm_next;
+        task_next = task_next->comm_next;
     }
 
-    if (process_next && process_next->partition == partition)
+    if (task_next && task_next->partition == partition)
     {
         // Add to everyone in the collective
         // as a parent. This will force the collective to be after
@@ -69,8 +69,8 @@ void CollectiveEvent::set_stride_relationships()
              = collective->events->begin();
              ev != collective->events->end(); ++ev)
         {
-            process_next->stride_parents->insert(*ev);
-            (*ev)->stride_children->insert(process_next);
+            task_next->stride_parents->insert(*ev);
+            (*ev)->stride_children->insert(task_next);
         }
     }
 }
@@ -133,14 +133,14 @@ void CollectiveEvent::addToClusterEvent(ClusterEvent * ce, QString metric,
                   ClusterEvent::CE_COMM_COLL, aggthreshhold);
 }
 
-QList<int> CollectiveEvent::neighborProcesses()
+QList<int> CollectiveEvent::neighborTasks()
 {
     QList<int> neighbors = QList<int>();
     for (QList<CollectiveEvent *>::Iterator evt = collective->events->begin();
          evt != collective->events->end(); ++evt)
     {
-        neighbors.append((*evt)->process);
+        neighbors.append((*evt)->task);
     }
-    neighbors.removeOne(process);
+    neighbors.removeOne(task);
     return neighbors;
 }

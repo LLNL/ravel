@@ -38,7 +38,7 @@ protected:
 
     // Paint all other events available
     void paintNotStepEvents(QPainter *painter, Event * evt, float position,
-                            int process_spacing, float barheight,
+                            int task_spacing, float barheight,
                             float blockheight, QRect * extents);
 
 private:

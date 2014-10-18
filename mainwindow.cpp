@@ -100,7 +100,7 @@ MainWindow::MainWindow(QWidget *parent) :
             SLOT(pushSteps(float, float, bool)));
     connect((clustervis), SIGNAL(eventClicked(Event *, bool, bool)), this,
             SLOT(selectEvent(Event *, bool, bool)));
-    connect((clustervis), SIGNAL(processesSelected(QList<int>, Gnome*)), this,
+    connect((clustervis), SIGNAL(tasksSelected(QList<int>, Gnome*)), this,
             SLOT(selectProcesses(QList<int>, Gnome*)));
 
     connect((clustervis), SIGNAL(focusGnome()), clustertreevis,

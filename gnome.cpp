@@ -105,7 +105,7 @@ void Gnome::findMusters()
 
     /* // (Fail to) generate optimal cluster number
     int dim = (partition->max_global_step - partition->min_global_step)/2 + 1;
-    std::vector<ClusterProcess> * xvector = new std::vector<ClusterProcess>();
+    std::vector<ClusterTask> * xvector = new std::vector<ClusterTask>();
     for (int i = 0; i < partition->cluster_processes->size(); i++)
         xvector->push_back(*(partition->cluster_processes->at(i)));
     clara.xclara(*xvector, process_distance_np(), num_clusters, dim);
@@ -585,13 +585,13 @@ void Gnome::drawGnomeQtCluster(QPainter * painter,
     int effectiveHeight = extents.height() - topHeight;
     int effectiveWidth = extents.width();
 
-    int processSpan = partition->events->size();
+    int taskSpan = partition->events->size();
     int stepSpan = partition->max_global_step - partition->min_global_step + 2;
     int spacingMinimum = 12;
 
 
     int process_spacing = 0;
-    if (effectiveHeight / processSpan > spacingMinimum)
+    if (effectiveHeight / taskSpan > spacingMinimum)
         process_spacing = 3;
 
     int step_spacing = 0;
@@ -599,7 +599,7 @@ void Gnome::drawGnomeQtCluster(QPainter * painter,
         step_spacing = 3;
 
 
-    float blockheight = effectiveHeight / 1.0 / processSpan;
+    float blockheight = effectiveHeight / 1.0 / taskSpan;
     if (blockheight >= 1.0)
         blockheight = floor(blockheight);
     int barheight = blockheight - process_spacing;
@@ -630,9 +630,9 @@ void Gnome::drawGnomeQtCluster(QPainter * painter,
 void Gnome::drawTopLabels(QPainter * painter, QRect extents)
 {
     int topHeight = getTopHeight(extents);
-    int processSpan = top_processes.size();
+    int taskSpan = top_processes.size();
 
-    float blockheight = floor(topHeight / processSpan);
+    float blockheight = floor(topHeight / taskSpan);
 
     QLocale systemlocale = QLocale::system();
     QFontMetrics font_metrics = painter->fontMetrics();
@@ -647,9 +647,9 @@ void Gnome::drawTopLabels(QPainter * painter, QRect extents)
     int total_labels = floor(topHeight / labelHeight);
     int y;
     int skip = 1;
-    if (total_labels < processSpan && total_labels > 0)
+    if (total_labels < taskSpan && total_labels > 0)
     {
-        skip = ceil(float(processSpan) / total_labels);
+        skip = ceil(float(taskSpan) / total_labels);
     }
 
     if (total_labels > 0)
@@ -895,8 +895,8 @@ void Gnome::drawQtTree(QPainter * painter, QRect extents)
 
     int topHeight = getTopHeight(extents);
     int effectiveHeight = extents.height() - topHeight;
-    int processSpan = partition->events->size();
-    float blockheight = effectiveHeight / 1.0 / processSpan;
+    int taskSpan = partition->events->size();
+    float blockheight = effectiveHeight / 1.0 / taskSpan;
     if (blockheight >= 1.0)
         blockheight = floor(blockheight);
 

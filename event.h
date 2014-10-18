@@ -13,7 +13,7 @@ class Event
 {
 public:
     Event(unsigned long long _enter, unsigned long long _exit, int _function,
-          int _process);
+          int _task);
     ~Event();
 
     // Based on enter time

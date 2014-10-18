@@ -1,30 +1,30 @@
-#ifndef CLUSTERPROCESS_H
-#define CLUSTERPROCESS_H
+#ifndef CLUSTERTASK_H
+#define CLUSTERTASK_H
 
 #include <QVector>
 
-class ClusterProcess
+class ClusterTask
 {
 public:
-    ClusterProcess();
-    ClusterProcess(int _p, int _step);
-    ClusterProcess(const ClusterProcess& other);
-    ~ClusterProcess();
+    ClusterTask();
+    ClusterTask(int _t, int _step);
+    ClusterTask(const ClusterTask& other);
+    ~ClusterTask();
 
-    int process;
+    int task;
     int startStep; // What step our metric_events starts at
 
     // Representative vector of events for clustering. This is contiguous
     // so all missing steps should be filled in with their previous lateness
-    // value by whoever builds this ClusterProcess
+    // value by whoever builds this ClusterTask
     QVector<long long int> * metric_events;
 
-    ClusterProcess& operator+(const ClusterProcess &);
-    ClusterProcess& operator/(const int);
-    ClusterProcess& operator=(const ClusterProcess &);
+    ClusterTask& operator+(const ClusterTask &);
+    ClusterTask& operator/(const int);
+    ClusterTask& operator=(const ClusterTask &);
 
-    double calculateMetricDistance(const ClusterProcess& other) const;
+    double calculateMetricDistance(const ClusterTask& other) const;
 
 };
 
-#endif // CLUSTERPROCESS_H
+#endif // CLUSTERTASK_H

@@ -20,8 +20,8 @@ void ClusterVis::setTrace(Trace * t)
     else
         startStep = 0;
     stepSpan = initStepSpan;
-    startProcess = 0;
-    processSpan = trace->num_processes;
+    startTask = 0;
+    taskSpan = trace->num_processes;
     startPartition = 0;
 
     maxStep = trace->global_max_step;
@@ -131,9 +131,9 @@ void ClusterVis::wheelEvent(QWheelEvent * event)
     if (Qt::MetaModifier && event->modifiers()) {
         // Vertical - Doesn't make sense here so do nothing
         // so that it doesn't behave differently from the other vis
-        //float avgProc = startProcess + processSpan / 2.0;
-        //processSpan *= scale;
-        //startProcess = avgProc - processSpan / 2.0;
+        //float avgProc = startTask + taskSpan / 2.0;
+        //taskSpan *= scale;
+        //startTask = avgProc - taskSpan / 2.0;
     } else {
         // Horizontal
         float scale = 1;
@@ -326,11 +326,11 @@ void ClusterVis::drawNativeGL()
                height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho(0, effectiveSpan, 0, processSpan, 0, 1);
+    glOrtho(0, effectiveSpan, 0, taskSpan, 0, 1);
 
     float barwidth = 1.0;
     float barheight = 1.0;
-    processheight = height/ processSpan;
+    processheight = height/ taskSpan;
     stepwidth = width / effectiveSpan;
 
     // Process events for values

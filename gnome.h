@@ -60,14 +60,14 @@ public:
 
     // For clusterings
     struct process_distance {
-        double operator()(ClusterProcess * cp1, ClusterProcess * cp2) const {
+        double operator()(ClusterTask * cp1, ClusterTask * cp2) const {
             return cp1->calculateMetricDistance(*cp2);
         }
     };
 
     struct process_distance_np {
-        double operator()(const ClusterProcess& cp1,
-                          const ClusterProcess& cp2) const {
+        double operator()(const ClusterTask& cp1,
+                          const ClusterTask& cp2) const {
             return cp1.calculateMetricDistance(cp2);
         }
     };

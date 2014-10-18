@@ -60,7 +60,7 @@ Gnome * ExchangeGnome::create()
     return new ExchangeGnome();
 }
 
-void ExchangeGnome::pretask()
+void ExchangeGnome::preprocess()
 {
     // Possibly determine type
     type = findType();
@@ -70,7 +70,7 @@ void ExchangeGnome::pretask()
         SRSRpatterns.clear();
     }
 
-    Gnome::pretask();
+    Gnome::preprocess();
 }
 
 ExchangeGnome::ExchangeType ExchangeGnome::findType()
