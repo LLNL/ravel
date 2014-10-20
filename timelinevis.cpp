@@ -42,7 +42,7 @@ void TimelineVis::processVis()
         order_to_proc[i] = i;
     }
 
-    // Determine needs for process labels
+    // Determine needs for task labels
     int max_task = pow(10,ceil(log10(trace->num_tasks)) + 1) - 1;
     QPainter * painter = new QPainter();
     painter->begin(this);

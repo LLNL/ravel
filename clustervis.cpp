@@ -21,7 +21,7 @@ void ClusterVis::setTrace(Trace * t)
         startStep = 0;
     stepSpan = initStepSpan;
     startTask = 0;
-    taskSpan = trace->num_processes;
+    taskSpan = trace->num_tasks;
     startPartition = 0;
 
     maxStep = trace->global_max_step;
@@ -330,7 +330,7 @@ void ClusterVis::drawNativeGL()
 
     float barwidth = 1.0;
     float barheight = 1.0;
-    processheight = height/ taskSpan;
+    taskheight = height/ taskSpan;
     stepwidth = width / effectiveSpan;
 
     // Process events for values
@@ -420,7 +420,7 @@ void ClusterVis::paintEvents(QPainter * painter)
             QRect gnomeRect = QRect(labelWidth + blockwidth * drawStart, 0,
                                     blockwidth * (drawSpan),
                                     part->events->size() / 1.0
-                                    / trace->num_processes * effectiveHeight);
+                                    / trace->num_tasks * effectiveHeight);
             part->gnome->drawGnomeQt(painter, gnomeRect, options, blockwidth);
             drawnGnomes[part->gnome] = gnomeRect;
             if (!leftmost)

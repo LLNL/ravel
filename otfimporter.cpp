@@ -24,7 +24,7 @@ OTFImporter::OTFImporter()
       tasks(NULL),
       functionGroups(NULL),
       functions(NULL),
-      communicators(NULL),
+      taskgroups(NULL),
       collective_definitions(NULL),
       counters(NULL),
       collectives(NULL),

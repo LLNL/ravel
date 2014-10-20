@@ -34,7 +34,7 @@ protected:
     void drawNativeGL();
     void paintEvents(QPainter *painter);
     void prepaint();
-    void overdrawSelected(QPainter *painter, QList<int> processes);
+    void overdrawSelected(QPainter *painter, QList<int> tasks);
     void drawColorBarGL();
     void drawColorBarText(QPainter * painter);
     void drawCollective(QPainter * painter, CollectiveRecord * cr,

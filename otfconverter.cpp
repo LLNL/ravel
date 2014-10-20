@@ -122,7 +122,7 @@ void OTFConverter::convert()
          = trace->collectives->begin();
          cr != trace->collectives->end(); ++cr)
     {
-        qSort((*cr)->events->begin(), (*cr)->events->end(), eventProcessLessThan);
+        qSort((*cr)->events->begin(), (*cr)->events->end(), eventTaskLessThan);
     }
 
     traceElapsed = traceTimer.nsecsElapsed();

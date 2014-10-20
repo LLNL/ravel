@@ -36,7 +36,7 @@ public slots:
     // Signal relays
     void pushSteps(float start, float stop, bool jump = false);
     void selectEvent(Event * event, bool aggregate, bool overdraw);
-    void selectProcesses(QList<int> processes, Gnome *gnome);
+    void selectTasks(QList<int> tasks, Gnome *gnome);
 
     // Importing & Progress Bar
     void importOTFbyGUI();

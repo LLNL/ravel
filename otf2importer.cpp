@@ -449,9 +449,9 @@ void OTF2Importer::processDefinitions()
             OTF2_LocationType type = (loc.value())->type;
             if (type == OTF2_LOCATION_TYPE_CPU_THREAD)
             {
-                int process = (loc.value())->self;
-                tasks->insert(process, new Task(process, loc.value()->name));
-                locationIndexMap->insert(loc.key(), process);
+                int task = (loc.value())->self;
+                tasks->insert(task, new Task(task, stringMap->value(loc.value()->name)));
+                locationIndexMap->insert(loc.key(), task);
                 num_processes++;
             }
         }
@@ -683,6 +683,7 @@ OTF2_CallbackCode OTF2Importer::callbackMPISend(OTF2_LocationRef locationID,
     // to see if it has a match
     unsigned long long converted_time = convertTime(userData, time);
     int sender = ((OTF2Importer *) userData)->locationIndexMap->value(locationID);
+    OTF2Comm * comm = ((OTF2Importer *) userData)->commMap->value(communicator);
     OTF2Group * group = ((OTF2Importer *) userData)->groupMap->value(comm->group);
     int world_receiver = group->members->at(receiver);
     CommRecord * cr = NULL;

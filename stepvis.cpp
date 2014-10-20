@@ -35,7 +35,7 @@ void StepVis::setTrace(Trace * t)
         startStep = 0;
     stepSpan = initStepSpan;
     startTask = 0;
-    taskSpan = trace->num_processes;
+    taskSpan = trace->num_tasks;
     startPartition = 0;
 
     maxStep = trace->global_max_step;
@@ -167,7 +167,7 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
         int diffx = mousex - event->x();
         int diffy = mousey - event->y();
         startStep += diffx / 1.0 / stepwidth;
-        startTask += diffy / 1.0 / processheight;
+        startTask += diffy / 1.0 / taskheight;
 
         if (options->showAggregateSteps)
         {
@@ -184,8 +184,8 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
 
         if (startTask < 0)
             startTask = 0;
-        if (startTask + taskSpan > trace->num_processes)
-            startTask = trace->num_processes - taskSpan;
+        if (startTask + taskSpan > trace->num_tasks)
+            startTask = trace->num_tasks - taskSpan;
 
         mousex = event->x();
         mousey = event->y();
@@ -360,8 +360,8 @@ void StepVis::qtPaint(QPainter *painter)
     }
 
     // Always done by qt
-    drawProcessLabels(painter, rect().height() - colorBarHeight,
-                      processheight);
+    drawTaskLabels(painter, rect().height() - colorBarHeight,
+                      taskheight);
     drawColorBarText(painter);
 
     // Hover is independent of how we drew things
@@ -408,7 +408,7 @@ void StepVis::drawNativeGL()
 
     float barwidth = 1.0;
     float barheight = 1.0;
-    processheight = height/ taskSpan;
+    taskheight = height/ taskSpan;
     stepwidth = width / effectiveSpan;
 
 
@@ -448,11 +448,11 @@ void StepVis::drawNativeGL()
     // more visible.
     if (density)
     {
-        if (processheight < 1.0)
+        if (taskheight < 1.0)
         {
-            double processes_per_pixel = 1.0 / processheight;
-            yoffset = processes_per_pixel / 2;
-            opacity = processheight / density;
+            double tasks_per_pixel = 1.0 / taskheight;
+            yoffset = tasks_per_pixel / 2;
+            opacity = taskheight / density;
         }
         if (stepwidth < 1.0)
         {
@@ -470,9 +470,9 @@ void StepVis::drawNativeGL()
 
     // Process events for values
     float x, y; // true position
-    float position; // placement of process
+    float position; // placement of task
     QColor color;
-    float maxProcess = taskSpan + startTask;
+    float maxTask = taskSpan + startTask;
     float myopacity, opacity_multiplier = 1.0;
     if (selected_gnome && !selected_tasks.isEmpty())
         opacity_multiplier = 0.50;
@@ -494,13 +494,13 @@ void StepVis::drawNativeGL()
             }
 
             position = proc_to_order[event_list.key()];
-            // Out of process span check
+            // Out of task span check
             if (position < floor(startTask)
                 || position > ceil(startTask + taskSpan))
             {
                  continue;
             }
-            y = (maxProcess - position) * barheight - 1;
+            y = (maxTask - position) * barheight - 1;
 
             for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
@@ -585,9 +585,9 @@ void StepVis::paintEvents(QPainter * painter)
     int effectiveHeight = rect().height() - colorBarHeight;
     int effectiveWidth = rect().width();
 
-    int process_spacing = 0;
+    int task_spacing = 0;
     if (effectiveHeight / taskSpan > spacingMinimum)
-        process_spacing = 3;
+        task_spacing = 3;
 
     int step_spacing = 0;
     if (effectiveWidth / stepSpan > spacingMinimum)
@@ -603,9 +603,9 @@ void StepVis::paintEvents(QPainter * painter)
     {
         blockwidth = floor(effectiveWidth / (ceil(stepSpan / 2.0)));
     }
-    float barheight = blockheight - process_spacing;
+    float barheight = blockheight - task_spacing;
     float barwidth = blockwidth - step_spacing;
-    processheight = blockheight;
+    taskheight = blockheight;
     stepwidth = blockwidth;
     QRect extents = QRect(0, 0, rect().width(), effectiveHeight);
 
@@ -622,7 +622,7 @@ void StepVis::paintEvents(QPainter * painter)
     if (selected_gnome && !selected_tasks.isEmpty())
         opacity = 0.50;
 
-    QList<int> overdraw_processes;
+    QList<int> overdraw_tasks;
 
     // Only do partitions in our range
     for (int i = startPartition; i < trace->partitions->length(); ++i)
@@ -662,7 +662,7 @@ void StepVis::paintEvents(QPainter * painter)
                 {
                     continue;
                 }
-                // 0 = startTask, effectiveHeight = stopProcess (startTask + taskSpan)
+                // 0 = startTask, effectiveHeight = stopTask (startTask + taskSpan)
                 // 0 = startStep, rect().width() = stopStep (startStep + stepSpan)
 
                 x = getX(*evt);
@@ -706,7 +706,7 @@ void StepVis::paintEvents(QPainter * painter)
                 if (*evt == selected_event && !selected_aggregate)
                     painter->setPen(QPen(Qt::yellow));
                 // Draw border only if we're doing spacing, otherwise too messy
-                if (step_spacing > 0 && process_spacing > 0)
+                if (step_spacing > 0 && task_spacing > 0)
                 {
                     if (complete)
                         painter->drawRect(QRectF(x,y,w,h));
@@ -723,7 +723,7 @@ void StepVis::paintEvents(QPainter * painter)
                 if (*evt == selected_event)
                 {
                     if (overdraw_selected)
-                        overdraw_processes = (*evt)->neighborProcesses();
+                        overdraw_tasks = (*evt)->neighborTasks();
                     (*evt)->addComms(&selectedComms);
                 }
 
@@ -757,7 +757,7 @@ void StepVis::paintEvents(QPainter * painter)
 
                     if (*evt == selected_event && selected_aggregate)
                         painter->setPen(QPen(Qt::yellow));
-                    if (step_spacing > 0 && process_spacing > 0)
+                    if (step_spacing > 0 && task_spacing > 0)
                         if (aggcomplete)
                             painter->drawRect(QRectF(xa, y, wa, h));
                         else
@@ -806,34 +806,34 @@ void StepVis::paintEvents(QPainter * painter)
     }
 
     if (overdraw_selected)
-        overdrawSelected(painter, overdraw_processes);
+        overdrawSelected(painter, overdraw_tasks);
 }
 
 // Might want to use something like this to also have a lens feature
-void StepVis::overdrawSelected(QPainter * painter, QList<int> processes)
+void StepVis::overdrawSelected(QPainter * painter, QList<int> tasks)
 {
     // Figure out how big the overdraw window should be
-    int selected_position = proc_to_order[selected_event->process];
-    QList<int> before_processes = QList<int>();
-    QList<int> after_processes = QList<int>();
+    int selected_position = proc_to_order[selected_event->task];
+    QList<int> before_tasks = QList<int>();
+    QList<int> after_tasks = QList<int>();
     QMap<int, int> position_map = QMap<int, int>();
-    for (int i = 0; i < processes.size(); i++)
+    for (int i = 0; i < tasks.size(); i++)
     {
-        if (proc_to_order[processes[i]] < selected_position)
+        if (proc_to_order[tasks[i]] < selected_position)
         {
-            before_processes.append(proc_to_order[processes[i]]);
+            before_tasks.append(proc_to_order[tasks[i]]);
         }
         else
         {
-            after_processes.append(proc_to_order[processes[i]]);
+            after_tasks.append(proc_to_order[tasks[i]]);
         }
     }
-    qSort(before_processes);
-    qSort(after_processes);
-    for (int i = 0; i < before_processes.size(); i++)
-        position_map.insert(before_processes[i], i);
-    for (int i = 0; i < after_processes.size(); i++)
-        position_map.insert(after_processes[i], i);
+    qSort(before_tasks);
+    qSort(after_tasks);
+    for (int i = 0; i < before_tasks.size(); i++)
+        position_map.insert(before_tasks[i], i);
+    for (int i = 0; i < after_tasks.size(); i++)
+        position_map.insert(after_tasks[i], i);
 
     if (blockheight > 3) // keep same height for non-GL
     {
@@ -845,14 +845,14 @@ void StepVis::overdrawSelected(QPainter * painter, QList<int> processes)
         // First we draw the background as white rectangles
         // Above
         painter->fillRect(QRect(labelWidth,
-                                selected_position - blockheight * before_processes.size(),
-                                rect().width(), blockheight * before_processes.size()),
+                                selected_position - blockheight * before_tasks.size(),
+                                rect().width(), blockheight * before_tasks.size()),
                           QBrush(Qt::white));
         // Below
         painter->fillRect(QRect(labelWidth,
                                 selected_position + blockheight,
                                 rect().width(),
-                                blockheight * after_processes.size()),
+                                blockheight * after_tasks.size()),
                           QBrush(Qt::white));
 
     }
@@ -873,7 +873,7 @@ void StepVis::overdrawSelected(QPainter * painter, QList<int> processes)
 int StepVis::getY(CommEvent * evt)
 {
     int y = 0;
-    int position = proc_to_order[evt->process];
+    int position = proc_to_order[evt->task];
     y = floor((position - startTask) * blockheight) + 1;
     return y;
 }
@@ -943,7 +943,7 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
     // Rooted
     if (coll_type == 2 || coll_type == 3)
     {
-        //root = (*(trace->communicators))[(*cr)->communicator]->processes->at((*cr)->root);
+        //root = (*(trace->communicators))[(*cr)->communicator]->tasks->at((*cr)->root);
         rooted = true;
         root = cr->root;
         root_offset = ell_w;
@@ -961,7 +961,7 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
 
     if (rooted)
     {
-        if (coll_event->process == root)
+        if (coll_event->task == root)
         {
             painter->setBrush(QBrush());
             prev_x += root_offset;
@@ -981,7 +981,7 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
         painter->setBrush(QBrush(Qt::darkGray));
         coll_event = cr->events->at(i);
 
-        if (rooted && coll_event->process == root)
+        if (rooted && coll_event->task == root)
         {
             painter->setBrush(QBrush());
         }
@@ -990,7 +990,7 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
         x = getX(coll_event);
         if (rooted)
         {
-            if (coll_event->process == root)
+            if (coll_event->task == root)
                 x += root_offset;
             else
                 x -= root_offset;
@@ -1007,7 +1007,7 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
             p2 = QPointF(x + w/2.0, y + h/2.0);
             drawArc(painter, &p1, &p2, ell_w * 1.5);
         }
-        else if (rooted && coll_event->process == root)
+        else if (rooted && coll_event->task == root)
         {
             // ONE2ALL / ALL2ONE drawing handled after the loop
             root_x = x;
@@ -1036,7 +1036,7 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
         for (int j = 0; j < cr->events->size(); j++)
         {
             other = cr->events->at(j);
-            if (other->process == root)
+            if (other->task == root)
                 continue;
 
             oy = getY(other);

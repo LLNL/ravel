@@ -207,11 +207,11 @@ void MainWindow::selectEvent(Event * event, bool aggregate, bool overdraw)
     }
 }
 
-void MainWindow::selectProcesses(QList<int> processes, Gnome * gnome)
+void MainWindow::selectTasks(QList<int> tasks, Gnome * gnome)
 {
     for(int i = 0; i < viswidgets.size(); i++)
     {
-        viswidgets[i]->selectProcesses(processes, gnome);
+        viswidgets[i]->selectTasks(tasks, gnome);
     }
 }
 

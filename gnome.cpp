@@ -13,8 +13,8 @@ Gnome::Gnome()
       cluster_leaves(NULL),
       cluster_map(NULL),
       cluster_root(NULL),
-      max_metric_process(-1),
-      top_processes(QList<int>()),
+      max_metric_task(-1),
+      top_tasks(QList<int>()),
       alternation(true),
       neighbors(-1),
       selected_pc(NULL),
@@ -52,7 +52,7 @@ Gnome * Gnome::create()
 
 
 // Should be called initially and whenever the metric changes so it can
-// recluster, generate top processes, etc
+// recluster, generate top tasks, etc
 void Gnome::preprocess()
 {
     if (partition && partition->events->size() > 20)
@@ -74,7 +74,7 @@ void Gnome::preprocess()
     {
         findClusters();
     }
-    generateTopProcesses();
+    generateTopTasks();
 }
 
 // Clustering using Muster
@@ -84,7 +84,7 @@ void Gnome::findMusters()
     qint64 traceElapsed;
 
     traceTimer.start();
-    top_processes.clear();
+    top_tasks.clear();
     if (cluster_root)
     {
         cluster_root->delete_tree();
@@ -93,22 +93,22 @@ void Gnome::findMusters()
         delete cluster_map;
     }
     long long int metric, max_metric = LLONG_MIN;
-    max_metric_process = -1;
+    max_metric_task = -1;
     QString cmetric = "Lateness";
     if (options)
         cmetric = options->metric;
 
     int num_clusters = std::min(20, partition->events->size());
     kmedoids clara;
-    clara.clara(partition->cluster_processes->toStdVector(),
-                process_distance(), num_clusters);
+    clara.clara(partition->cluster_tasks->toStdVector(),
+                task_distance(), num_clusters);
 
     /* // (Fail to) generate optimal cluster number
     int dim = (partition->max_global_step - partition->min_global_step)/2 + 1;
     std::vector<ClusterTask> * xvector = new std::vector<ClusterTask>();
-    for (int i = 0; i < partition->cluster_processes->size(); i++)
-        xvector->push_back(*(partition->cluster_processes->at(i)));
-    clara.xclara(*xvector, process_distance_np(), num_clusters, dim);
+    for (int i = 0; i < partition->cluster_tasks->size(); i++)
+        xvector->push_back(*(partition->cluster_tasks->at(i)));
+    clara.xclara(*xvector, task_distance_np(), num_clusters, dim);
     std::cout << "XClara found " << clara.medoid_ids.size()
               << " clusters" << std::endl;
     */
@@ -124,14 +124,14 @@ void Gnome::findMusters()
                                                     partition->min_global_step));
     for (int i = 0; i < clara.cluster_ids.size(); i++)
     {
-        int process = partition->cluster_processes->at(i)->process;
-        metric = cluster_leaves->value(clara.cluster_ids[i])->addMember(partition->cluster_processes->at(i),
-                                                                        partition->events->value(process),
+        int task = partition->cluster_tasks->at(i)->task;
+        metric = cluster_leaves->value(clara.cluster_ids[i])->addMember(partition->cluster_tasks->at(i),
+                                                                        partition->events->value(task),
                                                                         cmetric);
         if (metric > max_metric)
         {
             max_metric = metric;
-            max_metric_process = process;
+            max_metric_task = task;
         }
     }
     traceElapsed = traceTimer.nsecsElapsed();
@@ -190,13 +190,13 @@ void Gnome::hierarchicalMusters()
     // and see how it goes
 }
 
-// Straigth SLINK hierarchy, can take a long time for large #processes or #steps
+// Straigth SLINK hierarchy, can take a long time for large #tasks or #steps
 void Gnome::findClusters()
 {
     // Calculate initial distances
     QList<DistancePair> distances;
-    QList<int> processes = partition->events->keys();
-    top_processes.clear();
+    QList<int> tasks = partition->events->keys();
+    top_tasks.clear();
     if (cluster_root)
     {
         cluster_root->delete_tree();
@@ -209,14 +209,14 @@ void Gnome::findClusters()
     cluster_leaves = new QMap<int, PartitionCluster *>();
     cluster_map = new QMap<int, PartitionCluster *>();
     long long int max_metric = LLONG_MIN;
-    max_metric_process = -1;
-    qSort(processes);
-    int num_processes = processes.size();
+    max_metric_task = -1;
+    qSort(tasks);
+    int num_tasks = tasks.size();
     int p1, p2;
     long long int distance;
-    for (int i = 0; i < num_processes; i++)
+    for (int i = 0; i < num_tasks; i++)
     {
-        p1 = processes[i];
+        p1 = tasks[i];
         cluster_leaves->insert(p1, new PartitionCluster(p1,
                                                         partition->events->value(p1),
                                                         "Lateness"));
@@ -224,11 +224,11 @@ void Gnome::findClusters()
         if (cluster_leaves->value(p1)->max_metric > max_metric)
         {
             max_metric = cluster_leaves->value(p1)->max_metric;
-            max_metric_process = p1;
+            max_metric_task = p1;
         }
-        for (int j = i + 1; j < num_processes; j++)
+        for (int j = i + 1; j < num_tasks; j++)
         {
-            p2 = processes[j];
+            p2 = tasks[j];
             distance = calculateMetricDistance(p1,
                                                p2);
             distances.append(DistancePair(distance, p1, p2));
@@ -365,41 +365,41 @@ void Gnome::setNeighbors(int _neighbors)
         return;
 
     neighbors = _neighbors;
-    generateTopProcesses();
+    generateTopTasks();
 }
 
-// Find the focus processes
-void Gnome::generateTopProcesses(PartitionCluster *pc)
+// Find the focus tasks
+void Gnome::generateTopTasks(PartitionCluster *pc)
 {
-    top_processes.clear();
+    top_tasks.clear();
     if (neighbors < 0)
         neighbors = 1;
 
     if (pc)
     {
         if (options->topByCentroid)
-            generateTopProcessesWorker(findCentroidProcess(pc));
+            generateTopTasksWorker(findCentroidTask(pc));
         else
-            generateTopProcessesWorker(findMaxMetricProcess(pc));
+            generateTopTasksWorker(findMaxMetricTask(pc));
     }
     else
-        generateTopProcessesWorker(max_metric_process);
-    qSort(top_processes);
+        generateTopTasksWorker(max_metric_task);
+    qSort(top_tasks);
 }
 
-// Sets top_processes to a list w/process and its neighbors-hop neighborhood
-void Gnome::generateTopProcessesWorker(int process)
+// Sets top_tasks to a list w/task and its neighbors-hop neighborhood
+void Gnome::generateTopTasksWorker(int task)
 {
     QList<CommEvent *> * elist = NULL;
-    QSet<int> add_processes = QSet<int>();
-    add_processes.insert(process);
-    QSet<int> new_processes = QSet<int>();
-    QSet<int> current_processes = QSet<int>();
-    current_processes.insert(process);
+    QSet<int> add_tasks = QSet<int>();
+    add_tasks.insert(task);
+    QSet<int> new_tasks = QSet<int>();
+    QSet<int> current_tasks = QSet<int>();
+    current_tasks.insert(task);
     for (int i = 0; i < neighbors; i++)
     {
-        for (QSet<int>::Iterator proc = current_processes.begin();
-             proc != current_processes.end(); ++proc)
+        for (QSet<int>::Iterator proc = current_tasks.begin();
+             proc != current_tasks.end(); ++proc)
         {
             elist = partition->events->value(*proc);
             for (QList<CommEvent *>::Iterator evt = elist->begin();
@@ -415,33 +415,33 @@ void Gnome::generateTopProcessesWorker(int process)
                 {
                     if (*evt == (*msg)->sender)
                     {
-                        add_processes.insert((*msg)->receiver->process);
-                        new_processes.insert((*msg)->receiver->process);
+                        add_tasks.insert((*msg)->receiver->task);
+                        new_tasks.insert((*msg)->receiver->task);
                     }
                     else
                     {
-                        add_processes.insert((*msg)->sender->process);
-                        new_processes.insert((*msg)->receiver->process);
+                        add_tasks.insert((*msg)->sender->task);
+                        new_tasks.insert((*msg)->receiver->task);
                     }
                 }
             }
         }
-        current_processes.clear();
-        current_processes += new_processes;
-        new_processes.clear();
+        current_tasks.clear();
+        current_tasks += new_tasks;
+        new_tasks.clear();
     }
-    top_processes = add_processes.toList();
+    top_tasks = add_tasks.toList();
 }
 
 // TODO: Make this a per-PC thing.
-int Gnome::findMaxMetricProcess(PartitionCluster * pc)
+int Gnome::findMaxMetricTask(PartitionCluster * pc)
 {
-    return pc->max_process;
+    return pc->max_task;
 }
 
 // Calculates the centroid of a partition cluster by first finding the average
 // and then finding the closest member to the average
-int Gnome::findCentroidProcess(PartitionCluster * pc)
+int Gnome::findCentroidTask(PartitionCluster * pc)
 {
     // Init
     QList<CentroidDistance> distances = QList<CentroidDistance>();
@@ -465,8 +465,8 @@ int Gnome::findCentroidProcess(PartitionCluster * pc)
     {
         int index1 = 0, index2 = 0, total_calced_steps = 0;
         long long int last1 = 0, last2 = 0, total_difference = 0;
-        int process = distances[i].process;
-        CommEvent * evt = partition->events->value(process)->first();
+        int task = distances[i].task;
+        CommEvent * evt = partition->events->value(task)->first();
 
         while (evt && index2 < num_events)
         {
@@ -480,8 +480,8 @@ int Gnome::findCentroidProcess(PartitionCluster * pc)
                 // Increment both event lists now
                 ++index2;
                 ++index1;
-                if (index1 < partition->events->value(process)->size())
-                    evt = partition->events->value(process)->at(index1);
+                if (index1 < partition->events->value(task)->size())
+                    evt = partition->events->value(task)->at(index1);
                 else
                     evt = NULL;
             } else if (evt->step > am.step) { // If not, increment steps until they match
@@ -505,8 +505,8 @@ int Gnome::findCentroidProcess(PartitionCluster * pc)
 
                 // Move evt1 forward
                 ++index1;
-                if (index1 < partition->events->value(process)->size())
-                    evt = partition->events->value(process)->at(index1);
+                if (index1 < partition->events->value(task)->size())
+                    evt = partition->events->value(task)->at(index1);
                 else
                     evt = NULL;
             }
@@ -521,7 +521,7 @@ int Gnome::findCentroidProcess(PartitionCluster * pc)
         }
     }
     qSort(distances);
-    return distances[0].process;
+    return distances[0].task;
 }
 
 
@@ -542,17 +542,17 @@ void Gnome::drawGnomeQt(QPainter * painter, QRect extents,
     drawGnomeQtCluster(painter, extents, blockwidth);
 }
 
-// The height allowed to the top processes (of the total Gnome drawing height).
+// The height allowed to the top tasks (of the total Gnome drawing height).
 // This is not the y but the height.
 // This could be improved.
 int Gnome::getTopHeight(QRect extents)
 {
     int topHeight = 0;
-    int fair_portion = top_processes.size() / 1.0
+    int fair_portion = top_tasks.size() / 1.0
                        / cluster_root->members->size() * extents.height();
-    int min_size = 12 * top_processes.size();
+    int min_size = 12 * top_tasks.size();
 
-    // If we don't have enough for 12 pixels each process,
+    // If we don't have enough for 12 pixels each task,
     // go with the fair portion
     if (min_size > extents.height())
         topHeight = fair_portion;
@@ -590,9 +590,9 @@ void Gnome::drawGnomeQtCluster(QPainter * painter,
     int spacingMinimum = 12;
 
 
-    int process_spacing = 0;
+    int task_spacing = 0;
     if (effectiveHeight / taskSpan > spacingMinimum)
-        process_spacing = 3;
+        task_spacing = 3;
 
     int step_spacing = 0;
     if (effectiveWidth / stepSpan + 1 > spacingMinimum)
@@ -602,14 +602,14 @@ void Gnome::drawGnomeQtCluster(QPainter * painter,
     float blockheight = effectiveHeight / 1.0 / taskSpan;
     if (blockheight >= 1.0)
         blockheight = floor(blockheight);
-    int barheight = blockheight - process_spacing;
+    int barheight = blockheight - task_spacing;
     int barwidth = blockwidth - step_spacing;
     painter->setPen(QPen(QColor(0, 0, 0)));
 
-    // Draw the Focus processes
+    // Draw the Focus tasks
     QRect top_extents = QRect(extents.x(), extents.y(),
                               extents.width(), topHeight);
-    drawGnomeQtTopProcesses(painter, top_extents, blockwidth, barwidth);
+    drawGnomeQtTopTasks(painter, top_extents, blockwidth, barwidth);
 
     // Draw the clusters
     QRect cluster_extents = QRect(extents.x(), extents.y() + topHeight,
@@ -626,17 +626,17 @@ void Gnome::drawGnomeQtCluster(QPainter * painter,
 
 }
 
-// Process labels for the focus processes
+// Task labels for the focus tasks
 void Gnome::drawTopLabels(QPainter * painter, QRect extents)
 {
     int topHeight = getTopHeight(extents);
-    int taskSpan = top_processes.size();
+    int taskSpan = top_tasks.size();
 
     float blockheight = floor(topHeight / taskSpan);
 
     QLocale systemlocale = QLocale::system();
     QFontMetrics font_metrics = painter->fontMetrics();
-    QString testString = systemlocale.toString(top_processes.last());
+    QString testString = systemlocale.toString(top_tasks.last());
     int labelWidth = font_metrics.width(testString);
     int labelHeight = font_metrics.height();
 
@@ -654,53 +654,53 @@ void Gnome::drawTopLabels(QPainter * painter, QRect extents)
 
     if (total_labels > 0)
     {
-        for (int i = 0; i < top_processes.size(); i+= skip)
+        for (int i = 0; i < top_tasks.size(); i+= skip)
         {
             y = floor(i * blockheight) + (blockheight + labelHeight) / 2 + 1;
             if (y < topHeight)
-                painter->drawText(x, y, QString::number(top_processes[i]));
+                painter->drawText(x, y, QString::number(top_tasks[i]));
         }
     }
 }
 
 
-// Draw focus processes much like StepVis
-void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
+// Draw focus tasks much like StepVis
+void Gnome::drawGnomeQtTopTasks(QPainter * painter, QRect extents,
                                             int blockwidth, int barwidth)
 {
     int effectiveHeight = extents.height();
 
-    int process_spacing = blockwidth - barwidth;
-    int step_spacing = process_spacing;
+    int task_spacing = blockwidth - barwidth;
+    int step_spacing = task_spacing;
 
     float x, y, w, h, xa, wa;
-    float blockheight = floor(effectiveHeight / top_processes.size());
+    float blockheight = floor(effectiveHeight / top_tasks.size());
     int startStep = partition->min_global_step;
     if (options->showAggregateSteps)
     {
         startStep -= 1;
     }
-    float barheight = blockheight - process_spacing;
+    float barheight = blockheight - task_spacing;
     stepwidth = blockwidth;
 
     QSet<Message *> drawMessages = QSet<Message *>();
     painter->setPen(QPen(QColor(0, 0, 0)));
-    QMap<int, int> processYs = QMap<int, int>();
+    QMap<int, int> taskYs = QMap<int, int>();
     float myopacity, opacity = 1.0;
     if (is_selected && selected_pc)
         opacity = 0.5;
-    for (int i = 0; i < top_processes.size(); ++i)
+    for (int i = 0; i < top_tasks.size(); ++i)
     {
-        QList<CommEvent *> * event_list = partition->events->value(top_processes[i]);
+        QList<CommEvent *> * event_list = partition->events->value(top_tasks[i]);
         bool selected = false;
         if (is_selected && selected_pc
-            && selected_pc->members->contains(top_processes[i]))
+            && selected_pc->members->contains(top_tasks[i]))
         {
             selected = true;
         }
         y =  floor(extents.y() + i * blockheight) + 1;
 
-        processYs[top_processes[i]] = y;
+        taskYs[top_tasks[i]] = y;
         for (QList<CommEvent *>::Iterator evt = event_list->begin();
              evt != event_list->end(); ++evt)
         {
@@ -722,7 +722,7 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
 
             // Draw border but only if we're doing spacing, otherwise too messy
             painter->setPen(QPen(QColor(0, 0, 0, myopacity * 255)));
-            if (step_spacing > 0 && process_spacing > 0)
+            if (step_spacing > 0 && task_spacing > 0)
             {
                 painter->drawRect(QRectF(x,y,w,h));
             }
@@ -733,15 +733,15 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
                 for (QVector<Message *>::Iterator msg = msgs->begin();
                      msg != msgs->end(); ++msg)
                 {
-                    if (top_processes.contains((*msg)->sender->process)
-                            && top_processes.contains((*msg)->receiver->process))
+                    if (top_tasks.contains((*msg)->sender->task)
+                            && top_tasks.contains((*msg)->receiver->task))
                     {
                         drawMessages.insert((*msg));
                     }
                     else if (*evt == (*msg)->sender)
                     {
                         // send
-                        if ((*msg)->sender->process > (*msg)->receiver->process)
+                        if ((*msg)->sender->task > (*msg)->receiver->task)
                             painter->drawLine(x + w/2, y + h/2, x + w, y);
                         else
                             painter->drawLine(x + w/2, y + h/2, x + w, y + h);
@@ -749,7 +749,7 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
                     else
                     {
                         // recv
-                        if ((*msg)->sender->process > (*msg)->receiver->process)
+                        if ((*msg)->sender->task > (*msg)->receiver->task)
                             painter->drawLine(x + w/2, y + h/2, x, y + h);
                         else
                             painter->drawLine(x + w/2, y + h/2, x, y);
@@ -765,7 +765,7 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
                                                                                     true),
                                                                   myopacity)));
 
-                if (step_spacing > 0 && process_spacing > 0)
+                if (step_spacing > 0 && task_spacing > 0)
                 {
                     painter->drawRect(QRectF(xa, y, wa, h));
                 }
@@ -783,7 +783,7 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
     // for overlap purposes
     if (options->showMessages != VisOptions::MSG_NONE)
     {
-        if (top_processes.size() <= 32)
+        if (top_tasks.size() <= 32)
             painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
         else
             painter->setPen(QPen(Qt::black, 1, Qt::SolidLine));
@@ -796,7 +796,7 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
              msg != drawMessages.end(); ++msg) {
             send_event = (*msg)->sender;
             recv_event = (*msg)->receiver;
-            y = processYs[send_event->process];
+            y = taskYs[send_event->task];
             if (options->showAggregateSteps)
                 x = floor((send_event->step - startStep) * blockwidth) + 1
                     + extents.x();
@@ -806,7 +806,7 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
             if (options->showMessages == VisOptions::MSG_TRUE)
             {
                 p1 = QPointF(x + w/2.0, y + h/2.0);
-                y = processYs[recv_event->process];
+                y = taskYs[recv_event->task];
                 if (options->showAggregateSteps)
                     x = floor((recv_event->step - startStep) * blockwidth) + 1
                         + extents.x();
@@ -818,7 +818,7 @@ void Gnome::drawGnomeQtTopProcesses(QPainter * painter, QRect extents,
             else
             {
                 p1 = QPointF(x, y + h/2.0);
-                y = processYs[recv_event->process];
+                y = taskYs[recv_event->task];
                 p2 = QPointF(x + w, y + h/2.0);
             }
             painter->drawLine(p1, p2);
@@ -837,8 +837,8 @@ void Gnome::drawGnomeQtInterMessages(QPainter * painter, int blockwidth,
          msg != saved_messages.end(); ++msg)
     {
         int x1, y1, x2, y2;
-        PartitionCluster * sender_pc = cluster_map->value((*msg)->sender->process)->get_closed_root();
-        PartitionCluster * receiver_pc = cluster_map->value((*msg)->receiver->process)->get_closed_root();
+        PartitionCluster * sender_pc = cluster_map->value((*msg)->sender->task)->get_closed_root();
+        PartitionCluster * receiver_pc = cluster_map->value((*msg)->receiver->task)->get_closed_root();
 
         x1 = startx + blockwidth * ((*msg)->sender->step - startStep + 0.5);
 
@@ -931,7 +931,7 @@ void Gnome::drawTreeBranch(QPainter * painter, QRect current,
             // Draw line from wherever we start to correct height -- actually
             // loop through children since info this side? We are in the middle
             // of these extents at current.x() and current.y() + current.h()
-            // Though we may want to take the discreteness of the processes
+            // Though we may want to take the discreteness of the tasks
             // into account and figure it out by blockheight
             painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
             int child_size = (*child)->members->size();
@@ -956,13 +956,13 @@ void Gnome::drawTreeBranch(QPainter * painter, QRect current,
     else if (pc->children->isEmpty()) // Draw a leaf with label
     {
         painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
-            int process = pc->members->at(0);
+            int task = pc->members->at(0);
             painter->drawLine(my_x, my_y, leafx - labelwidth, my_y);
             painter->setPen(QPen(Qt::white, 2.0, Qt::SolidLine));
             painter->drawLine(leafx - labelwidth, my_y, leafx, my_y);
             painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
             painter->drawText(leafx - labelwidth, my_y + 3,
-                              QString::number(process));
+                              QString::number(task));
     }
     else // This is a cluster leaf, no label but we extend the line all the way
     {
@@ -993,7 +993,7 @@ void Gnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current,
             // Draw line from wherever we start to correct height -- actually
             // loop through children since info this side? We are in the middle
             // of these extents at current.x() and current.y() + current.h()
-            // Though we may want to take the discreteness of the processes
+            // Though we may want to take the discreteness of the tasks
             // into account and figure it out by blockheight
             int child_size = (*child)->members->size();
             drawGnomeQtClusterBranch(painter, QRect(my_x,
@@ -1007,11 +1007,11 @@ void Gnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current,
     }
     else if (pc->children->isEmpty() && pc->members->size() == 1) // A leaf
     {
-        int process = pc->members->at(0);
+        int task = pc->members->at(0);
         painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
         drawGnomeQtClusterLeaf(painter, QRect(current.x(), current.y(),
                                               barwidth, barheight),
-                               partition->events->value(process), blockwidth,
+                               partition->events->value(task), blockwidth,
                                partition->min_global_step);
         drawnPCs[pc] = QRect(current.x(), current.y(),
                              current.width(), blockheight);
@@ -1040,7 +1040,7 @@ void Gnome::drawGnomeQtClusterBranch(QPainter * painter, QRect current,
 
 }
 
-// If a cluster is a leaf with one process, draw it similarly to StepVis
+// If a cluster is a leaf with one task, draw it similarly to StepVis
 void Gnome::drawGnomeQtClusterLeaf(QPainter * painter, QRect startxy,
                                    QList<CommEvent *> * elist, int blockwidth,
                                    int startStep)
@@ -1120,16 +1120,16 @@ Gnome::ChangeType Gnome::handleDoubleClick(QMouseEvent * event)
             if ((Qt::ControlModifier && event->modifiers())
                 && (event->button() == Qt::RightButton))
             {
-                // Focus processes on centroid of this cluster
+                // Focus tasks on centroid of this cluster
                 options->topByCentroid = true;
-                generateTopProcesses(pc);
+                generateTopTasks(pc);
                 return CHANGE_NONE;
             }
             else if (Qt::ControlModifier && event->modifiers())
             {
-                // Focus processes on max metric
+                // Focus tasks on max metric
                 options->topByCentroid = false;
-                generateTopProcesses(pc);
+                generateTopTasks(pc);
                 return CHANGE_NONE;
             }
             else if (event->button() == Qt::RightButton)
