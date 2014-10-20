@@ -48,6 +48,23 @@ private:
         QSet<QString> * indices;
     };
 
+    class CharmMsg {
+    public:
+        CharmMsg(int _mtype, long _mlen, int _pe, int _entry, int _event, int _mype)
+            : sendtime(0), recvtime(0), msg_type(_mtype), msg_len(_mlen),
+              pe(_pe), entry(_entry), event(_event), my_pe(_mype) {}
+
+        unsigned long long sendtime;
+        unsigned long long recvtime;
+        int msg_type;
+        long msg_len;
+        int pe;
+        int entry;
+        int event;
+        int my_pe;
+    };
+
+
     class CharmEvt {
     public:
         CharmEvt(int _type, unsigned long long _start, int _pe,
@@ -80,21 +97,6 @@ private:
         }
     };
 
-    class CharmMsg {
-    public:
-        CharmMsg(int _mtype, long _mlen, int _pe, int _entry, int _event, int _mype)
-            : sendtime(0), recvtime(0), msg_type(_mtype), msg_len(_mlen),
-              pe(_pe), entry(_entry), event(_event), my_pe(_mype) {}
-
-        unsigned long long sendtime;
-        unsigned long long recvtime;
-        int msg_type;
-        long msg_len;
-        int pe;
-        int entry;
-        int event;
-        int my_pe;
-    };
 
     bool matchingMessages(CharmMsg * send, CharmMsg * recv);
 
@@ -108,6 +110,8 @@ private:
 
     QVector<QLinkedList<CharmMsg *> *> * unmatched_recvs; // map event to recv
     QVector<QLinkedList<CharmMsg *> *> * unmatched_sends;
+    QVector<QVector<CharmEvt *> *> * charm_events;
+    CharmEvt * last;
 
     static const int CREATION = 1;
     static const int BEGIN_PROCESSING = 2;

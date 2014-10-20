@@ -15,6 +15,8 @@ CharmImporter::CharmImporter()
       rawtrace(NULL),
       unmatched_recvs(new QVector<QLinkedList<CharmMsg *> *>()),
       unmatched_sends(new QVector<QLinkedList<CharmMsg *> *>()),
+      charm_events(new QVector<QVector<CharmEvt *> *>()),
+      last(NULL),
       chares(new QMap<int, Chare*>()),
       entries(new QMap<int, Entry *>())
 {
@@ -59,6 +61,7 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
         (*(rawtrace->messages))[i] = new QVector<CommRecord *>();
         (*(rawtrace->messages_r))[i] = new QVector<CommRecord *>();
         (*(rawtrace->counter_records))[i] = new QVector<CounterRecord *>();
+        (*charm_events)[i] = new QVector<CharmEvt *>();
     }
 
     processDefinitions();
@@ -106,17 +109,17 @@ void CharmImporter::readLog(QString logFileName, bool gzipped, int pe)
 
         logfile.close();
     }
+
+    // At this point, I have a list of events per PE
+    // Now I have to check to see what chares are actually arrays
+    // and then convert these by-PE events into by-chare
+    // events based on these arrays. I should also make taskgroups and stuff
 }
 
 void CharmImporter::parseLine(QString line, int my_pe)
 {
     int index, mtype, entry, event, pe, numpes, id[4];
     long time, msglen, sendTime, recvTime, cpuStart, cpuEnd;
-    QStack<CharmEvt *> * events_stack = new QStack<CharmEvt *>();
-    QVector<CharmEvt *> * comm_events = new QVector<CharmEvt *>();
-    QVector<CharmEvt *> * events = new QVector<CharmEvt *>();
-    QLinkedList<CharmMsg *> * sends = new QLinkedList<CharmMsg *>();
-    QLinkedList<CharmMsg *> * receives = new QLinkedList<CharmMsg *>();
 
     QStringList lineList = line.split(" ");
     int rectype = lineList.at(0).toInt();
@@ -148,18 +151,16 @@ void CharmImporter::parseLine(QString line, int my_pe)
         CharmEvt * evt = new CharmEvt(CREATION, time, pe, false);
         evt->chare = entries->value(entry)->chare;
         evt->entry = entry;
-        events_stack->push(evt);
+        charm_events->at(pe)->append(evt);
 
         evt = new CharmEvt(CREATION, time, pe, true);
         evt->chare = entries->value(entry)->chare;
         evt->entry = entry;
-        events_stack->push(evt);
-
+        charm_events->at(pe)->append(evt);
         if (rectype == CREATION)
         {
             CharmMsg * msg = new CharmMsg(mtype, msglen, pe, entry, event, my_pe);
             msg->sendtime = time;
-            sends->append(msg);
             unmatched_sends->at(pe)->append(msg);
             std::cout << "Send on " << pe << " of " << entries->value(entry)->name.toStdString().c_str() << std::endl;
             std::cout << "     Event: " << event << ", msg_type: " << mtype << std::endl;
@@ -178,6 +179,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
 
         }
 
+        /* By PE
         rawtrace->events->at(my_pe)->append(new EventRecord(my_pe,
                                                             time,
                                                             999998,
@@ -187,6 +189,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
                                                             time,
                                                             999998,
                                                             false));
+                                                            */
     }
     else if (rectype == BEGIN_PROCESSING)
     {
@@ -233,10 +236,25 @@ void CharmImporter::parseLine(QString line, int my_pe)
         evt->entry = entry;
         for (int i = 0; i < 4; i++)
             evt->chareIndex[i] = id[i];
-        events_stack->push(evt);
         chares->value(evt->chare)->indices->insert(evt->indexToString());
+        charm_events->at(pe)->append(evt);
 
 
+        evt = new CharmEvt(CREATION, time, pe, false);
+        evt->chare = entries->value(entry)->chare;
+        evt->entry = entry;
+        charm_events->at(pe)->append(evt);
+
+
+        evt = new CharmEvt(CREATION, time, pe, true);
+        evt->chare = entries->value(entry)->chare;
+        evt->entry = entry;
+        charm_events->at(pe)->append(evt);
+
+
+
+
+        /* By PE
         // Real Event
         rawtrace->events->at(my_pe)->append(new EventRecord(my_pe,
                                                             time,
@@ -252,10 +270,10 @@ void CharmImporter::parseLine(QString line, int my_pe)
                                                             time,
                                                             999999,
                                                             false));
+                                                            */
 
         CharmMsg * msg = new CharmMsg(mtype, msglen, pe, entry, event, my_pe);
         msg->recvtime = time;
-        receives->append(msg);
         unmatched_recvs->at(my_pe)->append(msg);
     }
     else if (rectype == END_PROCESSING)
@@ -286,12 +304,14 @@ void CharmImporter::parseLine(QString line, int my_pe)
         CharmEvt * evt = new CharmEvt(BEGIN_PROCESSING, time, pe, true);
         evt->chare = entries->value(entry)->chare;
         evt->entry = entry;
-        events_stack->push(evt);
+        charm_events->at(pe)->append(evt);
 
+        /* By PE
         rawtrace->events->at(my_pe)->append(new EventRecord(my_pe,
                                                             time,
                                                             entry,
                                                             false));
+                                                            */
     }
     else if (rectype == MESSAGE_RECV) // just in case we ever find one
     {
@@ -362,9 +382,9 @@ void CharmImporter::processMessages()
 
 bool CharmImporter::matchingMessages(CharmMsg * send, CharmMsg * recv)
 {
+    // Event is the unique ID of each message
     if (send->entry == recv->entry && send->event == recv->event
-            && send->pe == recv->pe) //&& send->msg_len == recv->msg_len
-            //&& send->msg_type == recv->msg_type)
+            && send->pe == recv->pe)
         return true;
     return false;
 }
