@@ -10,8 +10,10 @@
 #include <fstream>
 #include "otfimportoptions.h"
 #include "function.h"
+#include "task.h"
+#include "trace.h"
 
-#include "rawtrace.h"
+class Message;
 
 class CharmImporter
 {
@@ -19,14 +21,21 @@ public:
     CharmImporter();
     ~CharmImporter();
     void importCharmLog(QString filename, OTFImportOptions *_options);
-    RawTrace * getRawTrace() { return rawtrace; }
+    // RawTrace * getRawTrace() { return rawtrace; }
+    Trace * getTrace() { return trace; }
 
 private:
     void readSts(QString dataFileName);
     void readLog(QString logFileName, bool gzipped, int pe);
     void parseLine(QString line, int my_pe);
     void processDefinitions();
-    void processMessages();
+    int makeTasks();
+    void charify();
+
+    void makeSingletonPartition(CommEvent * evt);
+    void buildPartitions();
+
+    void cleanUp();
 
     class Entry {
     public:
@@ -52,25 +61,30 @@ private:
     public:
         CharmMsg(int _mtype, long _mlen, int _pe, int _entry, int _event, int _mype)
             : sendtime(0), recvtime(0), msg_type(_mtype), msg_len(_mlen),
-              pe(_pe), entry(_entry), event(_event), my_pe(_mype) {}
+              send_pe(_pe), entry(_entry), event(_event), recv_pe(_mype),
+              send_task(-1), recv_task(-1), tracemsg(NULL) {}
 
         unsigned long long sendtime;
         unsigned long long recvtime;
         int msg_type;
         long msg_len;
-        int pe;
+        int send_pe; // send pe
         int entry;
         int event;
-        int my_pe;
+        int recv_pe; // recv pe
+        int send_task;
+        int recv_task;
+
+        Message * tracemsg;
     };
 
 
     class CharmEvt {
     public:
-        CharmEvt(int _type, unsigned long long _start, int _pe,
-                 bool _leave = false)
-            : evt_type(_type), enter(_start), pe(_pe), leave(_leave),
-              chare(-1), entry(-1)
+        CharmEvt(int _type, unsigned long long _time, int _pe,
+                 bool _enter = true)
+            : evt_type(_type), time(_time), pe(_pe), task(-1), enter(_enter),
+              chare(-1), entry(-1), charmmsg(NULL), children(QList<Event *>())
         {
             chareIndex[0] = 0;
             chareIndex[1] = 0;
@@ -78,23 +92,35 @@ private:
             chareIndex[3] = 0;
         }
 
+        bool operator<(const CharmEvt & event) { return time < event.time; }
+        bool operator>(const CharmEvt & event) { return time > event.time; }
+        bool operator<=(const CharmEvt & event) { return time <= event.time; }
+        bool operator>=(const CharmEvt & event) { return time >= event.time; }
+        bool operator==(const CharmEvt & event) { return time == event.time; }
+
+
+        QString indexToString()
+        {
+            QString str = QString::number(chare);
+            for (int i = 0; i < 4; i++)
+                str += "-" + QString::number(chareIndex[i]);
+            return str;
+        }
+
         int evt_type;
-        unsigned long long enter;
-        unsigned long long exit;
+        unsigned long long time;
         int pe;
-        bool leave;
+        int task;
+        bool enter;
 
         int chare;
         int chareIndex[4];
         int entry;
 
-        QString indexToString()
-        {
-            QString str = QString::number(chareIndex[0]);
-            for (int i = 1; i < 4; i++)
-                str += "-" + QString::number(chareIndex[i]);
-            return str;
-        }
+       CharmMsg * charmmsg;
+
+       QList<Event *> children;
+
     };
 
 
@@ -106,12 +132,21 @@ private:
     float version;
     int processes;
 
-    RawTrace * rawtrace;
+    Trace * trace;
 
-    QVector<QLinkedList<CharmMsg *> *> * unmatched_recvs; // map event to recv
-    QVector<QLinkedList<CharmMsg *> *> * unmatched_sends;
+    QVector<QMap<int, QList<CharmMsg *> *> *> * unmatched_msgs; //[other side][event]
     QVector<QVector<CharmEvt *> *> * charm_events;
+    QVector<QVector<CharmEvt *> *> * task_events;
+    QVector<CharmMsg *> * messages;
+    QMap<int, Task *> * tasks;
+    QMap<int, TaskGroup *> * taskgroups;
+    QMap<int, QString> * functiongroups;
+    QMap<int, Function *> * functions;
+    QMap<QString, int> chare_to_task;
     CharmEvt * last;
+
+    static const int SEND_FXN = 999998;
+    static const int RECV_FXN = 999999;
 
     static const int CREATION = 1;
     static const int BEGIN_PROCESSING = 2;

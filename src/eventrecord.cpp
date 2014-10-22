@@ -20,3 +20,28 @@ EventRecord::~EventRecord()
     if (ravel_info)
         delete ravel_info;
 }
+
+bool EventRecord::operator<(const EventRecord &event)
+{
+    return enter < event.enter;
+}
+
+bool EventRecord::operator>(const EventRecord &event)
+{
+    return enter > event.enter;
+}
+
+bool EventRecord::operator<=(const EventRecord &event)
+{
+    return enter <= event.enter;
+}
+
+bool EventRecord::operator>=(const EventRecord &event)
+{
+    return enter >= event.enter;
+}
+
+bool EventRecord::operator==(const EventRecord &event)
+{
+    return enter == event.enter;
+}

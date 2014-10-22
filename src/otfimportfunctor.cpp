@@ -24,16 +24,16 @@ void OTFImportFunctor::doImportCharm(QString dataFileName)
 
     CharmImporter * importer = new CharmImporter();
     importer->importCharmLog(dataFileName, options);
-    RawTrace * rt = importer->getRawTrace();
+    //RawTrace * rt = importer->getRawTrace();
 
-    OTFConverter * converter = new OTFConverter();
+    //OTFConverter * converter = new OTFConverter();
 
-    connect(converter, SIGNAL(finishRead()), this, SLOT(finishInitialRead()));
-    connect(converter, SIGNAL(matchingUpdate(int, QString)), this,
-            SLOT(updateMatching(int, QString)));
-    Trace* trace = converter->importCharm(rt, options);
+    //connect(importer, SIGNAL(finishRead()), this, SLOT(finishInitialRead()));
+    //connect(importer, SIGNAL(matchingUpdate(int, QString)), this,
+    //        SLOT(updateMatching(int, QString)));
+    Trace* trace = importer->getTrace();
     delete importer;
-    delete converter;
+    //delete converter;
     connect(trace, SIGNAL(updatePreprocess(int, QString)), this,
             SLOT(updatePreprocess(int, QString)));
     connect(trace, SIGNAL(updateClustering(int)), this,
