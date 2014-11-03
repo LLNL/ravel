@@ -463,7 +463,7 @@ void StepVis::drawNativeGL()
     // If density is one, we want low opacity for proper blending.
     // If density is very small, we want high opacity to make things
     // more visible.
-    if (density)
+    /*if (density)
     {
         if (taskheight < 1.0)
         {
@@ -478,7 +478,7 @@ void StepVis::drawNativeGL()
             if (stepwidth / density > opacity)
                 opacity = stepwidth / density;
         }
-    }
+    }*/
 
     // Generate buffers to hold each bar. We don't know how many there will
     // be since we draw one per event.

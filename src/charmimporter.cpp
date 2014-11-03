@@ -380,8 +380,10 @@ int CharmImporter::makeTasks()
         if (chare.value()->indices->size() > 1)
         {
             taskgroups->insert(chare.key(), new TaskGroup(chare.key(), chare.value()->name));
-            for (QSet<QString>::Iterator index = chare.value()->indices->begin();
-                 index != chare.value()->indices->end(); ++index)
+            QList<QString> indices_list = chare.value()->indices->toList();
+            qSort(indices_list.begin(), indices_list.end());
+            for (QList<QString>::Iterator index = indices_list.begin();
+                 index != indices_list.end(); ++index)
             {
                 Task * task = new Task(taskid, *index);
                 taskgroups->value(chare.key())->tasks->append(taskid);

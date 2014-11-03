@@ -794,9 +794,9 @@ void Gnome::drawGnomeQtTopTasks(QPainter * painter, QRect extents,
 
     // Messages
     // We need to do all of the message drawing after the event drawing
-    // for overlap purposes
-    if (options->showMessages != VisOptions::MSG_NONE)
-    {
+    // for overlap purposes. We draw whether or not the vis options say we should
+    // because we are just for the pattern idea
+
         if (top_tasks.size() <= 32)
             painter->setPen(QPen(Qt::black, 2, Qt::SolidLine));
         else
@@ -837,7 +837,7 @@ void Gnome::drawGnomeQtTopTasks(QPainter * painter, QRect extents,
             }
             painter->drawLine(p1, p2);
         }
-    }
+
 }
 
 // Draw messages between clusters if we have opened to leaves

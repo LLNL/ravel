@@ -1162,4 +1162,5 @@ void OTF2Importer::processCollectives()
             id++;
         }
     }
+    std::cout << "Processed " << id << " collectives" << std::endl;
 }
