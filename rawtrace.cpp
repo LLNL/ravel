@@ -13,6 +13,7 @@ RawTrace::RawTrace(int nt)
       counter_records(NULL),
       collectives(NULL),
       collectiveMap(NULL),
+      collectiveBits(NULL),
       num_tasks(nt)
 {
 
@@ -50,4 +51,18 @@ RawTrace::~RawTrace()
     }
     delete messages;
     delete messages_r;
+
+    for (QVector<QVector<CollectiveBit *> *>::Iterator eitr = collectiveBits->begin();
+         eitr != collectiveBits->end(); ++eitr)
+    {
+        for (QVector<CollectiveBit *>::Iterator itr = (*eitr)->begin();
+             itr != (*eitr)->end(); ++itr)
+        {
+            delete *itr;
+            *itr = NULL;
+        }
+        delete *eitr;
+        *eitr = NULL;
+    }
+    delete collectiveBits;
 }

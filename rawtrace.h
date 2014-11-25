@@ -12,6 +12,7 @@
 #include "counterrecord.h"
 #include <QMap>
 #include <QVector>
+#include <stdint.h>
 
 // Trace from OTF without processing
 class RawTrace
@@ -19,6 +20,15 @@ class RawTrace
 public:
     RawTrace(int nt);
     ~RawTrace();
+
+    class CollectiveBit {
+    public:
+        CollectiveBit(uint64_t _time, CollectiveRecord * _cr)
+            : time(_time), cr(_cr) {}
+
+        uint64_t time;
+        CollectiveRecord * cr;
+    };
 
     QMap<int, Task *> * tasks;
     QMap<int, QString> * functionGroups;
@@ -33,6 +43,7 @@ public:
 
     QMap<unsigned long long, CollectiveRecord *> * collectives;
     QVector<QMap<unsigned long long, CollectiveRecord *> *> * collectiveMap;
+    QVector<QVector<CollectiveBit *> *> * collectiveBits;
     int num_tasks;
     int second_magnitude; // seconds are 10^this over the smallest smaple unit
 };

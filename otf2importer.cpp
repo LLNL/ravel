@@ -252,6 +252,7 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file, bool _enforceMessageSi
     rawtrace->messages = new QVector<QVector<CommRecord *> *>(num_processes);
     rawtrace->messages_r = new QVector<QVector<CommRecord *> *>(num_processes);
     rawtrace->counter_records = new QVector<QVector<CounterRecord *> *>(num_processes);
+    rawtrace->collectiveBits = new QVector<QVector<RawTrace::CollectiveBit *> *>(num_processes);
 
     // Adding locations
     // Use the locationIndexMap to only chooes the ones we can handle (right now just MPI)
@@ -310,6 +311,7 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file, bool _enforceMessageSi
         (*(rawtrace->counter_records))[i] = new QVector<CounterRecord *>();
         (*collective_begins)[i] = new QLinkedList<uint64_t>();
         (*collective_fragments)[i] = new QLinkedList<OTF2CollectiveFragment *>();
+        (*(rawtrace->collectiveBits))[i] = new QVector<RawTrace::CollectiveBit *>();
     }
 
 
@@ -1000,11 +1002,15 @@ void OTF2Importer::processCollectives()
         QLinkedList<OTF2CollectiveFragment *> * fragments = collective_fragments->at(i);
         while (!fragments->isEmpty())
         {
+            // Unmatched as of yet fragment becomes a CollectiveRecord
             OTF2CollectiveFragment * fragment = fragments->first();
             CollectiveRecord * cr = new CollectiveRecord(id, fragment->root,
                                                          fragment->op,
                                                          commIndexMap->value(fragment->comm));
             collectives->insert(id, cr);
+
+            // Look through fragment list of other members of communicator for
+            // matching fragments
             QList<uint32_t> * members = groupMap->value(commMap->value(fragment->comm)->group)->members;
             for (QList<uint32_t>::Iterator process = members->begin();
                  process != members->end(); ++process)
@@ -1041,6 +1047,9 @@ void OTF2Importer::processCollectives()
                     collective_fragments->at(*process)->removeOne(match);
 
                     collectiveMap->at(*process)->insert(begin_time, cr);
+                    rawtrace->collectiveBits->at(*process)->append(new RawTrace::CollectiveBit(begin_time, cr));
+                    if (*process == 0)
+                        std::cout << "Process " << *process << " with Begin time " << begin_time << std::endl;
                 }
             }
 

@@ -218,6 +218,9 @@ void OTFConverter::matchEvents()
         lastcounters->clear();
         int counter_index = 0;
 
+        QVector<RawTrace::CollectiveBit *> * collective_bits = rawtrace->collectiveBits->at(i);
+        int collective_index = 0;
+
         QList<CommEvent *> * commevents = new QList<CommEvent *>();
         allcomms->append(commevents);
 
@@ -259,9 +262,18 @@ void OTFConverter::matchEvents()
                     // Since OTF2 is the present/future, perhaps we should do this by
                     // end time instead of begin time so we don't have to match on the OTF2 side.
                     //if (options->origin == OTFImportOptions::OF_OTF)
-                    if (rawtrace->collectiveMap->at((*evt)->task)->contains(bgn->time))
+                    /*if (rawtrace->collectiveMap->at((*evt)->task)->contains(bgn->time))
                     {
                         cr = (*(rawtrace->collectiveMap->at((*evt)->task)))[bgn->time];
+                    }
+                    */
+
+                    if (collective_index < collective_bits->size()
+                        && bgn->time >= collective_bits->at(collective_index)->time
+                        && (*evt)->time = >= collective_bits->at(collective_idnex)->time)
+                    {
+                        cr = collective_bits->at(collective_index)->cr;
+                        collective_index++;
                     }
 
                     if (sindex < sendlist->size())

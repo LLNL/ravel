@@ -110,7 +110,7 @@ RawTrace * OTFImporter::importOTF(const char* otf_file, bool _enforceMessageSize
     rawtrace->messages = new QVector<QVector<CommRecord *> *>(num_processes);
     rawtrace->messages_r = new QVector<QVector<CommRecord *> *>(num_processes);
     rawtrace->counter_records = new QVector<QVector<CounterRecord *> *>(num_processes);
-
+    rawtrace->collectiveBits = new QVector<QVector<RawTrace::CollectiveBit *> *>(num_processes);
 
 
     delete unmatched_recvs;
@@ -127,6 +127,7 @@ RawTrace * OTFImporter::importOTF(const char* otf_file, bool _enforceMessageSize
         (*(rawtrace->messages))[i] = new QVector<CommRecord *>();
         (*(rawtrace->messages_r))[i] = new QVector<CommRecord *>();
         (*(rawtrace->counter_records))[i] = new QVector<CounterRecord *>();
+        (*(rawtrace->collectiveBits))[i] = new QVector<RawTrace::CollectiveBit *>();
     }
 
     std::cout << "Reading events" << std::endl;
@@ -573,6 +574,8 @@ int OTFImporter::handleBeginCollectiveOperation(void * userData, uint64_t time,
     // Map process/time to the collective record
     time = convertTime(userData, time);
     (*(*(((OTFImporter *) userData)->collectiveMap))[process - 1])[time] = cr;
+    ((OTFImporter *) userData)->rawtrace->collectiveBits->at(process - 1)->append(new RawTrace::CollectiveBit(time, cr));
+    std::cout << "Collective begin on proc " << process << " at time " << time << std::endl;
 
     return 0;
 }
