@@ -268,9 +268,20 @@ void OTFConverter::matchEvents()
                     }
                     */
 
+                    // First mpi event >= collective time must be the collective
+                    /*if (trace->functions->value(bgn->value)->name == "MPI_Allreduce" && i == 0)
+                    {
+                        std::cout << "Process " << i << " allreduce with Begin time " << bgn->time;
+                        if (collective_index < collective_bits->size())
+                            std::cout << " and bit time is " << collective_bits->at(collective_index)->time;
+                        std::cout << std::endl;
+                    }
+                    */
+
+
                     if (collective_index < collective_bits->size()
-                        && bgn->time >= collective_bits->at(collective_index)->time
-                        && (*evt)->time = >= collective_bits->at(collective_idnex)->time)
+                        && bgn->time <= collective_bits->at(collective_index)->time
+                            && (*evt)->time >= collective_bits->at(collective_index)->time)
                     {
                         cr = collective_bits->at(collective_index)->cr;
                         collective_index++;

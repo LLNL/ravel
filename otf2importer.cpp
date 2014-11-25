@@ -1048,8 +1048,6 @@ void OTF2Importer::processCollectives()
 
                     collectiveMap->at(*process)->insert(begin_time, cr);
                     rawtrace->collectiveBits->at(*process)->append(new RawTrace::CollectiveBit(begin_time, cr));
-                    if (*process == 0)
-                        std::cout << "Process " << *process << " with Begin time " << begin_time << std::endl;
                 }
             }
 
