@@ -31,6 +31,8 @@ public slots:
     void onMessageSize(bool enforce);
     void onFunctionEdit(const QString& text);
     void onCluster(bool cluster);
+    void onCoalesce(bool coalesce);
+    void onCoalesceEdit(const QString& text);
 
 
 private:

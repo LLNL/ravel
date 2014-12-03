@@ -25,10 +25,14 @@ ImportOptionsDialog::ImportOptionsDialog(QWidget *parent,
             SLOT(onGlobalMerge(bool)));
     connect(ui->functionEdit, SIGNAL(textChanged(QString)), this,
             SLOT(onFunctionEdit(QString)));
+    connect(ui->coalesceEdit, SIGNAL(textChanged(QString)), this,
+            SLOT(onCoalesceEdit(QString)));
     connect(ui->clusterCheckbox, SIGNAL(clicked(bool)), this,
             SLOT(onCluster(bool)));
     connect(ui->isendCheckbox, SIGNAL(clicked(bool)), this,
             SLOT(onIsend(bool)));
+    connect(ui->coalesceCheckbox, SIGNAL(clicked(bool)), this,
+            SLOT(onCoalesce(bool)));
     connect(ui->messageSizeCheckBox, SIGNAL(clicked(bool)), this,
             SLOT(onMessageSize(bool)));
 
@@ -92,6 +96,25 @@ void ImportOptionsDialog::onCluster(bool cluster)
 void ImportOptionsDialog::onIsend(bool coalesce)
 {
     options->isendCoalescing = coalesce;
+    if (coalesce)
+    {
+        options->sendCoalescing = 0;
+        setUIState();
+    }
+}
+
+void ImportOptionsDialog::onCoalesce(bool coalesce)
+{
+    if (coalesce)
+    {
+        options->sendCoalescing = ui->coalesceEdit->text().toInt();
+        options->isendCoalescing = false;
+    }
+    else
+    {
+        options->sendCoalescing = 0;
+    }
+    setUIState();
 }
 
 
@@ -103,6 +126,11 @@ void ImportOptionsDialog::onMessageSize(bool enforce)
 void ImportOptionsDialog::onFunctionEdit(const QString& text)
 {
     options->partitionFunction = text;
+}
+
+void ImportOptionsDialog::onCoalesceEdit(const QString& text)
+{
+    options->sendCoalescing = text.toInt();
 }
 
 // Based on currently operational options, set the UI state to
@@ -143,10 +171,20 @@ void ImportOptionsDialog::setUIState()
         ui->clusterCheckbox->setChecked(false);
 
     if (options->isendCoalescing)
+    {
         ui->isendCheckbox->setChecked(true);
+        ui->coalesceCheckbox->setChecked(false);
+    }
     else
+    {
         ui->isendCheckbox->setChecked(false);
+    }
 
+    if (options->sendCoalescing)
+    {
+        ui->isendCheckbox->setChecked(false);
+        ui->coalesceCheckbox->setChecked(true);
+    }
 
     if (options->enforceMessageSizes)
         ui->messageSizeCheckBox->setChecked(true);
@@ -155,6 +193,7 @@ void ImportOptionsDialog::setUIState()
 
 
     ui->functionEdit->setText(options->partitionFunction);
+    ui->coalesceEdit->setText(QString::number(options->sendCoalescing));
 
     // Enable or Disable heuristic v. given partition
     if (options->partitionByFunction)
