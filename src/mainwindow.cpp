@@ -377,12 +377,17 @@ void MainWindow::importTrace(QString dataFileName){
         connect(this, SIGNAL(operate(QString)), importWorker,
                 SLOT(doImportOTF(QString)));
     }
-    else //(dataFileName.endsWith("otf2", Qt::CaseInsensitive))
+    else if (dataFileName.endsWith("otf2", Qt::CaseInsensitive))
     {
         otfoptions->origin = OTFImportOptions::OF_OTF2;
         otfoptions->waitallMerge = false; // Not applicable
         connect(this, SIGNAL(operate(QString)), importWorker,
                 SLOT(doImportOTF2(QString)));
+    }
+    else
+    {
+        connect(this, SIGNAL(operate(QString)), importWorker,
+                SLOT(doImportCharm(QString)));
     }
 
     connect(importWorker, SIGNAL(switching()), this, SLOT(traceSwitch()));

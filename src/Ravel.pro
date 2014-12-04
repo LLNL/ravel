@@ -43,6 +43,7 @@ SOURCES  += main.cpp \
     commdrawinterface.cpp \
     counter.cpp \
     counterrecord.cpp \
+    charmimporter.cpp \
     otf2importer.cpp \
     task.cpp \
     clustertask.cpp \
@@ -90,6 +91,7 @@ HEADERS += \
     commdrawinterface.h \
     counter.h \
     counterrecord.h \
+    charmimporter.h \
     otf2importer.h \
     task.h \
     clustertask.h \
