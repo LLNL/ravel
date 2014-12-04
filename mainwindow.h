@@ -62,7 +62,7 @@ signals:
     
 private:
     Ui::MainWindow *ui;
-    void importOTF(QString dataFileName);
+    void importTrace(QString dataFileName);
     void activeTraceChanged();
     void linkSideSplitter();
     void linkMainSplitter();

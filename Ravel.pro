@@ -46,7 +46,8 @@ SOURCES  += main.cpp \
     commbundle.cpp \
     commdrawinterface.cpp \
     counter.cpp \
-    counterrecord.cpp
+    counterrecord.cpp \
+    otf2importer.cpp
 
 
 HEADERS += \
@@ -91,7 +92,8 @@ HEADERS += \
     commbundle.h \
     commdrawinterface.h \
     counter.h \
-    counterrecord.h
+    counterrecord.h \
+    otf2importer.h
 
 
 FORMS += \
@@ -102,7 +104,13 @@ FORMS += \
 
 HOME = $$system(echo $HOME)
 
-unix:!macx: LIBS += -lotf
+unix:!macx: LIBS += -lotf -lz
+
+
+unix: INCLUDEPATH += /opt/otf2/include
+unix: DEPENDPATH += /opt/otf2/include
+
+unix:!macx: LIBS += -L/opt/lib -lotf2
 
 macx: LIBS += -L$${HOME}/opt/lib/ -lopen-trace-format
 

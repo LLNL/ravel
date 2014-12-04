@@ -119,6 +119,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionOpen_OTF, SIGNAL(triggered()),this,
             SLOT(importOTFbyGUI()));
     ui->actionOpen_OTF->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_O));
+
     connect(ui->actionClose, SIGNAL(triggered()), this,
             SLOT(closeTrace()));
     ui->actionClose->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_C));
@@ -232,9 +233,9 @@ void MainWindow::importOTFbyGUI()
 {
     // Now get the OTF File
     QString dataFileName = QFileDialog::getOpenFileName(this,
-                                                        tr("Import OTF Data"),
+                                                        tr("Import Trace Data"),
                                                         "",
-                                                        tr("Files (*.otf)"));
+                                                        tr("Trace Files (*.otf *otf2 *.sts)"));
     qApp->processEvents();
 
     // Guard against Cancel
@@ -242,7 +243,8 @@ void MainWindow::importOTFbyGUI()
         return;
 
     repaint();
-    importOTF(dataFileName);
+    importTrace(dataFileName);
+
     QStringList fileinfo = dataFileName.split("\/");
     int fisize = fileinfo.size();
     if (fisize > 1)
@@ -251,7 +253,7 @@ void MainWindow::importOTFbyGUI()
         activetracename = dataFileName;
 }
 
-void MainWindow::importOTF(QString dataFileName){
+void MainWindow::importTrace(QString dataFileName){
 
     progress = new QProgressDialog("Reading OTF...", "", 0, 0, this);
     progress->setWindowTitle("Importing OTF...");
@@ -261,8 +263,18 @@ void MainWindow::importOTF(QString dataFileName){
     importThread = new QThread();
     importWorker = new OTFImportFunctor(otfoptions);
     importWorker->moveToThread(importThread);
-    connect(this, SIGNAL(operate(QString)), importWorker,
-            SLOT(doImport(QString)));
+
+    if (dataFileName.endsWith("otf", Qt::CaseInsensitive))
+    {
+        connect(this, SIGNAL(operate(QString)), importWorker,
+                SLOT(doImportOTF(QString)));
+    }
+    else //(dataFileName.endsWith("otf2", Qt::CaseInsensitive))
+    {
+        connect(this, SIGNAL(operate(QString)), importWorker,
+                SLOT(doImportOTF2(QString)));
+    }
+
     connect(importWorker, SIGNAL(switching()), this, SLOT(traceSwitch()));
     connect(importWorker, SIGNAL(done(Trace *)), this,
             SLOT(traceFinished(Trace *)));

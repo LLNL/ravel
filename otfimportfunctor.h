@@ -4,6 +4,7 @@
 #include "trace.h"
 #include "otfconverter.h"
 #include "otfimportoptions.h"
+#include "otf2importer.h"
 #include <QObject>
 
 // Handle signaling for progress bar
@@ -15,7 +16,8 @@ public:
     Trace * getTrace() { return trace; }
 
 public slots:
-    void doImport(QString dataFileName);
+    void doImportOTF(QString dataFileName);
+    void doImportOTF2(QString dataFileName);
     void finishInitialRead();
     void updateMatching(int portion, QString msg);
     void updatePreprocess(int portion, QString msg);

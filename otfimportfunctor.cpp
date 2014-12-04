@@ -8,7 +8,36 @@ OTFImportFunctor::OTFImportFunctor(OTFImportOptions * _options)
 {
 }
 
-void OTFImportFunctor::doImport(QString dataFileName)
+void OTFImportFunctor::doImportOTF2(QString dataFileName)
+{
+    std::cout << "Processing " << dataFileName.toStdString().c_str() << std::endl;
+    QElapsedTimer traceTimer;
+    qint64 traceElapsed;
+
+    traceTimer.start();
+
+    OTFConverter * importer = new OTFConverter();
+    connect(importer, SIGNAL(finishRead()), this, SLOT(finishInitialRead()));
+    connect(importer, SIGNAL(matchingUpdate(int, QString)), this,
+            SLOT(updateMatching(int, QString)));
+    Trace* trace = importer->importOTF(dataFileName, options);
+    delete importer;
+    connect(trace, SIGNAL(updatePreprocess(int, QString)), this,
+            SLOT(updatePreprocess(int, QString)));
+    connect(trace, SIGNAL(updateClustering(int)), this,
+            SLOT(updateClustering(int)));
+    connect(trace, SIGNAL(startClustering()), this, SLOT(switchProgress()));
+    trace->preprocess(options);
+
+    traceElapsed = traceTimer.nsecsElapsed();
+    std::cout << "Total trace: ";
+    gu_printTime(traceElapsed);
+    std::cout << std::endl;
+
+    emit(done(trace));
+}
+
+void OTFImportFunctor::doImportOTF(QString dataFileName)
 {
     std::cout << "Processing " << dataFileName.toStdString().c_str() << std::endl;
     QElapsedTimer traceTimer;
