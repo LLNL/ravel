@@ -241,10 +241,6 @@ void OTFConverter::matchEvents()
                     makeSingletonPartition(isend);
                     prev = isend;
                     isends = new QList<P2PEvent *>();
-                    if (options->waitallMerge && !options->partitionByFunction)
-                    {
-                        sendgroup->append(trace->partitions->last());
-                    }
 
                     if (!options->partitionByFunction
                         && (max_complete > 0 || options->waitallMerge))
