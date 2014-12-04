@@ -62,6 +62,7 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
 
     processDefinitions();
 
+    // Read individual log files
     QFileInfo file_info = QFileInfo(dataFileName);
     QDir directory = file_info.dir();
     QString basename = file_info.baseName();
@@ -77,6 +78,7 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
         readLog(path + "/" + basename + "." + QString::number(i) + suffix,
                 gzflag, i);
 
+    // Message  mapping
     processMessages();
 
 }
@@ -290,7 +292,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
                                                             entry,
                                                             false));
     }
-    else if (rectype == END_PROCESSING)
+    else if (rectype == MESSAGE_RECV) // just in case we ever find one
     {
         std::cout << "Message Recv!" << std::endl;
     }
