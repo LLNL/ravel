@@ -53,7 +53,13 @@ private:
         CharmEvt(int _type, unsigned long long _start, int _pe,
                  bool _leave = false)
             : evt_type(_type), enter(_start), pe(_pe), leave(_leave),
-              chare(-1), chareIndex({0, 0, 0, 0}), entry(-1) {}
+              chare(-1), entry(-1)
+        {
+            chareIndex[0] = 0;
+            chareIndex[1] = 0;
+            chareIndex[2] = 0;
+            chareIndex[3] = 0;
+        }
 
         int evt_type;
         unsigned long long enter;
