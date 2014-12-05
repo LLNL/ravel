@@ -4,6 +4,14 @@
 #include <iostream>
 #include <climits>
 #include <cmath>
+#include "gnome.h"
+#include "partitioncluster.h"
+#include "clusterevent.h"
+#include "message.h"
+#include "colormap.h"
+#include "commevent.h"
+#include "p2pevent.h"
+#include "collectiveevent.h"
 
 ExchangeGnome::ExchangeGnome()
     : Gnome(),

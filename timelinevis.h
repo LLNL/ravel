@@ -1,10 +1,7 @@
 #ifndef TIMELINEVIS_H
 #define TIMELINEVIS_H
 
-#include <QLinkedList>
 #include "viswidget.h"
-#include "colormap.h"
-#include "event.h"
 
 // Parent class for those who pan and zoom like a timeline view
 class TimelineVis : public VisWidget

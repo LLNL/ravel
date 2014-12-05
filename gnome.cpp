@@ -1,6 +1,17 @@
 #include "gnome.h"
 #include <QElapsedTimer>
 #include <QLocale>
+#include <QMouseEvent>
+#include <iostream>
+#include <climits>
+#include <cmath>
+#include "kmedoids.h"
+
+#include "p2pevent.h"
+#include "clusterevent.h"
+#include "message.h"
+#include "colormap.h"
+#include "general_util.h"
 
 using namespace cluster;
 

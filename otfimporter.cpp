@@ -4,6 +4,17 @@
 #include <iostream>
 #include <cmath>
 #include "general_util.h"
+#include "task.h"
+#include "rawtrace.h"
+#include "commrecord.h"
+#include "eventrecord.h"
+#include "collectiverecord.h"
+#include "function.h"
+#include "counter.h"
+#include "counterrecord.h"
+#include "taskgroup.h"
+#include "otfcollective.h"
+#include "otf.h"
 
 OTFImporter::OTFImporter()
     : ticks_per_second(0),

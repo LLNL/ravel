@@ -2,16 +2,22 @@
 #define VISWIDGET_H
 
 #include <QGLWidget>
-#include <QVector>
 #include <QList>
-#include <QPaintEvent>
-#include <QLocale>
-#include <climits>
-#include <cmath>
+#include <QMap>
+#include <QString>
+#include <QRect>
+#include <QColor>
 
-#include "trace.h"
 #include "visoptions.h"
 #include "commdrawinterface.h"
+
+class VisOptions;
+class Trace;
+class QPainter;
+class Message;
+class Gnome;
+class QPaintEvent;
+class Event;
 
 class VisWidget : public QGLWidget, public CommDrawInterface
 {

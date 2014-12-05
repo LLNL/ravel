@@ -2,7 +2,9 @@
 #define STEPVIS_H
 
 #include "timelinevis.h"
-#include "metricrangedialog.h"
+
+class MetricRangeDialog;
+class CommEvent;
 
 // Logical timeline vis
 class StepVis : public TimelineVis

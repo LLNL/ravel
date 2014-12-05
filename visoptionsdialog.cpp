@@ -1,6 +1,7 @@
 #include "visoptionsdialog.h"
 #include "ui_visoptionsdialog.h"
-#include <iostream>
+#include "visoptions.h"
+#include "trace.h"
 
 VisOptionsDialog::VisOptionsDialog(QWidget *parent, VisOptions * _options,
                                    Trace * _trace)

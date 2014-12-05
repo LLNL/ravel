@@ -1,15 +1,20 @@
 #ifndef OTFIMPORTER_H
 #define OTFIMPORTER_H
 
-#include "task.h"
-#include "rawtrace.h"
-#include "commrecord.h"
-#include "eventrecord.h"
-#include "collectiverecord.h"
-#include "taskgroup.h"
-#include "otfcollective.h"
-#include "otf.h"
+#include <QMap>
 #include <QLinkedList>
+#include <QString>
+#include <stdint.h>
+#include "otf.h"
+
+class CommRecord;
+class Task;
+class Function;
+class TaskGroup;
+class OTFCollective;
+class Counter;
+class CollectiveRecord;
+class RawTrace;
 
 // Use OTF API to get records
 class OTFImporter

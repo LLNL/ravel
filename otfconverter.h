@@ -1,14 +1,18 @@
 #ifndef OTFCONVERTER_H
 #define OTFCONVERTER_H
 
-#include "otfimporter.h"
-#include "otf2importer.h"
-#include "otfimportoptions.h"
-#include "rawtrace.h"
-#include "trace.h"
-#include <QStack>
-#include <QSet>
-#include <cmath>
+#include <QObject>
+#include <QString>
+#include <QMap>
+
+class RawTrace;
+class OTFImporter;
+class OTF2Importer;
+class OTFImportOptions;
+class Trace;
+class Partition;
+class CommEvent;
+class CounterRecord;
 
 // Uses the raw records read from the OTF:
 // - switches point events into durational events

@@ -1,4 +1,7 @@
 #include "p2pevent.h"
+#include "commbundle.h"
+#include "message.h"
+#include "clusterevent.h"
 
 P2PEvent::P2PEvent(unsigned long long _enter, unsigned long long _exit,
                    int _function, int _task, int _phase,

@@ -1,4 +1,6 @@
 #include "commrecord.h"
+#include "message.h"
+#include <QObject>
 
 CommRecord::CommRecord(unsigned int _s, unsigned long long int _st,
                        unsigned int _r, unsigned long long int _rt,

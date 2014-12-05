@@ -1,4 +1,5 @@
 #include "clustertreevis.h"
+#include "gnome.h"
 
 ClusterTreeVis::ClusterTreeVis(QWidget *parent, VisOptions * _options)
     : VisWidget(parent, _options),

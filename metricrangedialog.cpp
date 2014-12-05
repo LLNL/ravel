@@ -1,5 +1,6 @@
 #include "metricrangedialog.h"
 #include "ui_metricrangedialog.h"
+#include <QAbstractButton>
 
 MetricRangeDialog::MetricRangeDialog(QWidget *parent, long long int current,
                                      long long int original)

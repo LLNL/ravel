@@ -1,5 +1,20 @@
 #include "stepvis.h"
+#include "metricrangedialog.h"
+#include "trace.h"
+#include "rpartition.h"
+#include "commevent.h"
+#include "colormap.h"
+#include "message.h"
+#include "collectiverecord.h"
+#include "otfcollective.h"
+#include "event.h"
+#include "p2pevent.h"
+#include "collectiveevent.h"
 #include <iostream>
+#include <cmath>
+#include <QLocale>
+#include <QMouseEvent>
+#include <QWheelEvent>
 
 StepVis::StepVis(QWidget* parent, VisOptions * _options)
     : TimelineVis(parent = parent, _options),

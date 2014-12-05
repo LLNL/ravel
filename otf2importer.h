@@ -1,14 +1,20 @@
 #ifndef OTF2IMPORTER_H
 #define OTF2IMPORTER_H
 
-#include "rawtrace.h"
-#include "commrecord.h"
-#include "eventrecord.h"
-#include "collectiverecord.h"
-#include "taskgroup.h"
-#include "otfcollective.h"
 #include <otf2/otf2.h>
 #include <QLinkedList>
+#include <QString>
+#include <QMap>
+#include <QVector>
+
+class CommRecord;
+class RawTrace;
+class Function;
+class Task;
+class TaskGroup;
+class OTFCollective;
+class Counter;
+class CollectiveRecord;
 
 class OTF2Importer
 {

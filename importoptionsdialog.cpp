@@ -1,5 +1,6 @@
 #include "importoptionsdialog.h"
 #include "ui_importoptionsdialog.h"
+#include "otfimportoptions.h"
 
 ImportOptionsDialog::ImportOptionsDialog(QWidget *parent,
                                          OTFImportOptions * _options)

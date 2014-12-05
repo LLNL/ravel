@@ -1,5 +1,10 @@
 #include "rpartition.h"
 #include <iostream>
+#include <climits>
+
+#include "commevent.h"
+#include "clustertask.h"
+#include "general_util.h"
 
 Partition::Partition()
     : events(new QMap<int, QList<CommEvent *> *>),

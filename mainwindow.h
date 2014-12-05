@@ -2,17 +2,25 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QElapsedTimer>
-#include <QThread>
-#include <QProgressDialog>
-#include "viswidget.h"
-#include "trace.h"
-#include "otfimportoptions.h"
-#include "importoptionsdialog.h"
-#include "visoptions.h"
-#include "visoptionsdialog.h"
-#include "colormap.h"
-#include "otfimportfunctor.h"
+#include <QString>
+#include <QStack>
+#include <QList>
+#include <QVector>
+
+class Gnome;
+class Event;
+class Trace;
+class OTFImportOptions;
+class ImportOptionsDialog;
+class VisWidget;
+class VisOptions;
+class VisOptionsDialog;
+
+class QAction;
+class OTFImportFunctor;
+class QProgressDialog;
+class QThread;
+class QWidget;
 
 namespace Ui {
 class MainWindow;

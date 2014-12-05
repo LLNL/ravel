@@ -1,4 +1,5 @@
 #include "eventrecord.h"
+#include "event.h"
 
 EventRecord::EventRecord(unsigned int _task, unsigned long long int _t,
                          unsigned int _v, bool _e)

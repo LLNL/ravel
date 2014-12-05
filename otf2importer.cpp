@@ -4,6 +4,14 @@
 #include <iostream>
 #include <cmath>
 #include "general_util.h"
+#include "rawtrace.h"
+#include "commrecord.h"
+#include "eventrecord.h"
+#include "collectiverecord.h"
+#include "taskgroup.h"
+#include "otfcollective.h"
+#include "function.h"
+#include "task.h"
 
 OTF2Importer::OTF2Importer()
     : ticks_per_second(0),

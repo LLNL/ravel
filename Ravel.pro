@@ -41,7 +41,6 @@ SOURCES  += main.cpp \
     commevent.cpp \
     p2pevent.cpp \
     collectiveevent.cpp \
-    commbundle.cpp \
     commdrawinterface.cpp \
     counter.cpp \
     counterrecord.cpp \
@@ -92,7 +91,6 @@ HEADERS += \
     counter.h \
     counterrecord.h \
     otf2importer.h \
-    requestmessage.h \
     task.h \
     clustertask.h \
     taskgroup.h

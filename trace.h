@@ -1,22 +1,25 @@
 #ifndef TRACE_H
 #define TRACE_H
 
-#include "task.h"
-#include "event.h"
-#include "commevent.h"
-#include "p2pevent.h"
-#include "collectiveevent.h"
-#include "function.h"
-#include "rpartition.h"
-#include "otfimportoptions.h"
-#include "gnome.h"
-#include "taskgroup.h"
-#include "otfcollective.h"
+#include <QObject>
+#include <QString>
+#include <QList>
 #include <QMap>
 #include <QVector>
-#include <QStack>
-#include <QSet>
 #include <QQueue>
+#include <QStack>
+
+#include "otfimportoptions.h"
+
+class Partition;
+class Gnome;
+class Event;
+class CommEvent;
+class Function;
+class Task;
+class TaskGroup;
+class OTFCollective;
+class CollectiveRecord;
 
 class Trace : public QObject
 {

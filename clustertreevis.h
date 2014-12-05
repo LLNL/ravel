@@ -2,7 +2,6 @@
 #define CLUSTERTREEVIS_H
 
 #include "viswidget.h"
-#include "gnome.h"
 
 class ClusterTreeVis : public VisWidget
 {

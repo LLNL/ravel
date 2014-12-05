@@ -2,7 +2,9 @@
 #define CLUSTERVIS_H
 
 #include "timelinevis.h"
-#include "clustertreevis.h"
+
+class ClusterTreeVis;
+class PartitionCluster;
 
 class ClusterVis : public TimelineVis
 {

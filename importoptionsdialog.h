@@ -1,8 +1,8 @@
 #ifndef IMPORTOPTIONSDIALOG_H
 #define IMPORTOPTIONSDIALOG_H
 
-#include "otfimportoptions.h"
 #include <QDialog>
+#include "otfimportoptions.h"
 
 // GUI to set import options, must functions are GUI handlers
 namespace Ui {

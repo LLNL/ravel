@@ -3,6 +3,10 @@
 #include <cfloat>
 #include <iostream>
 #include <cmath>
+#include "trace.h"
+#include "rpartition.h"
+#include "event.h"
+#include "commevent.h"
 
 OverviewVis::OverviewVis(QWidget *parent, VisOptions * _options)
     : VisWidget(parent = parent, _options = _options)

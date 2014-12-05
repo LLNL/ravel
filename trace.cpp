@@ -1,10 +1,25 @@
 #include "trace.h"
-#include "exchangegnome.h"
+
 #include <iostream>
 #include <fstream>
 #include <QElapsedTimer>
-#include "general_util.h"
 #include <cmath>
+#include <climits>
+#include <cfloat>
+
+#include "task.h"
+#include "event.h"
+#include "commevent.h"
+#include "p2pevent.h"
+#include "collectiveevent.h"
+#include "function.h"
+#include "rpartition.h"
+#include "otfimportoptions.h"
+#include "gnome.h"
+#include "exchangegnome.h"
+#include "taskgroup.h"
+#include "otfcollective.h"
+#include "general_util.h"
 
 Trace::Trace(int nt)
     : name(""),

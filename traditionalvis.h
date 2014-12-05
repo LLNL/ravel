@@ -2,6 +2,9 @@
 #define TRADITIONALVIS_H
 
 #include "timelinevis.h"
+#include <QVector>
+
+class CommEvent;
 
 // Physical timeline
 class TraditionalVis : public TimelineVis

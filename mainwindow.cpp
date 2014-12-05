@@ -9,12 +9,21 @@
 #include "importoptionsdialog.h"
 #include "general_util.h"
 #include "verticallabel.h"
+#include "viswidget.h"
+#include "trace.h"
+#include "otfimportoptions.h"
+#include "visoptions.h"
+#include "visoptionsdialog.h"
+#include "otfimportfunctor.h"
 
 #include <QFileDialog>
 #include <QMessageBox>
 #include "qtconcurrentrun.h"
 #include <iostream>
 #include <string>
+#include <QElapsedTimer>
+#include <QThread>
+#include <QProgressDialog>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),

@@ -7,16 +7,12 @@
 #include "visoptions.h"
 #include "partitioncluster.h"
 #include "clustertask.h"
-#include "p2pevent.h"
-#include "collectiveevent.h"
-#include <QMouseEvent>
 #include <QPainter>
 #include <QRect>
-#include <iostream>
-#include <climits>
-#include <cmath>
 
-#include "kmedoids.h"
+class Event;
+class QMouseEvent;
+class ClusterTask;
 
 // Our unit of clustering and drawing. The idea is the inheritance hierarchy
 // will allow customization. However, this design with both a detector and

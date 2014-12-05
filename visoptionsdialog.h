@@ -1,9 +1,11 @@
 #ifndef VISOPTIONSDIALOG_H
 #define VISOPTIONSDIALOG_H
 
-#include "visoptions.h"
-#include "trace.h"
 #include <QDialog>
+#include <QString>
+#include "visoptions.h"
+
+class Trace;
 
 // GUI element for handling Vis options
 namespace Ui {

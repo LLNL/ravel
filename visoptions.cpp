@@ -1,4 +1,5 @@
 #include "visoptions.h"
+#include "colormap.h"
 
 VisOptions::VisOptions(bool _showAgg,
                  bool _metricTraditional,

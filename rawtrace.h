@@ -1,18 +1,21 @@
 #ifndef RAWTRACE_H
 #define RAWTRACE_H
 
-#include "task.h"
-#include "eventrecord.h"
-#include "commrecord.h"
-#include "taskgroup.h"
-#include "otfcollective.h"
-#include "collectiverecord.h"
-#include "function.h"
-#include "counter.h"
-#include "counterrecord.h"
+#include <QString>
 #include <QMap>
 #include <QVector>
 #include <stdint.h>
+
+class CollectiveRecord;
+class Task;
+class Function;
+class EventRecord;
+class CommRecord;
+class TaskGroup;
+class OTFCollective;
+class Counter;
+class CounterRecord;
+class CollectiveRecord;
 
 // Trace from OTF without processing
 class RawTrace

@@ -1,19 +1,15 @@
 #ifndef RPARTITION_H
 #define RPARTITION_H
 
-#include "event.h"
-#include "commevent.h"
-#include "p2pevent.h"
-#include "collectiveevent.h"
-#include "general_util.h"
-#include "clustertask.h"
+#include <QString>
 #include <QList>
 #include <QSet>
 #include <QVector>
 #include <QMap>
-#include <climits>
 
 class Gnome;
+class CommEvent;
+class ClusterTask;
 
 class Partition
 {

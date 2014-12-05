@@ -1,6 +1,17 @@
 #include "viswidget.h"
 #include <iostream>
 #include <math.h>
+#include <climits>
+#include <cmath>
+
+#include <QVector>
+#include <QList>
+#include <QPaintEvent>
+#include <QLocale>
+
+#include "trace.h"
+#include "general_util.h"
+
 
 VisWidget::VisWidget(QWidget *parent, VisOptions * _options) :
     QGLWidget(QGLFormat(QGL::SampleBuffers), parent),

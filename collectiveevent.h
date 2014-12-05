@@ -2,6 +2,7 @@
 #define COLLECTIVEEVENT_H
 
 #include "commevent.h"
+#include "collectiverecord.h"
 
 class CollectiveEvent : public CommEvent
 {

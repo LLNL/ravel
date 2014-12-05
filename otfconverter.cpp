@@ -1,8 +1,29 @@
-#include <QElapsedTimer>
 #include "otfconverter.h"
+#include <QElapsedTimer>
+#include <QStack>
+#include <QSet>
+#include <cmath>
 #include <climits>
 #include <iostream>
 #include "general_util.h"
+#include "otfimporter.h"
+#include "otf2importer.h"
+#include "otfimportoptions.h"
+#include "rawtrace.h"
+#include "trace.h"
+#include "counter.h"
+#include "function.h"
+#include "collectiverecord.h"
+#include "eventrecord.h"
+#include "commrecord.h"
+#include "counterrecord.h"
+#include "rpartition.h"
+#include "event.h"
+#include "commevent.h"
+#include "p2pevent.h"
+#include "message.h"
+#include "collectiveevent.h"
+
 
 const QString OTFConverter::collectives_string
     = QString("MPI_BarrierMPI_BcastMPI_ReduceMPI_GatherMPI_Scatter")

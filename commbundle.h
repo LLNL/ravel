@@ -1,11 +1,9 @@
 #ifndef COMMBUNDLE_H
 #define COMMBUNDLE_H
 
-#include <QPainter>
-#include "visoptions.h"
-#include "commdrawinterface.h"
-
+class QPainter;
 class CommEvent;
+class CommDrawInterface;
 
 class CommBundle
 {

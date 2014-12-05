@@ -1,8 +1,7 @@
 #ifndef COMMDRAWINTERFACE_H
 #define COMMDRAWINTERFACE_H
 
-#include <QPainter>
-
+class QPainter;
 class Message;
 class CollectiveRecord;
 

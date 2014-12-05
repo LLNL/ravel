@@ -1,4 +1,12 @@
 #include "clustervis.h"
+#include "clustertreevis.h"
+#include "trace.h"
+#include "gnome.h"
+
+#include <QMouseEvent>
+#include <QWheelEvent>
+
+#include <cmath>
 
 ClusterVis::ClusterVis(ClusterTreeVis *ctv, QWidget* parent,
                        VisOptions *_options)

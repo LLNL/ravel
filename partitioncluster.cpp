@@ -1,6 +1,11 @@
 #include "partitioncluster.h"
 #include <iostream>
+#include <climits>
 
+#include "clusterevent.h"
+#include "clustertask.h"
+#include "event.h"
+#include "commevent.h"
 
 // Start an empty cluster
 PartitionCluster::PartitionCluster(int num_steps, int start,

@@ -2,6 +2,11 @@
 #include "general_util.h"
 #include <QElapsedTimer>
 
+#include "trace.h"
+#include "otfconverter.h"
+#include "otfimportoptions.h"
+#include "otf2importer.h"
+
 OTFImportFunctor::OTFImportFunctor(OTFImportOptions * _options)
     : options(_options),
       trace(NULL)

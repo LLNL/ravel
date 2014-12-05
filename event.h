@@ -1,11 +1,7 @@
 #ifndef EVENT_H
 #define EVENT_H
 
-#include <QWidget>
-#include <QMap>
-#include <QSet>
-#include "message.h"
-#include "collectiverecord.h"
+#include <QVector>
 
 class Partition;
 

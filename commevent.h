@@ -2,9 +2,16 @@
 #define COMMEVENT_H
 
 #include "event.h"
-#include "clusterevent.h"
+#include <QString>
+#include <QList>
+#include <QSet>
+#include <QMap>
 
 class Partition;
+class ClusterEvent;
+class CommBundle;
+class Message;
+class CollectiveRecord;
 
 class CommEvent : public Event
 {

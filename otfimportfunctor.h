@@ -1,11 +1,11 @@
 #ifndef OTFIMPORTFUNCTOR_H
 #define OTFIMPORTFUNCTOR_H
 
-#include "trace.h"
-#include "otfconverter.h"
-#include "otfimportoptions.h"
-#include "otf2importer.h"
 #include <QObject>
+#include <QString>
+
+class Trace;
+class OTFImportOptions;
 
 // Handle signaling for progress bar
 class OTFImportFunctor : public QObject

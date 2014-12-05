@@ -1,4 +1,5 @@
 #include "commevent.h"
+#include "clusterevent.h"
 
 CommEvent::CommEvent(unsigned long long _enter, unsigned long long _exit,
                      int _function, int _task, int _phase)

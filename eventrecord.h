@@ -1,7 +1,9 @@
 #ifndef EVENTRECORD_H
 #define EVENTRECORD_H
 
-#include "event.h"
+#include <QList>
+
+class Event;
 
 // Holder for OTF Event info
 class EventRecord

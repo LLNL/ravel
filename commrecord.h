@@ -1,8 +1,7 @@
 #ifndef COMMRECORD_H
 #define COMMRECORD_H
 
-#include "message.h"
-#include "p2pevent.h"
+class Message;
 
 // Holder of OTF Comm Info
 class CommRecord

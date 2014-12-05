@@ -1,6 +1,20 @@
 #include "traditionalvis.h"
 #include <iostream>
+#include <cmath>
 #include <QFontMetrics>
+#include <QMouseEvent>
+#include <QWheelEvent>
+
+#include "trace.h"
+#include "rpartition.h"
+#include "function.h"
+#include "otfcollective.h"
+#include "message.h"
+#include "colormap.h"
+#include "commevent.h"
+#include "event.h"
+#include "p2pevent.h"
+#include "collectiveevent.h"
 
 TraditionalVis::TraditionalVis(QWidget * parent, VisOptions * _options)
     : TimelineVis(parent = parent, _options),

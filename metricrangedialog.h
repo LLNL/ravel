@@ -2,7 +2,8 @@
 #define METRICRANGEDIALOG_H
 
 #include <QDialog>
-#include <QAbstractButton>
+
+class QAbstractButton;
 
 // Dialog for changing colorbar range
 namespace Ui {

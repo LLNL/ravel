@@ -1,13 +1,15 @@
 #ifndef PARTITIONCLUSTER_H
 #define PARTITIONCLUSTER_H
 
-#include "clusterevent.h"
-#include "clustertask.h"
-#include "event.h"
-#include "commevent.h"
+#include <QRect>
+#include <QString>
 #include <QSet>
 #include <QList>
-#include <climits>
+
+class CommEvent;
+class ClusterTask;
+class PartitionCluster;
+class ClusterEvent;
 
 // Cluster node of a hierarchical clustering, contains a subset of a partition
 class PartitionCluster

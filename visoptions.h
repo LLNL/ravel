@@ -1,7 +1,9 @@
 #ifndef VISOPTIONS_H
 #define VISOPTIONS_H
 
-#include "colormap.h"
+#include <QString>
+
+class ColorMap;
 
 class VisOptions
 {

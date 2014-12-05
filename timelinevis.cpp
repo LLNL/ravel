@@ -1,5 +1,13 @@
 #include "timelinevis.h"
 #include <iostream>
+#include <cmath>
+
+#include <QLocale>
+#include <QMouseEvent>
+
+#include "trace.h"
+#include "event.h"
+#include "function.h"
 
 TimelineVis::TimelineVis(QWidget* parent, VisOptions * _options)
     : VisWidget(parent = parent, _options),

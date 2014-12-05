@@ -1,5 +1,7 @@
 #include "collectiveevent.h"
 
+#include "clusterevent.h"
+
 CollectiveEvent::CollectiveEvent(unsigned long long _enter,
                                  unsigned long long _exit,
                                  int _function, int _task, int _phase,

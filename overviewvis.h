@@ -2,7 +2,13 @@
 #define OVERVIEWVIS_H
 
 #include "viswidget.h"
-#include "event.h"
+#include <QVector>
+
+class VisOptions;
+class QResizeEvent;
+class QMouseEvent;
+class QPainter;
+class Trace;
 
 // Full timeline shown by metric
 class OverviewVis : public VisWidget

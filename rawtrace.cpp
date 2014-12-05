@@ -1,5 +1,16 @@
 #include "rawtrace.h"
 
+#include "task.h"
+#include "eventrecord.h"
+#include "commrecord.h"
+#include "taskgroup.h"
+#include "otfcollective.h"
+#include "collectiverecord.h"
+#include "function.h"
+#include "counter.h"
+#include "counterrecord.h"
+
+
 RawTrace::RawTrace(int nt)
     : tasks(NULL),
       functionGroups(NULL),

@@ -1,10 +1,13 @@
 #ifndef EXCHANGEGNOME_H
 #define EXCHANGEGNOME_H
 
-#include <QMap>
-#include <QList>
 #include "gnome.h"
-#include "partitioncluster.h"
+#include <QMap>
+#include <QSet>
+#include <QRect>
+
+class QPainter;
+class PartitionCluster;
 
 // Gnome with detector & special drawing functions for exchange patterns
 class ExchangeGnome : public Gnome
