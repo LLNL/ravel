@@ -914,7 +914,7 @@ void StepVis::drawMessage(QPainter * painter, Message * msg)
 
     Qt::GlobalColor pencolor = Qt::black;
     if (!selected_aggregate
-            && selected_event == msg->sender || selected_event == msg->receiver)
+            && (selected_event == msg->sender || selected_event == msg->receiver))
         pencolor = Qt::yellow;
 
     QPointF p1, p2;
