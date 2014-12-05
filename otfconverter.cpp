@@ -182,7 +182,6 @@ void OTFConverter::matchEvents()
 
     // Find needed indices for merge options
     int isend_index = -1, waitall_index = -1, testall_index = -1;
-    std::cout << "Coalesce option is " << options->sendCoalescing << std::endl;
     if ((options->isendCoalescing || options->waitallMerge) && !options->partitionByFunction)
     {
         for (QMap<int, Function * >::Iterator function = trace->functions->begin();
@@ -259,19 +258,9 @@ void OTFConverter::matchEvents()
                 // Partition/handle comm events
                 CollectiveRecord * cr = NULL;
                 sflag = false, rflag = false, isendflag = false;
-
-                // If it isn't a send, of course coalesce_start is false
-                // coalesce_continue becomes false if we have another whole
-                // function in the way -- meaning either it is an mpi function
-                // Some day add some like, depth check or something on this?
-                // I don't like how arbitrary functions can break this up
-                // -->bring up at Ravel meeting
-                coalesce_start = false, coalesce_continue = true;
                 if (((*(trace->functions))[bgn->value])->group
                         == trace->mpi_group)
                 {
-                    coalesce_continue = false;
-
                     // Check for possible collective
                     if (collective_index < collective_bits->size()
                         && bgn->time <= collective_bits->at(collective_index)->time
@@ -290,24 +279,6 @@ void OTFConverter::matchEvents()
                             sflag = true;
                             if (bgn->value == isend_index && options->isendCoalescing)
                                 isendflag = true;
-
-                            // We've already started coalescing and this continues
-                            // to be within our time range
-                            if (isends->size() > 0 &&
-                                bgn->time - isends->last()->exit <= options->sendCoalescing)
-                            {
-                                coalesce_continue = true;
-                            }
-                            // Either we haven't started coalescing (first send after non sends)
-                            // OR we fall outside the time range so we have to restart
-                            else
-                            {
-                                coalesce_start = true;
-                            }
-                            if (isends->size() > 0)
-                                std::cout << "Time diff " << (bgn->time - isends->last()->exit);
-                            std::cout << " Continue "  << coalesce_continue;
-                            std::cout << " Start " << coalesce_start << std::endl;
                         }
                         else if (bgn->time > sendlist->at(sindex)->send_time)
                         {
@@ -333,25 +304,6 @@ void OTFConverter::matchEvents()
                             std::cout << (*evt)->task << std::endl;
                             rindex++;
                         }
-                    }
-                }
-
-                // Definitely not send and we need to coalesce what we have now
-                if (options->sendCoalescing && !coalesce_continue && isends->size() > 0)
-                {
-                    std::cout << "Coalescing sends " << std::endl;
-                    P2PEvent * send = new P2PEvent(isends);
-                    send->comm_prev = isends->first()->comm_prev;
-                    if (send->comm_prev)
-                        send->comm_prev->comm_next = send;
-                    makeSingletonPartition(send);
-                    prev = send;
-                    isends = new QList<P2PEvent *>();
-
-                    if (!options->partitionByFunction
-                        && (max_complete > 0 || options->waitallMerge))
-                    {
-                        sendgroup->append(trace->partitions->last());
                     }
                 }
 
@@ -407,11 +359,9 @@ void OTFConverter::matchEvents()
                                                          bgn->task, phase,
                                                          msgs);
 
-                    if (isendflag || coalesce_continue || coalesce_start)
-                    {
+                    if (isendflag)
                         isends->append(crec->message->sender);
-                        std::cout << "Appending to isends " << std::endl;
-                    }
+
 
                     crec->message->sender->comm_prev = prev;
                     if (prev)
@@ -426,8 +376,7 @@ void OTFConverter::matchEvents()
                     e = crec->message->sender;
                     if (options->partitionByFunction)
                         commevents->append(crec->message->sender);
-                    else if (!(options->isendCoalescing && isendflag)
-                             && !(options->sendCoalescing && (coalesce_continue || coalesce_start)))
+                    else if (!(options->isendCoalescing && isendflag))
                         makeSingletonPartition(crec->message->sender);
                     sindex++;
 
@@ -435,7 +384,6 @@ void OTFConverter::matchEvents()
                     // Collect the send for possible waitall merge
                     if ((max_complete > 0 || options->waitallMerge)
                         && !(options->isendCoalescing && isendflag)
-                        && !(options->sendCoalescing && (coalesce_continue || coalesce_start))
                         && !options->partitionByFunction)
                     {
                         sendgroup->append(trace->partitions->last());
@@ -633,8 +581,7 @@ void OTFConverter::matchEvents()
         // Finish off last isend list
         // This really shouldn't be needed because we expect
         // something handling their request to come after them
-        if ((options->isendCoalescing || options->sendCoalescing)
-            && isends->size() > 0)
+        if (options->isendCoalescing && isends->size() > 0)
         {
             P2PEvent * isend = new P2PEvent(isends);
             isend->comm_prev = isends->first()->comm_prev;
