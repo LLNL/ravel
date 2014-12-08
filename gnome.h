@@ -28,6 +28,7 @@ public:
 
     virtual bool detectGnome(Partition * part);
     virtual Gnome * create();
+    void set_seed(unsigned long s) { seed = s; }
     virtual void preprocess();
     void setPartition(Partition * part) { partition = part; }
     void setFunctions(QMap<int, Function *> * _functions)
@@ -72,6 +73,7 @@ protected:
     Partition * partition;
     QMap<int, Function *> * functions;
     VisOptions * options;
+    unsigned long seed;
     int mousex;
     int mousey;
 

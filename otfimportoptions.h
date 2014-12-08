@@ -21,8 +21,11 @@ public:
     bool globalMerge; // merge across steps
     bool cluster; // clustering on gnomes should be done
     bool isendCoalescing; // group consecutive isends
-    int sendCoalescing; // group consecutive sends in some bound
     bool enforceMessageSizes; // send/recv size must match
+
+    bool seedClusters; // seed has been set
+    long clusterSeed; // random seed for clustering
+
     OriginFormat origin;
     QString partitionFunction;
 };

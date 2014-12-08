@@ -18,6 +18,7 @@ using namespace cluster;
 Gnome::Gnome()
     : partition(NULL),
       options(NULL),
+      seed(0),
       mousex(-1),
       mousey(-1),
       metric("Lateness"),
@@ -110,7 +111,9 @@ void Gnome::findMusters()
         cmetric = options->metric;
 
     int num_clusters = std::min(20, partition->events->size());
+
     kmedoids clara;
+    clara.set_seed(seed);
     clara.clara(partition->cluster_tasks->toStdVector(),
                 task_distance(), num_clusters);
 

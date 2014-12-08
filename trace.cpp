@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <QElapsedTimer>
+#include <QTime>
 #include <cmath>
 #include <climits>
 #include <cfloat>
@@ -184,6 +185,15 @@ void Trace::gnomify()
     qint64 traceElapsed;
 
     traceTimer.start();
+
+    if (!options.seedClusters)
+    {
+        QTime time = QTime::currentTime();
+        qsrand((uint)time.msec());
+        options.clusterSeed = qrand();
+    }
+    std::cout << "Clustering seed: " << options.clusterSeed << std::endl;
+
     metrics->append("Gnome");
     (*metric_units)["Gnome"] = "";
     Gnome * gnome;
@@ -201,6 +211,7 @@ void Trace::gnomify()
             {
                 (*part)->gnome_type = i;
                 (*part)->gnome = gnome->create();
+                (*part)->gnome->set_seed(options.clusterSeed);
                 (*part)->gnome->setPartition(*part);
                 (*part)->gnome->setFunctions(functions);
                 setGnomeMetric(*part, i);
@@ -212,6 +223,7 @@ void Trace::gnomify()
         {
             (*part)->gnome_type = -1;
             (*part)->gnome = new Gnome();
+            (*part)->gnome->set_seed(options.clusterSeed);
             (*part)->gnome->setPartition(*part);
             (*part)->gnome->setFunctions(functions);
             setGnomeMetric(*part, -1);

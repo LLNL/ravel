@@ -32,6 +32,8 @@ ImportOptionsDialog::ImportOptionsDialog(QWidget *parent,
             SLOT(onIsend(bool)));
     connect(ui->messageSizeCheckBox, SIGNAL(clicked(bool)), this,
             SLOT(onMessageSize(bool)));
+    connect(ui->seedEdit, SIGNAL(textChanged(QString)), this,
+            SLOT(onSeedEdit(QString)));
 
     setUIState();
 }
@@ -88,6 +90,7 @@ void ImportOptionsDialog::onGlobalMerge(bool merge)
 void ImportOptionsDialog::onCluster(bool cluster)
 {
     options->cluster = cluster;
+    setUIState();
 }
 
 void ImportOptionsDialog::onIsend(bool coalesce)
@@ -105,6 +108,19 @@ void ImportOptionsDialog::onFunctionEdit(const QString& text)
     options->partitionFunction = text;
 }
 
+void ImportOptionsDialog::onSeedEdit(const QString& text)
+{
+    if (text.length())
+    {
+        options->clusterSeed = text.toULong();
+        options->seedClusters = true;
+    }
+    else
+    {
+        options->seedClusters = false;
+        options->clusterSeed = 0;
+    }
+}
 
 // Based on currently operational options, set the UI state to
 // something consistent (e.g., in certain modes other options are
@@ -130,6 +146,16 @@ void ImportOptionsDialog::setUIState()
     {
         ui->skipCheckbox->setEnabled(false);
     }
+
+    if (options->seedClusters)
+    {
+        ui->seedEdit->setText(QString::number(options->clusterSeed));
+    }
+    else
+    {
+        ui->seedEdit->setText("");
+    }
+    ui->seedEdit->setEnabled(options->cluster);
 
     // Enable or Disable heuristic v. given partition
     if (options->partitionByFunction)
