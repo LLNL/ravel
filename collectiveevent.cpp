@@ -52,6 +52,57 @@ void CollectiveEvent::initialize_strides(QList<CommEvent *> * stride_events,
     set_stride_relationships();
 }
 
+void CollectiveEvent::initialize_basic_strides(QSet<CollectiveRecord *> *collectives)
+{
+    collectives->insert(collective);
+    stride = 0;
+}
+
+void CollectiveEvent::update_basic_strides()
+{
+    // First, we set up the graph based on what is in a stride
+    CommEvent * task_next = comm_next;
+
+    // while we have receives
+    while (task_next && task_next->stride < 0)
+    {
+        task_next = task_next->comm_next;
+    }
+
+    if (task_next && task_next->partition == partition)
+    {
+        // Add to everyone in the collective
+        // as a parent. This will force the collective to be after
+        // anything that happens before any of the collectives.
+        for (QList<CollectiveEvent *>::Iterator ev
+             = collective->events->begin();
+             ev != collective->events->end(); ++ev)
+        {
+            task_next->stride_parents->insert(*ev);
+            (*ev)->stride_children->insert(task_next);
+        }
+    }
+}
+
+// This takes a long time, probably can do it a faster way in Partition
+bool CollectiveEvent::calculate_local_step()
+{
+    int max_step = 0;
+    for (QList<CollectiveEvent *>::Iterator ev = collective->events->begin();
+         ev != collective->events->end(); ++ev)
+    {
+        if ((*ev)->comm_prev)
+        {
+            if ((*ev)->comm_prev->step < 0)
+                return false;
+            else if ((*ev)->comm_prev->step >= max_step)
+                max_step = (*ev)->comm_prev->step + 1;
+        }
+    }
+    step = max_step;
+    return true;
+}
+
 void CollectiveEvent::set_stride_relationships()
 {
     CommEvent * task_next = comm_next;

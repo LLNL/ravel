@@ -664,17 +664,33 @@ void Trace::assignSteps()
                                    1.0);
     int currentPortion = 0;
     int currentIter = 0;
-    for (QList<Partition *>::Iterator partition = partitions->begin();
-         partition != partitions->end(); ++partition)
+    if (options.advancedStepping)
     {
-        if (round(currentIter / 1.0 / progressPortion) > currentPortion)
+        for (QList<Partition *>::Iterator partition = partitions->begin();
+             partition != partitions->end(); ++partition)
         {
-            ++currentPortion;
-            emit(updatePreprocess(partition_portion + currentPortion,
-                                  "Assigning steps..."));
+            if (round(currentIter / 1.0 / progressPortion) > currentPortion)
+            {
+                ++currentPortion;
+                emit(updatePreprocess(partition_portion + currentPortion,
+                                      "Assigning steps..."));
+            }
+            ++currentIter;
+            (*partition)->step();
         }
-        ++currentIter;
-        (*partition)->step();
+    } else {
+        for (QList<Partition *>::Iterator partition = partitions->begin();
+             partition != partitions->end(); ++partition)
+        {
+            if (round(currentIter / 1.0 / progressPortion) > currentPortion)
+            {
+                ++currentPortion;
+                emit(updatePreprocess(partition_portion + currentPortion,
+                                      "Assigning steps..."));
+            }
+            ++currentIter;
+            (*partition)->basic_step();
+        }
     }
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "Local Stepping: ";

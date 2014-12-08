@@ -30,8 +30,10 @@ ImportOptionsDialog::ImportOptionsDialog(QWidget *parent,
             SLOT(onCluster(bool)));
     connect(ui->isendCheckbox, SIGNAL(clicked(bool)), this,
             SLOT(onIsend(bool)));
-    connect(ui->messageSizeCheckBox, SIGNAL(clicked(bool)), this,
+    connect(ui->messageSizeCheckbox, SIGNAL(clicked(bool)), this,
             SLOT(onMessageSize(bool)));
+    connect(ui->stepCheckbox, SIGNAL(clicked(bool)), this,
+            SLOT(onAdvancedStep(bool)));
     connect(ui->seedEdit, SIGNAL(textChanged(QString)), this,
             SLOT(onSeedEdit(QString)));
 
@@ -103,6 +105,11 @@ void ImportOptionsDialog::onMessageSize(bool enforce)
     options->enforceMessageSizes = enforce;
 }
 
+void ImportOptionsDialog::onAdvancedStep(bool advanced)
+{
+    options->advancedStepping = advanced;
+}
+
 void ImportOptionsDialog::onFunctionEdit(const QString& text)
 {
     options->partitionFunction = text;
@@ -133,7 +140,8 @@ void ImportOptionsDialog::setUIState()
     ui->globalMergeBox->setChecked(options->globalMerge);
     ui->clusterCheckbox->setChecked(options->cluster);
     ui->isendCheckbox->setChecked(options->isendCoalescing);
-    ui->messageSizeCheckBox->setChecked(options->enforceMessageSizes);
+    ui->messageSizeCheckbox->setChecked(options->enforceMessageSizes);
+    ui->stepCheckbox->setChecked(options->advancedStepping);
 
     ui->functionEdit->setText(options->partitionFunction);
 

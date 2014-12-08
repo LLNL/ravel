@@ -91,6 +91,40 @@ void P2PEvent::fixPhases()
     }
 }
 
+bool P2PEvent::calculate_local_step()
+{
+    int temp_step = -1;
+    if (comm_prev && comm_prev->partition == partition)
+    {
+        if (comm_prev->step >= 0)
+            temp_step = comm_prev->step + 1;
+    }
+    else
+    {
+        temp_step = 0;
+    }
+
+    if (is_recv)
+    {
+        for (QVector<Message *>::Iterator msg
+             = messages->begin();
+             msg != messages->end(); ++msg)
+        {
+            if ((*msg)->sender->step < 0)
+                return false;
+            else if ((*msg)->sender->step >= temp_step)
+                temp_step = (*msg)->sender->step + 1;
+        }
+    }
+
+    if (temp_step >= 0)
+    {
+        step = temp_step;
+        return true;
+    }
+    return false;
+}
+
 void P2PEvent::calculate_differential_metric(QString metric_name,
                                              QString base_name)
 {
@@ -117,9 +151,39 @@ void P2PEvent::calculate_differential_metric(QString metric_name,
                        getMetric(base_name, true)- max_agg_parent));
 }
 
+void P2PEvent::initialize_basic_strides(QSet<CollectiveRecord *> * collectives)
+{
+    Q_UNUSED(collectives);
+    // Do nothing
+}
+
+// If the stride value is less than zero, we know it isn't
+// part of a stride and thus in this case is a send or recv
+void P2PEvent::update_basic_strides()
+{
+    if (comm_prev && comm_prev->partition == partition)
+        last_stride = comm_prev;
+
+    // Set last_stride based on task
+    while (last_stride && last_stride->stride < 0)
+    {
+        last_stride = last_stride->comm_prev;
+    }
+    if (last_stride && last_stride->partition != partition)
+        last_stride = NULL;
+
+    next_stride = comm_next;
+    // Set next_stride based on task
+    while (next_stride && next_stride->stride < 0)
+    {
+        next_stride = next_stride->comm_next;
+    }
+    if (next_stride && next_stride->partition != partition)
+        next_stride = NULL;
+}
 
 void P2PEvent::initialize_strides(QList<CommEvent *> * stride_events,
-                                         QList<CommEvent *> * recv_events)
+                                  QList<CommEvent *> * recv_events)
 {
     if (!is_recv)
     {
@@ -140,23 +204,23 @@ void P2PEvent::initialize_strides(QList<CommEvent *> * stride_events,
     {
         recv_events->append(this);
         if (comm_prev && comm_prev->partition == partition)
-            last_send = comm_prev;
-        // Set last_send based on task
-        while (last_send && last_send->isReceive())
+            last_stride = comm_prev;
+        // Set last_stride based on task
+        while (last_stride && last_stride->isReceive())
         {
-            last_send = last_send->comm_prev;
+            last_stride = last_stride->comm_prev;
         }
-        if (last_send && last_send->partition != partition)
-            last_send = NULL;
+        if (last_stride && last_stride->partition != partition)
+            last_stride = NULL;
 
-        next_send = comm_next;
-        // Set next_send based on task
-        while (next_send && next_send->isReceive())
+        next_stride = comm_next;
+        // Set next_stride based on task
+        while (next_stride && next_stride->isReceive())
         {
-            next_send = next_send->comm_next;
+            next_stride = next_stride->comm_next;
         }
-        if (next_send && next_send->partition != partition)
-            next_send = NULL;
+        if (next_stride && next_stride->partition != partition)
+            next_stride = NULL;
     }
 }
 
@@ -184,15 +248,15 @@ void P2PEvent::update_strides()
         return;
 
     // Iterate through sends of this recv and check what
-    // their strides are to update last_send and next_send
+    // their strides are to update last_stride and next_stride
     // to be the tightest boundaries.
     for (QVector<Message *>::Iterator msg = messages->begin();
          msg != messages->end(); ++msg)
     {
-        if (!last_send
-                || (*msg)->sender->stride > last_send->stride)
+        if (!last_stride
+                || (*msg)->sender->stride > last_stride->stride)
         {
-            last_send = (*msg)->sender;
+            last_stride = (*msg)->sender;
         }
     }
 }

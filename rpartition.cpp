@@ -3,6 +3,7 @@
 #include <climits>
 
 #include "commevent.h"
+#include "collectiverecord.h"
 #include "clustertask.h"
 #include "general_util.h"
 
@@ -163,6 +164,209 @@ void Partition::calculate_dag_leap()
 
 }
 
+void Partition::basic_step()
+{
+    // Find collectives / mark as strides
+    QSet<CollectiveRecord *> * collectives = new QSet<CollectiveRecord *>();
+    for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
+         event_list != events->end(); ++event_list)
+    {
+        for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
+             evt != (event_list.value())->end(); ++evt)
+        {
+            (*evt)->initialize_basic_strides(collectives);
+        }
+    }
+
+    // Set up stride graph
+    for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
+         event_list != events->end(); ++event_list)
+    {
+        for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
+             evt != (event_list.value())->end(); ++evt)
+        {
+            (*evt)->update_basic_strides();
+        }
+    }
+
+    // Set stride values
+    int current_stride, max_stride = 0;
+    QList<CollectiveRecord *> toDelete = QList<CollectiveRecord *>();
+    while (collectives->size())
+    {
+        // Set the stride values if possible
+        for (QSet<CollectiveRecord *>::Iterator cr = collectives->begin();
+             cr != collectives->end(); ++cr)
+        {
+            current_stride = (*cr)->set_basic_strides();
+            if (current_stride > max_stride)
+                max_stride = current_stride;
+            if (current_stride)
+                toDelete.append(*cr);
+        }
+
+        // Delete ones we found
+        for (QList<CollectiveRecord *>::Iterator cr = toDelete.begin();
+             cr != toDelete.end(); ++cr)
+        {
+            collectives->remove(*cr);
+        }
+    }
+    delete collectives;
+
+    // Inflate P2P Events between collectives
+    max_step = -1;
+    int task;
+    CommEvent * evt;
+    QList<int> tasks = events->keys();
+    QMap<int, CommEvent*> next_step = QMap<int, CommEvent*>();
+    for (int i = 0; i < tasks.size(); i++)
+    {
+        if ((*events)[tasks[i]]->size() > 0) {
+            next_step[tasks[i]] = (*events)[tasks[i]]->at(0);
+        }
+        else
+            next_step[tasks[i]] = NULL;
+    }
+
+    // Start from one since that's where our strides start
+    bool move_forward, at_stride = false;
+    for (int stride = 1; stride <= max_stride; stride++)
+    {
+        // Step the P2P Events before this stride. Note that we
+        // will have to make progress slowly to ensure that
+        // we respect send/recv semantics
+        while (!at_stride)
+        {
+            at_stride = true;
+            for (int i = 0; i < tasks.size(); i++)
+            {
+                task = tasks[i];
+                evt = next_step[task];
+
+                // We are not at_stride
+                if (!(evt && evt->stride == stride))
+                {
+                    move_forward = true;
+                    // and have all their parents taken care of
+                    while (move_forward)
+                    {
+                        // Now we move forward as we can with these non-stride events
+                        // that fall between the previous stride and i
+                        if (evt && evt->stride < 0
+                            && (!evt->last_stride || evt->last_stride->stride < stride)
+                            && evt->next_stride && evt->next_stride->stride == stride)
+                        {
+                            // We can move forward also if our parents are taken care of
+                            if (evt->calculate_local_step())
+                            {
+                                if (evt->step > max_step)
+                                    max_step = evt->step;
+
+                                if (evt->comm_next && evt->comm_next->partition == this)
+                                    evt = evt->comm_next;
+                                else
+                                    evt = NULL;
+                            }
+                            else
+                            {
+                                move_forward = false;
+                            }
+
+                        }
+                        else
+                        {
+                            move_forward = false;
+                        }
+                    }
+                }
+
+                // Save where we are
+                next_step[task] = evt;
+                if (evt && evt->stride < 0)
+                {
+                    at_stride = false;
+                }
+            }
+        }
+
+        // Now we know that the stride should be at max_step + 1
+        // So set all of those
+        bool increaseMax = false;
+        for (int i = 0; i < tasks.size(); i++)
+        {
+            task = tasks[i];
+            evt = next_step[task];
+
+            if (evt && evt->stride == stride)
+            {
+                evt->step = max_step + 1;
+                if (evt->comm_next && evt->comm_next->partition == this)
+                    next_step[task] = evt->comm_next;
+                else
+                    next_step[task] = NULL;
+
+                increaseMax = true;
+            }
+        }
+        if (increaseMax)
+            max_step++;
+    }
+
+    // Now handle all of the left events
+    // This could possibly be folded into the main stride loop depending
+    // on how we treat the next_stride when not existent.
+    bool not_done = true;
+    while (not_done)
+    {
+        not_done = false;
+        for (int i = 0; i < tasks.size(); i++)
+        {
+            task = tasks[i];
+            evt = next_step[task];
+
+            move_forward = true;
+            // and have all their parents taken care of
+            while (move_forward)
+            {
+                // Now we move forward as we can with these non-stride events
+                // that fall between the previous stride and i
+                if (evt && evt->partition == this)
+                {
+                    // We can move forward also if our parents are taken care of
+                    if (evt->calculate_local_step())
+                    {
+                        if (evt->step > max_step)
+                            max_step = evt->step;
+
+                        if (evt->comm_next && evt->comm_next->partition == this)
+                            evt = evt->comm_next;
+                        else
+                            evt = NULL;
+                    }
+                    else
+                    {
+                        move_forward = false;
+                    }
+
+                }
+                else
+                {
+                    move_forward = false;
+                }
+            }
+            // Save where we are
+            next_step[task] = evt;
+            // We still need to keep going through this
+            if (evt)
+                not_done = true;
+        }
+    }
+
+    // Now that we have finished, we should also have a correct max_step
+    // for this task.
+}
+
 void Partition::step()
 {
     // Build send+collective graph
@@ -223,24 +427,24 @@ void Partition::step()
 
             // We want recvs that can be set at this stride and are blocking
             // the current send strides from being sent. That means the
-            // last_send has a stride less than this one and
-            // if that the next_send exists and is this one (otherwise
+            // last_stride has a stride less than this one and
+            // if that the next_stride exists and is this one (otherwise
             // it wouldn't be blocking the step procedure)
-            // For recvs, last_send must exist
+            // For recvs, last_stride must exist
             while (evt && evt->stride < 0
-                   && evt->last_send->stride < stride
-                   && evt->next_send && evt->next_send->stride == stride)
+                   && evt->last_stride->stride < stride
+                   && evt->next_stride && evt->next_stride->stride == stride)
             {
                 if (evt->comm_prev && evt->comm_prev->partition == this)
                     // It has to go after its previous event but it also
                     // has to go after any of its sends. The maximum
-                    // step of any of its sends will be in last_send.
-                    // (If last_send is its task-previous, then
+                    // step of any of its sends will be in last_stride.
+                    // (If last_stride is its task-previous, then
                     // it will be covered by comm_prev).
                     evt->step = 1 + std::max(evt->comm_prev->step,
-                                              evt->last_send->step);
+                                              evt->last_stride->step);
                 else
-                    evt->step = 1 + evt->last_send->step;
+                    evt->step = 1 + evt->last_stride->step;
 
                 if (evt->step > max_step)
                     max_step = evt->step;
@@ -289,9 +493,9 @@ void Partition::step()
         {
             if (evt->comm_prev && evt->comm_prev->partition == this)
                 evt->step = 1 + std::max(evt->comm_prev->step,
-                                          evt->last_send->step);
+                                          evt->last_stride->step);
             else
-                evt->step = 1 + evt->last_send->step;
+                evt->step = 1 + evt->last_stride->step;
 
             if (evt->step > max_step)
                 max_step = evt->step;

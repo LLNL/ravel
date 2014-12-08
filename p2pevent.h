@@ -17,6 +17,9 @@ public:
     void initialize_strides(QList<CommEvent *> * stride_events,
                             QList<CommEvent *> * recv_events);
     void update_strides();
+    void initialize_basic_strides(QSet<CollectiveRecord *> * collectives);
+    void update_basic_strides();
+    bool calculate_local_step();
     void calculate_differential_metric(QString metric_name,
                                        QString base_name);
 

@@ -20,6 +20,7 @@ public:
     void deleteEvents();
     void sortEvents();
     void step();
+    void basic_step();
 
     // Based on step
     bool operator<(const Partition &);

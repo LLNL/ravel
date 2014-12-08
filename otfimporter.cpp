@@ -586,7 +586,6 @@ int OTFImporter::handleBeginCollectiveOperation(void * userData, uint64_t time,
     time = convertTime(userData, time);
     (*(*(((OTFImporter *) userData)->collectiveMap))[process - 1])[time] = cr;
     ((OTFImporter *) userData)->rawtrace->collectiveBits->at(process - 1)->append(new RawTrace::CollectiveBit(time, cr));
-    std::cout << "Collective begin on proc " << process << " at time " << time << std::endl;
 
     return 0;
 }
@@ -598,7 +597,6 @@ int OTFImporter::handleEndCollectiveOperation(void * userData, uint64_t time,
 {
     Q_UNUSED(userData);
     Q_UNUSED(list);
-    std::cout << "End Collective: " << time << ", proc: " << process;
-    std::cout << ", matching: " << matchingId << std::endl;
+
     return 0;
 }

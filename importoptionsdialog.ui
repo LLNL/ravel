@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>412</width>
-    <height>395</height>
+    <height>492</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -43,6 +43,13 @@
      <property name="bottomMargin">
       <number>0</number>
      </property>
+     <item>
+      <widget class="QLabel" name="label_4">
+       <property name="text">
+        <string>Partition/Phase Options</string>
+       </property>
+      </widget>
+     </item>
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_5" stretch="1,1">
        <item>
@@ -173,9 +180,53 @@
     </widget>
    </item>
    <item>
+    <widget class="QLabel" name="label_3">
+     <property name="text">
+      <string>Event Options</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="messageSizeCheckbox">
+     <property name="toolTip">
+      <string>Some trace utilities may store message size in only one place</string>
+     </property>
+     <property name="text">
+      <string>Matching send/recv must have the same message size</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="stepCheckbox">
+     <property name="toolTip">
+      <string>Structure favors aligning of Send events.</string>
+     </property>
+     <property name="text">
+      <string>Advanced stepping within a partition</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QCheckBox" name="isendCheckbox">
      <property name="text">
       <string>Coalesce Isends</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="Line" name="line_2">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_2">
+     <property name="focusPolicy">
+      <enum>Qt::WheelFocus</enum>
+     </property>
+     <property name="text">
+      <string>Clustering Options</string>
      </property>
     </widget>
    </item>
@@ -227,23 +278,6 @@
       <widget class="QLineEdit" name="seedEdit"/>
      </item>
     </layout>
-   </item>
-   <item>
-    <widget class="Line" name="line_2">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QCheckBox" name="messageSizeCheckBox">
-     <property name="toolTip">
-      <string>Some trace utilities may store message size in only one place</string>
-     </property>
-     <property name="text">
-      <string>send/recv must have the same message size</string>
-     </property>
-    </widget>
    </item>
    <item>
     <widget class="Line" name="line_3">

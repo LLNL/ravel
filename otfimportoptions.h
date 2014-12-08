@@ -26,6 +26,8 @@ public:
     bool seedClusters; // seed has been set
     long clusterSeed; // random seed for clustering
 
+    bool advancedStepping; // send structure over receives
+
     OriginFormat origin;
     QString partitionFunction;
 };

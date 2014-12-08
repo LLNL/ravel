@@ -17,6 +17,9 @@ public:
     void fixPhases();
     void initialize_strides(QList<CommEvent *> * stride_events,
                             QList<CommEvent *> * recv_events);
+    void initialize_basic_strides(QSet<CollectiveRecord *> *collectives);
+    void update_basic_strides();
+    bool calculate_local_step();
 
     void addComms(QSet<CommBundle *> * bundleset) { bundleset->insert(collective); }
     QList<int> neighborTasks();

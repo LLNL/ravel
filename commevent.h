@@ -37,6 +37,9 @@ public:
     virtual void initialize_strides(QList<CommEvent *> * stride_events,
                                     QList<CommEvent *> * recv_events)=0;
     virtual void update_strides() { return; }
+    virtual void initialize_basic_strides(QSet<CollectiveRecord *> * collectives)=0;
+    virtual void update_basic_strides()=0;
+    virtual bool calculate_local_step()=0;
 
     virtual ClusterEvent * createClusterEvent(QString metric, long long divider)=0;
     virtual void addToClusterEvent(ClusterEvent * ce, QString metric,
@@ -65,8 +68,8 @@ public:
     CommEvent * comm_prev;
 
     // Used in stepping procedure
-    CommEvent * last_send;
-    CommEvent * next_send;
+    CommEvent * last_stride;
+    CommEvent * next_stride;
     QList<CommEvent *> * last_recvs;
     int last_step;
     QSet<CommEvent *> * stride_parents;
