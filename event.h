@@ -21,6 +21,8 @@ public:
 
     Event * findChild(unsigned long long time);
     unsigned long long getVisibleEnd(unsigned long long start);
+    Event * least_common_caller(Event * other);
+    bool same_subtree(Event * other);
     virtual bool isCommEvent() { return false; }
     virtual bool isReceive() { return false; }
     virtual bool isCollective() { return false; }

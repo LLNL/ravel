@@ -724,6 +724,272 @@ void Trace::assignSteps()
     std::cout << std::endl;
 }
 
+// Adjacent (parent/child off by one dag leap) partitions are merged if along
+// any task, they either share a least common caller or one's least common
+// call is a child of the other's.
+void Trace::mergeByCommonCaller()
+{
+    QSet<Partition *> * new_partitions = new QSet<Partition *>();
+    QSet<Partition *> * current_partitions = new QSet<Partition *>();
+    QSet<QSet<Partition *> *> * toDelete = new QSet<QSet<Partition *> *>();
+    QSet<Partition *> near_children = QSet<Partition *>();
+
+    // Let's start from the dag_entries, we'll remove from the current
+    // set when we can't merge with our children, and then move the
+    // children into the current set
+    for (QList<Partition *>::Iterator part = dag_entries->begin();
+         part != dag_entries->end(); ++part)
+    {
+        current_partitions->insert(*part);
+    }
+
+    while (!current_partitions->isEmpty())
+    {
+        // Next time through the while loop we use these
+        QSet<Partition *> * next_partitions = new QSet<Partition *>();
+
+        // Keep track of which aren't merging and thus need to be advanced
+        QSet<Partition *> advance_set = QSet<Partition *>();
+
+        // In each of our current partitions, we're going to check for mergers
+        for (QSet<Partition *>::Iterator part = current_partitions->begin();
+             part != current_partitions->end(); ++part)
+        {
+            // Find neighboring children, we only want to consider those
+            // that are a single dag leap away so we don't cause merge funkiness
+            near_children.clear();
+            for (QSet<Partition *>::Iterator child = (*part)->children->begin();
+                 child != (*part)->children->end(); ++child)
+            {
+                (*child)->calculate_dag_leap();
+                if ((*child)->dag_leap == (*part)->dag_leap + 1)
+                {
+                    near_children.insert(*child);
+                }
+            }
+
+            bool merging = false;
+            QList<int> task_ids = (*part)->events->keys();
+            QSet<Partition *> added = QSet<Partition *>();
+
+            // Go through tasks and see which children should be merged
+            // If the child has the same task as the partition, we see
+            // what the least common caller of those events in each partition are
+            // If they are related by subtree, we merge them.
+            for (QList<int>::Iterator taskid = task_ids.begin();
+                 taskid != task_ids.end(); ++taskid)
+            {
+                Event * part_caller = (*part)->least_common_caller(*taskid);
+                Event * child_caller;
+                for (QSet<Partition *>::Iterator child = near_children.begin();
+                     child != near_children.end(); ++child)
+                {
+                    if ((*child)->events->contains(*taskid))
+                    {
+                        child_caller = (*child)->least_common_caller(*taskid);
+
+                        // We have a match, put them in the same merge group
+                        if (part_caller->same_subtree(child_caller))
+                        {
+                            added.insert((*child));
+                            merging = true; // This one is merging
+
+                            // Update group stuff for parent and child
+                            (*part)->group->unite(*((*child)->group));
+                            for (QSet<Partition *>::Iterator group_member
+                                 = (*part)->group->begin();
+                                 group_member != (*part)->group->end();
+                                 ++group_member)
+                            {
+                                if (*group_member != *part)
+                                {
+                                    toDelete->insert((*group_member)->group);
+                                    (*group_member)->group = (*part)->group;
+                                }
+                            } // Group stuff
+                        } // Child matches
+                    } // Child has Task ID
+                } // Looking through near children
+
+                // Now that we have completed this set of task ids, update near_children
+                // If this comes empty, we are done with this partition
+                near_children.subtract(added);
+                added.clear();
+                if (near_children.empty())
+                    break;
+
+            } // Task ID
+
+            // We looked at all tasks and did not merge, so we're done with this one.
+            // In the next round, we'll want to look at its children instead
+            if (!merging)
+                advance_set.insert(*part);
+        } // Partition in current set
+
+        // Now do the merger - we go through the leap and look at each
+        // partition's group and mark anything we've already merged.
+        for (QSet<Partition *>::Iterator group = current_partitions->begin();
+             group != current_partitions->end(); ++group)
+        {
+            if ((*group)->leapmark) // We've already merged this
+                continue;
+
+            Partition * p = new Partition();
+            int min_leap = (*group)->dag_leap;
+
+            for (QSet<Partition *>::Iterator partition
+                 = (*group)->group->begin();
+                 partition != (*group)->group->end(); ++partition)
+            {
+                min_leap = std::min((*partition)->dag_leap, min_leap);
+
+                // Merge all the events into the new partition
+                QList<int> keys = (*partition)->events->keys();
+                for (QList<int>::Iterator k = keys.begin(); k != keys.end(); ++k)
+                {
+                    if (p->events->contains(*k))
+                    {
+                        *((*(p->events))[*k]) += *((*((*partition)->events))[*k]);
+                    }
+                    else
+                    {
+                        (*(p->events))[*k] = new QList<CommEvent *>();
+                        *((*(p->events))[*k]) += *((*((*partition)->events))[*k]);
+                    }
+                }
+
+                p->dag_leap = min_leap;
+
+
+                // Update parents/children links
+                for (QSet<Partition *>::Iterator child
+                     = (*partition)->children->begin();
+                     child != (*partition)->children->end(); ++child)
+                {
+                    if (!((*group)->group->contains(*child)))
+                    {
+                        p->children->insert(*child);
+                        for (QSet<Partition *>::Iterator group_member
+                             = (*group)->group->begin();
+                             group_member != (*group)->group->end();
+                             ++group_member)
+                        {
+                            if ((*child)->parents->contains(*group_member))
+                                (*child)->parents->remove(*group_member);
+                        }
+                        (*child)->parents->insert(p);
+                    }
+                }
+
+                for (QSet<Partition *>::Iterator parent
+                     = (*partition)->parents->begin();
+                     parent != (*partition)->parents->end(); ++parent)
+                {
+                    if (!((*group)->group->contains(*parent)))
+                    {
+                        p->parents->insert(*parent);
+                        for (QSet<Partition *>::Iterator group_member
+                             = (*group)->group->begin();
+                             group_member != (*group)->group->end();
+                             ++group_member)
+                        {
+                            if ((*parent)->children->contains(*group_member))
+                                (*parent)->children->remove(*group_member);
+                        }
+                        (*parent)->children->insert(p);
+                    }
+                }
+
+                // Update new partitions
+                if (new_partitions->contains(*partition))
+                    new_partitions->remove(*partition);
+                if (next_partitions->contains(*partition))
+                    next_partitions->remove(*partition);
+            }
+
+            // Update leapmarks
+            for (QSet<Partition *>::Iterator group_member
+                 = (*group)->group->begin();
+                 group_member != (*group)->group->end(); ++group_member)
+            {
+                (*group_member)->leapmark = true;
+            }
+
+            p->sortEvents();
+            new_partitions->insert(p);
+
+            // Setup next_partitions to have any new partition that isn't
+            // a singleton from advance_set. For advance_set we want
+            // the near children as we're moving on
+            if (advance_set.contains(*group))
+            {
+                for (QSet<Partition *>::Iterator child = p->children->begin();
+                     child != p->children->end(); ++child)
+                {
+                    (*child)->calculate_dag_leap();
+                    if (p->dag_leap + 1 == (*child)->dag_leap)
+                        next_partitions->insert(*child);
+                }
+            }
+            else
+            {
+                next_partitions->insert(p);
+            }
+
+        } // End current partition merging
+
+        delete current_partitions;
+        current_partitions = next_partitions;
+        delete next_partitions;
+
+    } // End Current Partition
+    delete current_partitions;
+
+    // Delete all the old partition groups
+    for (QSet<QSet<Partition *> *>::Iterator group = toDelete->begin();
+         group != toDelete->end(); ++group)
+    {
+        delete *group;
+    }
+    delete toDelete;
+
+    // Delete all old partitions
+    for (QList<Partition *>::Iterator partition = partitions->begin();
+         partition != partitions->end(); ++partition)
+    {
+        if (!(new_partitions->contains(*partition)))
+            delete *partition;
+    }
+    delete partitions;
+    partitions = new QList<Partition *>();
+
+    // Need to calculate new dag_entries
+    delete dag_entries;
+    dag_entries = new QList<Partition *>();
+    for (QSet<Partition *>::Iterator partition = new_partitions->begin();
+         partition != new_partitions->end(); ++partition)
+    {
+        partitions->append(*partition);
+        if ((*partition)->parents->size() <= 0)
+            dag_entries->append(*partition);
+
+        // Update event's reference just in case
+        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+             = (*partition)->events->begin();
+             event_list != (*partition)->events->end(); ++event_list)
+        {
+            for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
+                 evt != (event_list.value())->end(); ++evt)
+            {
+                (*evt)->partition = *partition;
+            }
+        }
+    }
+    set_dag_steps();
+
+    delete new_partitions;
+}
+
 // This is the most difficult to understand part of the algorithm and the code.
 // At least that's consistent!
 void Trace::mergeByLeap()

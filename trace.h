@@ -108,6 +108,7 @@ private:
     void mergeForMessagesHelper(Partition * part, QSet<Partition *> * to_merge,
                                 QQueue<Partition *> * to_process);
     void mergeCycles();
+    void mergeByCommonCaller();
     void mergeByLeap();
     void mergeGlobalSteps(); // Use after global steps are set, needs fixing
     class RecurseInfo {  // For Tarjan
