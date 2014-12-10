@@ -18,6 +18,8 @@ ImportOptionsDialog::ImportOptionsDialog(QWidget *parent,
             SLOT(onPartitionByHeuristic(bool)));
     connect(ui->waitallCheckbox, SIGNAL(clicked(bool)), this,
             SLOT(onWaitallMerge(bool)));
+    connect(ui->callerCheckbox, SIGNAL(clicked(bool)), this,
+            SLOT(onCallerMerge(bool)));
     connect(ui->leapCheckbox, SIGNAL(clicked(bool)), this,
             SLOT(onLeapMerge(bool)));
     connect(ui->skipCheckbox, SIGNAL(clicked(bool)), this,
@@ -71,6 +73,11 @@ void ImportOptionsDialog::onPartitionByHeuristic(bool value)
 void ImportOptionsDialog::onWaitallMerge(bool merge)
 {
     options->waitallMerge = merge;
+}
+
+void ImportOptionsDialog::onCallerMerge(bool merge)
+{
+    options->callerMerge = merge;
 }
 
 void ImportOptionsDialog::onLeapMerge(bool merge)
@@ -135,6 +142,7 @@ void ImportOptionsDialog::onSeedEdit(const QString& text)
 void ImportOptionsDialog::setUIState()
 {
     ui->waitallCheckbox->setChecked(options->waitallMerge);
+    ui->callerCheckbox->setChecked(options->callerMerge);
     ui->skipCheckbox->setChecked(options->leapSkip);
     ui->leapCheckbox->setChecked(options->leapMerge);
     ui->globalMergeBox->setChecked(options->globalMerge);
@@ -171,6 +179,7 @@ void ImportOptionsDialog::setUIState()
         ui->heuristicRadioButton->setChecked(false);
         ui->functionRadioButton->setChecked(true);
         ui->waitallCheckbox->setEnabled(false);
+        ui->callerCheckbox->setEnabled(false);
         ui->leapCheckbox->setEnabled(false);
         ui->skipCheckbox->setEnabled(false);
         ui->functionEdit->setEnabled(true);
@@ -181,6 +190,7 @@ void ImportOptionsDialog::setUIState()
         ui->heuristicRadioButton->setChecked(true);
         ui->functionRadioButton->setChecked(false);
         ui->waitallCheckbox->setEnabled(true);
+        ui->callerCheckbox->setEnabled(true);
         ui->leapCheckbox->setEnabled(true);
         ui->functionEdit->setEnabled(false);
         ui->globalMergeBox->setEnabled(true);

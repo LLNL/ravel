@@ -306,6 +306,20 @@ void Trace::partition()
         std::cout << std::endl;
         std::cout << "Partitions = " << partitions->size() << std::endl;
 
+        // Merge by call tree
+      if (options.callerMerge)
+      {
+          std::cout << "Merging based on call tree..." << std::endl;
+          traceTimer.start();
+          set_dag_steps();
+          mergeByCommonCaller();
+          traceElapsed = traceTimer.nsecsElapsed();
+          std::cout << "Caller Merge: ";
+          gu_printTime(traceElapsed);
+          std::cout << std::endl;
+
+      }
+
           // Merge by rank level [ later ]
         if (options.leapMerge)
         {
@@ -733,6 +747,7 @@ void Trace::mergeByCommonCaller()
     QSet<Partition *> * current_partitions = new QSet<Partition *>();
     QSet<QSet<Partition *> *> * toDelete = new QSet<QSet<Partition *> *>();
     QSet<Partition *> near_children = QSet<Partition *>();
+    QMap<Event *, int> * memo = new QMap<Event *, int>();
 
     // Let's start from the dag_entries, we'll remove from the current
     // set when we can't merge with our children, and then move the
@@ -779,14 +794,14 @@ void Trace::mergeByCommonCaller()
             for (QList<int>::Iterator taskid = task_ids.begin();
                  taskid != task_ids.end(); ++taskid)
             {
-                Event * part_caller = (*part)->least_common_caller(*taskid);
+                Event * part_caller = (*part)->least_common_caller(*taskid, memo);
                 Event * child_caller;
                 for (QSet<Partition *>::Iterator child = near_children.begin();
                      child != near_children.end(); ++child)
                 {
                     if ((*child)->events->contains(*taskid))
                     {
-                        child_caller = (*child)->least_common_caller(*taskid);
+                        child_caller = (*child)->least_common_caller(*taskid, memo);
 
                         // We have a match, put them in the same merge group
                         if (part_caller->same_subtree(child_caller))
@@ -940,8 +955,6 @@ void Trace::mergeByCommonCaller()
 
         delete current_partitions;
         current_partitions = next_partitions;
-        delete next_partitions;
-
     } // End Current Partition
     delete current_partitions;
 
@@ -988,6 +1001,7 @@ void Trace::mergeByCommonCaller()
     set_dag_steps();
 
     delete new_partitions;
+    delete memo;
 }
 
 // This is the most difficult to understand part of the algorithm and the code.

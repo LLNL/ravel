@@ -11,6 +11,7 @@ public:
              QVector<Message *> * _messages = NULL);
     P2PEvent(QList<P2PEvent *> * _subevents);
     ~P2PEvent();
+    int comm_count(QMap<Event *, int> *memo = NULL) { Q_UNUSED(memo); return 1; }
     bool isP2P() { return true; }
     bool isReceive();
     void fixPhases();

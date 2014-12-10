@@ -15,6 +15,7 @@ public:
     enum OriginFormat { OF_NONE, OF_OTF, OF_OTF2, OF_CHARM };
 
     bool waitallMerge; // use waitall heuristic
+    bool callerMerge; // merge for common callers
     bool leapMerge; // merge to complete leaps
         bool leapSkip; // but skip if you can't gain processes
     bool partitionByFunction; // partitions based on functions

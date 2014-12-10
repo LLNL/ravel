@@ -3,6 +3,7 @@
 OTFImportOptions::OTFImportOptions(bool _waitall, bool _leap, bool _skip,
                                    bool _partition, QString _fxn)
     : waitallMerge(_waitall),
+      callerMerge(true),
       leapMerge(_leap),
       leapSkip(_skip),
       partitionByFunction(_partition),
@@ -21,6 +22,7 @@ OTFImportOptions::OTFImportOptions(bool _waitall, bool _leap, bool _skip,
 OTFImportOptions::OTFImportOptions(const OTFImportOptions& copy)
 {
     waitallMerge = copy.waitallMerge;
+    callerMerge = copy.callerMerge;
     leapMerge = copy.leapMerge;
     leapSkip = copy.leapSkip;
     partitionByFunction = copy.partitionByFunction;

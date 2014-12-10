@@ -138,3 +138,31 @@ bool Event::same_subtree(Event * second)
 
     return false;
 }
+
+// Find the ancestor that has at least two communications inside of it.
+Event * Event::least_multiple_caller(QMap<Event *, int> * memo)
+{
+    Event * caller = this;
+    while (caller && caller->comm_count(memo) <= 1)
+    {
+        caller = caller->caller;
+    }
+    return caller;
+}
+
+// Calculate the number of communications that fall under this node
+// in the call tree.
+int Event::comm_count(QMap<Event *, int> * memo)
+{
+    if (memo && memo->contains(this))
+        return memo->value(this);
+
+    int count = 0;
+    for (QVector<Event *>::Iterator child = callees->begin();
+         child != callees->end(); ++child)
+    {
+        count += (*child)->comm_count(memo);
+    }
+    memo->insert(this, count);
+    return count;
+}

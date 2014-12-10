@@ -165,19 +165,26 @@ void Partition::calculate_dag_leap()
 
 }
 
-Event * Partition::least_common_caller(int taskid)
+Event * Partition::least_common_caller(int taskid, QMap<Event *, int> * memo)
 {
     QList<CommEvent *> * evts = events->value(taskid);
-    Event * evt1, * evt2;
-    evt1 = evts->first();
-    for (int i = 1; i < evts->size(); i++)
+    if (evts->size() > 1)
     {
-        evt2 = evts->at(i);
-        evt1 = evt1->least_common_caller(evt2);
-        if (!evt1)
-           break;
+        Event * evt1, * evt2;
+        evt1 = evts->first();
+        for (int i = 1; i < evts->size(); i++)
+        {
+            evt2 = evts->at(i);
+            evt1 = evt1->least_common_caller(evt2);
+            if (!evt1)
+               break;
+        }
+        return evt1;
     }
-    return evt1;
+    else
+    {
+        evts->first()->least_multiple_caller(memo);
+    }
 }
 
 void Partition::basic_step()
