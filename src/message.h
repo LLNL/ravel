@@ -15,6 +15,7 @@ public:
     P2PEvent * receiver;
     unsigned long long sendtime;
     unsigned long long recvtime;
+    int taskgroup;
 
     CommEvent * getDesignee();
 

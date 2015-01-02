@@ -13,8 +13,14 @@ OTF2Exporter::OTF2Exporter(Trace *_t)
       ravel_version_string(0),
       archive(NULL),
       global_def_writer(NULL),
-      inverseStringMap(QMap<QString, int>())
+      inverseStringMap(QMap<QString, int>()),
+      attributeMap(new QMap<QString, int>())
 {
+}
+
+OTF2Exporter::~OTF2Exporter()
+{
+    delete attributeMap;
 }
 
 void OTF2Exporter::exportTrace(QString path, QString filename)
@@ -26,7 +32,7 @@ void OTF2Exporter::exportTrace(QString path, QString filename)
                                 OTF2_SUBSTRATE_POSIX, OTF2_COMPRESSION_NONE);
 
    // OTF2_Archive_SetSerialCollectiveCallback(archive);
-
+    exportDefinitions();
 
     OTF2_Archive_Close(archive);
 }
@@ -46,9 +52,14 @@ void OTF2Exporter::exportEvents()
 
 void OTF2Exporter::exportTaskEvents(int taskid)
 {
-    QVector<Event *> * events = trace->events->at(taskid);
+    QVector<Event *> * roots = trace->roots->at(taskid);
     OTF2_EvtWriter* evt_writer = OTF2_Archive_GetEvtWriter(archive,
                                                            taskid);
+    for (QVector<Event *>::Iterator root = roots->begin();
+         root != roots->end(); ++root)
+    {
+        (*root)->writeToOTF2(evt_writer, attributeMap);
+    }
 }
 
 void OTF2Exporter::exportDefinitions()
@@ -94,6 +105,7 @@ void OTF2Exporter::exportAttributes()
                                             inverseStringMap.value(*metric),
                                             0,
                                             OTF2_TYPE_UINT64);
+        attributeMap->insert(*metric, id);
         id++;
     }
 
@@ -104,6 +116,7 @@ void OTF2Exporter::exportAttributes()
                                         ravel_version_string + 1,
                                         0,
                                         OTF2_TYPE_UINT64);
+    attributeMap->insert("phase", id);
     id++;
 
     // Step attribute
@@ -112,6 +125,7 @@ void OTF2Exporter::exportAttributes()
                                         ravel_version_string + 2,
                                         0,
                                         OTF2_TYPE_UINT64);
+    attributeMap->insert("step", id);
     id++;
 
     // Write Ravel information
@@ -248,6 +262,7 @@ void OTF2Exporter::exportStrings()
          metric != trace->metrics->end(); ++metric)
     {
         counter = addString((*metric), counter);
+        counter = addString((*metric) + "_agg", counter);
     }
 }
 

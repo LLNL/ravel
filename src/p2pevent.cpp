@@ -298,3 +298,49 @@ QList<int> P2PEvent::neighborTasks()
     neighbors.remove(task);
     return neighbors.toList();
 }
+
+void P2PEvent::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap)
+{
+    if (subevents && subevents->size() > 1)
+    {
+        for (QList<P2PEvent *>::Iterator sub = subevents->begin();
+             sub != subevents->end(); ++sub)
+        {
+            (*sub)->writeToOTF2(writer, attributeMap);
+        }
+    }
+
+    // If this event has subevents, the receiver or sender of the message will still
+    // only match "this"
+    // We do not need to do the IsendComplete portion as we only use that for the
+    // automatic waitall merge which should be contained in the phase attribute
+    // So we can get away with just using send/recv here instead of worrying about isend/irecv
+    for (QVector<Message *>::Iterator msg = messages->begin();
+         msg != messages->end(); ++msg)
+    {
+         if ((*msg)->receiver == this)
+         {
+             OTF2_EvtWriter_MpiRecv(writer,
+                                    NULL,
+                                    (*msg)->recvtime,
+                                    (*msg)->sender->task,
+                                    (*msg)->taskgroup,
+                                    0,
+                                    0);
+         }
+
+         if ((*msg)->sender == this)
+         {
+            OTF2_EvtWriter_MpiSend(writer,
+                                   NULL,
+                                   (*msg)->sendtime,
+                                   (*msg)->receiver->task,
+                                   (*msg)->taskgroup,
+                                   0,
+                                   0);
+         }
+    }
+
+    // The rest as normal
+    Event::writeToOTF2(writer, attributeMap);
+}

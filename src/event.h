@@ -2,6 +2,9 @@
 #define EVENT_H
 
 #include <QVector>
+#include <QMap>
+#include <QString>
+#include <otf2/otf2.h>
 
 class Partition;
 
@@ -24,6 +27,9 @@ public:
     virtual bool isCommEvent() { return false; }
     virtual bool isReceive() { return false; }
     virtual bool isCollective() { return false; }
+    virtual void writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap);
+    virtual void writeOTF2Leave(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap);
+    virtual void writeOTF2Enter(OTF2_EvtWriter * writer);
 
     // Call tree info
     Event * caller;

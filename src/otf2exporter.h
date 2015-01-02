@@ -11,6 +11,7 @@ class OTF2Exporter
 {
 public:
     OTF2Exporter(Trace * _t);
+    ~OTF2Exporter();
 
     void exportTrace(QString path, QString filename);
 
@@ -33,6 +34,7 @@ private:
     void exportTaskEvents(int taskid);
 
     QMap<QString, int> inverseStringMap;
+    QMap<QString, int> * attributeMap;
 };
 
 #endif // OTF2EXPORTER_H

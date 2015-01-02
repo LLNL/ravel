@@ -199,7 +199,7 @@ void OTFConverter::matchEvents()
                                          / event_match_portion), 1.0);
     int currentPortion = 0;
     int currentIter = 0;
-    bool sflag, rflag, isendflag, coalesce_continue, coalesce_start;
+    bool sflag, rflag, isendflag;
 
     // Find needed indices for merge options
     int isend_index = -1, waitall_index = -1, testall_index = -1;
@@ -549,7 +549,6 @@ void OTFConverter::matchEvents()
                 }
 
                 (*(trace->events))[(*evt)->task]->append(e);
-                coalesce_continue = true;
             }
             else // Begin a subroutine
             {

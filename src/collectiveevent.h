@@ -17,6 +17,8 @@ public:
     void fixPhases();
     void initialize_strides(QList<CommEvent *> * stride_events,
                             QList<CommEvent *> * recv_events);
+    void writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap);
+
 
     void addComms(QSet<CommBundle *> * bundleset) { bundleset->insert(collective); }
     QList<int> neighborTasks();
