@@ -299,8 +299,12 @@ QList<int> P2PEvent::neighborTasks()
     return neighbors.toList();
 }
 
+// Here between the enter and leave we know we have no children as normal,
+// but we do have subevents. So we want to write those as the correct time.
 void P2PEvent::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap)
 {
+    writeOTF2Enter(writer);
+
     if (subevents && subevents->size() > 1)
     {
         for (QList<P2PEvent *>::Iterator sub = subevents->begin();
@@ -341,6 +345,5 @@ void P2PEvent::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attribu
          }
     }
 
-    // The rest as normal
-    Event::writeToOTF2(writer, attributeMap);
+    writeOTF2Leave(writer, attributeMap);
 }

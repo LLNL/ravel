@@ -146,8 +146,11 @@ QList<int> CollectiveEvent::neighborTasks()
     return neighbors;
 }
 
+// We know we have no children, so just do enter/leave as well as the collectives
 void CollectiveEvent::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap)
 {
+    writeOTF2Enter(writer);
+
     // write the collective event
     OTF2_EvtWriter_MpiCollectiveBegin(writer,
                                       NULL,
@@ -162,6 +165,5 @@ void CollectiveEvent::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * 
                                     0,
                                     0);
 
-    // The rest as normal
-    Event::writeToOTF2(writer, attributeMap);
+    writeOTF2Leave(writer, attributeMap);
 }

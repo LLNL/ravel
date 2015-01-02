@@ -15,8 +15,10 @@
 #include "visoptions.h"
 #include "visoptionsdialog.h"
 #include "otfimportfunctor.h"
+#include "otf2exporter.h"
 
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QMessageBox>
 #include "qtconcurrentrun.h"
 #include <iostream>
@@ -136,6 +138,11 @@ MainWindow::MainWindow(QWidget *parent) :
             SLOT(importOTFbyGUI()));
     ui->actionOpen_OTF->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_O));
 
+    connect(ui->actionSave, SIGNAL(triggered()), this,
+            SLOT(saveCurrentTrace()));
+    ui->actionSave->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_S));
+    ui->actionSave->setEnabled(false);
+
     connect(ui->actionClose, SIGNAL(triggered()), this,
             SLOT(closeTrace()));
     ui->actionClose->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_C));
@@ -245,13 +252,29 @@ void MainWindow::launchVisOptions()
         viswidgets[i]->repaint();
 }
 
+void MainWindow::saveCurrentTrace()
+{
+    // Get save file name
+    QFileInfo traceInfo = QFileInfo(traces[activeTrace]->fullpath);
+    QString dataFileName = QFileDialog::getSaveFileName(this,
+                                                        tr("Save Ravel Trace Data"),
+                                                        QFileInfo(traceInfo.absoluteDir(),
+                                                                  traceInfo.baseName()
+                                                                  + ".save").absoluteFilePath(),
+                                                        tr("Trace Files(*.otf2"));
+
+    QFileInfo saveFile = QFileInfo(dataFileName);
+    OTF2Exporter exporter = OTF2Exporter(traces[activeTrace]);
+    exporter.exportTrace(saveFile.path(), saveFile.fileName());
+}
+
 void MainWindow::importOTFbyGUI()
 {
     // Now get the OTF File
     QString dataFileName = QFileDialog::getOpenFileName(this,
                                                         tr("Import Trace Data"),
                                                         "",
-                                                        tr("Trace Files (*.otf *otf2 *.sts)"));
+                                                        tr("Trace Files (*.otf *.otf2 *.sts)"));
     qApp->processEvents();
 
     // Guard against Cancel
@@ -377,6 +400,7 @@ void MainWindow::activeTraceChanged()
     ui->splitter->setSizes(splitter_sizes);
     ui->sideSplitter->setSizes(splitter_sizes);
     ui->actionClose->setEnabled(true);
+    ui->actionSave->setEnabled(true);
     ui->menuTraces->setEnabled(true);
 
     QList<QAction *> actions = ui->menuTraces->actions();

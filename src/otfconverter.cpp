@@ -54,6 +54,7 @@ Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
     convert();
 
     delete importer;
+    trace->fullpath = filename;
     return trace;
 }
 
@@ -71,6 +72,7 @@ Trace * OTFConverter::importOTF2(QString filename, OTFImportOptions *_options)
     convert();
 
     delete importer;
+    trace->fullpath = filename;
     return trace;
 }
 
@@ -260,7 +262,6 @@ void OTFConverter::matchEvents()
                 // This is definitely not an isend, so finish coalescing any pending isends
                 if (options->isendCoalescing && bgn->value != isend_index && isends->size() > 0)
                 {
-                    std::cout << "Coalescing isends " << std::endl;
                     P2PEvent * isend = new P2PEvent(isends);
                     isend->comm_prev = isends->first()->comm_prev;
                     if (isend->comm_prev)

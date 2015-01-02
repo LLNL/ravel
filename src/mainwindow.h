@@ -64,6 +64,9 @@ public slots:
     void traceTriggered(QAction * action);
     void closeTrace();
 
+    // Saving
+    void saveCurrentTrace();
+
 
 signals:
     void operate(const QString &);

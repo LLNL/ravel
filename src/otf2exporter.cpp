@@ -16,6 +16,8 @@ OTF2Exporter::OTF2Exporter(Trace *_t)
       inverseStringMap(QMap<QString, int>()),
       attributeMap(new QMap<QString, int>())
 {
+    flush_callbacks.otf2_post_flush = OTF2Exporter::post_flush;
+    flush_callbacks.otf2_pre_flush = OTF2Exporter::pre_flush;
 }
 
 OTF2Exporter::~OTF2Exporter()
@@ -31,8 +33,10 @@ void OTF2Exporter::exportTrace(QString path, QString filename)
                                 1024 * 1024, 4 * 1024 * 1024,
                                 OTF2_SUBSTRATE_POSIX, OTF2_COMPRESSION_NONE);
 
-   // OTF2_Archive_SetSerialCollectiveCallback(archive);
+   OTF2_Archive_SetFlushCallbacks(archive, &flush_callbacks, NULL);
+   OTF2_Archive_SetSerialCollectiveCallbacks(archive);
     exportDefinitions();
+    exportEvents();
 
     OTF2_Archive_Close(archive);
 }
@@ -52,14 +56,16 @@ void OTF2Exporter::exportEvents()
 
 void OTF2Exporter::exportTaskEvents(int taskid)
 {
-    QVector<Event *> * roots = trace->roots->at(taskid);
-    OTF2_EvtWriter* evt_writer = OTF2_Archive_GetEvtWriter(archive,
-                                                           taskid);
+    QVector<Event *> * roots = trace->roots->at(taskid-1);
+    OTF2_EvtWriter * evt_writer = OTF2_Archive_GetEvtWriter(archive,
+                                                            taskid);
     for (QVector<Event *>::Iterator root = roots->begin();
          root != roots->end(); ++root)
     {
         (*root)->writeToOTF2(evt_writer, attributeMap);
     }
+
+    OTF2_Archive_CloseEvtWriter(archive, evt_writer);
 }
 
 void OTF2Exporter::exportDefinitions()
@@ -100,12 +106,22 @@ void OTF2Exporter::exportAttributes()
     for (QList<QString>::Iterator metric = trace->metrics->begin();
          metric != trace->metrics->end(); ++metric)
     {
+        // One for the normal
         OTF2_GlobalDefWriter_WriteAttribute(global_def_writer,
                                             id,
                                             inverseStringMap.value(*metric),
                                             0,
                                             OTF2_TYPE_UINT64);
         attributeMap->insert(*metric, id);
+        id++;
+
+        // One for the aggregate
+        OTF2_GlobalDefWriter_WriteAttribute(global_def_writer,
+                                            id,
+                                            inverseStringMap.value(*metric + "_agg"),
+                                            0,
+                                            OTF2_TYPE_UINT64);
+        attributeMap->insert(*metric + "_agg", id);
         id++;
     }
 
@@ -201,11 +217,12 @@ void OTF2Exporter::exportTasks()
                                                 OTF2_LOCATION_GROUP_TYPE_PROCESS,
                                                 0 /* system tree */ );
 
+        // TODO: Generalize this for non MPI tasks at #events
         OTF2_GlobalDefWriter_WriteLocation(global_def_writer,
                                            (task.value())->id /* id */,
                                            inverseStringMap.value((task.value())->name) /* name */,
                                            OTF2_LOCATION_TYPE_CPU_THREAD,
-                                           trace->events->at(task.key())->size() /* # events */,
+                                           trace->events->at(task.key() - 1)->size() /* # events */,
                                            (task.value())->id /* location group */ );
     }
 }

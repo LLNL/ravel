@@ -23,6 +23,7 @@
 
 Trace::Trace(int nt)
     : name(""),
+      fullpath(""),
       num_tasks(nt),
       units(-9),
       partitions(new QList<Partition *>()),

@@ -15,6 +15,26 @@ public:
 
     void exportTrace(QString path, QString filename);
 
+    static OTF2_FlushType
+    pre_flush( void*            userData,
+               OTF2_FileType    fileType,
+               OTF2_LocationRef location,
+               void*            callerData,
+               bool             final )
+    {
+        return OTF2_FLUSH;
+    }
+
+    static OTF2_TimeStamp
+    post_flush( void*            userData,
+                OTF2_FileType    fileType,
+                OTF2_LocationRef location )
+    {
+        return 0;
+    }
+
+    OTF2_FlushCallbacks flush_callbacks;
+
 private:
     Trace * trace;
     int ravel_string;
