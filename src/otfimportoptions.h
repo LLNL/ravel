@@ -2,6 +2,7 @@
 #define OTFIMPORTOPTIONS_H
 
 #include <QString>
+#include <QList>
 
 // Container for all the structure extraction options
 class OTFImportOptions
@@ -12,7 +13,12 @@ public:
                      bool _partition = false, QString _fxn = "");
     OTFImportOptions(const OTFImportOptions& copy);
 
-    enum OriginFormat { OF_NONE, OF_OTF, OF_OTF2, OF_CHARM };
+    // Annoying stuff for cramming into OTF2 format
+    QList<QString> getOptionNames();
+    QString getOptionValue(QString option);
+    void setOption(QString option, QString value);
+
+    enum OriginFormat { OF_NONE, OF_SAVE_OTF2, OF_OTF2, OF_OTF, OF_CHARM };
 
     bool waitallMerge; // use waitall heuristic
     bool leapMerge; // merge to complete leaps
@@ -21,10 +27,10 @@ public:
     bool globalMerge; // merge across steps
     bool cluster; // clustering on gnomes should be done
     bool isendCoalescing; // group consecutive isends
-    int sendCoalescing; // group consecutive sends in some bound
     bool enforceMessageSizes; // send/recv size must match
     OriginFormat origin;
     QString partitionFunction;
+
 };
 
 #endif // OTFIMPORTOPTIONS_H
