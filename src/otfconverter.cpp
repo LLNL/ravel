@@ -86,6 +86,11 @@ void OTFConverter::convert()
     trace->units = rawtrace->second_magnitude;
     std::cout << "Trace units are " << trace->units << std::endl;
 
+    if (rawtrace->options->origin == OTFImportOptions::OF_SAVE_OTF2)
+    {
+        trace->options = *(rawtrace->options);
+    }
+
     // Set up collective metrics
     for (QMap<unsigned int, Counter *>::Iterator counter = rawtrace->counters->begin();
          counter != rawtrace->counters->end(); ++counter)

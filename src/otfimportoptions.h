@@ -11,7 +11,8 @@ public:
     OTFImportOptions(bool _waitall = true,
                      bool _leap = false, bool _skip = false,
                      bool _partition = false, QString _fxn = "");
-    OTFImportOptions(const OTFImportOptions& copy);
+    //OTFImportOptions(const OTFImportOptions& copy);
+    //OTFImportOptions& operator=(const OTFImportOptions& copy);
 
     // Annoying stuff for cramming into OTF2 format
     QList<QString> getOptionNames();

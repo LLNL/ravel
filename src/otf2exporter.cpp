@@ -146,10 +146,24 @@ void OTF2Exporter::exportAttributes()
 
     // Write Ravel information
     OTF2_GlobalDefWriter_WriteAttribute(global_def_writer,
-                                        id, // fix me?
+                                        id,
                                         ravel_string, // Ravel string ref
                                         ravel_version_string, // Ravel string version
                                         OTF2_TYPE_NONE);
+    id++;
+
+
+    QList<QString> options = trace->options.getOptionNames();
+    for (QList<QString>::Iterator opt = options.begin();
+         opt != options.end(); ++opt)
+    {
+        OTF2_GlobalDefWriter_WriteAttribute(global_def_writer,
+                                            id,
+                                            inverseStringMap.value(*opt), // option name
+                                            inverseStringMap.value(trace->options.getOptionValue(*opt)), // value
+                                            OTF2_TYPE_NONE);
+        id++;
+    }
 }
 
 void OTF2Exporter::exportTaskGroups()
@@ -252,7 +266,7 @@ void OTF2Exporter::exportStrings()
     counter = addString("", counter);
     counter = addString("Ravel", counter);
     ravel_string = counter;
-    counter = addString("1.0", counter);
+    counter = addString("0.9.0", counter);
     ravel_version_string = counter;
     counter = addString("phase", counter);
     counter = addString("step", counter);
@@ -280,6 +294,14 @@ void OTF2Exporter::exportStrings()
     {
         counter = addString((*metric), counter);
         counter = addString((*metric) + "_agg", counter);
+    }
+
+    QList<QString> options = trace->options.getOptionNames();
+    for (QList<QString>::Iterator opt = options.begin();
+         opt != options.end(); ++opt)
+    {
+        counter = addString(*opt, counter);
+        counter = addString(trace->options.getOptionValue(*opt), counter);
     }
 }
 

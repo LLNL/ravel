@@ -16,6 +16,7 @@ class OTFCollective;
 class Counter;
 class CounterRecord;
 class CollectiveRecord;
+class OTFImportOptions;
 
 // Trace from OTF without processing
 class RawTrace
@@ -33,6 +34,7 @@ public:
         CollectiveRecord * cr;
     };
 
+    OTFImportOptions * options;
     QMap<int, Task *> * tasks;
     QMap<int, QString> * functionGroups;
     QMap<int, Function *> * functions;
@@ -49,6 +51,7 @@ public:
     QVector<QVector<CollectiveBit *> *> * collectiveBits;
     int num_tasks;
     int second_magnitude; // seconds are 10^this over the smallest smaple unit
+    QString from_saved_version;
 };
 
 #endif // RAWTRACE_H

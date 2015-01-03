@@ -10,11 +10,12 @@ OTFImportOptions::OTFImportOptions(bool _waitall, bool _leap, bool _skip,
       cluster(true),
       isendCoalescing(false),
       enforceMessageSizes(false),
-      partitionFunction(_fxn),
-      origin(OF_NONE)
+      origin(OF_NONE),
+      partitionFunction(_fxn)
 {
 }
 
+/*
 OTFImportOptions::OTFImportOptions(const OTFImportOptions& copy)
 {
     waitallMerge = copy.waitallMerge;
@@ -28,40 +29,58 @@ OTFImportOptions::OTFImportOptions(const OTFImportOptions& copy)
     partitionFunction = copy.partitionFunction;
 }
 
+OTFImportOptions& OTFImportOptions::operator=(const OTFImportOptions& copy)
+{
+    if (this != &copy)
+    {
+        waitallMerge = copy.waitallMerge;
+        leapMerge = copy.leapMerge;
+        leapSkip = copy.leapSkip;
+        partitionByFunction = copy.partitionByFunction;
+        globalMerge = copy.globalMerge;
+        cluster = copy.cluster;
+        isendCoalescing = copy.isendCoalescing;
+        enforceMessageSizes = copy.enforceMessageSizes;
+        partitionFunction = copy.partitionFunction;
+    }
+    return *this;
+}
+*/
+
 QList<QString> OTFImportOptions::getOptionNames()
 {
     QList<QString> names = QList<QString>();
-    names.append("waitallMerge");
-    names.append("leapMerge");
-    names.append("leapSkip");
-    names.append("partitionByFunction");
-    names.append("globalMerge");
-    names.append("cluster");
-    names.append("isendCoalescing");
-    names.append("enforceMessageSizes");
-    names.append("partitionFunction");
+    names.append("option_waitallMerge");
+    names.append("option_leapMerge");
+    names.append("option_leapSkip");
+    names.append("option_partitionByFunction");
+    names.append("option_globalMerge");
+    names.append("option_cluster");
+    names.append("option_isendCoalescing");
+    names.append("option_enforceMessageSizes");
+    names.append("option_partitionFunction");
     return names;
 }
 
 QString OTFImportOptions::getOptionValue(QString option)
 {
-    if (option == "waitallMerge")
+    if (option == "option_waitallMerge")
         return waitallMerge ? "true" : "";
-    else if (option == "leapMerge")
+    else if (option == "option_leapMerge")
         return leapMerge ? "true" : "";
-    else if (option == "leapSkip")
+    else if (option == "option_leapSkip")
         return leapSkip ? "true" : "";
-    else if (option == "partitionByFunction")
+    else if (option == "option_partitionByFunction")
         return partitionByFunction ? "true" : "";
-    else if (option == "globalMerge")
+    else if (option == "option_globalMerge")
         return globalMerge ? "true" : "";
-    else if (option == "cluster")
+    else if (option == "option_cluster")
         return cluster ? "true" : "";
-    else if (option == "isendCoalescing")
+    else if (option == "option_isendCoalescing")
         return isendCoalescing ? "true" : "";
-    else if (option == "enforceMessageSizes")
+    else if (option == "option_enforceMessageSizes")
         return enforceMessageSizes ? "true" : "";
-    else if (option == partitionFunction)
+    else if (option == "option_partitionFunction")
         return partitionFunction;
     else
         return "";
@@ -69,22 +88,22 @@ QString OTFImportOptions::getOptionValue(QString option)
 
 void OTFImportOptions::setOption(QString option, QString value)
 {
-    if (option == "waitallMerge")
+    if (option == "option_waitallMerge")
         waitallMerge = value.size();
-    else if (option == "leapMerge")
+    else if (option == "option_leapMerge")
         leapMerge = value.size();
-    else if (option == "leapSkip")
+    else if (option == "option_leapSkip")
         leapSkip = value.size();
-    else if (option == "partitionByFunction")
+    else if (option == "option_partitionByFunction")
         partitionByFunction = value.size();
-    else if (option == "globalMerge")
+    else if (option == "option_globalMerge")
         globalMerge = value.size();
-    else if (option == "cluster")
+    else if (option == "option_cluster")
         cluster = value.size();
-    else if (option == "isendCoalescing")
+    else if (option == "option_isendCoalescing")
         isendCoalescing = value.size();
-    else if (option == "enforceMessageSizes")
+    else if (option == "option_enforceMessageSizes")
         enforceMessageSizes = value.size();
-    else if (option == partitionFunction)
+    else if (option == "option_partitionFunction")
         partitionFunction = value;
 }
