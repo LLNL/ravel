@@ -118,6 +118,8 @@ void OTFConverter::convert()
              metric != rawtrace->metric_names->end(); ++metric)
         {
             trace->metrics->append(*metric);
+            trace->metric_units->insert(*metric,
+                                        rawtrace->metric_units->value(*metric));
         }
 
         matchEventsSaved();

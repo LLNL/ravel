@@ -53,6 +53,7 @@ public:
     int second_magnitude; // seconds are 10^this over the smallest smaple unit
     QString from_saved_version;
     QList<QString> * metric_names;
+    QMap<QString, QString> * metric_units;
 };
 
 #endif // RAWTRACE_H

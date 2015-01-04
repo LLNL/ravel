@@ -30,7 +30,8 @@ RawTrace::RawTrace(int nt)
       num_tasks(nt),
       second_magnitude(1),
       from_saved_version(""),
-      metric_names(NULL)
+      metric_names(NULL),
+      metric_units(NULL)
 {
 
 }
@@ -84,5 +85,8 @@ RawTrace::~RawTrace()
 
     delete options;
 
-    delete metric_names;
+    if (metric_names)
+        delete metric_names;
+    if (metric_units)
+        delete metric_units;
 }

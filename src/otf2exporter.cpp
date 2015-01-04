@@ -124,11 +124,11 @@ void OTF2Exporter::exportAttributes()
     for (QList<QString>::Iterator metric = trace->metrics->begin();
          metric != trace->metrics->end(); ++metric)
     {
-        // One for the normal
+        // One for the normal where we put the unit in the description
         OTF2_GlobalDefWriter_WriteAttribute(global_def_writer,
                                             id,
                                             inverseStringMap.value(*metric),
-                                            0,
+                                            inverseStringMap.value(trace->metric_units->value(*metric)),
                                             OTF2_TYPE_UINT64);
         attributeMap->insert(*metric, id);
         id++;
@@ -137,7 +137,7 @@ void OTF2Exporter::exportAttributes()
         OTF2_GlobalDefWriter_WriteAttribute(global_def_writer,
                                             id,
                                             inverseStringMap.value(*metric + "_agg"),
-                                            0,
+                                            inverseStringMap.value(trace->metric_units->value(*metric)),
                                             OTF2_TYPE_UINT64);
         attributeMap->insert(*metric + "_agg", id);
         id++;
@@ -312,6 +312,11 @@ void OTF2Exporter::exportStrings()
     {
         counter = addString((*metric), counter);
         counter = addString((*metric) + "_agg", counter);
+    }
+    for (QMap<QString, QString>::Iterator unit = trace->metric_units->begin();
+         unit != trace->metric_units->end(); ++unit)
+    {
+        counter = addString(unit.value(), counter);
     }
 
     QList<QString> options = trace->options.getOptionNames();

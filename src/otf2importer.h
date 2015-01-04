@@ -347,6 +347,7 @@ private:
 
     QList<OTF2_AttributeRef> metrics;
     QList<QString> * metric_names;
+    QMap<QString, QString> * metric_units;
     OTF2_AttributeRef stepRef;
     OTF2_AttributeRef phaseRef;
 };
