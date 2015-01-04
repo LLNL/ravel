@@ -346,6 +346,7 @@ private:
     QVector<QLinkedList<OTF2CollectiveFragment *> *> * collective_fragments;
 
     QList<OTF2_AttributeRef> metrics;
+    QList<QString> * metric_names;
     OTF2_AttributeRef stepRef;
     OTF2_AttributeRef phaseRef;
 };

@@ -55,6 +55,7 @@ OTF2Importer::OTF2Importer()
       collective_begins(NULL),
       collective_fragments(NULL),
       metrics(QList<OTF2_AttributeRef>()),
+      metric_names(new QList<QString>()),
       stepRef(0),
       phaseRef(0)
 {
@@ -278,6 +279,7 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file, bool _enforceMessageSi
     rawtrace->messages_r = new QVector<QVector<CommRecord *> *>(num_processes);
     rawtrace->counter_records = new QVector<QVector<CounterRecord *> *>(num_processes);
     rawtrace->collectiveBits = new QVector<QVector<RawTrace::CollectiveBit *> *>(num_processes);
+    rawtrace->metric_names = metric_names;
 
     // Adding locations
     // Use the locationIndexMap to only chooes the ones we can handle (right now just MPI)
@@ -514,6 +516,8 @@ void OTF2Importer::processDefinitions()
         else
         {
             metrics.append(attr.key());
+            if (name.endsWith("_agg"))
+                metric_names->append(name.left(name.length() - 4));
         }
     }
 }

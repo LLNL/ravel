@@ -29,6 +29,7 @@ public:
     ~Trace();
 
     void preprocess(OTFImportOptions * _options);
+    void preprocessFromSaved();
     void partition();
     void assignSteps();
     void gnomify();

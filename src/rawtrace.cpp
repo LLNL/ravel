@@ -29,7 +29,8 @@ RawTrace::RawTrace(int nt)
       collectiveBits(NULL),
       num_tasks(nt),
       second_magnitude(1),
-      from_saved_version("")
+      from_saved_version(""),
+      metric_names(NULL)
 {
 
 }
@@ -82,4 +83,6 @@ RawTrace::~RawTrace()
     delete collectiveBits;
 
     delete options;
+
+    delete metric_names;
 }

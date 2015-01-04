@@ -28,6 +28,8 @@ public:
     bool operator>=(const Partition &);
     bool operator==(const Partition &);
 
+    void fromSaved();
+
      // Time gap between partitions
     unsigned long long int distance(Partition * other);
 

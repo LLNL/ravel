@@ -150,6 +150,26 @@ unsigned long long int Partition::distance(Partition * other)
     return dist;
 }
 
+void Partition::fromSaved()
+{
+    // Make sure events are sorted
+    sortEvents();
+
+    // Parent/Children handled in trace, this will just set min/max steps
+    for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
+         event_list != events->end(); ++event_list)
+    {
+        /*if (event_list.value()->first()->comm_prev)
+            parents->insert(event_list.value()->first()->comm_prev->partition);
+        if (event_list.value()->last()->comm_next)
+            children->insert(event_list.value()->first()->comm_next->partition);*/
+        if (event_list.value()->first()->step < min_global_step || min_global_step < 0)
+            min_global_step = event_list.value()->first()->step;
+        if (event_list.value()->last()->step > max_global_step)
+            max_global_step = event_list.value()->last()->step;
+    }
+}
+
 
 // Requires parent's dag leaps to be up to date
 void Partition::calculate_dag_leap()
