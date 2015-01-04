@@ -34,6 +34,7 @@ signals:
 private:
     void convert();
     void matchEvents();
+    void matchEventsSaved();
     void makeSingletonPartition(CommEvent * evt);
     void mergeForWaitall(QList<QList<Partition * > *> * groups);
     int advanceCounters(CommEvent * evt, QStack<CounterRecord *> * counterstack,

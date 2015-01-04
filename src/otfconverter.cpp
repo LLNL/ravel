@@ -696,6 +696,406 @@ void OTFConverter::matchEvents()
     }*/
 }
 
+
+// Determine events as blocks of matching enter and exit,
+// link them into a call tree
+void OTFConverter::matchEventsSaved()
+{
+    // We can handle each set of events separately
+    QStack<EventRecord *> * stack = new QStack<EventRecord *>();
+
+    // May be used later to do partition by function
+    QList<QList<CommEvent *> *> * allcomms = new QList<QList<CommEvent *> *>();
+
+    // Find needed indices for merge options
+    int isend_index = -1;
+    if ((options->isendCoalescing || options->waitallMerge) && !options->partitionByFunction)
+    {
+        for (QMap<int, Function * >::Iterator function = trace->functions->begin();
+             function != trace->functions->end(); ++function)
+        {
+            if (function.value()->group == trace->mpi_group)
+            {
+                if (function.value()->name == "MPI_Isend")
+                    isend_index = function.key();
+            }
+        }
+    }
+
+    // Used for heuristic waitall merging
+    // We're now making groups of sends that must end in a Waitall/Testall
+    // and not be interrupted by a Collective or a Receive.
+    // This is backwards from the previous algorithm. We will end up collecting
+    // lots of these sends but not adding them to the waitall since they
+    // don't end in a waitall/testall. Instead we'll just clear them and
+    // keep looking.
+    QList<QList<Partition *> *> * waitallgroups = new QList<QList<Partition *> *>();
+    QList<Partition *> * sendgroup = new QList<Partition *>();
+
+    emit(matchingUpdate(1, "Constructing events..."));
+    int progressPortion = std::max(round(rawtrace->num_tasks / 1.0
+                                         / event_match_portion), 1.0);
+    int currentPortion = 0;
+    int currentIter = 0;
+    bool sflag, rflag, isendflag;
+
+    // If isend index, we put this at the depth of the isend. Then we will
+    // collect subevents until the depth matches this value.
+    int coalesceflag;
+
+    int spartcounter = 0, rpartcounter = 0, cpartcounter = 0;
+    for (int i = 0; i < rawtrace->events->size(); i++)
+    {
+        QVector<EventRecord *> * event_list = rawtrace->events->at(i);
+        int depth = 0;
+        int phase = 0;
+        unsigned long long endtime = 0;
+        if (round(currentIter / progressPortion) > currentPortion)
+        {
+            ++currentPortion;
+            emit(matchingUpdate(1 + currentPortion, "Constructing events..."));
+        }
+        ++currentIter;
+
+        QVector<RawTrace::CollectiveBit *> * collective_bits = rawtrace->collectiveBits->at(i);
+        int collective_index = 0;
+
+        QList<CommEvent *> * commevents = new QList<CommEvent *>();
+        allcomms->append(commevents);
+
+        QVector<CommRecord *> * sendlist = rawtrace->messages->at(i);
+        QVector<CommRecord *> * recvlist = rawtrace->messages_r->at(i);
+        QList<P2PEvent *> * isends = new QList<P2PEvent *>();
+        int sindex = 0, rindex = 0;
+        CommEvent * prev = NULL;
+        coalesceflag = -1;
+        for (QVector<EventRecord *>::Iterator evt = event_list->begin();
+             evt != event_list->end(); ++evt)
+        {
+            if (!((*evt)->enter)) // End of a subroutine
+            {
+                EventRecord * bgn = stack->pop();
+
+                // Partition/handle comm events
+                CollectiveRecord * cr = NULL;
+                sflag = false, rflag = false, isendflag = false;
+                if (((*(trace->functions))[bgn->value])->group
+                        == trace->mpi_group)
+                {
+                    // Check for possible collective
+                    if (collective_index < collective_bits->size()
+                        && bgn->time <= collective_bits->at(collective_index)->time
+                            && (*evt)->time >= collective_bits->at(collective_index)->time)
+                    {
+                        cr = collective_bits->at(collective_index)->cr;
+                        collective_index++;
+                    }
+
+                    // Check/advance sends, including if isend but if we did coalesce isends,
+                    // we need to check for that event first to switch the coalescing on.
+                    if (sindex < sendlist->size() && depth > coalesceflag)
+                    {
+                        if (bgn->time <= sendlist->at(sindex)->send_time
+                                && (*evt)->time >= sendlist->at(sindex)->send_time)
+                        {
+                            sflag = true;
+                            if (bgn->value == isend_index && options->isendCoalescing)
+                                isendflag = true;
+                        }
+                        else if (bgn->time > sendlist->at(sindex)->send_time)
+                        {
+                            std::cout << "Error, skipping message (by send) at ";
+                            std::cout << sendlist->at(sindex)->send_time << " on ";
+                            std::cout << (*evt)->task << std::endl;
+                            sindex++;
+                        }
+                    }
+
+                    // Check/advance receives
+                    if (rindex < recvlist->size())
+                    {
+                        if (!sflag && (*evt)->time >= recvlist->at(rindex)->recv_time
+                                && bgn->time <= recvlist->at(rindex)->recv_time)
+                        {
+                            rflag = true;
+                        }
+                        else if (!sflag && (*evt)->time > recvlist->at(rindex)->recv_time)
+                        {
+                            std::cout << "Error, skipping message (by recv) at ";
+                            std::cout << recvlist->at(rindex)->send_time << " on ";
+                            std::cout << (*evt)->task << std::endl;
+                            rindex++;
+                        }
+                    }
+                }
+
+                Event * e = NULL;
+                if (cr)
+                {
+                    cr->events->append(new CollectiveEvent(bgn->time, (*evt)->time,
+                                            bgn->value, bgn->task,
+                                            phase, cr));
+                    cr->events->last()->comm_prev = prev;
+                    if (prev)
+                        prev->comm_next = cr->events->last();
+                    prev = cr->events->last();
+
+                    e = cr->events->last();
+                    if (options->partitionByFunction)
+                        commevents->append(cr->events->last());
+                    else
+                        makeSingletonPartition(cr->events->last());
+
+                    cpartcounter++;
+
+                    if (!options->partitionByFunction)
+                    {
+                        // Any sends beforehand not end in a waitall.
+                        if (options->waitallMerge)
+                            sendgroup->clear();
+                    }
+                }
+                else if (coalesceflag == depth)
+                {
+                    coalesceflag = -1; // Return to not coalescing
+                    P2PEvent * isend = new P2PEvent(isends);
+                    isend->comm_prev = isends->first()->comm_prev;
+                    if (isend->comm_prev)
+                        isend->comm_prev->comm_next = isend;
+                    makeSingletonPartition(isend);
+                    prev = isend;
+                    isends = new QList<P2PEvent *>();
+                }
+                else if (sflag)
+                {
+                    QVector<Message *> * msgs = new QVector<Message *>();
+                    CommRecord * crec = sendlist->at(sindex);
+                    if (!(crec->message))
+                    {
+                        crec->message = new Message(crec->send_time, crec->recv_time);
+                    }
+                    msgs->append(crec->message);
+                    crec->message->sender = new P2PEvent(bgn->time, (*evt)->time,
+                                                         bgn->value,
+                                                         bgn->task, phase,
+                                                         msgs);
+
+                    if (isendflag)
+                        isends->append(crec->message->sender);
+
+
+                    crec->message->sender->comm_prev = prev;
+                    if (prev)
+                        prev->comm_next = crec->message->sender;
+                    prev = crec->message->sender;
+
+
+                    e = crec->message->sender;
+                    if (options->partitionByFunction)
+                        commevents->append(crec->message->sender);
+                    else if (!(options->isendCoalescing && isendflag))
+                        makeSingletonPartition(crec->message->sender);
+                    sindex++;
+
+                    spartcounter++;
+                }
+                else if (rflag)
+                {
+                    QVector<Message *> * msgs = new QVector<Message *>();
+                    CommRecord * crec = NULL;
+                    while (rindex < recvlist->size() && (*evt)->time >= recvlist->at(rindex)->recv_time
+                           && bgn->time <= recvlist->at(rindex)->recv_time)
+                    {
+                        crec = recvlist->at(rindex);
+                        if (!(crec->message))
+                        {
+                            crec->message = new Message(crec->send_time, crec->recv_time);
+                        }
+                        msgs->append(crec->message);
+                        rindex++;
+                    }
+                    msgs->at(0)->receiver = new P2PEvent(bgn->time, (*evt)->time,
+                                                         bgn->value,
+                                                         bgn->task, phase,
+                                                         msgs);
+                    for (int i = 1; i < msgs->size(); i++)
+                    {
+                        msgs->at(i)->receiver = msgs->at(0)->receiver;
+                    }
+                    msgs->at(0)->receiver->is_recv = true;
+
+                    msgs->at(0)->receiver->comm_prev = prev;
+                    if (prev)
+                        prev->comm_next = msgs->at(0)->receiver;
+                    prev = msgs->at(0)->receiver;
+
+                    if (options->partitionByFunction)
+                        commevents->append(msgs->at(0)->receiver);
+                    else
+                        makeSingletonPartition(msgs->at(0)->receiver);
+
+                    rpartcounter++;
+
+                    e = msgs->at(0)->receiver;
+
+                }
+                else // Non-com event
+                {
+                    e = new Event(bgn->time, (*evt)->time, bgn->value,
+                                  bgn->task);
+                }
+
+                depth--;
+                e->depth = depth;
+                if (depth == 0)
+                    (*(trace->roots))[(*evt)->task]->append(e);
+
+                if (e->exit > endtime)
+                    endtime = e->exit;
+                if (!stack->isEmpty())
+                {
+                    stack->top()->children.append(e);
+                }
+                for (QList<Event *>::Iterator child = bgn->children.begin();
+                     child != bgn->children.end(); ++child)
+                {
+                    e->callees->append(*child);
+                    (*child)->caller = e;
+                }
+
+                (*(trace->events))[(*evt)->task]->append(e);
+            }
+            else // Begin a subroutine
+            {
+                if (options->partitionByFunction
+                    && (*evt)->value == phaseFunction)
+                {
+                    ++phase;
+                }
+                depth++;
+                if (options->isendCoalescing && (*evt)->value == isend_index && coalesceflag <= 0)
+                {
+                    coalesceflag = depth;
+                }
+
+                stack->push(*evt);
+            }
+        }
+
+        // Deal with unclosed trace issues
+        // We assume these events are not communication
+        while (!stack->isEmpty())
+        {
+            EventRecord * bgn = stack->pop();
+            endtime = std::max(endtime, bgn->time);
+            Event * e = new Event(bgn->time, endtime, bgn->value,
+                          bgn->task);
+            if (!stack->isEmpty())
+            {
+                stack->top()->children.append(e);
+            }
+            for (QList<Event *>::Iterator child = bgn->children.begin();
+                 child != bgn->children.end(); ++child)
+            {
+                e->callees->append(*child);
+                (*child)->caller = e;
+            }
+            (*(trace->events))[bgn->task]->append(e);
+            depth--;
+        }
+
+        // Finish off last isend list
+        // This really shouldn't be needed because we expect
+        // something handling their request to come after them
+        if (options->isendCoalescing && isends->size() > 0)
+        {
+            P2PEvent * isend = new P2PEvent(isends);
+            isend->comm_prev = isends->first()->comm_prev;
+            if (isend->comm_prev)
+                isend->comm_prev->comm_next = isend;
+            prev = isend;
+        }
+        else
+        {
+            delete isends;
+        }
+
+        // Prepare for next task
+        stack->clear();
+        sendgroup->clear();
+    }
+    delete stack;
+    delete sendgroup;
+
+    if (!options->partitionByFunction
+            && (options->waitallMerge
+                || options->origin == OTFImportOptions::OF_OTF2))
+    {
+        mergeForWaitall(waitallgroups);
+    }
+
+
+    // Fix phases and create partitions if partitioning by function
+    // We have to pay attention here as this partitioning might break our
+    // ordering constraints (send & receive in same partition, collective in
+    // single partition) -- in which case we need to fix it. Here we fix
+    // everything to its last possible phase based on these constraints.
+    if (options->partitionByFunction)
+    {
+        std::cout << "Partitioning by phase..." << std::endl;
+        QMap<int, Partition *> * partition_dict = new QMap<int, Partition *>();
+        for (QList<QList<CommEvent *> *>::Iterator event_list = allcomms->begin();
+            event_list != allcomms->end(); ++event_list)
+        {
+            for (int i = 0; i < (*event_list)->size(); i++)
+            {
+                CommEvent * evt = (*event_list)->at(i);
+                if ((evt)->comm_prev
+                    && (evt)->comm_prev->phase > (evt)->phase)
+                {
+                    (evt)->phase = (evt)->comm_prev->phase;
+                }
+
+                // Fix phases based on whether they have a message or not
+                evt->fixPhases();
+
+                if (!partition_dict->contains((evt)->phase))
+                    (*partition_dict)[(evt)->phase] = new Partition();
+                ((*partition_dict)[(evt)->phase])->addEvent(evt);
+                (evt)->partition = (*partition_dict)[(evt)->phase];
+            }
+        }
+
+        for (QMap<int, Partition *>::Iterator partition
+             = partition_dict->begin();
+             partition != partition_dict->end(); ++partition)
+        {
+            (*partition)->sortEvents();
+            trace->partitions->append(*partition);
+        }
+
+        delete partition_dict;
+    }
+
+    // Clean up allcoms
+    for (QList<QList<CommEvent *> *>::Iterator ac = allcomms->begin();
+         ac != allcomms->end(); ++ac)
+    {
+        delete *ac;
+    }
+    delete allcomms;
+
+    // Check partitions
+    /*int part_counter = 0;
+    for (QList<Partition *>::Iterator part = trace->partitions->begin();
+         part != trace->partitions->end(); ++part)
+    {
+        if ((*part)->events->size() < 1)
+            std::cout << "Empty partition!  number: " << part_counter << std::endl;
+        part_counter++;
+    }*/
+}
+
 // We only do this with comm events right now, so we know we won't have nesting
 int OTFConverter::advanceCounters(CommEvent * evt, QStack<CounterRecord *> * counterstack,
                                    QVector<CounterRecord *> * counters, int index,

@@ -1,9 +1,11 @@
 #include "otf2exporter.h"
 #include "trace.h"
 #include "event.h"
+#include "commevent.h"
 #include "task.h"
 #include "taskgroup.h"
 #include "function.h"
+#include "rpartition.h"
 #include <climits>
 #include <cmath>
 
@@ -27,14 +29,30 @@ OTF2Exporter::~OTF2Exporter()
 
 void OTF2Exporter::exportTrace(QString path, QString filename)
 {
+    // Setup the IDs for partition identification
+    for (int i = 0; i < trace->partitions->size(); i++)
+    {
+        Partition * p = trace->partitions->at(i);
+        for (QMap<int, QList<CommEvent *> *>::Iterator elist = p->events->begin();
+             elist != p->events->end(); ++elist)
+        {
+            for (QList<CommEvent *>::Iterator evt = (elist.value())->begin();
+                 evt != (elist.value())->end(); ++evt)
+            {
+                (*evt)->phase = i;
+            }
+        }
+
+    }
+
     archive = OTF2_Archive_Open(path.toStdString().c_str(),
                                 filename.toStdString().c_str(),
                                 OTF2_FILEMODE_WRITE,
                                 1024 * 1024, 4 * 1024 * 1024,
                                 OTF2_SUBSTRATE_POSIX, OTF2_COMPRESSION_NONE);
 
-   OTF2_Archive_SetFlushCallbacks(archive, &flush_callbacks, NULL);
-   OTF2_Archive_SetSerialCollectiveCallbacks(archive);
+    OTF2_Archive_SetFlushCallbacks(archive, &flush_callbacks, NULL);
+    OTF2_Archive_SetSerialCollectiveCallbacks(archive);
     exportDefinitions();
     exportEvents();
 
