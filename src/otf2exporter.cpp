@@ -8,6 +8,7 @@
 #include "rpartition.h"
 #include <climits>
 #include <cmath>
+#include <iostream>
 
 OTF2Exporter::OTF2Exporter(Trace *_t)
     : trace(_t),
@@ -209,6 +210,7 @@ void OTF2Exporter::exportTaskGroups()
                                        inverseStringMap.value((tg.value())->name) /* name */,
                                        (tg.value())->id /* group */,
                                        OTF2_UNDEFINED_COMM /* parent */ );
+
     }
 
     // MPI Paradigm Group to be added

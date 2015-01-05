@@ -2,6 +2,7 @@
 #include "commbundle.h"
 #include "message.h"
 #include "clusterevent.h"
+#include <iostream>
 
 P2PEvent::P2PEvent(unsigned long long _enter, unsigned long long _exit,
                    int _function, int _task, int _phase,
@@ -331,6 +332,7 @@ void P2PEvent::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attribu
                                     (*msg)->taskgroup,
                                     0,
                                     0);
+             std::cout << "Writing recv with task group " << (*msg)->taskgroup << std::endl;
          }
 
          if ((*msg)->sender == this)
@@ -342,7 +344,10 @@ void P2PEvent::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attribu
                                    (*msg)->taskgroup,
                                    0,
                                    0);
+            std::cout << "Writing send with task group " << (*msg)->taskgroup << std::endl;
          }
+
+
     }
 
     writeOTF2Leave(writer, attributeMap);

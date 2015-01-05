@@ -514,8 +514,8 @@ int OTFImporter::handleDefProcessGroup(void * userData, uint32_t stream,
     TaskGroup * t = new TaskGroup(procGroup, qname);
     for (int i = 0; i < numberOfProcs; i++)
     {
-        t->tasks->append(procs[i]);
-        t->taskorder->insert(procs[i], i);
+        t->tasks->append(procs[i] - 1);
+        t->taskorder->insert(procs[i] - 1, i);
     }
     (*(((OTFImporter*) userData)->taskgroups))[procGroup] = t;
 
@@ -586,7 +586,6 @@ int OTFImporter::handleBeginCollectiveOperation(void * userData, uint64_t time,
     time = convertTime(userData, time);
     (*(*(((OTFImporter *) userData)->collectiveMap))[process - 1])[time] = cr;
     ((OTFImporter *) userData)->rawtrace->collectiveBits->at(process - 1)->append(new RawTrace::CollectiveBit(time, cr));
-    std::cout << "Collective begin on proc " << process << " at time " << time << std::endl;
 
     return 0;
 }

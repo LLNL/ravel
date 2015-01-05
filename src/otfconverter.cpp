@@ -390,7 +390,9 @@ void OTFConverter::matchEvents()
                     CommRecord * crec = sendlist->at(sindex);
                     if (!(crec->message))
                     {
-                        crec->message = new Message(crec->send_time, crec->recv_time);
+                        crec->message = new Message(crec->send_time,
+                                                    crec->recv_time,
+                                                    crec->group);
                     }
                     if (crec->send_complete > max_complete)
                         max_complete = crec->send_complete;
@@ -440,7 +442,9 @@ void OTFConverter::matchEvents()
                         crec = recvlist->at(rindex);
                         if (!(crec->message))
                         {
-                            crec->message = new Message(crec->send_time, crec->recv_time);
+                            crec->message = new Message(crec->send_time,
+                                                        crec->recv_time,
+                                                        crec->group);
                         }
                         msgs->append(crec->message);
                         rindex++;
@@ -991,7 +995,9 @@ void OTFConverter::matchEventsSaved()
                     CommRecord * crec = sendlist->at(sindex);
                     if (!(crec->message))
                     {
-                        crec->message = new Message(crec->send_time, crec->recv_time);
+                        crec->message = new Message(crec->send_time,
+                                                    crec->recv_time,
+                                                    crec->group);
                     }
                     msgs->append(crec->message);
                     crec->message->sender = new P2PEvent(bgn->time, (*evt)->time,
@@ -1029,7 +1035,9 @@ void OTFConverter::matchEventsSaved()
                         crec = recvlist->at(rindex);
                         if (!(crec->message))
                         {
-                            crec->message = new Message(crec->send_time, crec->recv_time);
+                            crec->message = new Message(crec->send_time,
+                                                        crec->recv_time,
+                                                        crec->group);
                         }
                         msgs->append(crec->message);
                         rindex++;
