@@ -31,6 +31,7 @@ OTF2Importer::OTF2Importer()
       global_def_callbacks(NULL),
       global_evt_callbacks(NULL),
       stringMap(new QMap<OTF2_StringRef, QString>()),
+      attributeMap(new QMap<OTF2_AttributeRef, OTF2Attribute *>()),
       locationMap(new QMap<OTF2_LocationRef, OTF2Location *>()),
       locationGroupMap(new QMap<OTF2_LocationGroupRef, OTF2LocationGroup *>()),
       regionMap(new QMap<OTF2_RegionRef, OTF2Region *>()),
