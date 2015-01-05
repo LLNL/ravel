@@ -343,7 +343,7 @@ int OTFImporter::handleDefProcess(void * userData, uint32_t stream,
     Q_UNUSED(stream);
     Q_UNUSED(parent);
 
-    ((OTFImporter *) userData)->tasks->insert(process, new Task(process, QString(name)));
+    ((OTFImporter *) userData)->tasks->insert(process - 1, new Task(process - 1, QString(name)));
     ((OTFImporter *) userData)->num_processes++;
     return 0;
 }

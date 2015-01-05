@@ -74,7 +74,7 @@ void OTF2Exporter::exportEvents()
 
 void OTF2Exporter::exportTaskEvents(int taskid)
 {
-    QVector<Event *> * roots = trace->roots->at(taskid-1);
+    QVector<Event *> * roots = trace->roots->at(taskid);
     OTF2_EvtWriter * evt_writer = OTF2_Archive_GetEvtWriter(archive,
                                                             taskid);
     for (QVector<Event *>::Iterator root = roots->begin();
@@ -254,7 +254,7 @@ void OTF2Exporter::exportTasks()
                                            (task.value())->id /* id */,
                                            inverseStringMap.value((task.value())->name) /* name */,
                                            OTF2_LOCATION_TYPE_CPU_THREAD,
-                                           trace->events->at(task.key() - 1)->size() /* # events */,
+                                           trace->events->at(task.key())->size() /* # events */,
                                            (task.value())->id /* location group */ );
     }
 }
