@@ -272,7 +272,10 @@ void OTF2Exporter::exportFunctions()
                                           0 /* alternative name */,
                                           0 /* description */,
                                           OTF2_REGION_ROLE_UNKNOWN,
-                                          (fxn.value())->group,
+                                          (trace->functionGroups->contains((fxn.value())->group)
+                                           && trace->functionGroups->value(fxn.value()->group).contains("MPI"))
+                                          ? OTF2_PARADIGM_MPI
+                                          : OTF2_PARADIGM_UNKNOWN,
                                           OTF2_REGION_FLAG_NONE,
                                           0 /* source file */,
                                           0 /* begin lno */,

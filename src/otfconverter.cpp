@@ -104,6 +104,7 @@ void OTFConverter::convert()
     {
         if (fxnGroup.value().contains("MPI")) {
             trace->mpi_group = fxnGroup.key();
+            std::cout << "Found MPI group" << std::endl;
             break;
         }
     }

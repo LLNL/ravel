@@ -673,6 +673,7 @@ OTF2_CallbackCode OTF2Importer::callbackDefRegion(void * userData,
                                     paradigm, regionFlag, sourceFile,
                                     beginLineNumber, endLineNumber);
      (*(((OTF2Importer*) userData)->regionMap))[self] = r;
+    std::cout << "Paradigm is " << paradigm << std::endl;
     return OTF2_CALLBACK_SUCCESS;
 }
 
