@@ -1139,7 +1139,7 @@ void OTFConverter::matchEventsSaved()
 
 void OTFConverter::addToSavedPartition(CommEvent * evt, int partition)
 {
-    while (trace->partitions->size() < partition)
+    while (trace->partitions->size() <= partition)
     {
         trace->partitions->append(new Partition());
         trace->partitions->last()->new_partition = trace->partitions->last();
