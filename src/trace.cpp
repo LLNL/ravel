@@ -188,6 +188,8 @@ void Trace::preprocessFromSaved()
          partition != partitions->end(); ++partition)
     {
         (*partition)->fromSaved();
+        if ((*partition)->max_global_step > global_max_step)
+            global_max_step = (*partition)->max_global_step;
     }
     set_partition_dag();
     set_dag_steps();
