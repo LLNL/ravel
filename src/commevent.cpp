@@ -92,14 +92,14 @@ void CommEvent::writeOTF2Leave(OTF2_EvtWriter * writer, QMap<QString, int> * att
     phase_value.uint32 = phase;
     OTF2_AttributeList_AddAttribute(attribute_list,
                                     attributeMap->value("phase"),
-                                    OTF2_TYPE_UINT32,
+                                    OTF2_TYPE_UINT64,
                                     phase_value);
 
     OTF2_AttributeValue step_value;
     step_value.uint32 = step;
     OTF2_AttributeList_AddAttribute(attribute_list,
                                     attributeMap->value("step"),
-                                    OTF2_TYPE_UINT32,
+                                    OTF2_TYPE_UINT64,
                                     step_value);
 
     // Write metrics

@@ -973,6 +973,7 @@ void OTFConverter::matchEventsSaved()
                     handleSavedAttributes(cr->events->last(), *evt);
                     addToSavedPartition(cr->events->last(), cr->events->last()->phase);
                     e = cr->events->last();
+                    std::cout << "CR Event" << std::endl;
                 }
                 else if (coalesceflag == depth)
                 {
@@ -987,6 +988,7 @@ void OTFConverter::matchEventsSaved()
                     e = isend;
                     isends = new QList<P2PEvent *>();
                     coalesced_event = true;
+                    std::cout << "Coalesce Event" << std::endl;
 
                 }
                 else if (sflag)
@@ -1022,7 +1024,7 @@ void OTFConverter::matchEventsSaved()
                                             crec->message->sender->phase);
                     }
                     e = crec->message->sender;
-
+                    std::cout << "Send" << std::endl;
 
                 }
                 else if (rflag)
@@ -1062,12 +1064,14 @@ void OTFConverter::matchEventsSaved()
                                         msgs->at(0)->receiver->phase);
 
                     e = msgs->at(0)->receiver;
+                    std::cout << "Recv" << std::endl;
 
                 }
                 else // Non-com event
                 {
                     e = new Event(bgn->time, (*evt)->time, bgn->value,
                                   bgn->task);
+                    std::cout << "           Normal event" << std::endl;
                 }
 
                 depth--;

@@ -745,6 +745,7 @@ OTF2_CallbackCode OTF2Importer::callbackLeave(OTF2_LocationRef locationID,
                                      ((OTF2Importer *) userData)->stepRef,
                                      &metric);
         er->ravel_info->insert("step", metric);
+
         OTF2_AttributeList_GetUint64(attributeList,
                                      ((OTF2Importer *) userData)->phaseRef,
                                      &metric);

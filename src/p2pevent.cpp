@@ -332,7 +332,6 @@ void P2PEvent::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attribu
                                     (*msg)->taskgroup,
                                     0,
                                     0);
-             std::cout << "Writing recv with task group " << (*msg)->taskgroup << std::endl;
          }
 
          if ((*msg)->sender == this)
@@ -344,7 +343,6 @@ void P2PEvent::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attribu
                                    (*msg)->taskgroup,
                                    0,
                                    0);
-            std::cout << "Writing send with task group " << (*msg)->taskgroup << std::endl;
          }
 
 
