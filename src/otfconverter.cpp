@@ -634,10 +634,7 @@ void OTFConverter::matchEvents()
                 isend->comm_prev->comm_next = isend;
             prev = isend;
         }
-        else
-        {
-            delete isends;
-        }
+        delete isends;
 
         // Prepare for next task
         stack->clear();
@@ -1017,6 +1014,7 @@ void OTFConverter::matchEventsSaved()
                     if (isendflag)
                     {
                         isends->append(crec->message->sender);
+                        std::cout << "Appending to isends" << std::endl;
                     }
                     else
                     {
@@ -1132,11 +1130,10 @@ void OTFConverter::matchEventsSaved()
             depth--;
         }
 
-        delete isends;
-
         // Prepare for next task
         stack->clear();
         sendgroup->clear();
+        delete isends;
     }
     delete stack;
     delete sendgroup;
