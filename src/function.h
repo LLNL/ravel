@@ -11,6 +11,7 @@ public:
 
     QString name;
     int group;
+    int comms;
 };
 
 #endif // FUNCTION_H

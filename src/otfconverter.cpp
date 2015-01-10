@@ -171,6 +171,9 @@ void OTFConverter::matchEvents()
     // We can handle each set of events separately
     QStack<EventRecord *> * stack = new QStack<EventRecord *>();
 
+    // Keep track of how many commsbelow we have at each depth
+    QMap<int, int> commsbelow = QMap<int, int>();
+
     // Keep track of the counters at that time
     QStack<CounterRecord *> * counterstack = new QStack<CounterRecord *>();
     QMap<unsigned int, CounterRecord *> * lastcounters = new QMap<unsigned int, CounterRecord *>();
@@ -352,6 +355,9 @@ void OTFConverter::matchEvents()
 
                     cpartcounter++;
 
+                    // Collective gets counted as both send and receive so 2
+                    commsbelow.insert(depth, commsbelow.value(depth) + 2);
+
                     if (!options->partitionByFunction)
                     {
                         // We are still collecting
@@ -402,6 +408,9 @@ void OTFConverter::matchEvents()
                     sindex++;
 
                     spartcounter++;
+
+                    commsbelow.insert(depth, commsbelow.value(depth) + 1);
+
                     // Collect the send for possible waitall merge
                     if ((max_complete > 0 || options->waitallMerge)
                         && !(options->isendCoalescing && isendflag)
@@ -446,6 +455,8 @@ void OTFConverter::matchEvents()
                         makeSingletonPartition(msgs->at(0)->receiver);
 
                     rpartcounter++;
+
+                    commsbelow.insert(depth, commsbelow.value(depth) + 1); // + msgs->size() ?
 
                     counter_index = advanceCounters(msgs->at(0)->receiver,
                                                     counterstack,
@@ -528,6 +539,14 @@ void OTFConverter::matchEvents()
                     {
                         counter_index++;
                     }
+
+                    // Keep track of the largest number of comms in each function name
+                    // Then add the value for the current depth and clear the children
+                    // for the sibling function at this depth.
+                    if (trace->functions->value(bgn->value)->comms < commsbelow.value(depth+1))
+                        trace->functions->value(bgn->value)->comms = commsbelow.value(depth+1);
+                    commsbelow.insert(depth, commsbelow.value(depth) + commsbelow.value(depth+1)); // Add for parent
+                    commsbelow.insert(depth+1, 0); // Clear children
                 }
 
                 depth--;
