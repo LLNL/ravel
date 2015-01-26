@@ -17,6 +17,8 @@ public:
     unsigned long long sendtime;
     unsigned long long recvtime;
     int taskgroup;
+    unsigned int tag;
+    unsigned long long size;
 
     CommEvent * getDesignee();
 

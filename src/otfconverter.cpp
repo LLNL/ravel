@@ -903,6 +903,11 @@ void OTFConverter::matchEventsSaved()
             if (!((*evt)->enter)) // End of a subroutine
             {
                 EventRecord * bgn = stack->pop();
+                for (int i = 0; i < depth; i++)
+                {
+                    std::cout << " ";
+                }
+                std::cout << "Handling the end of " << rawtrace->functions->value(bgn->value)->name.toStdString().c_str() << std::endl;
 
                 // Partition/handle comm events
                 CollectiveRecord * cr = NULL;
@@ -998,6 +1003,8 @@ void OTFConverter::matchEventsSaved()
                         crec->message = new Message(crec->send_time,
                                                     crec->recv_time,
                                                     crec->group);
+                        crec->message->tag = crec->tag;
+                        crec->message->size = crec->size;
                     }
                     msgs->append(crec->message);
                     crec->message->sender = new P2PEvent(bgn->time, (*evt)->time,
@@ -1039,6 +1046,8 @@ void OTFConverter::matchEventsSaved()
                             crec->message = new Message(crec->send_time,
                                                         crec->recv_time,
                                                         crec->group);
+                            crec->message->tag = crec->tag;
+                            crec->message->size = crec->size;
                         }
                         msgs->append(crec->message);
                         rindex++;

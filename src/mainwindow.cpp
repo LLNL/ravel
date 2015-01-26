@@ -15,7 +15,7 @@
 #include "visoptions.h"
 #include "visoptionsdialog.h"
 #include "otfimportfunctor.h"
-#include "otf2exporter.h"
+#include "otf2exportfunctor.h"
 
 #include <QFileDialog>
 #include <QFileInfo>
@@ -261,20 +261,61 @@ void MainWindow::saveCurrentTrace()
                                                         QFileInfo(traceInfo.absoluteDir(),
                                                                   traceInfo.baseName()
                                                                   + ".save").absoluteFilePath(),
-                                                        tr("Trace Files(*.otf2"));
+                                                        tr("Trace Files(*.otf2)"));
 
     QFileInfo saveFile = QFileInfo(dataFileName);
+
+    progress = new QProgressDialog("Writing Trace...", "", 0, 0, this);
+    progress->setWindowTitle("Exporting Trace...");
+    progress->setCancelButton(0);
+    progress->show();
+
+    exportThread = new QThread();
+    exportWorker = new OTF2ExportFunctor();
+    exportWorker->moveToThread(exportThread);
+
+    connect(this, SIGNAL(exportTrace(Trace *, QString, QString)), exportWorker,
+            SLOT(exportTrace(Trace *, QString, QString)));
+
+    connect(exportWorker, SIGNAL(done()), this,
+            SLOT(exportFinished()));
+
+    exportThread->start();
+    emit(exportTrace(traces[activeTrace], saveFile.path(), saveFile.fileName()));
+    /*
     OTF2Exporter exporter = OTF2Exporter(traces[activeTrace]);
     exporter.exportTrace(saveFile.path(), saveFile.fileName());
+    */
+}
+
+void MainWindow::exportFinished()
+{
+    progress->close();
+
+    delete exportWorker;
+    delete progress;
+    delete exportThread;
 }
 
 void MainWindow::importOTFbyGUI()
 {
     // Now get the OTF File
-    QString dataFileName = QFileDialog::getOpenFileName(this,
-                                                        tr("Import Trace Data"),
-                                                        "",
-                                                        tr("Trace Files (*.otf *.otf2 *.sts)"));
+    QString dataFileName = "";
+    if (traces.size() > 0)
+    {
+        QFileInfo traceInfo = QFileInfo(traces[activeTrace]->fullpath);
+        dataFileName = QFileDialog::getOpenFileName(this,
+                                                    tr("Import Trace Data"),
+                                                    QFileInfo(traceInfo.absoluteDir(),
+                                                              traceInfo.baseName()
+                                                              + ".save").absoluteFilePath(),
+                                                    tr("Trace Files(*.otf2 *.otf *.sts)"));
+    } else {
+        dataFileName = QFileDialog::getOpenFileName(this,
+                                                    tr("Import Trace Data"),
+                                                    "",
+                                                    tr("Trace Files (*.otf *.otf2 *.sts)"));
+    }
     qApp->processEvents();
 
     // Guard against Cancel

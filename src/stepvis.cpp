@@ -16,6 +16,8 @@
 #include <QMouseEvent>
 #include <QWheelEvent>
 
+#include "function.h"
+
 StepVis::StepVis(QWidget* parent, VisOptions * _options)
     : TimelineVis(parent = parent, _options),
       metricdialog(NULL),

@@ -85,6 +85,17 @@ void CommEvent::calculate_differential_metric(QString metric_name,
 
 void CommEvent::writeOTF2Leave(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap)
 {
+    // For coalesced steps, don't write attributes
+    if (step < 0)
+    {
+        // Finally write enter event
+        OTF2_EvtWriter_Leave(writer,
+                             NULL,
+                             exit,
+                             function);
+        return;
+    }
+
     OTF2_AttributeList * attribute_list = OTF2_AttributeList_New();
 
     // Phase and Step

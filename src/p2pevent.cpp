@@ -330,8 +330,8 @@ void P2PEvent::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attribu
                                     (*msg)->recvtime,
                                     (*msg)->sender->task,
                                     (*msg)->taskgroup,
-                                    0,
-                                    0);
+                                    (*msg)->tag,
+                                    (*msg)->size);
          }
 
          if ((*msg)->sender == this)
@@ -341,8 +341,8 @@ void P2PEvent::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attribu
                                    (*msg)->sendtime,
                                    (*msg)->receiver->task,
                                    (*msg)->taskgroup,
-                                   0,
-                                   0);
+                                   (*msg)->tag,
+                                   (*msg)->size);
          }
 
 
