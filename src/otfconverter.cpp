@@ -394,6 +394,8 @@ void OTFConverter::matchEvents()
                         crec->message = new Message(crec->send_time,
                                                     crec->recv_time,
                                                     crec->group);
+                        crec->message->tag = crec->tag;
+                        crec->message->size = crec->size;
                     }
                     if (crec->send_complete > max_complete)
                         max_complete = crec->send_complete;
@@ -446,6 +448,8 @@ void OTFConverter::matchEvents()
                             crec->message = new Message(crec->send_time,
                                                         crec->recv_time,
                                                         crec->group);
+                            crec->message->tag = crec->tag;
+                            crec->message->size = crec->size;
                         }
                         msgs->append(crec->message);
                         rindex++;
@@ -1030,7 +1034,6 @@ void OTFConverter::matchEventsSaved()
                                             crec->message->sender->phase);
                     }
                     e = crec->message->sender;
-                    std::cout << "Send" << std::endl;
 
                 }
                 else if (rflag)
@@ -1072,14 +1075,12 @@ void OTFConverter::matchEventsSaved()
                                         msgs->at(0)->receiver->phase);
 
                     e = msgs->at(0)->receiver;
-                    std::cout << "Recv" << std::endl;
 
                 }
                 else // Non-com event
                 {
                     e = new Event(bgn->time, (*evt)->time, bgn->value,
                                   bgn->task);
-                    std::cout << "           Normal event" << std::endl;
                 }
 
                 depth--;
