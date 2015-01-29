@@ -24,6 +24,81 @@ public:
     // RawTrace * getRawTrace() { return rawtrace; }
     Trace * getTrace() { return trace; }
 
+    class ChareIndex {
+    public:
+        ChareIndex(int i0, int i1, int i2, int i3)
+        {
+            index[0] = i0;
+            index[1] = i1;
+            index[2] = i2;
+            index[3] = i3;
+        }
+
+        int index[4];
+
+        ChareIndex& operator=(const ChareIndex & other)
+        {
+            if (this != &other)
+                for (int i = 0; i < 4; i++)
+                    index[i] = other.index[i];
+            return *this;
+        }
+
+        bool operator<(const ChareIndex & other) const
+        {
+            for (int i = 0; i < 4; i++)
+                if (index[i] < other.index[i])
+                    return true;
+            return false;
+        }
+
+        bool operator>(const ChareIndex & other) const
+        {
+            for (int i = 0; i < 4; i++)
+                if (index[i] > other.index[i])
+                    return true;
+            return false;
+        }
+
+        bool operator<=(const ChareIndex & other) const
+        {
+            for (int i = 0; i < 4; i++)
+                if (index[i] < other.index[i])
+                    return true;
+                else if (index[i] != other.index[i])
+                    return false;
+            return false;
+        }
+
+        bool operator>=(const ChareIndex & other) const
+        {
+            for (int i = 0; i < 4; i++)
+                if (index[i] > other.index[i])
+                    return true;
+                else if (index[i] != other.index[i])
+                    return false;
+            return false;
+        }
+
+        bool operator==(const ChareIndex & other) const
+        {
+            for (int i = 0; i < 4; i++)
+                if (index[i] != other.index[i])
+                    return false;
+            return true;
+        }
+
+        QString toString() const
+        {
+            QString str = "";
+            for (int i = 0; i < 3; i++)
+                if (index[i] > 0)
+                    str += QString::number(index[i]) + ".";
+            str += QString::number(index[3]);
+            return str;
+        }
+    };
+
 private:
     void readSts(QString dataFileName);
     void readLog(QString logFileName, bool gzipped, int pe);
@@ -50,12 +125,13 @@ private:
     class Chare {
     public:
         Chare(QString _name)
-            : name(_name), indices(new QSet<QString>()) {}
+            : name(_name), indices(new QSet<ChareIndex>()) {}
         ~Chare() { delete indices; }
 
         QString name;
-        QSet<QString> * indices;
+        QSet<ChareIndex> * indices;
     };
+
 
     class CharmMsg {
     public:
@@ -84,28 +160,15 @@ private:
         CharmEvt(int _type, unsigned long long _time, int _pe,
                  bool _enter = true)
             : evt_type(_type), time(_time), pe(_pe), task(-1), enter(_enter),
-              chare(-1), entry(-1), charmmsg(NULL), children(QList<Event *>())
-        {
-            chareIndex[0] = 0;
-            chareIndex[1] = 0;
-            chareIndex[2] = 0;
-            chareIndex[3] = 0;
-        }
+              chare(-1), index(ChareIndex(0,0,0,0)), entry(-1), charmmsg(NULL),
+              children(QList<Event *>())
+        { }
 
         bool operator<(const CharmEvt & event) { return time < event.time; }
         bool operator>(const CharmEvt & event) { return time > event.time; }
         bool operator<=(const CharmEvt & event) { return time <= event.time; }
         bool operator>=(const CharmEvt & event) { return time >= event.time; }
         bool operator==(const CharmEvt & event) { return time == event.time; }
-
-
-        QString indexToString()
-        {
-            QString str = QString::number(chare);
-            for (int i = 0; i < 4; i++)
-                str += "-" + QString::number(chareIndex[i]);
-            return str;
-        }
 
         int evt_type;
         unsigned long long time;
@@ -114,7 +177,7 @@ private:
         bool enter;
 
         int chare;
-        int chareIndex[4];
+        ChareIndex index;
         int entry;
 
        CharmMsg * charmmsg;
@@ -142,8 +205,10 @@ private:
     QMap<int, TaskGroup *> * taskgroups;
     QMap<int, QString> * functiongroups;
     QMap<int, Function *> * functions;
-    QMap<QString, int> chare_to_task;
+    QMap<ChareIndex, int> chare_to_task;
     CharmEvt * last;
+
+    QSet<QString> seen_chares;
 
     static const int SEND_FXN = 999998;
     static const int RECV_FXN = 999999;
@@ -186,5 +251,10 @@ private:
     static const int QD_BROACAST_BOC_MSG = 15;
 
 };
+
+inline uint qHash(const CharmImporter::ChareIndex& key)
+{
+    return qHash(key.index[3]) ^ qHash(key.index[2]) ^ qHash(key.index[1]) ^ qHash(key.index[0]);
+}
 
 #endif // CHARMIMPORTER_H
