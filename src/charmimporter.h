@@ -26,7 +26,8 @@ public:
 
     class ChareIndex {
     public:
-        ChareIndex(int i0, int i1, int i2, int i3)
+        ChareIndex(int c, int i0, int i1, int i2, int i3)
+            : chare(c)
         {
             index[0] = i0;
             index[1] = i1;
@@ -35,10 +36,12 @@ public:
         }
 
         int index[4];
+        int chare;
 
         ChareIndex& operator=(const ChareIndex & other)
         {
             if (this != &other)
+                chare = other.chare;
                 for (int i = 0; i < 4; i++)
                     index[i] = other.index[i];
             return *this;
@@ -46,6 +49,8 @@ public:
 
         bool operator<(const ChareIndex & other) const
         {
+            if (chare < other.chare)
+                return true;
             for (int i = 0; i < 4; i++)
                 if (index[i] < other.index[i])
                     return true;
@@ -54,6 +59,8 @@ public:
 
         bool operator>(const ChareIndex & other) const
         {
+            if (chare > other.chare)
+                return true;
             for (int i = 0; i < 4; i++)
                 if (index[i] > other.index[i])
                     return true;
@@ -62,6 +69,10 @@ public:
 
         bool operator<=(const ChareIndex & other) const
         {
+            if (chare < other.chare)
+                return true;
+            else if (chare != other.chare)
+                return false;
             for (int i = 0; i < 4; i++)
                 if (index[i] < other.index[i])
                     return true;
@@ -72,6 +83,10 @@ public:
 
         bool operator>=(const ChareIndex & other) const
         {
+            if (chare > other.chare)
+                return true;
+            else if (chare != other.chare)
+                return false;
             for (int i = 0; i < 4; i++)
                 if (index[i] > other.index[i])
                     return true;
@@ -82,10 +97,20 @@ public:
 
         bool operator==(const ChareIndex & other) const
         {
+            if (chare != other.chare)
+                return false;
             for (int i = 0; i < 4; i++)
                 if (index[i] != other.index[i])
                     return false;
             return true;
+        }
+
+        void setIndex(int i0, int i1, int i2, int i3)
+        {
+            index[0] = i0;
+            index[1] = i1;
+            index[2] = i2;
+            index[3] = i3;
         }
 
         QString toString() const
@@ -157,10 +182,10 @@ private:
 
     class CharmEvt {
     public:
-        CharmEvt(int _type, unsigned long long _time, int _pe,
+        CharmEvt(int _entry, unsigned long long _time, int _pe, int _chare,
                  bool _enter = true)
-            : evt_type(_type), time(_time), pe(_pe), task(-1), enter(_enter),
-              chare(-1), index(ChareIndex(0,0,0,0)), entry(-1), charmmsg(NULL),
+            : time(_time), pe(_pe), task(-1), enter(_enter),
+              chare(_chare), index(ChareIndex(-1, 0,0,0,0)), entry(_entry), charmmsg(NULL),
               children(QList<Event *>())
         { }
 
@@ -170,7 +195,6 @@ private:
         bool operator>=(const CharmEvt & event) { return time >= event.time; }
         bool operator==(const CharmEvt & event) { return time == event.time; }
 
-        int evt_type;
         unsigned long long time;
         int pe;
         int task;

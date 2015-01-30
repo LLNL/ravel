@@ -208,6 +208,14 @@ void CharmImporter::charify()
             if ((*event)->enter)
             {
                 std::cout << " enter ";
+                if ((*event)->charmmsg)
+                {
+                    std::cout << "  this event has a msg!" << std::endl;
+                }
+                else
+                {
+                    std::cout << "  NO MSG" << std::endl;
+                }
             }
             else
             {
@@ -406,10 +414,10 @@ int CharmImporter::makeTasks()
 void CharmImporter::parseLine(QString line, int my_pe)
 {
     int index, mtype, entry, event, pe;
-    ChareIndex id = ChareIndex(0,0,0,0);
+    ChareIndex id = ChareIndex(-1, 0,0,0,0);
     long time, msglen, sendTime, recvTime, numpes, cpuStart, cpuEnd;
 
-    std::cout << line.toStdString().c_str() << std::endl;
+    //std::cout << line.toStdString().c_str() << std::endl;
     QStringList lineList = line.split(" ");
     int rectype = lineList.at(0).toInt();
     if (rectype == CREATION || rectype == CREATION_BCAST)
@@ -437,22 +445,34 @@ void CharmImporter::parseLine(QString line, int my_pe)
             numpes = lineList.at(index).toInt();
         }
 
-        CharmEvt * evt = new CharmEvt(SEND_FXN, time, pe, true);
-        evt->chare = entries->value(entry)->chare;
-        evt->entry = SEND_FXN;
+        CharmEvt * evt = new CharmEvt(SEND_FXN, time, pe,
+                                      entries->value(entry)->chare,
+                                      true);
+        // We are inside a begin_processing, so the create event we have
+        // here naturally has the index of the begin_processing which is
+        // what last should hold.
+        // However, there may be some Charm runtime stuff going on which
+        // will have a different chare. In this case the index will likely be
+        // incorrect.
         if (last)
+        {
             evt->index = last->index;
+            evt->index.chare = entries->value(entry)->chare;
+        }
         charm_events->at(pe)->append(evt);
 
         seen_chares.insert(chares->value(entries->value(entry)->chare)->name
                             + "::" + entries->value(entry)->name);
 
-        CharmEvt * send_end = new CharmEvt(SEND_FXN, time+1, pe, false);
-        send_end->chare = entries->value(entry)->chare;
-        send_end->entry = SEND_FXN;
+        CharmEvt * send_end = new CharmEvt(SEND_FXN, time+1, pe,
+                                           entries->value(entry)->chare,
+                                           false);
         charm_events->at(pe)->append(send_end);
         if (last)
+        {
             send_end->index = last->index;
+            send_end->index.chare = entries->value(entry)->chare;
+        }
 
         if (rectype == CREATION)
         {
@@ -478,6 +498,8 @@ void CharmImporter::parseLine(QString line, int my_pe)
             if (msg) // Found!
             {
                 candidates->removeOne(msg);
+                std::cout << "Found message for send on entry " << entries->value(entry)->name.toStdString().c_str();
+                std::cout << " at " << time << " and pe " << pe << std::endl;
             }
             else
             {
@@ -488,6 +510,8 @@ void CharmImporter::parseLine(QString line, int my_pe)
                 }
                 unmatched_msgs->at(pe)->value(event)->append(msg);
                 messages->append(msg);
+                std::cout << "Creating message from send on entry " << entries->value(entry)->name.toStdString().c_str();
+                std::cout << " at " << time << " and pe " << pe << std::endl;
             }
 
             msg->sendtime = time;
@@ -502,7 +526,8 @@ void CharmImporter::parseLine(QString line, int my_pe)
                 sends->append(msg);
                 unmatched_sends->at(pe)->append(msg);
             }*/
-            std::cout << "Bcast on " << pe << " of " << entries->value(entry)->name.toStdString().c_str() << std::endl;
+            std::cout << "Bcast on " << pe << " of " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
+            std::cout<< "::" << entries->value(entry)->name.toStdString().c_str() << std::endl;
             std::cout << "     Event: " << event << ", msg_type: " << mtype << std::endl;
 
         }
@@ -547,9 +572,10 @@ void CharmImporter::parseLine(QString line, int my_pe)
             // PerfCount stuff... skip for now.
         }
 
-        CharmEvt * evt = new CharmEvt(entry, time, pe, true);
-        evt->chare = entries->value(entry)->chare;
-        evt->entry = entry;
+        CharmEvt * evt = new CharmEvt(entry, time, pe,
+                                      entries->value(entry)->chare,
+                                      true);
+        id.chare = evt->chare;
         evt->index = id;
         chares->value(evt->chare)->indices->insert(evt->index);
         charm_events->at(pe)->append(evt);
@@ -566,6 +592,8 @@ void CharmImporter::parseLine(QString line, int my_pe)
             }
             unmatched_msgs->at(pe)->value(event)->append(msg);
             messages->append(msg);
+            std::cout << "Creating message from recv on entry " << entries->value(entry)->name.toStdString().c_str();
+            std::cout << " at " << time << " and pe " << pe << std::endl;
         } else { // Send already exists
             QList<CharmMsg *> * candidates = unmatched_msgs->at(pe)->value(event);
             if (candidates) // May be missing some send events due to runtime collection
@@ -581,24 +609,34 @@ void CharmImporter::parseLine(QString line, int my_pe)
                 }
                 candidates->removeOne(msg);
             }
+            if (msg)
+            {
+                std::cout << "Found message for recv on entry " << entries->value(entry)->name.toStdString().c_str();
+                std::cout << " at " << time << " and pe " << pe << std::endl;
+            }
         }
         if (msg)
         {
             // +1 to make sort properly
-            evt = new CharmEvt(RECV_FXN, time+1, pe, true);
-            evt->chare = entries->value(entry)->chare;
-            evt->entry = RECV_FXN;
+            // Note only the enter needs the message, as that's where we look for it
+            evt = new CharmEvt(RECV_FXN, time+1, pe,
+                               entries->value(entry)->chare,
+                               true);
             evt->index = id;
             charm_events->at(pe)->append(evt);
 
-            CharmEvt * recv_end = new CharmEvt(RECV_FXN, time+2, pe, false);
-            recv_end->chare = entries->value(entry)->chare;
-            recv_end->entry = RECV_FXN;
+            CharmEvt * recv_end = new CharmEvt(RECV_FXN, time+2, pe,
+                                               entries->value(entry)->chare,
+                                               false);
             recv_end->index = id;
             charm_events->at(pe)->append(recv_end);
 
             msg->recvtime = time;
             evt->charmmsg = msg;
+        }
+        else
+        {
+            std::cout << "NO RECV MSG!!!" << std::endl;
         }
 
     }
@@ -627,10 +665,10 @@ void CharmImporter::parseLine(QString line, int my_pe)
             // PerfCount stuff... skip for now.
         }
 
-        CharmEvt * evt = new CharmEvt(entry, time, pe, false);
-        evt->chare = entries->value(entry)->chare;
-        evt->entry = entry;
+        CharmEvt * evt = new CharmEvt(entry, time, pe,
+                                      entries->value(entry)->chare, false);
         evt->index = last->index;
+        evt->index.chare = entries->value(entry)->chare;
         charm_events->at(pe)->append(evt);
 
     }
@@ -638,7 +676,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
     {
         std::cout << "Message Recv!" << std::endl;
     }
-    else
+    else if ((rectype < 14 || rectype > 19) && rectype != 6 && rectype != 7)
     {
         std::cout << "Event of type " << rectype << " spotted!" << std::endl;
     }
@@ -650,6 +688,9 @@ void CharmImporter::parseLine(QString line, int my_pe)
 bool CharmImporter::matchingMessages(CharmMsg * send, CharmMsg * recv)
 {
     // Event is the unique ID of each message
+    std::cout << "Matching message " << send->entry << " vs " << recv->entry;
+    std::cout << "  and  " << send->event << " vs " << recv->event;
+    std::cout << "  and  " << send->send_pe << " vs " << recv->send_pe << std::endl;
     if (send->entry == recv->entry && send->event == recv->event
             && send->send_pe == recv->send_pe)
         return true;
