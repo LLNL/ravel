@@ -194,8 +194,8 @@ void CharmImporter::charify()
         for (QVector<CharmEvt *>::Iterator event = (*event_list)->begin();
              event != (*event_list)->end(); ++event)
         {
-            // Skip non-task events
-            if (!(chare_to_task.contains((*event)->index)))
+            // Skip if the chare doesn't map to a task event
+            if (chares->value((*event)->chare)->indices->size() <= 1)
             {
                 continue;
             }
@@ -450,21 +450,12 @@ void CharmImporter::parseLine(QString line, int my_pe)
                                       true);
         // We are inside a begin_processing, so the create event we have
         // here naturally has the index of the begin_processing which is
-        // what last should hold.
-        // However, there may be some Charm runtime stuff going on which
-        // will have a different chare. In this case the index will likely be
-        // incorrect.
-        // It may be that we need to keep tboth the last chare and this
-        // chare and then figure out which one it actually belongs to...
-        // However, if we are just interested in keeping teh send, then both
-        // the from and the to index should have a valid chare... hrm we
-        // may need to save them both in this case, perhaps inside the
-        // created message itself
+        // what last should hold. However, the send may not be meaningful
+        // should its recv not exist or go to a not-kept chare, so this needs
+        // to be processed later.
         if (last)
-        {
             evt->index = last->index;
-            evt->index.chare = entries->value(entry)->chare;
-        }
+
         charm_events->at(pe)->append(evt);
 
         seen_chares.insert(chares->value(entries->value(entry)->chare)->name
@@ -475,10 +466,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
                                            false);
         charm_events->at(pe)->append(send_end);
         if (last)
-        {
             send_end->index = last->index;
-            send_end->index.chare = entries->value(entry)->chare;
-        }
 
         if (rectype == CREATION)
         {
