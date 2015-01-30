@@ -454,6 +454,12 @@ void CharmImporter::parseLine(QString line, int my_pe)
         // However, there may be some Charm runtime stuff going on which
         // will have a different chare. In this case the index will likely be
         // incorrect.
+        // It may be that we need to keep tboth the last chare and this
+        // chare and then figure out which one it actually belongs to...
+        // However, if we are just interested in keeping teh send, then both
+        // the from and the to index should have a valid chare... hrm we
+        // may need to save them both in this case, perhaps inside the
+        // created message itself
         if (last)
         {
             evt->index = last->index;
