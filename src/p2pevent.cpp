@@ -319,7 +319,7 @@ void P2PEvent::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attribu
 {
     writeOTF2Enter(writer);
 
-    if (subevents && subevents->size() > 1)
+    if (subevents)
     {
         for (QList<P2PEvent *>::Iterator sub = subevents->begin();
              sub != subevents->end(); ++sub)
@@ -346,8 +346,7 @@ void P2PEvent::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attribu
                                     (*msg)->tag,
                                     (*msg)->size);
          }
-
-         if ((*msg)->sender == this)
+         else if (!subevents) // Write if you are the isend
          {
             OTF2_EvtWriter_MpiSend(writer,
                                    NULL,
@@ -356,8 +355,6 @@ void P2PEvent::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attribu
                                    (*msg)->taskgroup,
                                    (*msg)->tag,
                                    (*msg)->size);
-            if (messages->size() > 1)
-                std::cout << "  Writing message" << std::endl;
          }
 
 
