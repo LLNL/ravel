@@ -113,6 +113,7 @@ void OTFConverter::convert()
     if (rawtrace->options->origin == OTFImportOptions::OF_SAVE_OTF2)
     {
         trace->options = *(rawtrace->options);
+        options = rawtrace->options;
 
         // Setup metrics
         for (QList<QString>::Iterator metric = rawtrace->metric_names->begin();

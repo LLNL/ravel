@@ -184,6 +184,7 @@ void Trace::preprocessFromSaved()
     traceTimer.start();
 
     // Sets partition-to-partition connectors and min/max steps
+
     for (QList<Partition *>::Iterator partition = partitions->begin();
          partition != partitions->end(); ++partition)
     {
@@ -191,8 +192,10 @@ void Trace::preprocessFromSaved()
         if ((*partition)->max_global_step > global_max_step)
             global_max_step = (*partition)->max_global_step;
     }
+
     set_partition_dag();
-    set_dag_steps();
+    //std::cout << "Setting the dag steps.." << std::endl;
+    //set_dag_steps();
 
 
     emit(startClustering());
