@@ -118,6 +118,14 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
     // Build partitions
     buildPartitions();
 
+    // Keep a list of what chares have been seen
+    QList<QString> tmp = seen_chares.toList();
+    qSort(tmp.begin(), tmp.end());
+    for (QList<QString>::Iterator ch = tmp.begin(); ch != tmp.end(); ++ch)
+    {
+        std::cout << "Seen chare: " << (*ch).toStdString().c_str() << std::endl;
+    }
+
     // Delete newly created temp stuff
     cleanUp();
 }
@@ -458,9 +466,10 @@ void CharmImporter::parseLine(QString line, int my_pe)
 
         charm_events->at(pe)->append(evt);
 
-        seen_chares.insert(chares->value(entries->value(entry)->chare)->name
+        /*seen_chares.insert(chares->value(entries->value(entry)->chare)->name
                             + "::" + entries->value(entry)->name);
 
+                            */
         CharmEvt * send_end = new CharmEvt(SEND_FXN, time+1, pe,
                                            entries->value(entry)->chare,
                                            false);
@@ -573,6 +582,9 @@ void CharmImporter::parseLine(QString line, int my_pe)
         evt->index = id;
         chares->value(evt->chare)->indices->insert(evt->index);
         charm_events->at(pe)->append(evt);
+
+        seen_chares.insert(chares->value(entries->value(entry)->chare)->name
+                            + "::" + entries->value(entry)->name);
 
         last = evt;
 
