@@ -295,6 +295,10 @@ void OTFConverter::matchEvents()
                     {
                         sendgroup->append(trace->partitions->last());
                     }
+
+                    if (isend->depth == 0)
+                        (*(trace->roots))[isend->task]->append(isend);
+
                 }
 
                 // Partition/handle comm events
@@ -561,7 +565,7 @@ void OTFConverter::matchEvents()
 
                 depth--;
                 e->depth = depth;
-                if (depth == 0)
+                if (depth == 0 && !isendflag)
                     (*(trace->roots))[(*evt)->task]->append(e);
 
                 if (e->exit > endtime)
@@ -637,8 +641,14 @@ void OTFConverter::matchEvents()
             if (isend->comm_prev)
                 isend->comm_prev->comm_next = isend;
             prev = isend;
+
+            if (isend->depth == 0)
+                (*(trace->roots))[isend->task]->append(isend);
         }
-        delete isends;
+        else // Only do this if it is empty
+        {
+            delete isends;
+        }
 
         // Prepare for next task
         stack->clear();
@@ -907,12 +917,12 @@ void OTFConverter::matchEventsSaved()
             if (!((*evt)->enter)) // End of a subroutine
             {
                 EventRecord * bgn = stack->pop();
-                for (int i = 0; i < depth; i++)
+                /*for (int i = 0; i < depth; i++)
                 {
                     std::cout << " ";
                 }
                 std::cout << "Handling the end of " << rawtrace->functions->value(bgn->value)->name.toStdString().c_str() << std::endl;
-
+                */
                 // Partition/handle comm events
                 CollectiveRecord * cr = NULL;
                 sflag = false, rflag = false, isendflag = false;

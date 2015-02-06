@@ -22,10 +22,12 @@ P2PEvent::P2PEvent(QList<P2PEvent *> * _subevents)
       messages(new QVector<Message *>()),
       is_recv(_subevents->first()->is_recv)
 {
-    this->depth = _subevents->first()->depth;
+    this->depth = subevents->first()->depth;
 
-    // Take over submessages
-    for (QList<P2PEvent *>::Iterator evt = _subevents->begin();
+    // Take over submessages & caller/callee relationships
+    caller = subevents->first()->caller;
+    int evt_index;
+    for (QList<P2PEvent *>::Iterator evt = subevents->begin();
          evt != subevents->end(); ++evt)
     {
         for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
@@ -37,7 +39,18 @@ P2PEvent::P2PEvent(QList<P2PEvent *> * _subevents)
                 (*msg)->sender = this;
             messages->append(*msg);
         }
+
+        callees->append(*evt);
+        if (caller)
+        {
+            evt_index = caller->callees->indexOf(*evt);
+            if (evt_index > 0)
+                caller->callees->remove(evt_index);
+        }
+        (*evt)->caller = this;
     }
+    if (caller)
+        caller->callees->insert(evt_index, this);
 
     // Aggregate existing metrics
     P2PEvent * first = _subevents->first();
@@ -46,7 +59,7 @@ P2PEvent::P2PEvent(QList<P2PEvent *> * _subevents)
     {
         QString name = counter.key();
         unsigned long long metric = 0, agg = 0;
-        for (QList<P2PEvent *>::Iterator evt = _subevents->begin();
+        for (QList<P2PEvent *>::Iterator evt = subevents->begin();
              evt != subevents->end(); ++evt)
         {
             metric += (*evt)->getMetric(name);
@@ -343,6 +356,8 @@ void P2PEvent::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attribu
                                    (*msg)->taskgroup,
                                    (*msg)->tag,
                                    (*msg)->size);
+            if (messages->size() > 1)
+                std::cout << "  Writing message" << std::endl;
          }
 
 
