@@ -132,3 +132,6 @@ macx: LIBS += -L$${HOME}/opt/muster/lib -lmuster
 macx: INCLUDEPATH += $${HOME}/opt/muster/include
 macx: DEPENDPATH += $${HOME}/opt/muster/include
 
+OTHER_FILES += \
+    CMakeLists.txt
+
