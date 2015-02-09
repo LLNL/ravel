@@ -4,6 +4,8 @@ ENDIF()
 
 FIND_PATH(OTF_INCLUDE_DIR otf.h
     ${HOME}/opt/include
+    ${HOME}/opt/include/otf
+    ${HOME}/opt/include/open-trace-format
     /usr/include
 )
 

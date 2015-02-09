@@ -9,6 +9,18 @@ find_package(MUSTER REQUIRED)
 find_package(OTF REQUIRED)
 find_package(OTF2 REQUIRED)
 
+IF(NOT MUSTER_FOUND)
+    MESSAGE("Please supply locations for Muster library (1.0.1+)")
+ENDIF()
+
+IF(NOT OTF_FOUND)
+    MESSAGE("Please supply locations for OTF library (1.1+)")
+ENDIF()
+
+IF(NOT OTF2_FOUND)
+    MESSAGE("Please supply locations for OTF2 library (1.4+)")
+ENDIF()
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS}")
 
 set(CMAKE_AUTOMOC ON)
