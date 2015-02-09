@@ -2,6 +2,7 @@
 #include "clusterevent.h"
 #include <otf2/OTF2_AttributeList.h>
 #include <otf2/OTF2_GeneralDefinitions.h>
+#include <iostream>
 
 CommEvent::CommEvent(unsigned long long _enter, unsigned long long _exit,
                      int _function, int _task, int _phase)

@@ -84,7 +84,6 @@ void OTFConverter::convert()
     traceTimer.start();
     trace = new Trace(rawtrace->num_tasks);
     trace->units = rawtrace->second_magnitude;
-    std::cout << "Trace units are " << trace->units << std::endl;
 
     // Start setting up new Trace
     delete trace->functions;
@@ -104,7 +103,6 @@ void OTFConverter::convert()
     {
         if (fxnGroup.value().contains("MPI")) {
             trace->mpi_group = fxnGroup.key();
-            std::cout << "Found MPI group" << std::endl;
             break;
         }
     }
@@ -297,8 +295,10 @@ void OTFConverter::matchEvents()
                         sendgroup->append(trace->partitions->last());
                     }
 
-                    if (isend->depth == 0)
+                    if (stack->isEmpty())
+                    {
                         (*(trace->roots))[isend->task]->append(isend);
+                    }
 
                 }
 
@@ -578,8 +578,20 @@ void OTFConverter::matchEvents()
                 for (QList<Event *>::Iterator child = bgn->children.begin();
                      child != bgn->children.end(); ++child)
                 {
-                    e->callees->append(*child);
-                    (*child)->caller = e;
+                    // If the child already has a caller, it was coalesced.
+                    // In that case, we want to make that caller the child
+                    // rather than this reality direct one... but only for
+                    // the first one
+                    if ((*child)->caller)
+                    {
+                        if (e->callees->last() != (*child)->caller)
+                            e->callees->append((*child)->caller);
+                    }
+                    else
+                    {
+                        e->callees->append(*child);
+                        (*child)->caller = e;
+                    }
                 }
 
                 (*(trace->events))[(*evt)->task]->append(e);
@@ -610,6 +622,25 @@ void OTFConverter::matchEvents()
             }
         }
 
+        // Finish off last isend list
+        // This really shouldn't be needed because we expect
+        // something handling their request to come after them
+        if (options->isendCoalescing && isends->size() > 0)
+        {
+            P2PEvent * isend = new P2PEvent(isends);
+            isend->comm_prev = isends->first()->comm_prev;
+            if (isend->comm_prev)
+                isend->comm_prev->comm_next = isend;
+            prev = isend;
+
+            if (stack->isEmpty())
+                (*(trace->roots))[isend->task]->append(isend);
+        }
+        else // Only do this if it is empty
+        {
+            delete isends;
+        }
+
         // Deal with unclosed trace issues
         // We assume these events are not communication
         while (!stack->isEmpty())
@@ -630,25 +661,6 @@ void OTFConverter::matchEvents()
             }
             (*(trace->events))[bgn->task]->append(e);
             depth--;
-        }
-
-        // Finish off last isend list
-        // This really shouldn't be needed because we expect
-        // something handling their request to come after them
-        if (options->isendCoalescing && isends->size() > 0)
-        {
-            P2PEvent * isend = new P2PEvent(isends);
-            isend->comm_prev = isends->first()->comm_prev;
-            if (isend->comm_prev)
-                isend->comm_prev->comm_next = isend;
-            prev = isend;
-
-            if (isend->depth == 0)
-                (*(trace->roots))[isend->task]->append(isend);
-        }
-        else // Only do this if it is empty
-        {
-            delete isends;
         }
 
         // Prepare for next task
@@ -715,16 +727,6 @@ void OTFConverter::matchEvents()
         delete *ac;
     }
     delete allcomms;
-
-    // Check partitions
-    /*int part_counter = 0;
-    for (QList<Partition *>::Iterator part = trace->partitions->begin();
-         part != trace->partitions->end(); ++part)
-    {
-        if ((*part)->events->size() < 1)
-            std::cout << "Empty partition!  number: " << part_counter << std::endl;
-        part_counter++;
-    }*/
 }
 
 // We only do this with comm events right now, so we know we won't have nesting
@@ -918,12 +920,7 @@ void OTFConverter::matchEventsSaved()
             if (!((*evt)->enter)) // End of a subroutine
             {
                 EventRecord * bgn = stack->pop();
-                /*for (int i = 0; i < depth; i++)
-                {
-                    std::cout << " ";
-                }
-                std::cout << "Handling the end of " << rawtrace->functions->value(bgn->value)->name.toStdString().c_str() << std::endl;
-                */
+
                 // Partition/handle comm events
                 CollectiveRecord * cr = NULL;
                 sflag = false, rflag = false, isendflag = false;
@@ -991,7 +988,6 @@ void OTFConverter::matchEventsSaved()
                     handleSavedAttributes(cr->events->last(), *evt);
                     addToSavedPartition(cr->events->last(), cr->events->last()->phase);
                     e = cr->events->last();
-                    std::cout << "CR Event" << std::endl;
                 }
                 else if (coalesceflag == depth)
                 {
@@ -1006,8 +1002,6 @@ void OTFConverter::matchEventsSaved()
                     e = isend;
                     isends = new QList<P2PEvent *>();
                     coalesced_event = true;
-                    std::cout << "Coalesce Event" << std::endl;
-
                 }
                 else if (sflag)
                 {
@@ -1036,7 +1030,6 @@ void OTFConverter::matchEventsSaved()
                     if (isendflag)
                     {
                         isends->append(crec->message->sender);
-                        std::cout << "Appending to isends" << std::endl;
                     }
                     else
                     {
@@ -1086,7 +1079,6 @@ void OTFConverter::matchEventsSaved()
                                         msgs->at(0)->receiver->phase);
 
                     e = msgs->at(0)->receiver;
-
                 }
                 else // Non-com event
                 {
@@ -1116,10 +1108,12 @@ void OTFConverter::matchEventsSaved()
 
                     (*(trace->events))[(*evt)->task]->append(e);
                 }
+
             }
             else // Begin a subroutine
             {
                 depth++;
+
                 if (options->isendCoalescing && (*evt)->value == isend_index && coalesceflag <= 0)
                 {
                     coalesceflag = depth;
