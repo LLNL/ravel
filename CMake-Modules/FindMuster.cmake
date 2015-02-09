@@ -3,14 +3,14 @@ IF (NOT DEFINED MUSTER_FOUND)
 ENDIF()
 
 FIND_PATH(MUSTER_INCLUDE_DIR kmedoids.h
-    ${CMAKE_SOURCE_DIR}
     ${HOME}/opt/include
+    ${HOME}/opt/muster/include
     /usr/include
 )
 
 FIND_LIBRARY(MUSTER_LIBRARIES muster
-    ${CMAKE_SOURCE_DIR}
     ${HOME}/opt/lib
+    ${HOME}/opt/muster/lib
     /usr/lib
 )
 

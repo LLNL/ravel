@@ -3,20 +3,17 @@ IF (NOT DEFINED OTF_FOUND)
 ENDIF()
 
 FIND_PATH(OTF_INCLUDE_DIR otf.h
-    ${CMAKE_SOURCE_DIR}
     ${HOME}/opt/include
     /usr/include
 )
 
 FIND_LIBRARY(OTF_LIBRARIES otf
-    ${CMAKE_SOURCE_DIR}
     ${HOME}/opt/lib
     /usr/lib
 )
 
 IF (NOT OTF_LIBRARIES)
     FIND_LIBRARY(OTF_LIBRARIES open-trace-format
-	${CMAKE_SOURCE_DIR}
 	${HOME}/opt/lib
 	/usr/lib
     )

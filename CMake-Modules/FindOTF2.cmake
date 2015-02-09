@@ -3,13 +3,11 @@ IF (NOT DEFINED OTF2_FOUND)
 ENDIF()
 
 FIND_PATH(OTF2_INCLUDE_DIR otf2/otf2.h
-    ${CMAKE_SOURCE_DIR}
     ${HOME}/opt/include
     /usr/include
 )
 
 FIND_LIBRARY(OTF2_LIBRARIES otf2
-    ${CMAKE_SOURCE_DIR}
     ${HOME}/opt/lib
     /usr/lib
 )
