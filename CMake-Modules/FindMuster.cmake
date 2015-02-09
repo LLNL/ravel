@@ -2,22 +2,22 @@ IF (NOT DEFINED MUSTER_FOUND)
     SET (MUSTER_FOUND FALSE)
 ENDIF()
 
-FIND_PATH(MUSTER_INCLUDE_DIR kmedoids.h
-    ${HOME}/opt/include
-    ${HOME}/opt/muster/include
+FIND_PATH(MUSTER_INCLUDE_DIRS kmedoids.h
+    $ENV{HOME}/opt/include
+    $ENV{HOME}/opt/muster/include
     /usr/include
 )
 
 FIND_LIBRARY(MUSTER_LIBRARIES muster
-    ${HOME}/opt/lib
-    ${HOME}/opt/muster/lib
+    $ENV{HOME}/opt/lib
+    $ENV{HOME}/opt/muster/lib
     /usr/lib
 )
 
-IF (MUSTER_INCLUDE_DIR AND MUSTER_LIBRARIES)
+IF (MUSTER_INCLUDE_DIRS AND MUSTER_LIBRARIES)
     SET(MUSTER_FOUND TRUE)
     IF (CMAKE_VERBOSE_MAKEFILE)
-	MESSAGE("Using MUSTER_INCLUDE_DIR = " ${MUSTER_INCLUDE_DIR})
+	MESSAGE("Using MUSTER_INCLUDE_DIRS = " ${MUSTER_INCLUDE_DIRS})
 	MESSAGE("Using MUSTER_LIBRARIES = " ${MUSTER_LIBRARIES})
     ENDIF()
 ENDIF()
