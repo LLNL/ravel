@@ -5,9 +5,9 @@ find_package(Qt5 REQUIRED Core Widgets OpenGL Concurrent)
 
 # Dependencies over Qt5
 find_package(OpenGL)
-find_package(MUSTER REQUIRED)
-find_package(OTF REQUIRED)
-find_package(OTF2 REQUIRED)
+#find_package(MUSTER REQUIRED)
+#find_package(OTF REQUIRED)
+#find_package(OTF2 REQUIRED)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS}")
 
@@ -23,7 +23,10 @@ include_directories(${Qt5Widgets_INCLUDE_DIRS}
 add_definitions(${Qt5Widgets_DEFINITIONS})
 
 # ui files
-qt5_wrap_ui(mainwindow.ui importoptionsdialog.ui metricrangedialog.ui visoptionsdialog.ui)
+qt5_wrap_ui(ui_mainwindow.h mainwindow.ui)
+qt5_wrap_ui(ui_importoptionsdialog.h importoptionsdialog.ui)
+qt5_wrap_ui(ui_metricrangedialog.h metricrangedialog.ui)
+qt5_wrap_ui(ui_visoptionsdialog.h visoptionsdialog.ui)
 
 # Sources and UI Files
 set(RAVEL_SOURCES
@@ -124,8 +127,16 @@ set(RAVEL_HEADERS
 )
 
 set(RAVEL_UIC
-    mainwindow.h
+    ui_mainwindow.h
+    ui_importoptionsdialog.h
+    ui_visoptionsdialog.h
+    ui_metricrangedialog.h
 )
+
+include_directories(${MUSTER_INCLUDE_DIRECTORY}
+		    ${OTF_INCLUDE_DIRECTORY}
+		    ${OTF2_INCLUDE_DIRECTORY}
+		   )
 
 # Build Target
 add_executable(Ravel MACOSX_BUNDLE ${RAVEL_SOURCES} ${RAVEL_UIC})

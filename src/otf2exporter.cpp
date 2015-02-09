@@ -102,7 +102,7 @@ void OTF2Exporter::exportDefinitions()
             end = (*evts)->last()->enter;
     }
     OTF2_GlobalDefWriter_WriteClockProperties(global_def_writer,
-                                              pow10(trace->units),
+                                              pow(10, trace->units),
                                               start,
                                               end - start + 1);
 
