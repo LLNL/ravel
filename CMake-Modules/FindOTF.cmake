@@ -8,7 +8,7 @@ find_library(OTF_LIBRARIES otf
     $ENV{HOME}/opt/lib
 )
 
-if (not OTF_LIBRARIES)
+if (NOT OTF_LIBRARIES)
     find_library(OTF_LIBRARIES open-trace-format
 	$ENV{HOME}/opt/lib
     )
