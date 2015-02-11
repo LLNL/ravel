@@ -14,7 +14,7 @@ IF (NOT OTF_LIBRARIES)
     )
 ENDIF()
 
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(OTF
+find_package_handle_standard_args(OTF
 	FAIL_MESSAGE "Couldn't find OTF library."
 	REQUIRED_VARS OTF_INCLUDE_DIRS OTF_LIBRARIES
 	)

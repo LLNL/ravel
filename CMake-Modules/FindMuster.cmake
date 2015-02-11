@@ -1,16 +1,16 @@
-FIND_PATH(MUSTER_INCLUDE_DIRS kmedoids.h
+FIND_PATH(Muster_INCLUDE_DIRS kmedoids.h
     $ENV{HOME}/opt/include
     $ENV{HOME}/opt/muster/include
 )
 
-FIND_LIBRARY(MUSTER_LIBRARIES muster
+FIND_LIBRARY(Muster_LIBRARIES muster
     $ENV{HOME}/opt/lib
     $ENV{HOME}/opt/muster/lib
 )
 
 
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(MUSTER
+find_package_handle_standard_args(Muster
 	FAIL_MESSAGE "Couldn't find Muster."
-	REQUIRED_VARS MUSTER_INCLUDE_DIRS MUSTER_LIBRARIES
+	REQUIRED_VARS Muster_INCLUDE_DIRS Muster_LIBRARIES
 	)
 
