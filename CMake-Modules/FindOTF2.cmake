@@ -4,12 +4,10 @@ ENDIF()
 
 FIND_PATH(OTF2_INCLUDE_DIRS otf2/otf2.h
     $ENV{HOME}/opt/include
-    /usr/include
 )
 
 FIND_LIBRARY(OTF2_LIBRARIES otf2
     $ENV{HOME}/opt/lib
-    /usr/lib
 )
 
 IF (OTF2_INCLUDE_DIRS AND OTF2_LIBRARIES)

@@ -6,18 +6,15 @@ FIND_PATH(OTF_INCLUDE_DIRS otf.h
     $ENV{HOME}/opt/include
     $ENV{HOME}/opt/include/otf
     $ENV{HOME}/opt/include/open-trace-format
-    /usr/include
 )
 
 FIND_LIBRARY(OTF_LIBRARIES otf
     $ENV{HOME}/opt/lib
-    /usr/lib
 )
 
 IF (NOT OTF_LIBRARIES)
     FIND_LIBRARY(OTF_LIBRARIES open-trace-format
 	$ENV{HOME}/opt/lib
-	/usr/lib
     )
 ENDIF()
 

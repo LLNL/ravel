@@ -8,6 +8,7 @@
 #include <QVector>
 #include <QQueue>
 #include <QStack>
+#include <QSharedPointer>
 
 #include "otfimportoptions.h"
 

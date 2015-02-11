@@ -5,13 +5,11 @@ ENDIF()
 FIND_PATH(MUSTER_INCLUDE_DIRS kmedoids.h
     $ENV{HOME}/opt/include
     $ENV{HOME}/opt/muster/include
-    /usr/include
 )
 
 FIND_LIBRARY(MUSTER_LIBRARIES muster
     $ENV{HOME}/opt/lib
     $ENV{HOME}/opt/muster/lib
-    /usr/lib
 )
 
 IF (MUSTER_INCLUDE_DIRS AND MUSTER_LIBRARIES)

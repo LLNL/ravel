@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QString>
 #include <QMap>
+#include <QStack>
 
 class RawTrace;
 class OTFImporter;
