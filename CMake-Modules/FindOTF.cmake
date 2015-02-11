@@ -1,18 +1,18 @@
-FIND_PATH(OTF_INCLUDE_DIRS otf.h
+find_path(OTF_INCLUDE_DIRS otf.h
     $ENV{HOME}/opt/include
     $ENV{HOME}/opt/include/otf
     $ENV{HOME}/opt/include/open-trace-format
 )
 
-FIND_LIBRARY(OTF_LIBRARIES otf
+find_library(OTF_LIBRARIES otf
     $ENV{HOME}/opt/lib
 )
 
-IF (NOT OTF_LIBRARIES)
-    FIND_LIBRARY(OTF_LIBRARIES open-trace-format
+if (not OTF_LIBRARIES)
+    find_library(OTF_LIBRARIES open-trace-format
 	$ENV{HOME}/opt/lib
     )
-ENDIF()
+endif()
 
 find_package_handle_standard_args(OTF
 	FAIL_MESSAGE "Couldn't find OTF library."

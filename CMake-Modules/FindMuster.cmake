@@ -1,9 +1,9 @@
-FIND_PATH(Muster_INCLUDE_DIRS kmedoids.h
+find_path(Muster_INCLUDE_DIRS kmedoids.h
     $ENV{HOME}/opt/include
     $ENV{HOME}/opt/muster/include
 )
 
-FIND_LIBRARY(Muster_LIBRARIES muster
+find_library(Muster_LIBRARIES muster
     $ENV{HOME}/opt/lib
     $ENV{HOME}/opt/muster/lib
 )
