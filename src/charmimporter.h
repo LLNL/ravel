@@ -5,13 +5,16 @@
 #include <QMap>
 #include <QSet>
 #include <QLinkedList>
-#include <zlib.h>
-#include <sstream>
-#include <fstream>
-#include "otfimportoptions.h"
-#include "function.h"
-#include "task.h"
-#include "trace.h"
+
+class Trace;
+class Task;
+class TaskGroup;
+class Function;
+class OTFImportOptions;
+class Message;
+class Event;
+class P2PEvent;
+class CommEvent;
 
 class Message;
 
@@ -157,13 +160,14 @@ private:
         QSet<ChareIndex> * indices;
     };
 
+    class CharmEvt;
 
     class CharmMsg {
     public:
         CharmMsg(int _mtype, long _mlen, int _pe, int _entry, int _event, int _mype)
             : sendtime(0), recvtime(0), msg_type(_mtype), msg_len(_mlen),
               send_pe(_pe), entry(_entry), event(_event), recv_pe(_mype),
-              send_task(-1), recv_task(-1), tracemsg(NULL) {}
+              send_task(-1), recv_task(-1), send_evt(NULL), tracemsg(NULL) {}
 
         unsigned long long sendtime;
         unsigned long long recvtime;
@@ -176,6 +180,7 @@ private:
         int send_task;
         int recv_task;
 
+        CharmEvt * send_evt;
         Message * tracemsg;
     };
 
@@ -185,8 +190,9 @@ private:
         CharmEvt(int _entry, unsigned long long _time, int _pe, int _chare,
                  bool _enter = true)
             : time(_time), pe(_pe), task(-1), enter(_enter),
-              chare(_chare), index(ChareIndex(-1, 0,0,0,0)), entry(_entry), charmmsg(NULL),
-              children(QList<Event *>())
+              chare(_chare), index(ChareIndex(-1, 0,0,0,0)), entry(_entry),
+              charmmsgs(QList<CharmMsg *>()), children(QList<Event *>()),
+              trace_evt(NULL)
         { }
 
         bool operator<(const CharmEvt & event) { return time < event.time; }
@@ -204,9 +210,11 @@ private:
         ChareIndex index;
         int entry;
 
-       CharmMsg * charmmsg;
+       QList<CharmMsg *> charmmsgs;
 
        QList<Event *> children;
+
+       P2PEvent * trace_evt;
 
     };
 
@@ -221,7 +229,8 @@ private:
 
     Trace * trace;
 
-    QVector<QMap<int, QList<CharmMsg *> *> *> * unmatched_msgs; //[other side][event]
+    QVector<QMap<int, QList<CharmMsg *> *> *> * unmatched_recvs; //[other pe][event]
+    QVector<QMap<int, QList<CharmMsg *> *> *> * sends;
     QVector<QVector<CharmEvt *> *> * charm_events;
     QVector<QVector<CharmEvt *> *> * task_events;
     QVector<CharmMsg *> * messages;
@@ -231,6 +240,7 @@ private:
     QMap<int, Function *> * functions;
     QMap<ChareIndex, int> chare_to_task;
     CharmEvt * last;
+    CharmMsg * last_send;
 
     QSet<QString> seen_chares;
 

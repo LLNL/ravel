@@ -12,6 +12,18 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QStack>
+#include <zlib.h>
+#include <sstream>
+#include <fstream>
+#include "trace.h"
+#include "task.h"
+#include "taskgroup.h"
+#include "function.h"
+#include "message.h"
+#include "p2pevent.h"
+#include "commevent.h"
+#include "event.h"
+#include "otfimportoptions.h"
 
 #include "general_util.h"
 
@@ -21,7 +33,8 @@ CharmImporter::CharmImporter()
       version(0),
       processes(0),
       trace(NULL),
-      unmatched_msgs(NULL),
+      unmatched_recvs(NULL),
+      sends(NULL),
       charm_events(NULL),
       task_events(NULL),
       messages(new QVector<CharmMsg *>()),
@@ -30,6 +43,8 @@ CharmImporter::CharmImporter()
       functiongroups(new QMap<int, QString>()),
       functions(new QMap<int, Function *>()),
       chare_to_task(QMap<ChareIndex, int>()),
+      last(NULL),
+      last_send(NULL),
       seen_chares(QSet<QString>())
 {
 }
@@ -61,10 +76,12 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
 {
     readSts(dataFileName);
 
-    unmatched_msgs = new QVector<QMap<int, QList<CharmMsg *> *> *>(processes);
+    unmatched_recvs = new QVector<QMap<int, QList<CharmMsg *> *> *>(processes);
+    sends = new QVector<QMap<int, QList<CharmMsg *> *> *>(processes);
     charm_events = new QVector<QVector<CharmEvt *> *>(processes);
     for (int i = 0; i < processes; i++) {
-        (*unmatched_msgs)[i] = new QMap<int, QList<CharmMsg *> *>();
+        (*unmatched_recvs)[i] = new QMap<int, QList<CharmMsg *> *>();
+        (*sends)[i] = new QMap<int, QList<CharmMsg *> *>();
         (*charm_events)[i] = new QVector<CharmEvt *>();
     }
 
@@ -133,7 +150,7 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
 void CharmImporter::cleanUp()
 {
     for (QVector<QMap<int, QList<CharmMsg *> *> *>::Iterator itr
-         = unmatched_msgs->begin(); itr != unmatched_msgs->end(); ++itr)
+         = unmatched_recvs->begin(); itr != unmatched_recvs->end(); ++itr)
     {
         for (QMap<int, QList<CharmMsg *> *>::Iterator eitr
              = (*itr)->begin(); eitr != (*itr)->end(); ++eitr)
@@ -143,7 +160,20 @@ void CharmImporter::cleanUp()
         }
         delete *itr;
     }
-    delete unmatched_msgs;
+    delete unmatched_recvs;
+
+    for (QVector<QMap<int, QList<CharmMsg *> *> *>::Iterator itr
+         = sends->begin(); itr != sends->end(); ++itr)
+    {
+        for (QMap<int, QList<CharmMsg *> *>::Iterator eitr
+             = (*itr)->begin(); eitr != (*itr)->end(); ++eitr)
+        {
+            // CharmMsgs deleted in charm events;
+            delete *eitr;
+        }
+        delete *itr;
+    }
+    delete sends;
 
     for (QVector<QVector<CharmEvt *> *>::Iterator itr
          = charm_events->begin(); itr != charm_events->end(); ++itr)
@@ -216,7 +246,7 @@ void CharmImporter::charify()
             if ((*event)->enter)
             {
                 std::cout << " enter ";
-                if ((*event)->charmmsg)
+                if ((*event)->charmmsgs.size() > 0)
                 {
                     std::cout << "  this event has a msg!" << std::endl;
                 }
@@ -286,7 +316,7 @@ void CharmImporter::buildPartitions()
         depth = 0;
         phase = 0;
         prev = NULL;
-        std::cout << "Now handling " << counter << std::endl;
+        //std::cout << "Now handling " << counter << std::endl;
         counter++;
         for (QVector<CharmEvt *>::Iterator evt = (*event_list)->begin();
              evt != (*event_list)->end(); ++evt)
@@ -294,69 +324,81 @@ void CharmImporter::buildPartitions()
             if ((*evt)->enter)
             {
                 stack.push(*evt);
-                std::cout << "Enter " << entries->value((*evt)->entry)->name.toStdString().c_str() << std::endl;
-                std::cout << "     Stack size: " << stack.size() << std::endl;
+                //std::cout << "Enter " << entries->value((*evt)->entry)->name.toStdString().c_str() << std::endl;
+                //std::cout << "     Stack size: " << stack.size() << std::endl;
                 depth++;
             }
             else
             {
-                std::cout << "Leave " << entries->value((*evt)->entry)->name.toStdString().c_str() << std::endl;
-                std::cout << "     Stack size: " << stack.size() << std::endl;
+                //std::cout << "Leave " << entries->value((*evt)->entry)->name.toStdString().c_str() << std::endl;
+                //std::cout << "     Stack size: " << stack.size() << std::endl;
                 bgn = stack.pop();
                 Event * e = NULL;
                 if (trace->functions->value(bgn->entry)->group == 0) // Send or Recv
                 {
                     QVector<Message *> * msgs = new QVector<Message *>();
-                    if (bgn->charmmsg->tracemsg)
+                    for (QList<CharmMsg *>::Iterator cmsg = bgn->charmmsgs.begin();
+                         cmsg != bgn->charmmsgs.end(); ++cmsg)
                     {
-                        msgs->append(bgn->charmmsg->tracemsg);
-                    }
-                    else
-                    {
-                        Message * msg = new Message(bgn->charmmsg->sendtime,
-                                                    bgn->charmmsg->recvtime,
-                                                    0);
-                        bgn->charmmsg->tracemsg = msg;
-                        msgs->append(msg);
-                    }
-                    if (bgn->entry == SEND_FXN)
-                    {
-                        bgn->charmmsg->tracemsg->sender = new P2PEvent(bgn->time,
-                                                                       (*evt)->time-1,
+                        if ((*cmsg)->tracemsg)
+                        {
+                            msgs->append((*cmsg)->tracemsg);
+                        }
+                        else
+                        {
+                            Message * msg = new Message((*cmsg)->sendtime,
+                                                        (*cmsg)->recvtime,
+                                                        0);
+                            (*cmsg)->tracemsg = msg;
+                            msgs->append(msg);
+                        }
+                        if (bgn->entry == SEND_FXN)
+                        {
+                            if (!(*cmsg)->send_evt->trace_evt)
+                            {
+                                (*cmsg)->tracemsg->sender = new P2PEvent(bgn->time,
+                                                                         (*evt)->time-1,
+                                                                         bgn->entry,
+                                                                         bgn->task,
+                                                                         phase,
+                                                                         msgs);
+                                (*cmsg)->send_evt->trace_evt = (*cmsg)->tracemsg->sender;
+                                (*cmsg)->tracemsg->sender->comm_prev = prev;
+                                if (prev)
+                                    prev->comm_next = (*cmsg)->tracemsg->sender;
+                                prev = (*cmsg)->tracemsg->sender;
+
+                                makeSingletonPartition((*cmsg)->tracemsg->sender);
+
+                                e = (*cmsg)->tracemsg->sender;
+
+                            }
+                            else
+                            {
+                                (*cmsg)->tracemsg->sender = (*cmsg)->send_evt->trace_evt;
+                            }
+
+                        }
+                        else if (bgn->entry == RECV_FXN)
+                        {
+                            (*cmsg)->tracemsg->receiver = new P2PEvent(bgn->time-1,
+                                                                       (*evt)->time-2,
                                                                        bgn->entry,
                                                                        bgn->task,
                                                                        phase,
                                                                        msgs);
 
-                        bgn->charmmsg->tracemsg->sender->comm_prev = prev;
-                        if (prev)
-                            prev->comm_next = bgn->charmmsg->tracemsg->sender;
-                        prev = bgn->charmmsg->tracemsg->sender;
+                            (*cmsg)->tracemsg->receiver->is_recv = true;
 
-                        makeSingletonPartition(bgn->charmmsg->tracemsg->sender);
+                            (*cmsg)->tracemsg->receiver->comm_prev = prev;
+                            if (prev)
+                                prev->comm_next = (*cmsg)->tracemsg->receiver;
+                            prev = (*cmsg)->tracemsg->receiver;
 
-                        e = bgn->charmmsg->tracemsg->sender;
+                            makeSingletonPartition((*cmsg)->tracemsg->receiver);
 
-                    }
-                    else if (bgn->entry == RECV_FXN)
-                    {
-                        bgn->charmmsg->tracemsg->receiver = new P2PEvent(bgn->time-1,
-                                                                         (*evt)->time-2,
-                                                                         bgn->entry,
-                                                                         bgn->task,
-                                                                         phase,
-                                                                         msgs);
-
-                        bgn->charmmsg->tracemsg->receiver->is_recv = true;
-
-                        bgn->charmmsg->tracemsg->receiver->comm_prev = prev;
-                        if (prev)
-                            prev->comm_next = bgn->charmmsg->tracemsg->receiver;
-                        prev = bgn->charmmsg->tracemsg->receiver;
-
-                        makeSingletonPartition(bgn->charmmsg->tracemsg->receiver);
-
-                        e = bgn->charmmsg->tracemsg->receiver;
+                            e = (*cmsg)->tracemsg->receiver;
+                        }
                     }
                 }
                 else // Non-comm event
@@ -482,9 +524,14 @@ void CharmImporter::parseLine(QString line, int my_pe)
             //std::cout << "Send on " << pe << " of " << entries->value(entry)->name.toStdString().c_str() << std::endl;
             //std::cout << "     Event: " << event << ", msg_type: " << mtype << std::endl;
 
-            // Look for our message
+            // Look for our message -- note this send may actually be a
+            // broadcast. If that's the case, we weant to find all matches,
+            // process them, and then remove them from the list, and finally
+            // insert ourself so that future recvs to this broadcast can find us.
+            // If we find nothig, then we just insert ourself.
             CharmMsg * msg = NULL;
-            QList<CharmMsg *> * candidates = unmatched_msgs->at(pe)->value(event);
+            QList<CharmMsg *> * candidates = unmatched_recvs->at(pe)->value(event);
+            QList<CharmMsg *> toremove = QList<CharmMsg *>();
             if (candidates)
             {
                 for (QList<CharmMsg *>::Iterator candidate = candidates->begin();
@@ -492,33 +539,39 @@ void CharmImporter::parseLine(QString line, int my_pe)
                 {
                     if ((*candidate)->entry == entry)
                     {
-                        msg = *candidate;
-                        break;
+                        (*candidate)->sendtime = time;
+                        evt->charmmsgs.append(*candidate);
+                        toremove.append(*candidate);
+                        std::cout << "Found message for send on entry " << entries->value(entry)->name.toStdString().c_str();
+                        std::cout << " at " << time << " and pe " << pe << std::endl;
                     }
                 }
             }
 
-            if (msg) // Found!
+            if (toremove.size() > 0) // Found!
             {
-                candidates->removeOne(msg);
-                std::cout << "Found message for send on entry " << entries->value(entry)->name.toStdString().c_str();
-                std::cout << " at " << time << " and pe " << pe << std::endl;
+                for (QList<CharmMsg *>::Iterator rmsg = toremove.begin();
+                     rmsg != toremove.end(); ++rmsg)
+                {
+                    candidates->removeOne(msg);
+                }
             }
             else
             {
                 msg = new CharmMsg(mtype, msglen, pe, entry, event, my_pe);
-                if (!unmatched_msgs->at(pe)->contains(event))
+                if (!sends->at(pe)->contains(event))
                 {
-                    unmatched_msgs->at(pe)->insert(event, new QList<CharmMsg *>());
+                    sends->at(pe)->insert(event, new QList<CharmMsg *>());
                 }
-                unmatched_msgs->at(pe)->value(event)->append(msg);
-                messages->append(msg);
+                sends->at(pe)->value(event)->append(msg);
+                //messages->append(msg); <-- only append from recv side
+                msg->sendtime = time;
+                msg->send_evt = evt;
                 std::cout << "Creating message from send on entry " << entries->value(entry)->name.toStdString().c_str();
-                std::cout << " at " << time << " and pe " << pe << std::endl;
+                std::cout << " at " << time << " and pe " << pe << " with event " << event;
+                std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
+                std::cout << "::" << entries->value(entry)->name.toStdString().c_str() << std::endl;
             }
-
-            msg->sendtime = time;
-            evt->charmmsg = msg;
         }
         else
         {
@@ -530,7 +583,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
                 unmatched_sends->at(pe)->append(msg);
             }*/
             std::cout << "Bcast on " << pe << " of " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
-            std::cout<< "::" << entries->value(entry)->name.toStdString().c_str() << std::endl;
+            std::cout << "::" << entries->value(entry)->name.toStdString().c_str() << std::endl;
             std::cout << "     Event: " << event << ", msg_type: " << mtype << std::endl;
 
         }
@@ -592,16 +645,22 @@ void CharmImporter::parseLine(QString line, int my_pe)
         if (pe > my_pe) // We get send later
         {
             msg = new CharmMsg(mtype, msglen, pe, entry, event, my_pe);
-            if (!unmatched_msgs->at(pe)->contains(event))
+            if (!unmatched_recvs->at(pe)->contains(event))
             {
-                unmatched_msgs->at(pe)->insert(event, new QList<CharmMsg *>());
+                unmatched_recvs->at(pe)->insert(event, new QList<CharmMsg *>());
             }
-            unmatched_msgs->at(pe)->value(event)->append(msg);
+            unmatched_recvs->at(pe)->value(event)->append(msg);
             messages->append(msg);
+
             std::cout << "Creating message from recv on entry " << entries->value(entry)->name.toStdString().c_str();
-            std::cout << " at " << time << " and pe " << pe << std::endl;
+            std::cout << " at " << time << " and pe " << pe << " with event " << event;
+            std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
+            std::cout << "::" << entries->value(entry)->name.toStdString().c_str() << std::endl;
+
         } else { // Send already exists
-            QList<CharmMsg *> * candidates = unmatched_msgs->at(pe)->value(event);
+
+            QList<CharmMsg *> * candidates = sends->at(pe)->value(event);
+            CharmMsg * send_candidate = NULL;
             if (candidates) // May be missing some send events due to runtime collection
             {
                 for (QList<CharmMsg *>::Iterator candidate = candidates->begin();
@@ -609,16 +668,21 @@ void CharmImporter::parseLine(QString line, int my_pe)
                 {
                     if ((*candidate)->entry == entry)
                     {
-                        msg = *candidate;
+                        send_candidate = *candidate;
                         break;
                     }
                 }
-                candidates->removeOne(msg);
             }
-            if (msg)
+            if (send_candidate)
             {
+                msg = new CharmMsg(mtype, msglen, pe, entry, event, my_pe);
+                messages->append(msg);
+                send_candidate->send_evt->charmmsgs.append(msg);
+
                 std::cout << "Found message for recv on entry " << entries->value(entry)->name.toStdString().c_str();
-                std::cout << " at " << time << " and pe " << pe << std::endl;
+                std::cout << " at " << time << " and pe " << pe << " with event " << event;
+                std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
+                std::cout << "::" << entries->value(entry)->name.toStdString().c_str() << std::endl;
             }
         }
         if (msg)
@@ -638,11 +702,14 @@ void CharmImporter::parseLine(QString line, int my_pe)
             charm_events->at(pe)->append(recv_end);
 
             msg->recvtime = time;
-            evt->charmmsg = msg;
+            evt->charmmsgs.append(msg);
         }
         else
         {
-            std::cout << "NO RECV MSG!!!" << std::endl;
+            std::cout << "NO RECV MSG!!!" << " on pe " << my_pe << " was expecting message from ";
+            std::cout << pe << " with event " << event;
+            std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
+            std::cout << "::" << entries->value(entry)->name.toStdString().c_str() << std::endl;
         }
 
     }
