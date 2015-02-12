@@ -367,7 +367,7 @@ int OTFImporter::handleDefProcess(void * userData, uint32_t stream,
     Q_UNUSED(stream);
     Q_UNUSED(parent);
 
-    ((OTFImporter *) userData)->tasks->insert(process, new Task(process, QString(name)));
+    ((OTFImporter *) userData)->tasks->insert(process - 1, new Task(process - 1, QString(name)));
     ((OTFImporter *) userData)->num_processes++;
     return 0;
 }
@@ -538,8 +538,8 @@ int OTFImporter::handleDefProcessGroup(void * userData, uint32_t stream,
     TaskGroup * t = new TaskGroup(procGroup, qname);
     for (int i = 0; i < numberOfProcs; i++)
     {
-        t->tasks->append(procs[i]);
-        t->taskorder->insert(procs[i], i);
+        t->tasks->append(procs[i] - 1);
+        t->taskorder->insert(procs[i] - 1, i);
     }
     (*(((OTFImporter*) userData)->taskgroups))[procGroup] = t;
 

@@ -28,6 +28,7 @@
 #include <QObject>
 #include <QString>
 #include <QMap>
+#include <QStack>
 
 class RawTrace;
 class OTFImporter;
@@ -37,6 +38,7 @@ class Trace;
 class Partition;
 class CommEvent;
 class CounterRecord;
+class EventRecord;
 
 // Uses the raw records read from the OTF:
 // - switches point events into durational events
@@ -58,7 +60,10 @@ signals:
 private:
     void convert();
     void matchEvents();
+    void matchEventsSaved();
     void makeSingletonPartition(CommEvent * evt);
+    void addToSavedPartition(CommEvent * evt, int partition);
+    void handleSavedAttributes(CommEvent * evt, EventRecord *er);
     void mergeForWaitall(QList<QList<Partition * > *> * groups);
     int advanceCounters(CommEvent * evt, QStack<CounterRecord *> * counterstack,
                         QVector<CounterRecord *> * counters, int index,

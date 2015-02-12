@@ -36,9 +36,11 @@
 #include "otfcollective.h"
 #include "function.h"
 #include "task.h"
+#include "otfimportoptions.h"
 
 OTF2Importer::OTF2Importer()
-    : ticks_per_second(0),
+    : from_saved_version(""),
+      ticks_per_second(0),
       time_offset(0),
       time_conversion_factor(0),
       num_processes(0),
@@ -48,10 +50,12 @@ OTF2Importer::OTF2Importer()
       sendcount(0),
       recvcount(0),
       enforceMessageSize(false),
+      options(new OTFImportOptions()),
       otfReader(NULL),
       global_def_callbacks(NULL),
       global_evt_callbacks(NULL),
       stringMap(new QMap<OTF2_StringRef, QString>()),
+      attributeMap(new QMap<OTF2_AttributeRef, OTF2Attribute *>()),
       locationMap(new QMap<OTF2_LocationRef, OTF2Location *>()),
       locationGroupMap(new QMap<OTF2_LocationGroupRef, OTF2LocationGroup *>()),
       regionMap(new QMap<OTF2_RegionRef, OTF2Region *>()),
@@ -74,7 +78,12 @@ OTF2Importer::OTF2Importer()
       collectives(NULL),
       collectiveMap(NULL),
       collective_begins(NULL),
-      collective_fragments(NULL)
+      collective_fragments(NULL),
+      metrics(QList<OTF2_AttributeRef>()),
+      metric_names(new QList<QString>()),
+      metric_units(new QMap<QString, QString>()),
+      stepRef(0),
+      phaseRef(0)
 {
     collective_definitions->insert(0, new OTFCollective(0, 1, "Barrier"));
     collective_definitions->insert(1, new OTFCollective(1, 2, "Bcast"));
@@ -183,6 +192,14 @@ OTF2Importer::~OTF2Importer()
     }
     delete collective_fragments;
 
+    for (QMap<OTF2_AttributeRef, OTF2Attribute *>::Iterator eitr
+         = attributeMap->begin();
+         eitr != attributeMap->end(); ++eitr)
+    {
+        delete eitr.value();
+    }
+    delete attributeMap;
+
     for (QMap<OTF2_LocationRef, OTF2Location *>::Iterator eitr
          = locationMap->begin();
          eitr != locationMap->end(); ++eitr)
@@ -224,6 +241,8 @@ OTF2Importer::~OTF2Importer()
         delete eitr.value();
     }
     delete commMap;
+
+    delete options;
 }
 
 RawTrace * OTF2Importer::importOTF2(const char* otf_file, bool _enforceMessageSize)
@@ -272,6 +291,7 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file, bool _enforceMessageSi
     processDefinitions();
 
     rawtrace = new RawTrace(num_processes);
+    *(rawtrace->options) = *options;
     rawtrace->tasks = tasks;
     rawtrace->second_magnitude = second_magnitude;
     rawtrace->functions = functions;
@@ -285,6 +305,8 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file, bool _enforceMessageSi
     rawtrace->messages_r = new QVector<QVector<CommRecord *> *>(num_processes);
     rawtrace->counter_records = new QVector<QVector<CounterRecord *> *>(num_processes);
     rawtrace->collectiveBits = new QVector<QVector<RawTrace::CollectiveBit *> *>(num_processes);
+    rawtrace->metric_names = metric_names;
+    rawtrace->metric_units = metric_units;
 
     // Adding locations
     // Use the locationIndexMap to only chooes the ones we can handle (right now just MPI)
@@ -421,6 +443,10 @@ void OTF2Importer::setDefCallbacks()
     OTF2_GlobalDefReaderCallbacks_SetStringCallback(global_def_callbacks,
                                                     callbackDefString);
 
+    // Attributes
+    OTF2_GlobalDefReaderCallbacks_SetAttributeCallback(global_def_callbacks,
+                                                       callbackDefAttribute);
+
     // Timer
     OTF2_GlobalDefReaderCallbacks_SetClockPropertiesCallback(global_def_callbacks,
                                                              callbackDefClockProperties);
@@ -491,6 +517,40 @@ void OTF2Importer::processDefinitions()
         }
     }
 
+    // Ravel info
+    for (QMap<OTF2_AttributeRef, OTF2Attribute *>::Iterator attr = attributeMap->begin();
+         attr != attributeMap->end(); ++attr)
+    {
+        OTF2Attribute * attribute = attr.value();
+        QString name = stringMap->value(attribute->name);
+        if (name == "Ravel")
+        {
+            from_saved_version = stringMap->value(attribute->description);
+            options->origin = OTFImportOptions::OF_SAVE_OTF2;
+        }
+        else if (name == "step")
+        {
+            stepRef = attr.key();
+        }
+        else if (name == "phase")
+        {
+            phaseRef = attr.key();
+        }
+        else if (name.startsWith("option_")) // Import Options
+        {
+            options->setOption(name, stringMap->value(attribute->description));
+        }
+        else
+        {
+            metrics.append(attr.key());
+            if (name.endsWith("_agg"))
+            {
+                metric_names->append(name.left(name.length() - 4));
+                metric_units->insert(metric_names->last(),
+                                     stringMap->value(attribute->description));
+            }
+        }
+    }
 }
 
 void OTF2Importer::setEvtCallbacks()
@@ -565,6 +625,17 @@ OTF2_CallbackCode OTF2Importer::callbackDefString(void * userData,
                                                   const char * string)
 {
     ((OTF2Importer*) userData)->stringMap->insert(self, QString(string));
+    return OTF2_CALLBACK_SUCCESS;
+}
+
+OTF2_CallbackCode OTF2Importer::callbackDefAttribute(void * userData,
+                                                     OTF2_AttributeRef self,
+                                                     OTF2_StringRef name,
+                                                     OTF2_StringRef description,
+                                                     OTF2_Type type)
+{
+    OTF2Attribute * a = new OTF2Attribute(self, name, description, type);
+    ((OTF2Importer *) userData)->attributeMap->insert(self, a);
     return OTF2_CALLBACK_SUCCESS;
 }
 
@@ -668,14 +739,43 @@ OTF2_CallbackCode OTF2Importer::callbackLeave(OTF2_LocationRef locationID,
                                               OTF2_AttributeList * attributeList,
                                               OTF2_RegionRef region)
 {
-    Q_UNUSED(attributeList);
     int process = ((OTF2Importer *) userData)->locationIndexMap->value(locationID);
     int function = ((OTF2Importer *) userData)->regionIndexMap->value(region);
-    ((*((((OTF2Importer*) userData)->rawtrace)->events))[process])->append(new EventRecord(process,
-                                                                                           convertTime(userData,
-                                                                                                       time),
-                                                                                           function,
-                                                                                           false));
+    EventRecord * er = new EventRecord(process,
+                                       convertTime(userData, time),
+                                       function,
+                                       false);
+    ((*((((OTF2Importer*) userData)->rawtrace)->events))[process])->append(er);
+
+    // Note, the leave is the only place the save file stores attributes, so
+    // we only need to check them here.
+    if (OTF2_AttributeList_GetNumberOfElements(attributeList) > 0
+        && ((OTF2Importer * ) userData)->from_saved_version.length() > 0)
+    {
+        QMap<OTF2_StringRef, QString> * strMap = ((OTF2Importer *) userData)->stringMap;
+        QMap<OTF2_AttributeRef, OTF2Attribute *> * attrMap = ((OTF2Importer *) userData)->attributeMap;
+        er->metrics = new QMap<QString, unsigned long long>();
+        er->ravel_info = new QMap<QString, int>();
+        uint64_t metric;
+        for (QList<OTF2_AttributeRef>::Iterator attrRef
+             = ((OTF2Importer *) userData)->metrics.begin();
+             attrRef != ((OTF2Importer *) userData)->metrics.end(); ++attrRef)
+        {
+            OTF2_AttributeList_GetUint64(attributeList, *attrRef, &metric);
+            er->metrics->insert(strMap->value(attrMap->value(*attrRef)->name),
+                                metric);
+        }
+        OTF2_AttributeList_GetUint64(attributeList,
+                                     ((OTF2Importer *) userData)->stepRef,
+                                     &metric);
+        er->ravel_info->insert("step", metric);
+
+        OTF2_AttributeList_GetUint64(attributeList,
+                                     ((OTF2Importer *) userData)->phaseRef,
+                                     &metric);
+        er->ravel_info->insert("phase", metric);
+    }
+
     return OTF2_CALLBACK_SUCCESS;
 }
 

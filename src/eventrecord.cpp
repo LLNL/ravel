@@ -31,6 +31,16 @@ EventRecord::EventRecord(unsigned int _task, unsigned long long int _t,
       time(_t),
       value(_v),
       enter(_e),
-      children(QList<Event *>())
+      children(QList<Event *>()),
+      metrics(NULL),
+      ravel_info(NULL)
 {
+}
+
+EventRecord::~EventRecord()
+{
+    if (metrics)
+        delete metrics;
+    if (ravel_info)
+        delete ravel_info;
 }

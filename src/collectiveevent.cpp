@@ -23,7 +23,6 @@
 // Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 //////////////////////////////////////////////////////////////////////////////
 #include "collectiveevent.h"
-
 #include "clusterevent.h"
 
 CollectiveEvent::CollectiveEvent(unsigned long long _enter,
@@ -220,4 +219,26 @@ QList<int> CollectiveEvent::neighborTasks()
     }
     neighbors.removeOne(task);
     return neighbors;
+}
+
+// We know we have no children, so just do enter/leave as well as the collectives
+void CollectiveEvent::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap)
+{
+    writeOTF2Enter(writer);
+
+    // write the collective event
+    OTF2_EvtWriter_MpiCollectiveBegin(writer,
+                                      NULL,
+                                      enter);
+
+    OTF2_EvtWriter_MpiCollectiveEnd(writer,
+                                    NULL,
+                                    exit,
+                                    collective->collective,
+                                    collective->taskgroup,
+                                    collective->root,
+                                    0,
+                                    0);
+
+    writeOTF2Leave(writer, attributeMap);
 }

@@ -27,8 +27,9 @@
 #include "p2pevent.h"
 #include "viswidget.h"
 
-Message::Message(unsigned long long send, unsigned long long recv)
-    : CommBundle(), sendtime(send), recvtime(recv)
+Message::Message(unsigned long long send, unsigned long long recv, int group)
+    : CommBundle(), sendtime(send), recvtime(recv),
+      sender(NULL), receiver(NULL), taskgroup(group), tag(0)
 {
 }
 

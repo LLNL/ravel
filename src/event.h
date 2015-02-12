@@ -26,6 +26,10 @@
 #define EVENT_H
 
 #include <QVector>
+#include <QMap>
+#include <QString>
+#include <otf2/otf2.h>
+
 
 class Partition;
 
@@ -45,9 +49,16 @@ public:
 
     Event * findChild(unsigned long long time);
     unsigned long long getVisibleEnd(unsigned long long start);
+    Event * least_common_caller(Event * other);
+    bool same_subtree(Event * other);
+    Event * least_multiple_caller(QMap<Event *, int> * memo = NULL);
+    virtual int comm_count(QMap<Event *, int> * memo = NULL);
     virtual bool isCommEvent() { return false; }
     virtual bool isReceive() { return false; }
     virtual bool isCollective() { return false; }
+    virtual void writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap);
+    virtual void writeOTF2Leave(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap);
+    virtual void writeOTF2Enter(OTF2_EvtWriter * writer);
 
     // Call tree info
     Event * caller;

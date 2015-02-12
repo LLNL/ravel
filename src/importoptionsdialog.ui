@@ -34,7 +34,7 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
     <x>0</x>
     <y>0</y>
     <width>412</width>
-    <height>492</height>
+    <height>520</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -116,6 +116,13 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
              </property>
              <property name="checked">
               <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="callerCheckbox">
+             <property name="text">
+              <string>merge Partitions by call tree</string>
              </property>
             </widget>
            </item>

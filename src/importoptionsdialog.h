@@ -48,6 +48,7 @@ public slots:
     void onPartitionByFunction(bool value);
     void onPartitionByHeuristic(bool value);
     void onWaitallMerge(bool merge);
+    void onCallerMerge(bool merge);
     void onLeapMerge(bool merge);
     void onLeapSkip(bool skip);
     void onGlobalMerge(bool merge);

@@ -26,6 +26,7 @@
 #include <iostream>
 #include <climits>
 
+#include "event.h"
 #include "commevent.h"
 #include "collectiverecord.h"
 #include "clustertask.h"
@@ -175,6 +176,26 @@ unsigned long long int Partition::distance(Partition * other)
     return dist;
 }
 
+void Partition::fromSaved()
+{
+    // Make sure events are sorted
+    sortEvents();
+
+    // Parent/Children handled in trace, this will just set min/max steps
+    for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
+         event_list != events->end(); ++event_list)
+    {
+        /*if (event_list.value()->first()->comm_prev)
+            parents->insert(event_list.value()->first()->comm_prev->partition);
+        if (event_list.value()->last()->comm_next)
+            children->insert(event_list.value()->first()->comm_next->partition);*/
+        if (event_list.value()->first()->step < min_global_step || min_global_step < 0)
+            min_global_step = event_list.value()->first()->step;
+        if (event_list.value()->last()->step > max_global_step)
+            max_global_step = event_list.value()->last()->step;
+    }
+}
+
 
 // Requires parent's dag leaps to be up to date
 void Partition::calculate_dag_leap()
@@ -186,6 +207,28 @@ void Partition::calculate_dag_leap()
         dag_leap = std::max(dag_leap, (*parent)->dag_leap + 1);
     }
 
+}
+
+Event * Partition::least_common_caller(int taskid, QMap<Event *, int> * memo)
+{
+    QList<CommEvent *> * evts = events->value(taskid);
+    if (evts->size() > 1)
+    {
+        Event * evt1, * evt2;
+        evt1 = evts->first();
+        for (int i = 1; i < evts->size(); i++)
+        {
+            evt2 = evts->at(i);
+            evt1 = evt1->least_common_caller(evt2);
+            if (!evt1)
+               break;
+        }
+        return evt1;
+    }
+    else
+    {
+        evts->first()->least_multiple_caller(memo);
+    }
 }
 
 void Partition::basic_step()

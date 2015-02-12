@@ -35,6 +35,7 @@ public:
              QVector<Message *> * _messages = NULL);
     P2PEvent(QList<P2PEvent *> * _subevents);
     ~P2PEvent();
+    int comm_count(QMap<Event *, int> *memo = NULL) { Q_UNUSED(memo); return 1; }
     bool isP2P() { return true; }
     bool isReceive();
     void fixPhases();
@@ -46,6 +47,7 @@ public:
     bool calculate_local_step();
     void calculate_differential_metric(QString metric_name,
                                        QString base_name);
+    void writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap);
 
     void addComms(QSet<CommBundle *> * bundleset);
     QList<int> neighborTasks();

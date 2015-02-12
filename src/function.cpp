@@ -24,6 +24,9 @@
 //////////////////////////////////////////////////////////////////////////////
 #include "function.h"
 
-Function::Function(QString _n, int _g) : name(_n), group(_g)
+Function::Function(QString _n, int _g)
+    : name(_n),
+      group(_g),
+      comms(0)
 {
 }

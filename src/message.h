@@ -34,11 +34,15 @@ class CommEvent;
 class Message : public CommBundle
 {
 public:
-    Message(unsigned long long send, unsigned long long recv);
+    Message(unsigned long long send, unsigned long long recv,
+            int group);
     P2PEvent * sender;
     P2PEvent * receiver;
     unsigned long long sendtime;
     unsigned long long recvtime;
+    int taskgroup;
+    unsigned int tag;
+    unsigned long long size;
 
     CommEvent * getDesignee();
 

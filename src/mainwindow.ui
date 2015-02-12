@@ -450,6 +450,7 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
      <string>File</string>
     </property>
     <addaction name="actionOpen_OTF"/>
+    <addaction name="actionSave"/>
     <addaction name="actionClose"/>
     <addaction name="actionQuit"/>
    </widget>
@@ -555,6 +556,11 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
   <action name="actionClose">
    <property name="text">
     <string>Close</string>
+   </property>
+  </action>
+  <action name="actionSave">
+   <property name="text">
+    <string>Save Current Trace</string>
    </property>
   </action>
  </widget>
