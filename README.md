@@ -10,6 +10,8 @@ In logical time, all operations are colored via some metric. The default
 metric is *lateness* which measures the difference in exit time of an
 operation compared to its peers at the same logical timestep. 
 
+![Ravel Logical and Physical Timelines](/images/pf3d32_sf_700.png)
+
 Installation
 ------------
 Ravel depends on:
