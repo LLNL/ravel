@@ -6,6 +6,7 @@
 #include <QString>
 #include <otf2/otf2.h>
 
+
 class Partition;
 
 class Event
@@ -24,6 +25,10 @@ public:
 
     Event * findChild(unsigned long long time);
     unsigned long long getVisibleEnd(unsigned long long start);
+    Event * least_common_caller(Event * other);
+    bool same_subtree(Event * other);
+    Event * least_multiple_caller(QMap<Event *, int> * memo = NULL);
+    virtual int comm_count(QMap<Event *, int> * memo = NULL);
     virtual bool isCommEvent() { return false; }
     virtual bool isReceive() { return false; }
     virtual bool isCollective() { return false; }

@@ -8,6 +8,7 @@
 #include <QMap>
 
 class Gnome;
+class Event;
 class CommEvent;
 class ClusterTask;
 
@@ -33,6 +34,9 @@ public:
 
      // Time gap between partitions
     unsigned long long int distance(Partition * other);
+
+    // For common caller merge
+    Event * least_common_caller(int taskid, QMap<Event *, int> * memo = NULL);
 
      // For leap merge - which children can we merge to
     void calculate_dag_leap();

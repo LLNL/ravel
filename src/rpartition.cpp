@@ -2,6 +2,7 @@
 #include <iostream>
 #include <climits>
 
+#include "event.h"
 #include "commevent.h"
 #include "collectiverecord.h"
 #include "clustertask.h"
@@ -182,6 +183,28 @@ void Partition::calculate_dag_leap()
         dag_leap = std::max(dag_leap, (*parent)->dag_leap + 1);
     }
 
+}
+
+Event * Partition::least_common_caller(int taskid, QMap<Event *, int> * memo)
+{
+    QList<CommEvent *> * evts = events->value(taskid);
+    if (evts->size() > 1)
+    {
+        Event * evt1, * evt2;
+        evt1 = evts->first();
+        for (int i = 1; i < evts->size(); i++)
+        {
+            evt2 = evts->at(i);
+            evt1 = evt1->least_common_caller(evt2);
+            if (!evt1)
+               break;
+        }
+        return evt1;
+    }
+    else
+    {
+        evts->first()->least_multiple_caller(memo);
+    }
 }
 
 void Partition::basic_step()

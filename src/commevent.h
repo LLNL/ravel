@@ -27,6 +27,7 @@ public:
     bool hasMetric(QString name);
     double getMetric(QString name, bool aggregate = false);
 
+    virtual int comm_count(QMap<Event *, int> *memo = NULL)=0;
     bool isCommEvent() { return true; }
     virtual bool isP2P() { return false; }
     virtual bool isReceive() { return false; }

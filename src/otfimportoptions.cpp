@@ -3,6 +3,7 @@
 OTFImportOptions::OTFImportOptions(bool _waitall, bool _leap, bool _skip,
                                    bool _partition, QString _fxn)
     : waitallMerge(_waitall),
+      callerMerge(true),
       leapMerge(_leap),
       leapSkip(_skip),
       partitionByFunction(_partition),
@@ -22,6 +23,7 @@ QList<QString> OTFImportOptions::getOptionNames()
 {
     QList<QString> names = QList<QString>();
     names.append("option_waitallMerge");
+    names.append("option_callerMerge");
     names.append("option_leapMerge");
     names.append("option_leapSkip");
     names.append("option_partitionByFunction");
@@ -40,6 +42,8 @@ QString OTFImportOptions::getOptionValue(QString option)
 {
     if (option == "option_waitallMerge")
         return waitallMerge ? "true" : "";
+    else if (option == "option_callerMerge")
+        return callerMerge ? "true" : "";
     else if (option == "option_leapMerge")
         return leapMerge ? "true" : "";
     else if (option == "option_leapSkip")
@@ -70,6 +74,8 @@ void OTFImportOptions::setOption(QString option, QString value)
 {
     if (option == "option_waitallMerge")
         waitallMerge = value.size();
+    else if (option == "option_callerMerge")
+        callerMerge = value.size();
     else if (option == "option_leapMerge")
         leapMerge = value.size();
     else if (option == "option_leapSkip")

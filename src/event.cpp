@@ -81,6 +81,92 @@ unsigned long long Event::getVisibleEnd(unsigned long long start)
     return end;
 }
 
+Event * Event::least_common_caller(Event * second)
+{
+    // Search while we still can until they are equal or there
+    // is nothing left we can do
+    Event * first = this;
+    while ((first != second) && (first->caller || second->caller))
+    {
+        if (first->depth > second->depth && first->caller)
+        {
+            first = first->caller;
+        }
+        else if (first->depth < second->depth && second->caller)
+        {
+            second = second->caller;
+        }
+        else if (first->depth == second->depth && first->caller && second->caller)
+        {
+            first = first->caller;
+            second = second->caller;
+        }
+    }
+
+    if (first == second)
+        return first;
+    return NULL;
+}
+
+// Check if this Event and the argument Event share the same subtree:
+// If they're not the same event, then either this event is in the
+// subtree of the second or vice versa.
+bool Event::same_subtree(Event * second)
+{
+    if (second == this)
+        return true;
+
+    Event * first = this;
+    if (first->depth < second->depth)
+    {
+        while (first->depth < second->depth && second->caller)
+        {
+            second = second->caller;
+            if (first == second)
+                return true;
+        }
+    }
+    else
+    {
+        while (first->depth > second->depth && first->caller)
+        {
+            first = first->caller;
+            if (first == second)
+                return true;
+        }
+    }
+
+    return false;
+}
+
+// Find the ancestor that has at least two communications inside of it.
+Event * Event::least_multiple_caller(QMap<Event *, int> * memo)
+{
+    Event * caller = this;
+    while (caller && caller->comm_count(memo) <= 1)
+    {
+        caller = caller->caller;
+    }
+    return caller;
+}
+
+// Calculate the number of communications that fall under this node
+// in the call tree.
+int Event::comm_count(QMap<Event *, int> * memo)
+{
+    if (memo && memo->contains(this))
+        return memo->value(this);
+
+    int count = 0;
+    for (QVector<Event *>::Iterator child = callees->begin();
+         child != callees->end(); ++child)
+    {
+        count += (*child)->comm_count(memo);
+    }
+    memo->insert(this, count);
+    return count;
+}
+
 void Event::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap)
 {
     writeOTF2Enter(writer);

@@ -11,6 +11,12 @@ public:
                     int _function, int _task, int _phase,
                     CollectiveRecord * _collective);
     ~CollectiveEvent();
+
+    // We count the collective as two since it serves as both the beginning
+    // and ending of some sort of communication while P2P communication
+    // events are either the begin (send) or the end (recv)
+    int comm_count(QMap<Event *, int> *memo = NULL) { Q_UNUSED(memo); return 2; }
+
     bool isP2P() { return false; }
     bool isReceive() { return false; }
     virtual bool isCollective() { return true; }
