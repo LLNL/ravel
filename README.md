@@ -15,11 +15,11 @@ operation compared to its peers at the same logical timestep.
 Installation
 ------------
 Ravel depends on:
-- [Open Trace Format 1.12+][http://tu-dresden.de/die_tu_dresden/zentrale_einrichtungen/zih/forschung/projekte/otf/index_html/document_view?set_language=en]
-- [Open Trace Format version 2 1.4+][http://www.vi-hps.org/projects/score-p/]
-- [Muster 1.0.1+][https://github.com/scalability-llnl/muster]
-- [Qt5][http://www.qt.io/download/]
-- [cmake 2.8.9+][http://www.cmake.org/download/]
+- [Open Trace Format 1.12+](http://tu-dresden.de/die_tu_dresden/zentrale_einrichtungen/zih/forschung/projekte/otf/index_html/document_view?set_language=en)
+- [Open Trace Format version 2 1.4+](http://www.vi-hps.org/projects/score-p/)
+- [Muster 1.0.1+](https://github.com/scalability-llnl/muster)
+- [Qt5](http://www.qt.io/download/)
+- [cmake 2.8.9+](http://www.cmake.org/download/)
 
 To install:
 
@@ -129,4 +129,4 @@ Katherine E. Isaacs, Peer-Timo Bremer, Ilir Jusufi, Todd Gamblin, Abhinav
 Bhatele, Martin Schulz, and Bernd Hamann. Combing the communication hairball:
 Visualizing parallel execution traces using logical time. *IEEE Transactions on
 Visualization and Computer Graphics, Proceedings of InfoVis '14*, December 2014. 
-[DOI: 10.1109/TVCG.2014.2346456][http://dx.doi.org/10.1109/TVCG.2014.2346456]
+[DOI: 10.1109/TVCG.2014.2346456](http://dx.doi.org/10.1109/TVCG.2014.2346456)
