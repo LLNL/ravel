@@ -54,6 +54,8 @@ think of them separately.
   the following options:
   * use Waitall heuristic: OTF version 1 only, will group all uninterrupted 
     send operations before each Waitall in the same phase
+  * merge Partitions by call tree: Will merge communication operations up the
+    call stack until reaching a call containing multiple such operations.
   * merge Partitions to complete Leaps: Avoids sparse partitions by forcing
     each rank to be active at each distance in the phase DAG. Useful for bulk
     synchronous codes.
@@ -66,13 +68,16 @@ think of them separately.
   a given function. List the function. 
 
 #### Other Options
+* Matching send/recv must have the same message size: Enforces send and receive
+  reporting the same message size. Uncheck this for Scalasca-generated OTF2.
+* Advanced stepping within a partition: Align sends based on happened-before
+  structure rather than as early as possible.
 * Coalesce Isends: Groups neighboring `MPI_Isend`s into a single operation
   which may send to multiple receive operations. We recommend this option by
 default
 * Cluster processes: Shows a cluster view that clusters the processes by the
-  active metric. This is useful for large process counts
-* send/recv must have the same message size: Enforces send and receive
-  reporting the same message size. Uncheck this for Scalasca-generated OTF2.
+  active metric. This is useful for large process counts.
+  * Seed: Set seed for repeatable clustering.
 
 ### Navigating Traces
 
@@ -90,6 +95,11 @@ Zoom to rectangle | Right-click drag rectangle
 Select operation | Right-click operation
 Tool tips | Hover
 
+The cluster view has a slider which changes the size of the neighborhood shown
+in the upper part of the view. The lower part of the view shows the clusters.
+Left-click to divide clusters into its children. Click on dendrogram nodes to
+collapse clusters. Dendrogram pertains to left-most visible partition.
+Clustering currently shows the first partition rather than all.
 
 ### Saving Traces
 All traces are saved in OTF2 and include only the information from the
