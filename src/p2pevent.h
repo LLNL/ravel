@@ -22,6 +22,7 @@ public:
     bool calculate_local_step();
     void calculate_differential_metric(QString metric_name,
                                        QString base_name);
+    void writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap);
 
     void addComms(QSet<CommBundle *> * bundleset);
     QList<int> neighborTasks();

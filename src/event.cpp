@@ -80,3 +80,33 @@ unsigned long long Event::getVisibleEnd(unsigned long long start)
     }
     return end;
 }
+
+void Event::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap)
+{
+    writeOTF2Enter(writer);
+
+    for (QVector<Event *>::Iterator child = callees->begin();
+         child != callees->end(); ++child)
+    {
+        (*child)->writeToOTF2(writer, attributeMap);
+    }
+
+    writeOTF2Leave(writer, attributeMap);
+}
+
+void Event::writeOTF2Leave(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap)
+{
+    Q_UNUSED(attributeMap);
+    OTF2_EvtWriter_Leave(writer,
+                         NULL,
+                         exit,
+                         function);
+}
+
+void Event::writeOTF2Enter(OTF2_EvtWriter * writer)
+{
+    OTF2_EvtWriter_Enter(writer,
+                         NULL,
+                         enter,
+                         function);
+}

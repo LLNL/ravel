@@ -47,7 +47,9 @@ SOURCES  += main.cpp \
     otf2importer.cpp \
     task.cpp \
     clustertask.cpp \
-    taskgroup.cpp
+    taskgroup.cpp \
+    otf2exporter.cpp \
+    otf2exportfunctor.cpp
 
 HEADERS += \
     trace.h \
@@ -93,7 +95,9 @@ HEADERS += \
     otf2importer.h \
     task.h \
     clustertask.h \
-    taskgroup.h
+    taskgroup.h \
+    otf2exporter.h \
+    otf2exportfunctor.h
 
 FORMS += \
     mainwindow.ui \
@@ -127,4 +131,7 @@ unix:!macx: LIBS += -L$${HOME}/opt/lib -lmuster
 macx: LIBS += -L$${HOME}/opt/muster/lib -lmuster
 macx: INCLUDEPATH += $${HOME}/opt/muster/include
 macx: DEPENDPATH += $${HOME}/opt/muster/include
+
+OTHER_FILES += \
+    CMakeLists.txt
 

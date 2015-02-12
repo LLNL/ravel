@@ -250,7 +250,7 @@ QString VisWidget::drawTimescale(QPainter * painter, unsigned long long start,
     QString seconds = getUnits(trace->units);
     int tick_divisor = 1;
     unsigned long long tick_base = 0;
-    if (options->absoluteTime)
+    if (!options->absoluteTime)
     {
         tick_base = tick - tick_span;
         int span_unit = (int) floor(log10(tick_span));

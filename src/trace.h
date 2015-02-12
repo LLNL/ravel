@@ -8,6 +8,7 @@
 #include <QVector>
 #include <QQueue>
 #include <QStack>
+#include <QSharedPointer>
 
 #include "otfimportoptions.h"
 
@@ -29,6 +30,7 @@ public:
     ~Trace();
 
     void preprocess(OTFImportOptions * _options);
+    void preprocessFromSaved();
     void partition();
     void assignSteps();
     void gnomify();
@@ -36,6 +38,7 @@ public:
     Event * findEvent(int task, unsigned long long time);
 
     QString name;
+    QString fullpath;
     int num_tasks;
     int units;
 

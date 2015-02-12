@@ -2,6 +2,7 @@
 #include "commbundle.h"
 #include "message.h"
 #include "clusterevent.h"
+#include <iostream>
 
 P2PEvent::P2PEvent(unsigned long long _enter, unsigned long long _exit,
                    int _function, int _task, int _phase,
@@ -21,10 +22,12 @@ P2PEvent::P2PEvent(QList<P2PEvent *> * _subevents)
       messages(new QVector<Message *>()),
       is_recv(_subevents->first()->is_recv)
 {
-    this->depth = _subevents->first()->depth;
+    this->depth = subevents->first()->depth;
 
-    // Take over submessages
-    for (QList<P2PEvent *>::Iterator evt = _subevents->begin();
+    // Take over submessages & caller/callee relationships
+    //caller = subevents->first()->caller;
+    //int evt_index;
+    for (QList<P2PEvent *>::Iterator evt = subevents->begin();
          evt != subevents->end(); ++evt)
     {
         for (QVector<Message *>::Iterator msg = (*evt)->messages->begin();
@@ -36,7 +39,18 @@ P2PEvent::P2PEvent(QList<P2PEvent *> * _subevents)
                 (*msg)->sender = this;
             messages->append(*msg);
         }
+
+        callees->append(*evt);
+        /*if (caller)
+        {
+            evt_index = caller->callees->indexOf(*evt);
+            if (evt_index > 0)
+                caller->callees->remove(evt_index);
+        }*/
+        (*evt)->caller = this;
     }
+    //if (caller)
+    //    caller->callees->insert(evt_index, this);
 
     // Aggregate existing metrics
     P2PEvent * first = _subevents->first();
@@ -45,7 +59,7 @@ P2PEvent::P2PEvent(QList<P2PEvent *> * _subevents)
     {
         QString name = counter.key();
         unsigned long long metric = 0, agg = 0;
-        for (QList<P2PEvent *>::Iterator evt = _subevents->begin();
+        for (QList<P2PEvent *>::Iterator evt = subevents->begin();
              evt != subevents->end(); ++evt)
         {
             metric += (*evt)->getMetric(name);
@@ -361,4 +375,54 @@ QList<int> P2PEvent::neighborTasks()
     }
     neighbors.remove(task);
     return neighbors.toList();
+}
+
+// Here between the enter and leave we know we have no children as normal,
+// but we do have subevents. So we want to write those as the correct time.
+void P2PEvent::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap)
+{
+    writeOTF2Enter(writer);
+
+    if (subevents)
+    {
+        for (QList<P2PEvent *>::Iterator sub = subevents->begin();
+             sub != subevents->end(); ++sub)
+        {
+            (*sub)->writeToOTF2(writer, attributeMap);
+        }
+    }
+
+    // If this event has subevents, the receiver or sender of the message will still
+    // only match "this"
+    // We do not need to do the IsendComplete portion as we only use that for the
+    // automatic waitall merge which should be contained in the phase attribute
+    // So we can get away with just using send/recv here instead of worrying about isend/irecv
+    for (QVector<Message *>::Iterator msg = messages->begin();
+         msg != messages->end(); ++msg)
+    {
+         if ((*msg)->receiver == this)
+         {
+             OTF2_EvtWriter_MpiRecv(writer,
+                                    NULL,
+                                    (*msg)->recvtime,
+                                    (*msg)->sender->task,
+                                    (*msg)->taskgroup,
+                                    (*msg)->tag,
+                                    (*msg)->size);
+         }
+         else if (!subevents) // Write if you are the true isend
+         {
+            OTF2_EvtWriter_MpiSend(writer,
+                                   NULL,
+                                   (*msg)->sendtime,
+                                   (*msg)->receiver->task,
+                                   (*msg)->taskgroup,
+                                   (*msg)->tag,
+                                   (*msg)->size);
+         }
+
+
+    }
+
+    writeOTF2Leave(writer, attributeMap);
 }

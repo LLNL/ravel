@@ -32,7 +32,10 @@ void OTFImportFunctor::doImportOTF2(QString dataFileName)
     connect(trace, SIGNAL(updateClustering(int)), this,
             SLOT(updateClustering(int)));
     connect(trace, SIGNAL(startClustering()), this, SLOT(switchProgress()));
-    trace->preprocess(options);
+    if (trace->options.origin == OTFImportOptions::OF_SAVE_OTF2)
+        trace->preprocessFromSaved();
+    else
+        trace->preprocess(options);
 
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "Total trace: ";

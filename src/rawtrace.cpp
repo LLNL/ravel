@@ -9,10 +9,12 @@
 #include "function.h"
 #include "counter.h"
 #include "counterrecord.h"
+#include "otfimportoptions.h"
 
 
 RawTrace::RawTrace(int nt)
-    : tasks(NULL),
+    : options(new OTFImportOptions()),
+      tasks(NULL),
       functionGroups(NULL),
       functions(NULL),
       events(NULL),
@@ -25,7 +27,11 @@ RawTrace::RawTrace(int nt)
       collectives(NULL),
       collectiveMap(NULL),
       collectiveBits(NULL),
-      num_tasks(nt)
+      num_tasks(nt),
+      second_magnitude(1),
+      from_saved_version(""),
+      metric_names(NULL),
+      metric_units(NULL)
 {
 
 }
@@ -76,4 +82,11 @@ RawTrace::~RawTrace()
         *eitr = NULL;
     }
     delete collectiveBits;
+
+    delete options;
+
+    if (metric_names)
+        delete metric_names;
+    if (metric_units)
+        delete metric_units;
 }

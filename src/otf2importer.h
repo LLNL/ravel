@@ -15,6 +15,7 @@ class TaskGroup;
 class OTFCollective;
 class Counter;
 class CollectiveRecord;
+class OTFImportOptions;
 
 class OTF2Importer
 {
@@ -22,6 +23,20 @@ public:
     OTF2Importer();
     ~OTF2Importer();
     RawTrace * importOTF2(const char* otf_file, bool _enforceMessageSize);
+
+    class OTF2Attribute {
+    public:
+        OTF2Attribute(OTF2_AttributeRef _self,
+                      OTF2_StringRef _name,
+                      OTF2_StringRef _desc,
+                      OTF2_Type _type)
+            : self(_self), name(_name), description(_desc), type(_type) {}
+
+        OTF2_AttributeRef self;
+        OTF2_StringRef name;
+        OTF2_StringRef description;
+        OTF2_Type type;
+    };
 
     class OTF2IsendComplete {
     public:
@@ -144,6 +159,11 @@ public:
     static OTF2_CallbackCode callbackDefString(void * userData,
                                                OTF2_StringRef self,
                                                const char * string);
+    static OTF2_CallbackCode callbackDefAttribute(void * userData,
+                                                  OTF2_AttributeRef self,
+                                                  OTF2_StringRef name,
+                                                  OTF2_StringRef description,
+                                                  OTF2_Type type);
     static OTF2_CallbackCode callbackDefLocationGroup(void * userData,
                                                       OTF2_LocationGroupRef self,
                                                       OTF2_StringRef name,
@@ -267,6 +287,7 @@ public:
 
     static uint64_t convertTime(void* userData, OTF2_TimeStamp time);
 
+    QString from_saved_version;
     unsigned long long int ticks_per_second;
     unsigned long long int time_offset;
     double time_conversion_factor;
@@ -287,11 +308,13 @@ private:
 
     bool enforceMessageSize;
 
+    OTFImportOptions * options;
     OTF2_Reader * otfReader;
     OTF2_GlobalDefReaderCallbacks * global_def_callbacks;
     OTF2_GlobalEvtReaderCallbacks * global_evt_callbacks;
 
     QMap<OTF2_StringRef, QString> * stringMap;
+    QMap<OTF2_AttributeRef, OTF2Attribute *> * attributeMap;
     QMap<OTF2_LocationRef, OTF2Location *> * locationMap;
     QMap<OTF2_LocationGroupRef, OTF2LocationGroup *> * locationGroupMap;
     QMap<OTF2_RegionRef, OTF2Region *> * regionMap;
@@ -321,6 +344,12 @@ private:
 
     QVector<QLinkedList<uint64_t> *> * collective_begins;
     QVector<QLinkedList<OTF2CollectiveFragment *> *> * collective_fragments;
+
+    QList<OTF2_AttributeRef> metrics;
+    QList<QString> * metric_names;
+    QMap<QString, QString> * metric_units;
+    OTF2_AttributeRef stepRef;
+    OTF2_AttributeRef phaseRef;
 };
 
 #endif // OTF2IMPORTER_H

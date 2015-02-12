@@ -18,6 +18,7 @@ class VisOptionsDialog;
 
 class QAction;
 class OTFImportFunctor;
+class OTF2ExportFunctor;
 class QProgressDialog;
 class QThread;
 class QWidget;
@@ -64,9 +65,14 @@ public slots:
     void traceTriggered(QAction * action);
     void closeTrace();
 
+    // Saving
+    void saveCurrentTrace();
+    void exportFinished();
+
 
 signals:
     void operate(const QString &);
+    void exportTrace(Trace *, const QString&, const QString&);
     
 private:
     Ui::MainWindow *ui;
@@ -87,6 +93,8 @@ private:
     OTFImportFunctor * importWorker;
     QThread * importThread;
     QProgressDialog * progress;
+    OTF2ExportFunctor * exportWorker;
+    QThread * exportThread;
 
     // Import Trace options
     OTFImportOptions * otfoptions;

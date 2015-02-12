@@ -24,6 +24,7 @@
 
 Trace::Trace(int nt)
     : name(""),
+      fullpath(""),
       num_tasks(nt),
       units(-9),
       partitions(new QList<Partition *>()),
@@ -175,6 +176,44 @@ void Trace::preprocess(OTFImportOptions * _options)
     std::cout << std::endl;
 }
 
+void Trace::preprocessFromSaved()
+{
+    QElapsedTimer traceTimer;
+    qint64 traceElapsed;
+
+    traceTimer.start();
+
+    // Sets partition-to-partition connectors and min/max steps
+
+    for (QList<Partition *>::Iterator partition = partitions->begin();
+         partition != partitions->end(); ++partition)
+    {
+        (*partition)->fromSaved();
+        if ((*partition)->max_global_step > global_max_step)
+            global_max_step = (*partition)->max_global_step;
+    }
+
+    set_partition_dag();
+    //std::cout << "Setting the dag steps.." << std::endl;
+    //set_dag_steps();
+
+
+    emit(startClustering());
+    std::cout << "Gnomifying..." << std::endl;
+    if (options.cluster)
+        gnomify();
+
+    qSort(partitions->begin(), partitions->end(),
+          dereferencedLessThan<Partition>);
+
+    isProcessed = true;
+
+    traceElapsed = traceTimer.nsecsElapsed();
+    std::cout << "Gnome/Cluster Etc: ";
+    gu_printTime(traceElapsed);
+    std::cout << std::endl;
+}
+
 // Check every gnome in our set for matching and set which gnome as a metric
 // There is probably a more efficient way to do this but it can be
 // easily parallelized by partition
@@ -193,8 +232,12 @@ void Trace::gnomify()
     }
     std::cout << "Clustering seed: " << options.clusterSeed << std::endl;
 
-    metrics->append("Gnome");
-    (*metric_units)["Gnome"] = "";
+    if (options.origin != OTFImportOptions::OF_SAVE_OTF2)
+    {
+        metrics->append("Gnome");
+        (*metric_units)["Gnome"] = "";
+    }
+
     Gnome * gnome;
     float stepPortion = 100.0 / global_max_step;
     int total = 0;
@@ -213,7 +256,8 @@ void Trace::gnomify()
                 (*part)->gnome->set_seed(options.clusterSeed);
                 (*part)->gnome->setPartition(*part);
                 (*part)->gnome->setFunctions(functions);
-                setGnomeMetric(*part, i);
+                if (options.origin != OTFImportOptions::OF_SAVE_OTF2)
+                    setGnomeMetric(*part, i);
                 (*part)->gnome->preprocess();
                 break;
             }
@@ -225,7 +269,8 @@ void Trace::gnomify()
             (*part)->gnome->set_seed(options.clusterSeed);
             (*part)->gnome->setPartition(*part);
             (*part)->gnome->setFunctions(functions);
-            setGnomeMetric(*part, -1);
+            if (options.origin != OTFImportOptions::OF_SAVE_OTF2)
+                setGnomeMetric(*part, -1);
             (*part)->gnome->preprocess();
         }
         total += stepPortion * num_steps;
