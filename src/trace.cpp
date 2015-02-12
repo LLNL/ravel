@@ -157,8 +157,7 @@ void Trace::preprocess(OTFImportOptions * _options)
     options = *_options;
     partition();
     assignSteps();
-    if (options.globalMerge)
-        mergeGlobalSteps();
+
     emit(startClustering());
     std::cout << "Gnomifying..." << std::endl;
     if (options.cluster)
@@ -701,6 +700,9 @@ void Trace::assignSteps()
     traceTimer.start();
 
     set_global_steps();
+
+    if (options.globalMerge)
+        mergeGlobalSteps();
 
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "Global Stepping: ";
