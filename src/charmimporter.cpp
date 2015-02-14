@@ -32,6 +32,8 @@ CharmImporter::CharmImporter()
       entries(new QMap<int, Entry*>()),
       version(0),
       processes(0),
+      hasPAPI(false),
+      numPAPI(0),
       trace(NULL),
       unmatched_recvs(NULL),
       sends(NULL),
@@ -246,7 +248,7 @@ void CharmImporter::charify()
             if ((*event)->enter)
             {
                 std::cout << " enter ";
-                if ((*event)->charmmsgs.size() > 0)
+                if ((*event)->charmmsgs->size() > 0)
                 {
                     std::cout << "  this event has a msg!" << std::endl;
                 }
@@ -316,7 +318,7 @@ void CharmImporter::buildPartitions()
         depth = 0;
         phase = 0;
         prev = NULL;
-        //std::cout << "Now handling " << counter << std::endl;
+        std::cout << "Now handling " << counter << std::endl;
         counter++;
         for (QVector<CharmEvt *>::Iterator evt = (*event_list)->begin();
              evt != (*event_list)->end(); ++evt)
@@ -324,22 +326,23 @@ void CharmImporter::buildPartitions()
             if ((*evt)->enter)
             {
                 stack.push(*evt);
-                //std::cout << "Enter " << entries->value((*evt)->entry)->name.toStdString().c_str() << std::endl;
-                //std::cout << "     Stack size: " << stack.size() << std::endl;
+                std::cout << "Enter " << entries->value((*evt)->entry)->name.toStdString().c_str() << std::endl;
+                std::cout << "     Stack size: " << stack.size() << std::endl;
                 depth++;
             }
             else
             {
-                //std::cout << "Leave " << entries->value((*evt)->entry)->name.toStdString().c_str() << std::endl;
-                //std::cout << "     Stack size: " << stack.size() << std::endl;
+                std::cout << "Leave " << entries->value((*evt)->entry)->name.toStdString().c_str() << std::endl;
+                std::cout << "     Stack size: " << stack.size() << std::endl;
                 bgn = stack.pop();
                 Event * e = NULL;
                 if (trace->functions->value(bgn->entry)->group == 0) // Send or Recv
                 {
                     QVector<Message *> * msgs = new QVector<Message *>();
-                    for (QList<CharmMsg *>::Iterator cmsg = bgn->charmmsgs.begin();
-                         cmsg != bgn->charmmsgs.end(); ++cmsg)
+                    for (QList<CharmMsg *>::Iterator cmsg = bgn->charmmsgs->begin();
+                         cmsg != bgn->charmmsgs->end(); ++cmsg)
                     {
+                        std::cout << "Finding trace mesages for cmsg" << std::endl;
                         if ((*cmsg)->tracemsg)
                         {
                             msgs->append((*cmsg)->tracemsg);
@@ -354,7 +357,17 @@ void CharmImporter::buildPartitions()
                         }
                         if (bgn->entry == SEND_FXN)
                         {
-                            if (!(*cmsg)->send_evt->trace_evt)
+                            if (*cmsg)
+                            {
+                                std::cout << "We have a cmsg" << std::endl;
+                                if ((*cmsg)->send_evt)
+                                {
+                                    std::cout << "And it has a send evt" << std::endl;
+                                    if ((*cmsg)->send_evt->trace_evt)
+                                        std::cout << "And it has a trace evt" << std::endl;
+                                }
+                            }
+                            if (!((*cmsg)->send_evt->trace_evt))
                             {
                                 (*cmsg)->tracemsg->sender = new P2PEvent(bgn->time,
                                                                          (*evt)->time-1,
@@ -415,10 +428,10 @@ void CharmImporter::buildPartitions()
                     endtime = e->exit;
                 if (!stack.isEmpty())
                 {
-                    stack.top()->children.append(e);
+                    stack.top()->children->append(e);
                 }
-                for (QList<Event *>::Iterator child = bgn->children.begin();
-                     child != bgn->children.end(); ++child)
+                for (QList<Event *>::Iterator child = bgn->children->begin();
+                     child != bgn->children->end(); ++child)
                 {
                     e->callees->append(*child);
                     (*child)->caller = e;
@@ -463,7 +476,7 @@ int CharmImporter::makeTasks()
 
 void CharmImporter::parseLine(QString line, int my_pe)
 {
-    int index, mtype, entry, event, pe;
+    int index, mtype, entry, event, pe, arrayid;
     ChareIndex id = ChareIndex(-1, 0,0,0,0);
     long time, msglen, sendTime, recvTime, numpes, cpuStart, cpuEnd;
 
@@ -488,6 +501,11 @@ void CharmImporter::parseLine(QString line, int my_pe)
         if (version >= 5.0)
         {
             sendTime = lineList.at(index).toLong();
+            index++;
+        }
+        if (version >= 7.0)
+        {
+            arrayid = lineList.at(index).toInt();
             index++;
         }
         if (rectype == CREATION_BCAST)
@@ -540,7 +558,8 @@ void CharmImporter::parseLine(QString line, int my_pe)
                     if ((*candidate)->entry == entry)
                     {
                         (*candidate)->sendtime = time;
-                        evt->charmmsgs.append(*candidate);
+                        (*candidate)->send_evt = evt;
+                        evt->charmmsgs->append(*candidate);
                         toremove.append(*candidate);
                         std::cout << "Found message for send on entry " << entries->value(entry)->name.toStdString().c_str();
                         std::cout << " at " << time << " and pe " << pe << std::endl;
@@ -553,7 +572,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
                 for (QList<CharmMsg *>::Iterator rmsg = toremove.begin();
                      rmsg != toremove.end(); ++rmsg)
                 {
-                    candidates->removeOne(msg);
+                    candidates->removeOne(*rmsg);
                 }
             }
             else
@@ -626,6 +645,14 @@ void CharmImporter::parseLine(QString line, int my_pe)
         if (version >= 6.6)
         {
             // PerfCount stuff... skip for now.
+            if (hasPAPI)
+                for (int j = 0; j < numPAPI; j++)
+                    index++;
+        }
+        if (version >= 7.0)
+        {
+            arrayid = lineList.at(index).toInt();
+            index++;
         }
 
         CharmEvt * evt = new CharmEvt(entry, time, pe,
@@ -675,9 +702,12 @@ void CharmImporter::parseLine(QString line, int my_pe)
             }
             if (send_candidate)
             {
+                // Copy info as needed from the candidate
                 msg = new CharmMsg(mtype, msglen, pe, entry, event, my_pe);
                 messages->append(msg);
-                send_candidate->send_evt->charmmsgs.append(msg);
+                msg->send_evt = send_candidate->send_evt;
+                msg->sendtime = send_candidate->sendtime;
+                send_candidate->send_evt->charmmsgs->append(msg);
 
                 std::cout << "Found message for recv on entry " << entries->value(entry)->name.toStdString().c_str();
                 std::cout << " at " << time << " and pe " << pe << " with event " << event;
@@ -702,7 +732,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
             charm_events->at(pe)->append(recv_end);
 
             msg->recvtime = time;
-            evt->charmmsgs.append(msg);
+            evt->charmmsgs->append(msg);
         }
         else
         {
@@ -736,6 +766,14 @@ void CharmImporter::parseLine(QString line, int my_pe)
         if (version >= 6.6)
         {
             // PerfCount stuff... skip for now.
+            if (hasPAPI)
+                for (int j = 0; j < numPAPI; j++)
+                    index++;
+        }
+        if (version >= 7.0)
+        {
+            arrayid = lineList.at(index).toInt();
+            index++;
         }
 
         CharmEvt * evt = new CharmEvt(entry, time, pe,
@@ -823,6 +861,11 @@ void CharmImporter::readSts(QString dataFileName)
         else if (lineList.at(0) == "PROCESSORS")
         {
             processes = lineList.at(1).toInt();
+        }
+        else if (lineList.at(0) == "TOTAL_PAPI_EVENTS")
+        {
+            hasPAPI = true;
+            numPAPI = lineList.at(1).toInt();
         }
     }
 

@@ -160,6 +160,8 @@ private:
         QSet<ChareIndex> * indices;
     };
 
+
+
     class CharmEvt;
 
     class CharmMsg {
@@ -191,9 +193,21 @@ private:
                  bool _enter = true)
             : time(_time), pe(_pe), task(-1), enter(_enter),
               chare(_chare), index(ChareIndex(-1, 0,0,0,0)), entry(_entry),
-              charmmsgs(QList<CharmMsg *>()), children(QList<Event *>()),
+              charmmsgs(new QList<CharmMsg *>()), children(new QList<Event *>()),
               trace_evt(NULL)
         { }
+        ~CharmEvt()
+        {
+            for (QList<CharmMsg *>::Iterator cm = charmmsgs->begin();
+                 cm != charmmsgs->end(); ++cm)
+            {
+                delete *cm;
+                *cm = NULL;
+            }
+            delete charmmsgs;
+
+            delete children;
+        }
 
         bool operator<(const CharmEvt & event) { return time < event.time; }
         bool operator>(const CharmEvt & event) { return time > event.time; }
@@ -210,9 +224,9 @@ private:
         ChareIndex index;
         int entry;
 
-       QList<CharmMsg *> charmmsgs;
+       QList<CharmMsg *> * charmmsgs;
 
-       QList<Event *> children;
+       QList<Event *> * children;
 
        P2PEvent * trace_evt;
 
@@ -226,6 +240,8 @@ private:
 
     float version;
     int processes;
+    bool hasPAPI;
+    int numPAPI;
 
     Trace * trace;
 
