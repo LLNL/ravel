@@ -198,14 +198,10 @@ private:
         { }
         ~CharmEvt()
         {
-            for (QList<CharmMsg *>::Iterator cm = charmmsgs->begin();
-                 cm != charmmsgs->end(); ++cm)
-            {
-                delete *cm;
-                *cm = NULL;
-            }
+            // Messages deleted in CharmImporter from messages QList
             delete charmmsgs;
 
+            // These get saved.
             delete children;
         }
 
