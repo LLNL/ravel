@@ -8,7 +8,7 @@ class CollectiveEvent : public CommEvent
 {
 public:
     CollectiveEvent(unsigned long long _enter, unsigned long long _exit,
-                    int _function, int _task, int _phase,
+                    int _function, int _task, int _pe, int _phase,
                     CollectiveRecord * _collective);
     ~CollectiveEvent();
 

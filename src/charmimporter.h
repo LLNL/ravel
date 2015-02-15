@@ -160,6 +160,15 @@ private:
         QSet<ChareIndex> * indices;
     };
 
+    class ChareArray {
+    public:
+        ChareArray(int _id, int _chare)
+            : id(_id), chare(_chare), indices(new QSet<ChareIndex>()) {}
+
+        int id;
+        int chare;
+        QSet<ChareIndex> * indices;
+    };
 
 
     class CharmEvt;
@@ -168,7 +177,7 @@ private:
     public:
         CharmMsg(int _mtype, long _mlen, int _pe, int _entry, int _event, int _mype)
             : sendtime(0), recvtime(0), msg_type(_mtype), msg_len(_mlen),
-              send_pe(_pe), entry(_entry), event(_event), recv_pe(_mype),
+              send_pe(_pe), entry(_entry), event(_event), arrayid(0), recv_pe(_mype),
               send_task(-1), recv_task(-1), send_evt(NULL), tracemsg(NULL) {}
 
         unsigned long long sendtime;
@@ -178,6 +187,7 @@ private:
         int send_pe; // send pe
         int entry;
         int event;
+        int arrayid;
         int recv_pe; // recv pe
         int send_task;
         int recv_task;
@@ -201,7 +211,7 @@ private:
             // Messages deleted in CharmImporter from messages QList
             delete charmmsgs;
 
-            // These get saved.
+            // These events get saved elsewhere.
             delete children;
         }
 
@@ -250,6 +260,7 @@ private:
     QMap<int, TaskGroup *> * taskgroups;
     QMap<int, QString> * functiongroups;
     QMap<int, Function *> * functions;
+    QMap<int, ChareArray *> * arrays;
     QMap<ChareIndex, int> chare_to_task;
     CharmEvt * last;
     CharmMsg * last_send;

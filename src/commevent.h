@@ -17,7 +17,7 @@ class CommEvent : public Event
 {
 public:
     CommEvent(unsigned long long _enter, unsigned long long _exit,
-              int _function, int _task, int _phase);
+              int _function, int _task, int _pe, int _phase);
     ~CommEvent();
 
     void addMetric(QString name, double event_value,

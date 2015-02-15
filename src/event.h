@@ -14,7 +14,7 @@ class Event
 {
 public:
     Event(unsigned long long _enter, unsigned long long _exit, int _function,
-          int _task);
+          int _task, int _pe);
     ~Event();
 
     // Based on enter time
@@ -46,6 +46,7 @@ public:
     unsigned long long exit;
     int function;
     int task;
+    int pe;
     int depth;
 };
 

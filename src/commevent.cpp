@@ -5,8 +5,8 @@
 #include <iostream>
 
 CommEvent::CommEvent(unsigned long long _enter, unsigned long long _exit,
-                     int _function, int _task, int _phase)
-    : Event(_enter, _exit, _function, _task),
+                     int _function, int _task, int _pe, int _phase)
+    : Event(_enter, _exit, _function, _task, _pe),
       metrics(new QMap<QString, MetricPair *>()),
       partition(NULL),
       comm_next(NULL),

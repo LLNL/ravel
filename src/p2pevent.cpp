@@ -5,9 +5,9 @@
 #include <iostream>
 
 P2PEvent::P2PEvent(unsigned long long _enter, unsigned long long _exit,
-                   int _function, int _task, int _phase,
+                   int _function, int _task, int _pe, int _phase,
                    QVector<Message *> *_messages)
-    : CommEvent(_enter, _exit, _function, _task, _phase),
+    : CommEvent(_enter, _exit, _function, _task, _pe, _phase),
       subevents(NULL),
       messages(_messages),
       is_recv(false)
@@ -17,7 +17,7 @@ P2PEvent::P2PEvent(unsigned long long _enter, unsigned long long _exit,
 P2PEvent::P2PEvent(QList<P2PEvent *> * _subevents)
     : CommEvent(_subevents->first()->enter, _subevents->last()->exit,
                 _subevents->first()->function, _subevents->first()->task,
-                _subevents->first()->phase),
+                _subevents->first()->pe, _subevents->first()->phase),
       subevents(_subevents),
       messages(new QVector<Message *>()),
       is_recv(_subevents->first()->is_recv)

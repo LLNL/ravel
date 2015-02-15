@@ -7,7 +7,7 @@ class P2PEvent : public CommEvent
 {
 public:
     P2PEvent(unsigned long long _enter, unsigned long long _exit,
-             int _function, int _task, int _phase,
+             int _function, int _task, int _pe, int _phase,
              QVector<Message *> * _messages = NULL);
     P2PEvent(QList<P2PEvent *> * _subevents);
     ~P2PEvent();

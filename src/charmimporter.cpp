@@ -44,6 +44,7 @@ CharmImporter::CharmImporter()
       taskgroups(new QMap<int, TaskGroup *>()),
       functiongroups(new QMap<int, QString>()),
       functions(new QMap<int, Function *>()),
+      arrays(new QMap<int, ChareArray *>()),
       chare_to_task(QMap<ChareIndex, int>()),
       last(NULL),
       last_send(NULL),
@@ -364,6 +365,7 @@ void CharmImporter::buildPartitions()
                                                                          (*evt)->time-1,
                                                                          bgn->entry,
                                                                          bgn->task,
+                                                                         bgn->pe,
                                                                          phase,
                                                                          msgs);
                                 (*cmsg)->send_evt->trace_evt = (*cmsg)->tracemsg->sender;
@@ -390,6 +392,7 @@ void CharmImporter::buildPartitions()
                                                                        (*evt)->time-2,
                                                                        bgn->entry,
                                                                        bgn->task,
+                                                                       bgn->pe,
                                                                        phase,
                                                                        msgs);
 
@@ -408,7 +411,8 @@ void CharmImporter::buildPartitions()
                 }
                 else // Non-comm event
                 {
-                    e = new Event(bgn->time, (*evt)->time, bgn->entry, bgn->task);
+                    e = new Event(bgn->time, (*evt)->time, bgn->entry,
+                                  bgn->task, bgn->pe);
                 }
 
                 depth--;
