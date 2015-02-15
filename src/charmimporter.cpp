@@ -184,6 +184,7 @@ void CharmImporter::cleanUp()
              = (*itr)->begin(); eitr != (*itr)->end(); ++eitr)
         {
             delete *eitr;
+            *eitr = NULL;
         }
         delete *itr;
     }
@@ -357,16 +358,6 @@ void CharmImporter::buildPartitions()
                         }
                         if (bgn->entry == SEND_FXN)
                         {
-                            if (*cmsg)
-                            {
-                                std::cout << "We have a cmsg" << std::endl;
-                                if ((*cmsg)->send_evt)
-                                {
-                                    std::cout << "And it has a send evt" << std::endl;
-                                    if ((*cmsg)->send_evt->trace_evt)
-                                        std::cout << "And it has a trace evt" << std::endl;
-                                }
-                            }
                             if (!((*cmsg)->send_evt->trace_evt))
                             {
                                 (*cmsg)->tracemsg->sender = new P2PEvent(bgn->time,
@@ -389,6 +380,7 @@ void CharmImporter::buildPartitions()
                             else
                             {
                                 (*cmsg)->tracemsg->sender = (*cmsg)->send_evt->trace_evt;
+                                // We have already set e here.
                             }
 
                         }
@@ -483,7 +475,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
     //std::cout << line.toStdString().c_str() << std::endl;
     QStringList lineList = line.split(" ");
     int rectype = lineList.at(0).toInt();
-    if (rectype == CREATION || rectype == CREATION_BCAST)
+    if (rectype == CREATION || rectype == CREATION_BCAST || rectype == CREATION_MULTICAST)
     {
         // Some type of (multi-send)
         mtype = lineList.at(1).toInt();
@@ -503,14 +495,27 @@ void CharmImporter::parseLine(QString line, int my_pe)
             sendTime = lineList.at(index).toLong();
             index++;
         }
-        if (version >= 7.0)
+        if (rectype == CREATION_BCAST || rectype == CREATION_MULTICAST)
+        {
+            numpes = lineList.at(index).toInt();
+            index++;
+            if (rectype == CREATION_MULTICAST)
+            {
+                index += numpes;
+                // Let's not do anything with the destination yet.
+                /*
+                for (int j = 0; j < numpes; j++)
+                {
+                    lineList.at(index).toInt();
+                    index++;
+                }
+                */
+            }
+        }
+        if (version >= 7.0 && lineList.size() > index)
         {
             arrayid = lineList.at(index).toInt();
             index++;
-        }
-        if (rectype == CREATION_BCAST)
-        {
-            numpes = lineList.at(index).toInt();
         }
 
         CharmEvt * evt = new CharmEvt(SEND_FXN, time, pe,
@@ -649,7 +654,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
                 for (int j = 0; j < numPAPI; j++)
                     index++;
         }
-        if (version >= 7.0)
+        if (version >= 7.0 && lineList.size() > index)
         {
             arrayid = lineList.at(index).toInt();
             index++;
@@ -770,7 +775,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
                 for (int j = 0; j < numPAPI; j++)
                     index++;
         }
-        if (version >= 7.0)
+        if (version >= 7.0 && lineList.size() > index)
         {
             arrayid = lineList.at(index).toInt();
             index++;
