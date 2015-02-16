@@ -5,11 +5,12 @@
 #include <QList>
 #include <QMap>
 
+// This class is for sub-groupings and reorderings of existing PrimaryTaskGroups.
 class TaskGroup
 {
 public:
     TaskGroup(int _id, QString _name);
-    ~TaskGroup() { delete tasks; }
+    ~TaskGroup() { delete tasks; delete taskorder; }
 
     int id;
     QString name;

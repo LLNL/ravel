@@ -49,7 +49,8 @@ SOURCES  += main.cpp \
     clustertask.cpp \
     taskgroup.cpp \
     otf2exporter.cpp \
-    otf2exportfunctor.cpp
+    otf2exportfunctor.cpp \
+    primarytaskgroup.cpp
 
 HEADERS += \
     trace.h \
@@ -97,7 +98,8 @@ HEADERS += \
     clustertask.h \
     taskgroup.h \
     otf2exporter.h \
-    otf2exportfunctor.h
+    otf2exportfunctor.h \
+    primarytaskgroup.h
 
 FORMS += \
     mainwindow.ui \

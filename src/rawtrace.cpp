@@ -1,5 +1,6 @@
 #include "rawtrace.h"
 
+#include "primarytaskgroup.h"
 #include "task.h"
 #include "eventrecord.h"
 #include "commrecord.h"
@@ -10,6 +11,7 @@
 #include "counter.h"
 #include "counterrecord.h"
 #include "otfimportoptions.h"
+#include <stdint.h>
 
 
 RawTrace::RawTrace(int nt)

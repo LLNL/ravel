@@ -6,16 +6,16 @@
 #include <QVector>
 #include <stdint.h>
 
-class CollectiveRecord;
-class Task;
-class Function;
-class EventRecord;
-class CommRecord;
+class PrimaryTaskGroup;
 class TaskGroup;
+class Task;
+class CommRecord;
 class OTFCollective;
+class CollectiveRecord;
+class Function;
 class Counter;
 class CounterRecord;
-class CollectiveRecord;
+class EventRecord;
 class OTFImportOptions;
 
 // Trace from OTF without processing
@@ -35,7 +35,8 @@ public:
     };
 
     OTFImportOptions * options;
-    QMap<int, Task *> * tasks;
+    QVector<PrimaryTaskGroup *> * tasks;
+    //QMap<int, Task *> * tasks;
     QMap<int, QString> * functionGroups;
     QMap<int, Function *> * functions;
     QVector<QVector<EventRecord *> *> * events;
