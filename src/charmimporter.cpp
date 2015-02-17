@@ -42,7 +42,7 @@ CharmImporter::CharmImporter()
       charm_events(NULL),
       task_events(NULL),
       pe_events(NULL),
-      roots(NULL),
+      //roots(NULL),
       charm_p2ps(NULL),
       messages(new QVector<CharmMsg *>()),
       primaries(new QMap<int, PrimaryTaskGroup *>()),
@@ -90,13 +90,13 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
     sends = new QVector<QMap<int, QList<CharmMsg *> *> *>(processes);
     charm_events = new QVector<QVector<CharmEvt *> *>(processes);
     pe_events = new QVector<QVector<Event *> *>(processes);
-    roots = new QVector<QVector<Event *> *>(processes);
+    //roots = new QVector<QVector<Event *> *>(processes);
     for (int i = 0; i < processes; i++) {
         (*unmatched_recvs)[i] = new QMap<int, QList<CharmMsg *> *>();
         (*sends)[i] = new QMap<int, QList<CharmMsg *> *>();
         (*charm_events)[i] = new QVector<CharmEvt *>();
         (*pe_events)[i] = new QVector<Event *>();
-        (*roots)[i] = new QVector<Event *>();
+        //(*roots)[i] = new QVector<Event *>();
     }
 
     processDefinitions();
@@ -147,11 +147,12 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
         (*(charm_p2ps))[i] = new QVector<P2PEvent *>();
     }
     trace->pe_events = pe_events;
-    delete trace->roots;
-    trace->roots = roots;
+    //delete trace->roots;
+    //trace->roots = roots;
 
     // Change per-PE stuff to per-chare stuff
-    charify();
+    //charify();
+    makeTaskEvents();
 
     // Build partitions
     buildPartitions();
@@ -277,40 +278,35 @@ void CharmImporter::makeTaskEvents()
         {
             if ((*evt)->enter)
             {
-                if ((have_arrays && (*event)->arrayid == 0) // we have array ids
-                    || (!have_arrays && chares->value((*event)->chare)->indices->size() <= 1)) // we don't
-                {
-                    (*evt)->task = -1;
-                }
-                else
-                {
-                    (*evt)->task = chare_to_t
-                }
+                // Enter is the only place with the true array id so we must
+                // get the task id here.
                 if (have_arrays)
                 {
                     if ((*evt)->arrayid == 0)
                         (*evt)->task = -1;
                     else
-                        (*evt)->task = chare_to_task.value((*evt)->)
+                        (*evt)->task = chare_to_task.value((*evt)->index);
                 }
                 else
                 {
-
+                    if (chares->value((*event)->chare)->indices->size() <= 1)
+                        (*evt)->task = -1;
+                    else
+                        (*evt)->task = chare_to_task.value((*evt)->index);
                 }
-
-                int taskid = chare_to_task.value((*event)->index);
-                (*event)->task = taskid;
-                task_events->at(taskid)->append(*event);
-
                 stack.push(*evt);
                 depth++;
-            }
+            } // Handle enter stuff
             else
             {
                 bgn = stack.pop();
                 Event * e = NULL;
                 if (trace->functions->value(bgn->entry)->group == 0) // Send or Recv
                 {
+                    // We need to go and wire up all the mesages appropriately
+                    // Then we need to make sure these get sorted in the right
+                    // place for charm messages so we can make partitions out of them appropriately.
+                    // Note this has to happen after the fact so we can sort appropriately
                     QVector<Message *> * msgs = new QVector<Message *>();
                     for (QList<CharmMsg *>::Iterator cmsg = bgn->charmmsgs->begin();
                          cmsg != bgn->charmmsgs->end(); ++cmsg)
@@ -339,7 +335,7 @@ void CharmImporter::makeTaskEvents()
                                                                          phase,
                                                                          msgs);
                                 (*cmsg)->send_evt->trace_evt = (*cmsg)->tracemsg->sender;
-                                makeSingletonPartition((*cmsg)->tracemsg->sender);
+                                charm_p2ps->at(bgn->task)->append((*cmsg)->tracemsg->sender);
 
                                 e = (*cmsg)->tracemsg->sender;
 
@@ -362,13 +358,7 @@ void CharmImporter::makeTaskEvents()
                                                                        msgs);
 
                             (*cmsg)->tracemsg->receiver->is_recv = true;
-
-                            (*cmsg)->tracemsg->receiver->comm_prev = prev;
-                            if (prev)
-                                prev->comm_next = (*cmsg)->tracemsg->receiver;
-                            prev = (*cmsg)->tracemsg->receiver;
-
-                            makeSingletonPartition((*cmsg)->tracemsg->receiver);
+                            charm_p2ps->at(bgn->task)->append((*cmsg)->tracemsg->receiver);
 
                             e = (*cmsg)->tracemsg->receiver;
                         }
@@ -398,7 +388,7 @@ void CharmImporter::makeTaskEvents()
                     (*child)->caller = e;
                 }
 
-                (*(trace->events))[(*evt)->task]->append(e);
+                (*(trace->pe_events))[(*evt)->task]->append(e);
             } // Handle this Event
         } // Loop Event
     } // Loop Event Lists
@@ -445,6 +435,27 @@ void CharmImporter::charify()
     }
 }
 
+void CharmImporter::buildPartitions()
+{
+    P2PEvent * prev = NULL;
+    for (QVector<QVector<P2PEvent *> *>::Iterator p2plist = charm_p2ps->begin();
+         p2plist != charm_p2ps->end(); ++p2plist)
+    {
+        prev = NULL;
+        for (QVector<P2PEvent *>::Iterator p2p = (*p2plist)->begin();
+             p2p != (*p2plist)->end(); ++p2p)
+        {
+            if (prev)
+                prev->comm_next = *p2p;
+            *p2p->comm_prev = prev;
+            prev = *p2p;
+
+            makeSingletonPartition(*p2p);
+            trace->events->at((*p2p)->task)->append(*p2p);
+        }
+    }
+}
+
 void CharmImporter::makeSingletonPartition(CommEvent * evt)
 {
     Partition * p = new Partition();
@@ -454,7 +465,8 @@ void CharmImporter::makeSingletonPartition(CommEvent * evt)
     trace->partitions->append(p);
 }
 
-void CharmImporter::buildPartitions()
+/*
+void CharmImporter::buildPartitions2()
 {
     QStack<CharmEvt *> stack = QStack<CharmEvt *>();
     int depth, phase;
@@ -584,6 +596,7 @@ void CharmImporter::buildPartitions()
         } // Loop Event
     } // Loop Event Lists
 }
+*/
 
 int CharmImporter::makeTasks()
 {

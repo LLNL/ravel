@@ -284,7 +284,7 @@ private:
     QVector<QVector<CharmEvt *> *> * charm_events;
     QVector<QVector<CharmEvt *> *> * task_events;
     QVector<QVector<Event *> *> * pe_events;
-    QVector<QVector<Event *> *> * roots;
+    //QVector<QVector<Event *> *> * roots;
     QVector<QVector<P2PEvent *> *> * charm_p2ps;
     QVector<CharmMsg *> * messages;
     QMap<int, PrimaryTaskGroup *> * primaries;
