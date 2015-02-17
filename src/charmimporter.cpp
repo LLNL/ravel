@@ -38,8 +38,12 @@ CharmImporter::CharmImporter()
       trace(NULL),
       unmatched_recvs(NULL),
       sends(NULL),
+      charm_stack(new QStack<CharmEvt *>()),
       charm_events(NULL),
       task_events(NULL),
+      pe_events(NULL),
+      roots(NULL),
+      charm_p2ps(NULL),
       messages(new QVector<CharmMsg *>()),
       primaries(new QMap<int, PrimaryTaskGroup *>()),
       taskgroups(new QMap<int, TaskGroup *>()),
@@ -74,6 +78,8 @@ CharmImporter::~CharmImporter()
     {
         delete *itr;
     }
+
+    delete charm_stack;
 }
 
 void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _options)
@@ -83,10 +89,14 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
     unmatched_recvs = new QVector<QMap<int, QList<CharmMsg *> *> *>(processes);
     sends = new QVector<QMap<int, QList<CharmMsg *> *> *>(processes);
     charm_events = new QVector<QVector<CharmEvt *> *>(processes);
+    pe_events = new QVector<QVector<Event *> *>(processes);
+    roots = new QVector<QVector<Event *> *>(processes);
     for (int i = 0; i < processes; i++) {
         (*unmatched_recvs)[i] = new QMap<int, QList<CharmMsg *> *>();
         (*sends)[i] = new QMap<int, QList<CharmMsg *> *>();
         (*charm_events)[i] = new QVector<CharmEvt *>();
+        (*pe_events)[i] = new QVector<Event *>();
+        (*roots)[i] = new QVector<Event *>();
     }
 
     processDefinitions();
@@ -104,8 +114,11 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
         suffix += ".gz";
     }
     for (int i = 0; i < processes; i++)
+    {
+        charm_stack->clear();
         readLog(path + "/" + basename + "." + QString::number(i) + suffix,
                 gzflag, i);
+    }
 
     // At this point, I have a list of events per PE
     // Now I have to check to see what chares are actually arrays
@@ -126,18 +139,16 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
     //trace->counter_records = new QVector<QVector<CounterRecord *> *>(num_tasks);
     trace->collectiveMap = new QVector<QMap<unsigned long long, CollectiveRecord *> *>(num_tasks);
     task_events = new QVector<QVector<CharmEvt *> *>(num_tasks);
+    charm_p2ps = new QVector<QVector<P2PEvent *> *>(num_tasks);
     for (int i = 0; i < num_tasks; i++) {
         (*(trace->collectiveMap))[i] = new QMap<unsigned long long, CollectiveRecord *>();
         (*(trace->events))[i] = new QVector<Event *>();
-
         (*(task_events))[i] = new QVector<CharmEvt *>();
+        (*(charm_p2ps))[i] = new QVector<P2PEvent *>();
     }
-    trace->pe_events = new QVector<QVector<Event *> *>(processes);
-    for (int i = 0; i < processes; i++)
-    {
-        (*(trace->pe_events))[i] = new QVector<Event *>();
-        (*(trace->roots))[i] = new QVector<Event *>();
-    }
+    trace->pe_events = pe_events;
+    delete trace->roots;
+    trace->roots = roots;
 
     // Change per-PE stuff to per-chare stuff
     charify();
@@ -237,9 +248,169 @@ void CharmImporter::readLog(QString logFileName, bool gzipped, int pe)
 // Will fill the trace->pe_events and the trace->roots
 // After this is done we will take the trace events and
 // turn them into partitions.
-void CharmImporter::maketaskEvents()
+void CharmImporter::makeTaskEvents()
 {
 
+    // Now make the task event hierarchy with roots and such
+    QStack<CharmEvt *> stack = QStack<CharmEvt *>();
+    int depth, phase;
+    CharmEvt * bgn = NULL;
+    unsigned long long endtime = 0;
+    int counter = 0;
+
+    bool have_arrays = false;
+    if (arrays->size() > 0)
+        have_arrays = true;
+
+    // Go through each PE separately, creating events and if necessary
+    // putting them into charm_p2ps and setting their tasks appropriately
+    for (QVector<QVector<CharmEvt *> *>::Iterator event_list = charm_events->begin();
+         event_list != charm_events->end(); ++event_list)
+    {
+        stack.clear();
+        depth = 0;
+        phase = 0;
+        prev = NULL;
+        counter++;
+        for (QVector<CharmEvt *>::Iterator evt = (*event_list)->begin();
+             evt != (*event_list)->end(); ++evt)
+        {
+            if ((*evt)->enter)
+            {
+                if ((have_arrays && (*event)->arrayid == 0) // we have array ids
+                    || (!have_arrays && chares->value((*event)->chare)->indices->size() <= 1)) // we don't
+                {
+                    (*evt)->task = -1;
+                }
+                else
+                {
+                    (*evt)->task = chare_to_t
+                }
+                if (have_arrays)
+                {
+                    if ((*evt)->arrayid == 0)
+                        (*evt)->task = -1;
+                    else
+                        (*evt)->task = chare_to_task.value((*evt)->)
+                }
+                else
+                {
+
+                }
+
+                int taskid = chare_to_task.value((*event)->index);
+                (*event)->task = taskid;
+                task_events->at(taskid)->append(*event);
+
+                stack.push(*evt);
+                depth++;
+            }
+            else
+            {
+                bgn = stack.pop();
+                Event * e = NULL;
+                if (trace->functions->value(bgn->entry)->group == 0) // Send or Recv
+                {
+                    QVector<Message *> * msgs = new QVector<Message *>();
+                    for (QList<CharmMsg *>::Iterator cmsg = bgn->charmmsgs->begin();
+                         cmsg != bgn->charmmsgs->end(); ++cmsg)
+                    {
+                        if ((*cmsg)->tracemsg)
+                        {
+                            msgs->append((*cmsg)->tracemsg);
+                        }
+                        else
+                        {
+                            Message * msg = new Message((*cmsg)->sendtime,
+                                                        (*cmsg)->recvtime,
+                                                        0);
+                            (*cmsg)->tracemsg = msg;
+                            msgs->append(msg);
+                        }
+                        if (bgn->entry == SEND_FXN)
+                        {
+                            if (!((*cmsg)->send_evt->trace_evt))
+                            {
+                                (*cmsg)->tracemsg->sender = new P2PEvent(bgn->time,
+                                                                         (*evt)->time-1,
+                                                                         bgn->entry,
+                                                                         bgn->task,
+                                                                         bgn->pe,
+                                                                         phase,
+                                                                         msgs);
+                                (*cmsg)->send_evt->trace_evt = (*cmsg)->tracemsg->sender;
+                                makeSingletonPartition((*cmsg)->tracemsg->sender);
+
+                                e = (*cmsg)->tracemsg->sender;
+
+                            }
+                            else
+                            {
+                                (*cmsg)->tracemsg->sender = (*cmsg)->send_evt->trace_evt;
+                                // We have already set e here.
+                            }
+
+                        }
+                        else if (bgn->entry == RECV_FXN)
+                        {
+                            (*cmsg)->tracemsg->receiver = new P2PEvent(bgn->time-1,
+                                                                       (*evt)->time-2,
+                                                                       bgn->entry,
+                                                                       bgn->task,
+                                                                       bgn->pe,
+                                                                       phase,
+                                                                       msgs);
+
+                            (*cmsg)->tracemsg->receiver->is_recv = true;
+
+                            (*cmsg)->tracemsg->receiver->comm_prev = prev;
+                            if (prev)
+                                prev->comm_next = (*cmsg)->tracemsg->receiver;
+                            prev = (*cmsg)->tracemsg->receiver;
+
+                            makeSingletonPartition((*cmsg)->tracemsg->receiver);
+
+                            e = (*cmsg)->tracemsg->receiver;
+                        }
+                    }
+                }
+                else // Non-comm event
+                {
+                    e = new Event(bgn->time, (*evt)->time, bgn->entry,
+                                  bgn->task, bgn->pe);
+                }
+
+                depth--;
+                e->depth = depth;
+                if (depth == 0)
+                    (*(trace->roots))[(*evt)->task]->append(e);
+
+                if (e->exit > endtime)
+                    endtime = e->exit;
+                if (!stack.isEmpty())
+                {
+                    stack.top()->children->append(e);
+                }
+                for (QList<Event *>::Iterator child = bgn->children->begin();
+                     child != bgn->children->end(); ++child)
+                {
+                    e->callees->append(*child);
+                    (*child)->caller = e;
+                }
+
+                (*(trace->events))[(*evt)->task]->append(e);
+            } // Handle this Event
+        } // Loop Event
+    } // Loop Event Lists
+
+
+    // Sort chare events in time
+    for (QVector<QVector<P2PEvent *> *>::Iterator event_list
+         = charm_p2ps->begin(); event_list != charm_p2ps->end();
+         ++event_list)
+    {
+        qSort((*event_list)->begin(), (*event_list)->end(), dereferencedLessThan<P2PEvent>);
+    }
 }
 
 // Convert per-PE charm Events into per-chare events
@@ -658,6 +829,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
 
             if (arrayid > 0 && !arrays->contains(arrayid))
             {
+                id.array = arrayid;
                 arrays->insert(arrayid,
                                new ChareArray(arrayid,
                                               entries->value(entry)->chare));

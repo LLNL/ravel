@@ -30,8 +30,8 @@ public:
 
     class ChareIndex {
     public:
-        ChareIndex(int c, int i0, int i1, int i2, int i3)
-            : chare(c)
+        ChareIndex(int c, int i0, int i1, int i2, int i3, int a = 0)
+            : chare(c), array(a)
         {
             index[0] = i0;
             index[1] = i1;
@@ -41,19 +41,25 @@ public:
 
         int index[4];
         int chare;
+        int array;
 
         ChareIndex& operator=(const ChareIndex & other)
         {
             if (this != &other)
+            {
                 chare = other.chare;
+                array = other.array;
                 for (int i = 0; i < 4; i++)
                     index[i] = other.index[i];
+            }
             return *this;
         }
 
         bool operator<(const ChareIndex & other) const
         {
             if (chare < other.chare)
+                return true;
+            if (array < other.array)
                 return true;
             for (int i = 0; i < 4; i++)
                 if (index[i] < other.index[i])
@@ -64,6 +70,8 @@ public:
         bool operator>(const ChareIndex & other) const
         {
             if (chare > other.chare)
+                return true;
+            if (array > other.array)
                 return true;
             for (int i = 0; i < 4; i++)
                 if (index[i] > other.index[i])
@@ -77,6 +85,12 @@ public:
                 return true;
             else if (chare != other.chare)
                 return false;
+
+            if (array < other.array)
+                return true;
+            else if (array != other.array)
+                return false;
+
             for (int i = 0; i < 4; i++)
                 if (index[i] < other.index[i])
                     return true;
@@ -91,6 +105,12 @@ public:
                 return true;
             else if (chare != other.chare)
                 return false;
+
+            if (array > other.array)
+                return true;
+            else if (array != other.array)
+                return false;
+
             for (int i = 0; i < 4; i++)
                 if (index[i] > other.index[i])
                     return true;
@@ -103,6 +123,9 @@ public:
         {
             if (chare != other.chare)
                 return false;
+            if (array != other.array)
+                return false;
+
             for (int i = 0; i < 4; i++)
                 if (index[i] != other.index[i])
                     return false;
@@ -134,6 +157,7 @@ private:
     void parseLine(QString line, int my_pe);
     void processDefinitions();
     int makeTasks();
+    void makeTaskEvents();
     void charify();
 
     void makeSingletonPartition(CommEvent * evt);
@@ -256,8 +280,12 @@ private:
 
     QVector<QMap<int, QList<CharmMsg *> *> *> * unmatched_recvs; //[other pe][event]
     QVector<QMap<int, QList<CharmMsg *> *> *> * sends;
+    QStack<CharmEvt *> * charm_stack;
     QVector<QVector<CharmEvt *> *> * charm_events;
     QVector<QVector<CharmEvt *> *> * task_events;
+    QVector<QVector<Event *> *> * pe_events;
+    QVector<QVector<Event *> *> * roots;
+    QVector<QVector<P2PEvent *> *> * charm_p2ps;
     QVector<CharmMsg *> * messages;
     QMap<int, PrimaryTaskGroup *> * primaries;
     QMap<int, TaskGroup *> * taskgroups;
