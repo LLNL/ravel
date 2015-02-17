@@ -27,6 +27,7 @@
 #include "p2pevent.h"
 #include "message.h"
 #include "collectiveevent.h"
+#include "primarytaskgroup.h"
 
 
 const QString OTFConverter::collectives_string
@@ -61,6 +62,7 @@ Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
 
     delete importer;
     trace->fullpath = filename;
+    trace->pe_events = trace->events;
     #endif
     return trace;
 }
@@ -81,6 +83,7 @@ Trace * OTFConverter::importOTF2(QString filename, OTFImportOptions *_options)
 
     delete importer;
     trace->fullpath = filename;
+    trace->pe_events = trace->events;
     return trace;
 }
 
@@ -102,14 +105,14 @@ void OTFConverter::convert()
     QElapsedTimer traceTimer;
     qint64 traceElapsed;
     traceTimer.start();
-    trace = new Trace(rawtrace->num_tasks);
+    trace = new Trace(rawtrace->num_tasks, rawtrace->num_tasks);
     trace->units = rawtrace->second_magnitude;
 
     // Start setting up new Trace
     delete trace->functions;
     trace->functions = rawtrace->functions;
     delete trace->functionGroups;
-    trace->tasks = rawtrace->tasks;
+    trace->primaries = rawtrace->primaries;
     trace->functionGroups = rawtrace->functionGroups;
     trace->collectives = rawtrace->collectives;
     trace->collectiveMap = rawtrace->collectiveMap;

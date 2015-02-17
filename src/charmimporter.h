@@ -15,6 +15,7 @@ class Message;
 class Event;
 class P2PEvent;
 class CommEvent;
+class PrimaryTaskGroup;
 
 class Message;
 
@@ -200,9 +201,10 @@ private:
     class CharmEvt {
     public:
         CharmEvt(int _entry, unsigned long long _time, int _pe, int _chare,
-                 bool _enter = true)
+                 int _array, bool _enter = true)
             : time(_time), pe(_pe), task(-1), enter(_enter),
-              chare(_chare), index(ChareIndex(-1, 0,0,0,0)), entry(_entry),
+              chare(_chare), index(ChareIndex(-1, 0,0,0,0)),
+              arrayid(_array), entry(_entry),
               charmmsgs(new QList<CharmMsg *>()), children(new QList<Event *>()),
               trace_evt(NULL)
         { }
@@ -228,6 +230,7 @@ private:
 
         int chare;
         ChareIndex index;
+        int arrayid;
         int entry;
 
        QList<CharmMsg *> * charmmsgs;
@@ -256,7 +259,7 @@ private:
     QVector<QVector<CharmEvt *> *> * charm_events;
     QVector<QVector<CharmEvt *> *> * task_events;
     QVector<CharmMsg *> * messages;
-    QMap<int, Task *> * tasks;
+    QMap<int, PrimaryTaskGroup *> * primaries;
     QMap<int, TaskGroup *> * taskgroups;
     QMap<int, QString> * functiongroups;
     QMap<int, Function *> * functions;

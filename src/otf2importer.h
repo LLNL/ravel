@@ -16,6 +16,7 @@ class OTFCollective;
 class Counter;
 class CollectiveRecord;
 class OTFImportOptions;
+class PrimaryTaskGroup;
 
 class OTF2Importer
 {
@@ -332,7 +333,7 @@ private:
 
     RawTrace * rawtrace;
 
-    QMap<int, Task *> * tasks;
+    QMap<int, PrimaryTaskGroup *> * primaries;
     QMap<int, QString> * functionGroups;
     QMap<int, Function *> * functions;
     QMap<int, TaskGroup *> * taskgroups;

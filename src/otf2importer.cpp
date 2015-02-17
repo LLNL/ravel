@@ -13,6 +13,7 @@
 #include "function.h"
 #include "task.h"
 #include "otfimportoptions.h"
+#include "primarytaskgroup.h"
 
 OTF2Importer::OTF2Importer()
     : from_saved_version(""),
@@ -257,7 +258,7 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file, bool _enforceMessageSi
                                           &definitions_read );
 
 
-    tasks = new QMap<int, Task *>();
+    primaries = new QMap<int, PrimaryTaskGroup *>();
     functionGroups = new QMap<int, QString>();
     functions = new QMap<int, Function *>();
     taskgroups = new QMap<int, TaskGroup *>();
@@ -266,9 +267,9 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file, bool _enforceMessageSi
 
     processDefinitions();
 
-    rawtrace = new RawTrace(num_processes);
+    rawtrace = new RawTrace(num_processes, num_processes);
     *(rawtrace->options) = *options;
-    rawtrace->tasks = tasks;
+    rawtrace->primaries = primaries;
     rawtrace->second_magnitude = second_magnitude;
     rawtrace->functions = functions;
     rawtrace->functionGroups = functionGroups;

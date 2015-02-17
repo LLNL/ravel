@@ -19,6 +19,7 @@ class CommEvent;
 class Function;
 class Task;
 class TaskGroup;
+class PrimaryTaskGroup;
 class OTFCollective;
 class CollectiveRecord;
 
@@ -26,7 +27,7 @@ class Trace : public QObject
 {
     Q_OBJECT
 public:
-    Trace(int nt);
+    Trace(int nt, int np);
     ~Trace();
 
     void preprocess(OTFImportOptions * _options);
@@ -40,6 +41,7 @@ public:
     QString name;
     QString fullpath;
     int num_tasks;
+    int num_pes;
     int units;
 
     QList<Partition *> * partitions;
@@ -54,15 +56,16 @@ public:
     QMap<int, QString> * functionGroups;
     QMap<int, Function *> * functions;
 
-    QMap<int, Task *> * tasks;
+    QMap<int, PrimaryTaskGroup *> * primaries;
     QMap<int, TaskGroup *> * taskgroups;
     QMap<int, OTFCollective *> * collective_definitions;
 
     QMap<unsigned long long, CollectiveRecord *> * collectives;
     QVector<QMap<unsigned long long, CollectiveRecord *> *> * collectiveMap;
 
-    QVector<QVector<Event *> *> * events;
-    QVector<QVector<Event *> *> * roots; // Roots of call trees per process
+    QVector<QVector<Event *> *> * events; // This is going to be by tasks
+    QVector<QVector<Event *> *> * pe_events; // This is by pes
+    QVector<QVector<Event *> *> * roots; // Roots of call trees per pe
 
     int mpi_group; // functionGroup index of "MPI" functions
 

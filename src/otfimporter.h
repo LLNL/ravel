@@ -15,6 +15,7 @@ class OTFCollective;
 class Counter;
 class CollectiveRecord;
 class RawTrace;
+class PrimaryTaskGroup;
 
 // Use OTF API to get records
 class OTFImporter
@@ -110,7 +111,7 @@ private:
     QVector<QLinkedList<CommRecord *> *> * unmatched_sends;
 
     RawTrace * rawtrace;
-    QMap<int, Task *> * tasks;
+    QMap<int, PrimaryTaskGroup *> * primaries;
     QMap<int, QString> * functionGroups;
     QMap<int, Function *> * functions;
     QMap<int, TaskGroup *> * taskgroups;

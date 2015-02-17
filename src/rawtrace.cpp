@@ -14,9 +14,10 @@
 #include <stdint.h>
 
 
-RawTrace::RawTrace(int nt)
+RawTrace::RawTrace(int nt, int np)
     : options(new OTFImportOptions()),
       tasks(NULL),
+      primaries(NULL),
       functionGroups(NULL),
       functions(NULL),
       events(NULL),
@@ -30,6 +31,7 @@ RawTrace::RawTrace(int nt)
       collectiveMap(NULL),
       collectiveBits(NULL),
       num_tasks(nt),
+      num_pes(np),
       second_magnitude(1),
       from_saved_version(""),
       metric_names(NULL),

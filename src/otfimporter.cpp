@@ -14,6 +14,7 @@
 #include "counterrecord.h"
 #include "taskgroup.h"
 #include "otfcollective.h"
+#include "primarytaskgroup.h"
 #include "otf.h"
 
 OTFImporter::OTFImporter()
@@ -32,7 +33,7 @@ OTFImporter::OTFImporter()
       unmatched_recvs(new QVector<QLinkedList<CommRecord *> *>()),
       unmatched_sends(new QVector<QLinkedList<CommRecord *> *>()),
       rawtrace(NULL),
-      tasks(NULL),
+      primaries(NULL),
       functionGroups(NULL),
       functions(NULL),
       taskgroups(NULL),
@@ -97,7 +98,7 @@ RawTrace * OTFImporter::importOTF(const char* otf_file, bool _enforceMessageSize
 
     setHandlers();
 
-    tasks = new QMap<int, Task *>();
+    primaries = new QVector<PrimaryTaskGroup *>();
     functionGroups = new QMap<int, QString>();
     functions = new QMap<int, Function *>();
     taskgroups = new QMap<int, TaskGroup *>();
@@ -108,8 +109,8 @@ RawTrace * OTFImporter::importOTF(const char* otf_file, bool _enforceMessageSize
     std::cout << "Reading definitions" << std::endl;
     OTF_Reader_readDefinitions(otfReader, handlerArray);
 
-    rawtrace = new RawTrace(num_processes);
-    rawtrace->tasks = tasks;
+    rawtrace = new RawTrace(num_processes, num_processes);
+    rawtrace->primaries = primaries;
     rawtrace->second_magnitude = second_magnitude;
     rawtrace->functions = functions;
     rawtrace->functionGroups = functionGroups;

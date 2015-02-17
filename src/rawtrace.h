@@ -22,7 +22,7 @@ class OTFImportOptions;
 class RawTrace
 {
 public:
-    RawTrace(int nt);
+    RawTrace(int nt, int np);
     ~RawTrace();
 
     class CollectiveBit {
@@ -35,7 +35,7 @@ public:
     };
 
     OTFImportOptions * options;
-    QVector<PrimaryTaskGroup *> * tasks;
+    QMap<int, PrimaryTaskGroup *> * primaries;
     //QMap<int, Task *> * tasks;
     QMap<int, QString> * functionGroups;
     QMap<int, Function *> * functions;
@@ -51,6 +51,7 @@ public:
     QVector<QMap<unsigned long long, CollectiveRecord *> *> * collectiveMap;
     QVector<QVector<CollectiveBit *> *> * collectiveBits;
     int num_tasks;
+    int num_pes;
     int second_magnitude; // seconds are 10^this over the smallest smaple unit
     QString from_saved_version;
     QList<QString> * metric_names;

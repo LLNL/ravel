@@ -22,10 +22,11 @@
 #include "otfcollective.h"
 #include "general_util.h"
 
-Trace::Trace(int nt)
+Trace::Trace(int nt, int np)
     : name(""),
       fullpath(""),
       num_tasks(nt),
+      num_pes(np),
       units(-9),
       partitions(new QList<Partition *>()),
       metrics(new QList<QString>()),
@@ -34,12 +35,13 @@ Trace::Trace(int nt)
       options(NULL),
       functionGroups(new QMap<int, QString>()),
       functions(new QMap<int, Function *>()),
-      tasks(NULL),
+      primaries(NULL),
       taskgroups(NULL),
       collective_definitions(NULL),
       collectives(NULL),
       collectiveMap(NULL),
       events(new QVector<QVector<Event *> *>(nt)),
+      pe_events(NULL),
       roots(new QVector<QVector<Event *> *>(nt)),
       mpi_group(-1),
       global_max_step(-1),
@@ -139,13 +141,19 @@ Trace::~Trace()
     delete dag_step_dict;
 
 
-    for (QMap<int, Task *>::Iterator comm = tasks->begin();
-         comm != tasks->end(); ++comm)
+    for (QVector<PrimaryTaskGroup *>::Iterator primary = primaries->begin();
+         primary != primaries->end(); ++primary)
     {
-        delete *comm;
-        *comm = NULL;
+        for (QList<Task *>::Iterator task = (*primary)->tasks->begin();
+             task != (*primary)->tasks->end(); ++task)
+        {
+            delete *task;
+            *task = NULL;
+        }
+        delete *primary;
+        *primary = NULL;
     }
-    delete taskgroups;
+    delete primaries;
 }
 
 void Trace::preprocess(OTFImportOptions * _options)
