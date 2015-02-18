@@ -43,7 +43,7 @@ Trace::Trace(int nt, int np)
       collectiveMap(NULL),
       events(new QVector<QVector<Event *> *>(nt)),
       pe_events(NULL),
-      roots(new QVector<QVector<Event *> *>(nt)),
+      roots(new QVector<QVector<Event *> *>(np)),
       mpi_group(-1),
       global_max_step(-1),
       dag_entries(new QList<Partition *>()),
@@ -52,6 +52,10 @@ Trace::Trace(int nt, int np)
 {
     for (int i = 0; i < nt; i++) {
         (*events)[i] = new QVector<Event *>();
+    }
+
+    for (int i = 0; i < np; i++)
+    {
         (*roots)[i] = new QVector<Event *>();
     }
 
@@ -104,6 +108,14 @@ Trace::~Trace()
     }
     delete roots;
 
+    for (QVector<QVector<Event *> *>::Iterator eitr = pe_events->begin();
+         eitr != pe_events->end(); ++eitr)
+    {
+        delete *eitr;
+        *eitr = NULL;
+    }
+    delete pe_events;
+
     for (QList<Gnome *>::Iterator gnome = gnomes->begin();
          gnome != gnomes->end(); ++gnome)
     {
@@ -151,8 +163,7 @@ Trace::~Trace()
             delete *task;
             *task = NULL;
         }
-        delete *primary;
-        *primary = NULL;
+        delete primary.value();
     }
     delete primaries;
 }

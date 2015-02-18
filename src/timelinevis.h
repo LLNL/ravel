@@ -24,8 +24,8 @@ public slots:
 
 protected:
     void drawHover(QPainter *painter);
-    void drawTaskLabels(QPainter * painter, int effectiveHeight,
-                           float barHeight);
+    void drawEntityLabels(QPainter * painter, int effectiveHeight,
+                          float barHeight);
 
     bool jumped;
     bool mousePressed;
@@ -35,18 +35,19 @@ protected:
     int pressx;
     int pressy;
     float stepwidth;
-    float taskheight;
+    float entityheight;
     int labelWidth;
     int labelHeight;
     int labelDescent;
     int cursorWidth;
 
     int maxStep;
+    int maxEntities;
     int startPartition;
     float startStep;
-    float startTask; // refers to order rather than process really
+    float startEntity; // refers to order rather than process really
     float stepSpan;
-    float taskSpan;
+    float entitySpan;
     float lastStartStep;
     QMap<int, int> proc_to_order;
     QMap<int, int> order_to_proc;

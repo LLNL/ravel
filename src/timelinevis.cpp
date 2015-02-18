@@ -21,17 +21,18 @@ TimelineVis::TimelineVis(QWidget* parent, VisOptions * _options)
       pressx(0),
       pressy(0),
       stepwidth(0),
-      taskheight(0),
+      entityheight(0),
       labelWidth(0),
       labelHeight(0),
       labelDescent(0),
       cursorWidth(0),
       maxStep(0),
+      maxEntities(0),
       startPartition(0),
       startStep(0),
-      startTask(0),
+      startEntity(0),
       stepSpan(0),
-      taskSpan(0),
+      entitySpan(0),
       lastStartStep(0),
       proc_to_order(QMap<int, int>()),
       order_to_proc(QMap<int, int>())
@@ -53,13 +54,13 @@ void TimelineVis::processVis()
 {
     proc_to_order = QMap<int, int>();
     order_to_proc = QMap<int, int>();
-    for (int i = 0; i < trace->num_tasks; i++) {
+    for (int i = 0; i < maxEntities; i++) {
         proc_to_order[i] = i;
         order_to_proc[i] = i;
     }
 
     // Determine needs for task labels
-    int max_task = pow(10,ceil(log10(trace->num_tasks)) + 1) - 1;
+    int max_task = pow(10,ceil(log10(maxEntities)) + 1) - 1;
     QPainter * painter = new QPainter();
     painter->begin(this);
     painter->setPen(Qt::black);
@@ -251,7 +252,7 @@ void TimelineVis::drawHover(QPainter * painter)
     painter->drawText(mousex + 2 + cursorWidth, mousey + textRect.height() - 2, text);
 }
 
-void TimelineVis::drawTaskLabels(QPainter * painter, int effectiveHeight,
+void TimelineVis::drawEntityLabels(QPainter * painter, int effectiveHeight,
                                     float barHeight)
 {
     painter->setPen(Qt::black);
@@ -260,17 +261,17 @@ void TimelineVis::drawTaskLabels(QPainter * painter, int effectiveHeight,
     int total_labels = floor(effectiveHeight / labelHeight);
     int y;
     int skip = 1;
-    if (total_labels < taskSpan)
+    if (total_labels < entitySpan)
     {
-        skip = ceil(float(taskSpan) / total_labels);
+        skip = ceil(float(entitySpan) / total_labels);
     }
 
-    int start = std::max(floor(startTask), 0.0);
-    int end = std::min(ceil(startTask + taskSpan),
-                       trace->num_tasks - 1.0);
+    int start = std::max(floor(startEntity), 0.0);
+    int end = std::min(ceil(startEntity + entitySpan),
+                       maxEntities - 1.0);
     for (int i = start; i <= end; i+= skip) // Do this by order
     {
-        y = floor((i - startTask) * barHeight) + 1 + barHeight / 2
+        y = floor((i - startEntity) * barHeight) + 1 + barHeight / 2
             + labelDescent;
         if (y < effectiveHeight)
             painter->drawText(1, y, QString::number(order_to_proc[i]));

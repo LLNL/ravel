@@ -21,18 +21,18 @@
 StepVis::StepVis(QWidget* parent, VisOptions * _options)
     : TimelineVis(parent = parent, _options),
       metricdialog(NULL),
-    maxMetric(0),
-    cacheMetric(""),
-    maxMetricText(""),
-    hoverText(""),
-    maxMetricTextWidth(0),
-    colorbar_offset(0),
-    lassoRect(QRect()),
-    blockwidth(0),
-    blockheight(0),
-    ellipse_width(0),
-    ellipse_height(0),
-    overdrawYMap(new QMap<int, int>())
+      maxMetric(0),
+      cacheMetric(""),
+      maxMetricText(""),
+      hoverText(""),
+      maxMetricTextWidth(0),
+      colorbar_offset(0),
+      lassoRect(QRect()),
+      blockwidth(0),
+      blockheight(0),
+      ellipse_width(0),
+      ellipse_height(0),
+      overdrawYMap(new QMap<int, int>())
 {
 
 }
@@ -51,8 +51,9 @@ void StepVis::setTrace(Trace * t)
     else
         startStep = 0;
     stepSpan = initStepSpan;
-    startTask = 0;
-    taskSpan = trace->num_tasks;
+    startEntity = 0;
+    entitySpan = trace->num_tasks;
+    maxEntities = trace->num_tasks;
     startPartition = 0;
 
     maxStep = trace->global_max_step;
@@ -155,16 +156,16 @@ void StepVis::rightDrag(QMouseEvent * event)
 
     if (pressy < event->y())
     {
-        startTask = startTask + taskSpan * pressy
+        startEntity = startEntity + entitySpan * pressy
                        / (rect().height() - colorBarHeight);
-        taskSpan = taskSpan * (event->y() - pressy)
+        entitySpan = entitySpan * (event->y() - pressy)
                       / (rect().height() - colorBarHeight);
     }
     else
     {
-        startTask = startTask + taskSpan * event->y()
+        startEntity = startEntity + entitySpan * event->y()
                        / (rect().height() - colorBarHeight);
-        taskSpan = taskSpan * (pressy - event->y())
+        entitySpan = entitySpan * (pressy - event->y())
                       / (rect().height() - colorBarHeight);
     }
     repaint();
@@ -184,7 +185,7 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
         int diffx = mousex - event->x();
         int diffy = mousey - event->y();
         startStep += diffx / 1.0 / stepwidth;
-        startTask += diffy / 1.0 / taskheight;
+        startEntity += diffy / 1.0 / entityheight;
 
         if (options->showAggregateSteps)
         {
@@ -199,10 +200,10 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
         if (startStep > maxStep)
             startStep = maxStep;
 
-        if (startTask < 0)
-            startTask = 0;
-        if (startTask + taskSpan > trace->num_tasks)
-            startTask = trace->num_tasks - taskSpan;
+        if (startEntity < 0)
+            startEntity = 0;
+        if (startEntity + entitySpan > trace->num_tasks)
+            startEntity = trace->num_tasks - entitySpan;
 
         mousex = event->x();
         mousey = event->y();
@@ -289,9 +290,9 @@ void StepVis::wheelEvent(QWheelEvent * event)
     scale = 1 + clicks * 0.05;
     if (Qt::MetaModifier && event->modifiers()) {
         // Vertical
-        float avgProc = startTask + taskSpan / 2.0;
-        taskSpan *= scale;
-        startTask = avgProc - taskSpan / 2.0;
+        float avgProc = startEntity + entitySpan / 2.0;
+        entitySpan *= scale;
+        startEntity = avgProc - entitySpan / 2.0;
     } else {
         // Horizontal
         lastStartStep = startStep;
@@ -370,15 +371,15 @@ void StepVis::qtPaint(QPainter *painter)
         return;
 
     // In this case we haven't already drawn stuff with GL, so we paint it here.
-    if ((rect().height() - colorBarHeight) / taskSpan >= 3
+    if ((rect().height() - colorBarHeight) / entitySpan >= 3
         && rect().width() / stepSpan >= 3)
     {
       paintEvents(painter);
     }
 
     // Always done by qt
-    drawTaskLabels(painter, rect().height() - colorBarHeight,
-                      taskheight);
+    drawEntityLabels(painter, rect().height() - colorBarHeight,
+                      entityheight);
     drawColorBarText(painter);
 
     // Hover is independent of how we drew things
@@ -404,7 +405,7 @@ void StepVis::drawNativeGL()
     drawColorBarGL();
 
     int effectiveHeight = rect().height() - colorBarHeight;
-    if (effectiveHeight / taskSpan >= 3 && rect().width() / stepSpan >= 3)
+    if (effectiveHeight / entitySpan >= 3 && rect().width() / stepSpan >= 3)
         return;
 
     QString metric(options->metric);
@@ -421,11 +422,11 @@ void StepVis::drawNativeGL()
                width,
                height);
     glLoadIdentity();
-    glOrtho(0, effectiveSpan, 0, taskSpan, 0, 1);
+    glOrtho(0, effectiveSpan, 0, entitySpan, 0, 1);
 
     float barwidth = 1.0;
     float barheight = 1.0;
-    taskheight = height/ taskSpan;
+    entityheight = height/ entitySpan;
     stepwidth = width / effectiveSpan;
 
 
@@ -454,7 +455,7 @@ void StepVis::drawNativeGL()
     }
 
     // 1 if an event at every step, small if less
-    double density = num_events / 1.0 / (stepSpan * taskSpan);
+    double density = num_events / 1.0 / (stepSpan * entitySpan);
     float opacity = 1.0;
     float xoffset = 0;
     float yoffset = 0;
@@ -465,11 +466,11 @@ void StepVis::drawNativeGL()
     // more visible.
     /*if (density)
     {
-        if (taskheight < 1.0)
+        if (entityheight < 1.0)
         {
-            double tasks_per_pixel = 1.0 / taskheight;
+            double tasks_per_pixel = 1.0 / entityheight;
             yoffset = tasks_per_pixel / 2;
-            opacity = taskheight / density;
+            opacity = entityheight / density;
         }
         if (stepwidth < 1.0)
         {
@@ -489,7 +490,7 @@ void StepVis::drawNativeGL()
     float x, y; // true position
     float position; // placement of task
     QColor color;
-    float maxTask = taskSpan + startTask;
+    float maxTask = entitySpan + startEntity;
     float myopacity, opacity_multiplier = 1.0;
     if (selected_gnome && !selected_tasks.isEmpty())
         opacity_multiplier = 0.50;
@@ -512,8 +513,8 @@ void StepVis::drawNativeGL()
 
             position = proc_to_order[event_list.key()];
             // Out of task span check
-            if (position < floor(startTask)
-                || position > ceil(startTask + taskSpan))
+            if (position < floor(startEntity)
+                || position > ceil(startEntity + entitySpan))
             {
                  continue;
             }
@@ -603,7 +604,7 @@ void StepVis::paintEvents(QPainter * painter)
     int effectiveWidth = rect().width();
 
     int task_spacing = 0;
-    if (effectiveHeight / taskSpan > spacingMinimum)
+    if (effectiveHeight / entitySpan > spacingMinimum)
         task_spacing = 3;
 
     int step_spacing = 0;
@@ -611,7 +612,7 @@ void StepVis::paintEvents(QPainter * painter)
         step_spacing = 3;
 
     float x, y, w, h, xa, wa;
-    blockheight = floor(effectiveHeight / taskSpan);
+    blockheight = floor(effectiveHeight / entitySpan);
     if (options->showAggregateSteps)
     {
         blockwidth = floor(effectiveWidth / stepSpan);
@@ -622,7 +623,7 @@ void StepVis::paintEvents(QPainter * painter)
     }
     float barheight = blockheight - task_spacing;
     float barwidth = blockwidth - step_spacing;
-    taskheight = blockheight;
+    entityheight = blockheight;
     stepwidth = blockwidth;
     QRect extents = QRect(0, 0, rect().width(), effectiveHeight);
 
@@ -664,12 +665,12 @@ void StepVis::paintEvents(QPainter * painter)
 
             // Out of span test
             position = proc_to_order[event_list.key()];
-            if (position < floor(startTask)
-                || position > ceil(startTask + taskSpan))
+            if (position < floor(startEntity)
+                || position > ceil(startEntity + entitySpan))
             {
                 continue;
             }
-            y = floor((position - startTask) * blockheight) + 1;
+            y = floor((position - startEntity) * blockheight) + 1;
 
             for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
@@ -679,7 +680,7 @@ void StepVis::paintEvents(QPainter * painter)
                 {
                     continue;
                 }
-                // 0 = startTask, effectiveHeight = stopTask (startTask + taskSpan)
+                // 0 = startEntity, effectiveHeight = stopTask (startEntity + entitySpan)
                 // 0 = startStep, rect().width() = stopStep (startStep + stepSpan)
 
                 x = getX(*evt);
@@ -891,7 +892,7 @@ int StepVis::getY(CommEvent * evt)
 {
     int y = 0;
     int position = proc_to_order[evt->task];
-    y = floor((position - startTask) * blockheight) + 1;
+    y = floor((position - startEntity) * blockheight) + 1;
     return y;
 }
 
@@ -911,7 +912,7 @@ int StepVis::getX(CommEvent *evt)
 void StepVis::drawMessage(QPainter * painter, Message * msg)
 {
     int penwidth = 1;
-    if (taskSpan <= 32)
+    if (entitySpan <= 32)
         penwidth = 2;
 
     Qt::GlobalColor pencolor = Qt::black;

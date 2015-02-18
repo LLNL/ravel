@@ -46,7 +46,7 @@ OTF2Importer::OTF2Importer()
       unmatched_send_requests(new QVector<QLinkedList<CommRecord *> *>()),
       unmatched_send_completes(new QVector<QLinkedList<OTF2IsendComplete *> *>()),
       rawtrace(NULL),
-      tasks(NULL),
+      primaries(NULL),
       functionGroups(NULL),
       functions(NULL),
       taskgroups(NULL),
@@ -477,6 +477,7 @@ void OTF2Importer::processDefinitions()
     }
 
     // Grab only the MPI locations
+    primaries->insert(0, new PrimaryTaskGroup(0, "MPI"));
     for (QMap<OTF2_LocationRef, OTF2Location *>::Iterator loc = locationMap->begin();
          loc != locationMap->end(); ++loc)
     {
@@ -487,7 +488,10 @@ void OTF2Importer::processDefinitions()
             if (type == OTF2_LOCATION_TYPE_CPU_THREAD)
             {
                 int task = (loc.value())->self;
-                tasks->insert(task, new Task(task, stringMap->value(loc.value()->name)));
+                primaries->value(0)->tasks->insert(task,
+                                                   new Task(task,
+                                                            stringMap->value(loc.value()->name),
+                                                            primaries->value(0)));
                 locationIndexMap->insert(loc.key(), task);
                 num_processes++;
             }

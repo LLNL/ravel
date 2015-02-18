@@ -142,22 +142,41 @@ public:
 
         QString toString() const
         {
+            bool flag = false;
             QString str = "";
             for (int i = 0; i < 3; i++)
-                if (index[i] > 0)
+                if (index[i] > 0 || flag)
+                {
                     str += QString::number(index[i]) + ".";
+                    flag = true;
+                }
+            str += QString::number(index[3]);
+            return str;
+        }
+
+        QString toVerboseString() const
+        {
+            QString str = "";
+            str += QString::number(chare) + ".";
+            str += QString::number(array) + ".";
+            for (int i = 0; i < 3; i++)
+                str += QString::number(index[i]) + ".";
             str += QString::number(index[3]);
             return str;
         }
     };
 
 private:
+    class CharmEvt;
+
     void readSts(QString dataFileName);
     void readLog(QString logFileName, bool gzipped, int pe);
     void parseLine(QString line, int my_pe);
     void processDefinitions();
     int makeTasks();
     void makeTaskEvents();
+    int makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
+                          long endtime, int phase, int depth);
     void charify();
 
     void makeSingletonPartition(CommEvent * evt);
@@ -188,22 +207,22 @@ private:
     class ChareArray {
     public:
         ChareArray(int _id, int _chare)
-            : id(_id), chare(_chare), indices(new QSet<ChareIndex>()) {}
+            : id(_id), chare(_chare), mark(false),
+              indices(new QSet<ChareIndex>()) {}
 
         int id;
         int chare;
+        bool mark; // indicates whether we have used it
         QSet<ChareIndex> * indices;
     };
-
-
-    class CharmEvt;
 
     class CharmMsg {
     public:
         CharmMsg(int _mtype, long _mlen, int _pe, int _entry, int _event, int _mype)
             : sendtime(0), recvtime(0), msg_type(_mtype), msg_len(_mlen),
               send_pe(_pe), entry(_entry), event(_event), arrayid(0), recv_pe(_mype),
-              send_task(-1), recv_task(-1), send_evt(NULL), tracemsg(NULL) {}
+              send_task(-1), recv_task(-1), send_evt(NULL), recv_evt(NULL),
+              tracemsg(NULL) {}
 
         unsigned long long sendtime;
         unsigned long long recvtime;
@@ -218,6 +237,7 @@ private:
         int recv_task;
 
         CharmEvt * send_evt;
+        CharmEvt * recv_evt;
         Message * tracemsg;
     };
 
@@ -275,6 +295,8 @@ private:
     int processes;
     bool hasPAPI;
     int numPAPI;
+    int main;
+    long traceEnd;
 
     Trace * trace;
 
@@ -297,6 +319,7 @@ private:
     CharmMsg * last_send;
 
     QSet<QString> seen_chares;
+    QSet<int> application_chares;
 
     static const int SEND_FXN = 999998;
     static const int RECV_FXN = 999999;

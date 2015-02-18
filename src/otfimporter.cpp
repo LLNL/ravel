@@ -345,7 +345,10 @@ int OTFImporter::handleDefProcess(void * userData, uint32_t stream,
     Q_UNUSED(stream);
     Q_UNUSED(parent);
 
-    ((OTFImporter *) userData)->tasks->insert(process - 1, new Task(process - 1, QString(name)));
+    PrimaryTaskGroup * MPI = ((OTFImporter *) userData)->primaries->value(0);
+    MPI->tasks->insert(process - 1,
+                       new Task(process - 1, QString(name),
+                       MPI));
     ((OTFImporter *) userData)->num_processes++;
     return 0;
 }

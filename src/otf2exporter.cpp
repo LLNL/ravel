@@ -6,12 +6,14 @@
 #include "taskgroup.h"
 #include "function.h"
 #include "rpartition.h"
+#include "primarytaskgroup.h"
 #include <climits>
 #include <cmath>
 #include <iostream>
 
 OTF2Exporter::OTF2Exporter(Trace *_t)
     : trace(_t),
+      tasks(trace->primaries->value(0)->tasks),
       ravel_string(0),
       ravel_version_string(0),
       archive(NULL),
@@ -64,10 +66,10 @@ void OTF2Exporter::exportEvents()
 {
     OTF2_Archive_OpenEvtFiles(archive);
 
-    for (QMap<int, Task *>::Iterator task = trace->tasks->begin();
-         task != trace->tasks->end(); ++task)
+    for (QList<Task *>::Iterator task = tasks->begin();
+         task != tasks->end(); ++task)
     {
-        exportTaskEvents(task.key());
+        exportTaskEvents((*task)->id);
     }
 
     OTF2_Archive_CloseEvtFiles(archive);
@@ -215,12 +217,12 @@ void OTF2Exporter::exportTaskGroups()
 
     // MPI Paradigm Group to be added
     // Create locations group
-    uint64_t comm_locations[trace->tasks->size()];
+    uint64_t comm_locations[tasks->size()];
     int j = 0;
-    for (QMap<int, Task *>::Iterator task = trace->tasks->begin();
-         task != trace->tasks->end(); ++task)
+    for (QList<Task *>::Iterator task = tasks->begin();
+         task != tasks->end(); ++task)
     {
-        comm_locations[j] = (task.value())->id;
+        comm_locations[j] = (*task)->id;
         j++;
     }
     // Find a unique ID
@@ -235,29 +237,29 @@ void OTF2Exporter::exportTaskGroups()
                                      OTF2_GROUP_TYPE_COMM_LOCATIONS,
                                      OTF2_PARADIGM_MPI,
                                      OTF2_GROUP_FLAG_NONE,
-                                     trace->tasks->size(),
+                                     tasks->size(),
                                      comm_locations );
 
 }
 
 void OTF2Exporter::exportTasks()
 {
-    for (QMap<int, Task *>::Iterator task = trace->tasks->begin();
-         task != trace->tasks->end(); ++task)
+    for (QList<Task *>::Iterator task = tasks->begin();
+         task != tasks->end(); ++task)
     {
         OTF2_GlobalDefWriter_WriteLocationGroup(global_def_writer,
-                                                (task.value())->id /* id */,
-                                                inverseStringMap.value((task.value())->name) /* name */,
+                                                (*task)->id /* id */,
+                                                inverseStringMap.value((*task)->name) /* name */,
                                                 OTF2_LOCATION_GROUP_TYPE_PROCESS,
                                                 0 /* system tree */ );
 
         // TODO: Generalize this for non MPI tasks at #events
         OTF2_GlobalDefWriter_WriteLocation(global_def_writer,
-                                           (task.value())->id /* id */,
-                                           inverseStringMap.value((task.value())->name) /* name */,
+                                           (*task)->id /* id */,
+                                           inverseStringMap.value((*task)->name) /* name */,
                                            OTF2_LOCATION_TYPE_CPU_THREAD,
-                                           trace->events->at(task.key())->size() /* # events */,
-                                           (task.value())->id /* location group */ );
+                                           trace->events->at((*task)->id)->size() /* # events */,
+                                           (*task)->id /* location group */ );
     }
 }
 
@@ -294,10 +296,10 @@ void OTF2Exporter::exportStrings()
     counter = addString("phase", counter);
     counter = addString("step", counter);
 
-    for (QMap<int, Task *>::Iterator task = trace->tasks->begin();
-         task != trace->tasks->end(); ++task)
+    for (QList<Task *>::Iterator task = tasks->begin();
+         task != tasks->end(); ++task)
     {
-        counter = addString((task.value())->name, counter);
+        counter = addString((*task)->name, counter);
     }
 
     for (QMap<int, TaskGroup *>::Iterator tg = trace->taskgroups->begin();

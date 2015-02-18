@@ -4,8 +4,10 @@
 #include <otf2/otf2.h>
 #include <QString>
 #include <QMap>
+#include <QList>
 
 class Trace;
+class Task;
 
 class OTF2Exporter
 {
@@ -37,6 +39,7 @@ public:
 
 private:
     Trace * trace;
+    QList<Task *> * tasks;
     int ravel_string;
     int ravel_version_string;
 
