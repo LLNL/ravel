@@ -306,7 +306,8 @@ void CharmImporter::makeTaskEvents()
                 }
                 else
                 {
-                    if (chares->value((*evt)->chare)->indices->size() <= 1)
+                    if (chares->value((*evt)->chare)->indices->size() <= 1
+                        && !application_chares.contains((*evt)->chare))
                         (*evt)->task = -1;
                     else
                         (*evt)->task = chare_to_task.value((*evt)->index);
@@ -321,110 +322,6 @@ void CharmImporter::makeTaskEvents()
             {
                 bgn = stack->pop();
                 depth = makeTaskEventsPop(stack, bgn, (*evt)->time, phase, depth);
-                /*Event * e = NULL;
-
-                std::cout << "    Pop stack " << " on pe " << (*evt)->pe << " my array " << (*evt)->arrayid;
-                std::cout << " for " << chares->value(entries->value((*evt)->entry)->chare)->name.toStdString().c_str();
-                std::cout << "::" << entries->value((*evt)->entry)->name.toStdString().c_str();
-                std::cout << " with index " << (*evt)->index.toString().toStdString().c_str() << std::endl;
-
-                if (trace->functions->value(bgn->entry)->group == 0) // Send or Recv
-                {
-                    // We need to go and wire up all the mesages appropriately
-                    // Then we need to make sure these get sorted in the right
-                    // place for charm messages so we can make partitions out of them appropriately.
-                    // Note this has to happen after the fact so we can sort appropriately
-                    if (bgn->task < 0)
-                    {
-                        continue;
-                    }
-                    QVector<Message *> * msgs = new QVector<Message *>();
-                    for (QList<CharmMsg *>::Iterator cmsg = bgn->charmmsgs->begin();
-                         cmsg != bgn->charmmsgs->end(); ++cmsg)
-                    {
-                        if ((*cmsg)->tracemsg)
-                        {
-                            msgs->append((*cmsg)->tracemsg);
-                        }
-                        else
-                        {
-                            Message * msg = new Message((*cmsg)->sendtime,
-                                                        (*cmsg)->recvtime,
-                                                        0);
-                            (*cmsg)->tracemsg = msg;
-                            msgs->append(msg);
-                        }
-                        if (bgn->entry == SEND_FXN)
-                        {
-                            if (!((*cmsg)->send_evt->trace_evt))
-                            {
-                                (*cmsg)->tracemsg->sender = new P2PEvent(bgn->time,
-                                                                         (*evt)->time-1,
-                                                                         bgn->entry,
-                                                                         bgn->task,
-                                                                         bgn->pe,
-                                                                         phase,
-                                                                         msgs);
-                                (*cmsg)->send_evt->trace_evt = (*cmsg)->tracemsg->sender;
-                                charm_p2ps->at(bgn->task)->append((*cmsg)->tracemsg->sender);
-
-                                e = (*cmsg)->tracemsg->sender;
-
-                            }
-                            else
-                            {
-                                (*cmsg)->tracemsg->sender = (*cmsg)->send_evt->trace_evt;
-                                // We have already set e here.
-                            }
-
-                        }
-                        else if (bgn->entry == RECV_FXN)
-                        {
-                            (*cmsg)->tracemsg->receiver = new P2PEvent(bgn->time-1,
-                                                                       (*evt)->time-2,
-                                                                       bgn->entry,
-                                                                       bgn->task,
-                                                                       bgn->pe,
-                                                                       phase,
-                                                                       msgs);
-
-                            (*cmsg)->tracemsg->receiver->is_recv = true;
-                            charm_p2ps->at(bgn->task)->append((*cmsg)->tracemsg->receiver);
-
-                            e = (*cmsg)->tracemsg->receiver;
-                        }
-                    }
-                    if (!e) // No messages were recorded with this, skip for now and don't include
-                    {
-                        continue;
-                    }
-                }
-                else // Non-comm event
-                {
-                    e = new Event(bgn->time, (*evt)->time, bgn->entry,
-                                  bgn->task, bgn->pe);
-                }
-
-                depth--;
-                e->depth = depth;
-                if (depth == 0)
-                    (*(trace->roots))[(*evt)->pe]->append(e);
-
-                if (e->exit > endtime)
-                    endtime = e->exit;
-                if (!stack.isEmpty())
-                {
-                    stack.top()->children->append(e);
-                }
-                for (QList<Event *>::Iterator child = bgn->children->begin();
-                     child != bgn->children->end(); ++child)
-                {
-                    e->callees->append(*child);
-                    (*child)->caller = e;
-                }
-
-                (*(trace->pe_events))[(*evt)->pe]->append(e);
-                */
             } // Handle this Event
         } // Loop Event
 
@@ -463,7 +360,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
         // Note this has to happen after the fact so we can sort appropriately
         if (bgn->task < 0)
         {
-            return depth;
+            return --depth;
         }
         QVector<Message *> * msgs = new QVector<Message *>();
         for (QList<CharmMsg *>::Iterator cmsg = bgn->charmmsgs->begin();
@@ -525,7 +422,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
         }
         if (!e) // No messages were recorded with this, skip for now and don't include
         {
-            return depth;
+            return --depth;
         }
     }
     else // Non-comm event
@@ -537,7 +434,10 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
     depth--;
     e->depth = depth;
     if (depth == 0)
+    {
         (*(trace->roots))[bgn->pe]->append(e);
+        std::cout << "                    Adding as root event between " << e->enter << " and " << e->exit << std::endl;
+    }
 
     if (e->exit > endtime)
         endtime = e->exit;
@@ -755,7 +655,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
         if (last)
             arrayid = last->index.array;
 
-        CharmEvt * evt = new CharmEvt(SEND_FXN, time, pe,
+        CharmEvt * evt = new CharmEvt(SEND_FXN, time, my_pe,
                                       entries->value(entry)->chare, arrayid,
                                       true);
         // We are inside a begin_processing, so the create event we have
@@ -764,20 +664,24 @@ void CharmImporter::parseLine(QString line, int my_pe)
         // should its recv not exist or go to a not-kept chare, so this needs
         // to be processed later.
         if (last)
+        {
             evt->index = last->index;
+        }
         else
+        {
             evt->index = ChareIndex(main, 0, 0, 0, 0);
+        }
 
-        charm_events->at(pe)->append(evt);
+        charm_events->at(my_pe)->append(evt);
 
         /*seen_chares.insert(chares->value(entries->value(entry)->chare)->name
                             + "::" + entries->value(entry)->name);
 
                             */
-        CharmEvt * send_end = new CharmEvt(SEND_FXN, time+1, pe,
+        CharmEvt * send_end = new CharmEvt(SEND_FXN, time+1, my_pe,
                                            entries->value(entry)->chare, arrayid,
                                            false);
-        charm_events->at(pe)->append(send_end);
+        charm_events->at(my_pe)->append(send_end);
         if (last)
             send_end->index = last->index;
         else
@@ -791,7 +695,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
             // insert ourself so that future recvs to this broadcast can find us.
             // If we find nothig, then we just insert ourself.
             CharmMsg * msg = NULL;
-            QList<CharmMsg *> * candidates = unmatched_recvs->at(pe)->value(event);
+            QList<CharmMsg *> * candidates = unmatched_recvs->at(my_pe)->value(event);
             QList<CharmMsg *> toremove = QList<CharmMsg *>();
             if (candidates)
             {
@@ -818,17 +722,17 @@ void CharmImporter::parseLine(QString line, int my_pe)
             }
             else
             {
-                msg = new CharmMsg(mtype, msglen, pe, entry, event, my_pe);
-                if (!sends->at(pe)->contains(event))
+                msg = new CharmMsg(mtype, msglen, my_pe, entry, event, pe);
+                if (!sends->at(my_pe)->contains(event))
                 {
-                    sends->at(pe)->insert(event, new QList<CharmMsg *>());
+                    sends->at(my_pe)->insert(event, new QList<CharmMsg *>());
                 }
-                sends->at(pe)->value(event)->append(msg);
+                sends->at(my_pe)->value(event)->append(msg);
                 //messages->append(msg); <-- only append from recv side
                 msg->sendtime = time;
                 msg->send_evt = evt;
             }
-            std::cout << "CREATE!" << " on pe " << pe << " at " << time;
+            std::cout << "CREATE!" << " on pe " << my_pe << " to " << pe << " at " << time;
             std::cout << " with event " << event << " my array " << arrayid << " and last index array " << send_end->index.array;
             std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
             std::cout << "::" << entries->value(entry)->name.toStdString().c_str();

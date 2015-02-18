@@ -436,15 +436,17 @@ void TraditionalVis::drawNativeGL()
              = part->events->begin(); event_list != part->events->end();
              ++event_list)
         {
-            position = proc_to_order[event_list.key()];
-             // Out of task span test
-            if (position < floor(startEntity)
-                    || position > ceil(startEntity + entitySpan))
-                continue;
-            y = (maxTask - position) * barheight - 1;
+
             for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
             {
+
+                position = proc_to_order[(*evt)->pe];
+                 // Out of task span test
+                if (position < floor(startEntity)
+                        || position > ceil(startEntity + entitySpan))
+                    continue;
+                y = (maxTask - position) * barheight - 1;
                 // Out of time span test
                 if ((*evt)->exit < startTime || (*evt)->enter > stopTime)
                     continue;
@@ -592,23 +594,25 @@ void TraditionalVis::paintEvents(QPainter *painter)
              = part->events->begin(); event_list != part->events->end();
              ++event_list)
         {
-            bool selected = false;
-            if (part->gnome == selected_gnome
-                && selected_tasks.contains(proc_to_order[event_list.key()]))
-            {
-                selected = true;
-            }
-
-            position = proc_to_order[event_list.key()];
-            // Out of task span test
-           if (position < floor(startEntity)
-                   || position > ceil(startEntity + entitySpan))
-               continue;
-            y = floor((position - startEntity) * blockheight) + 1;
 
             for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
             {
+                bool selected = false;
+                if (part->gnome == selected_gnome
+                    && selected_tasks.contains(proc_to_order[(*evt)->pe]))
+                {
+                    selected = true;
+                }
+
+                position = proc_to_order[(*evt)->pe];
+                // Out of task span test
+               if (position < floor(startEntity)
+                       || position > ceil(startEntity + entitySpan))
+                   continue;
+                y = floor((position - startEntity) * blockheight) + 1;
+
+
                  // Out of time span test
                 if ((*evt)->exit < startTime || (*evt)->enter > stopTime)
                     continue;
@@ -835,7 +839,7 @@ void TraditionalVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
 int TraditionalVis::getY(CommEvent * evt)
 {
     int y = 0;
-    int position = proc_to_order[evt->task];
+    int position = proc_to_order[evt->pe];
     y = floor((position - startEntity) * blockheight) + 1;
     return y;
 }
