@@ -320,8 +320,27 @@ void CharmImporter::makeTaskEvents()
             } // Handle enter stuff
             else
             {
+                // In the case we start in the middle
+                if (stack->isEmpty())
+                    continue;
+
                 bgn = stack->pop();
-                depth = makeTaskEventsPop(stack, bgn, (*evt)->time, phase, depth);
+                // We may have stuff on the stack that doesn't match,
+                // in which case we have to search for something that does match.
+                // This is impossible given our current understanding of nesting but
+                // not sure if runtime will upset this.
+                /*while (bgn->entry != (*evt)->entry
+                       || bgn->event != (*evt)->event
+                       || bgn->pe != (*evt)->pe)
+                {
+                    if (stack->isEmpty())
+                        bgn = NULL;
+                    else
+                        bgn = stack->pop();
+                } */
+
+                if (bgn)
+                    depth = makeTaskEventsPop(stack, bgn, (*evt)->time, phase, depth);
             } // Handle this Event
         } // Loop Event
 
@@ -960,7 +979,8 @@ void CharmImporter::parseLine(QString line, int my_pe)
         CharmEvt * evt = new CharmEvt(entry, time, my_pe,
                                       entries->value(entry)->chare,
                                       arrayid, false);
-        evt->index = last->index;
+        if (last) // Last may not exist since we can begin recording at a function end
+            evt->index = last->index;
         evt->index.chare = entries->value(entry)->chare;
         charm_events->at(my_pe)->append(evt);
 
@@ -968,7 +988,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
         std::cout << " with event " << event << " my array " << arrayid;
         std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
         std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
-        std::cout << " with index " << last->index.toString().toStdString().c_str() << std::endl;
+        std::cout << " with index " << evt->index.toString().toStdString().c_str() << std::endl;
 
         last = NULL;
 
