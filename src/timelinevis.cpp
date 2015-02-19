@@ -231,7 +231,12 @@ void TimelineVis::drawHover(QPainter * painter)
     else
     {
         // Fall through and draw Event
-        text = ((*(trace->functions))[hover_event->function])->name;
+        if (hover_event->caller)
+        {
+            text = trace->functions->value(hover_event->caller->function)->name;
+            text += " : ";
+        }
+        text += trace->functions->value(hover_event->function)->name;
         // + ", " + QString::number(hover_event->step).toStdString().c_str();
     }
 

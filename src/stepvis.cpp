@@ -225,7 +225,7 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
         mousex = event->x();
         mousey = event->y();
         hoverText = "";
-        if (mousey >= rect().height() - colorBarHeight)
+        if (mousey >= rect().height() - colorBarHeight) // color bar
         {
             if (event->x() < rect().width() - colorbar_offset
                 && event->x() > colorbar_offset)
@@ -239,7 +239,7 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
             }
         }
         else if (options->showAggregateSteps && hover_event
-                 && drawnEvents[hover_event].contains(mousex, mousey))
+                 && drawnEvents[hover_event].contains(mousex, mousey)) // fxn
         {
             if (!hover_aggregate && mousex
                 <= drawnEvents[hover_event].x() + stepwidth)
