@@ -584,6 +584,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
         }
     }
 
+    int one_tick = std::max(2.0, ceil(rect().width() / 1.0 / timeSpan));
 
     for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
@@ -629,6 +630,10 @@ void TraditionalVis::paintEvents(QPainter *painter)
 
                 w = ((*evt)->exit - (*evt)->enter) / 1.0
                         / timeSpan * rect().width();
+                if ((*evt)->exit == (*evt)->enter)
+                {
+                    w = one_tick;
+                }
                 if (w >= 2)
                 {
                     x = floor(static_cast<long long>((*evt)->enter - startTime)

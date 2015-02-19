@@ -756,14 +756,14 @@ void Trace::assignSteps()
                                       "Assigning steps..."));
             }
             ++currentIter;
-            std::cout << "Stepping partition " << currentIter << " of " << partitions->size() << std::endl;
-            (*partition)->output_graph("../debug-output/Partition-"
-                                       + QString::number(currentIter)
-                                       + "-adv.dot");
+            //std::cout << "Stepping partition " << currentIter << " of " << partitions->size() << std::endl;
+            //(*partition)->output_graph("../debug-output/Partition-"
+            //                           + QString::number(currentIter)
+            //                           + "-adv.dot");
             (*partition)->step();
-            (*partition)->output_graph("../debug-output/Partition-"
-                                       + QString::number(currentIter)
-                                       + "-adv-step.dot");
+            //(*partition)->output_graph("../debug-output/Partition-"
+            //                           + QString::number(currentIter)
+            //                           + "-adv-step.dot");
         }
     } else {
         for (QList<Partition *>::Iterator partition = partitions->begin();
@@ -776,14 +776,14 @@ void Trace::assignSteps()
                                       "Assigning steps..."));
             }
             ++currentIter;
-            std::cout << "Stepping partition " << currentIter << " of " << partitions->size() << std::endl;
-            (*partition)->output_graph("../debug-output/Partition-"
-                                       + QString::number(currentIter)
-                                       + "-basic.dot");
+            //std::cout << "Stepping partition " << currentIter << " of " << partitions->size() << std::endl;
+            //(*partition)->output_graph("../debug-output/Partition-"
+            //                           + QString::number(currentIter)
+            //                           + "-basic.dot");
             (*partition)->basic_step();
-            (*partition)->output_graph("../debug-output/Partition-"
-                                       + QString::number(currentIter)
-                                       + "-basic-step.dot");
+            //(*partition)->output_graph("../debug-output/Partition-"
+            //                           + QString::number(currentIter)
+            //                           + "-basic-step.dot");
         }
     }
     traceElapsed = traceTimer.nsecsElapsed();

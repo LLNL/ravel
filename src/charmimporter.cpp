@@ -383,7 +383,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                 if (!((*cmsg)->send_evt->trace_evt))
                 {
                     (*cmsg)->tracemsg->sender = new P2PEvent(bgn->time,
-                                                             endtime-1,
+                                                             endtime,
                                                              bgn->entry,
                                                              bgn->task,
                                                              bgn->pe,
@@ -405,8 +405,8 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
             }
             else if (bgn->entry == RECV_FXN)
             {
-                (*cmsg)->tracemsg->receiver = new P2PEvent(bgn->time-1,
-                                                           endtime-2,
+                (*cmsg)->tracemsg->receiver = new P2PEvent(bgn->time,
+                                                           endtime,
                                                            bgn->entry,
                                                            bgn->task,
                                                            bgn->pe,
