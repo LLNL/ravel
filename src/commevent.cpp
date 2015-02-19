@@ -19,7 +19,8 @@ CommEvent::CommEvent(unsigned long long _enter, unsigned long long _exit,
       stride_children(new QSet<CommEvent *>()),
       stride(-1),
       step(-1),
-      phase(_phase)
+      phase(_phase),
+      gvid("")
 {
 }
 

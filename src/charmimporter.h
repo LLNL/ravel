@@ -261,11 +261,36 @@ private:
             delete children;
         }
 
-        bool operator<(const CharmEvt & event) { return time < event.time; }
-        bool operator>(const CharmEvt & event) { return time > event.time; }
-        bool operator<=(const CharmEvt & event) { return time <= event.time; }
-        bool operator>=(const CharmEvt & event) { return time >= event.time; }
-        bool operator==(const CharmEvt & event) { return time == event.time; }
+        // If the time is the same, use the entry... send/recv are very high
+        // and thus will sort afterwards.
+        bool operator<(const CharmEvt & event)
+        {
+            if (time == event.time)
+                return entry < event.entry;
+            return time < event.time;
+        }
+        bool operator>(const CharmEvt & event)
+        {
+            if (time == event.time)
+                return entry > event.entry;
+            return time > event.time;
+        }
+        bool operator<=(const CharmEvt & event)
+        {
+            if (time == event.time)
+                return entry <= event.entry;
+            return time <= event.time;
+        }
+        bool operator>=(const CharmEvt & event)
+        {
+            if (time == event.time)
+                return entry >= event.entry;
+            return time >= event.time;
+        }
+        bool operator==(const CharmEvt & event)
+        {
+            return time == event.time && entry == event.entry;
+        }
 
         unsigned long long time;
         int pe;

@@ -1,5 +1,6 @@
 #include "rpartition.h"
 #include <iostream>
+#include <fstream>
 #include <climits>
 
 #include "event.h"
@@ -7,6 +8,8 @@
 #include "collectiverecord.h"
 #include "clustertask.h"
 #include "general_util.h"
+#include "message.h"
+#include "p2pevent.h"
 
 Partition::Partition()
     : events(new QMap<int, QList<CommEvent *> *>),
@@ -418,6 +421,8 @@ void Partition::step()
     // We use stride_parents & stride_children to create this graph
     // We set up by looking for children only and having the parents set
     // the children links
+
+    std::cout << "   Init strides" << std::endl;
     QList<CommEvent *> * stride_events = new QList<CommEvent *>();
     QList<CommEvent *> * recv_events = new QList<CommEvent *>();
     for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
@@ -430,10 +435,12 @@ void Partition::step()
         }
     }
 
+    std::cout << "   Build stride graph" << std::endl;
     // Set strides
     int max_stride = set_stride_dag(stride_events);
     delete stride_events;
 
+    std::cout << "   Update stride boundaries" << std::endl;
     //. Find recv stride boundaries based on dependencies
     for (QList<CommEvent *>::Iterator recv = recv_events->begin();
          recv != recv_events->end(); ++recv)
@@ -446,6 +453,7 @@ void Partition::step()
     // dependencies are built into the stride graph).
     // This may be somewhat similar to restep/finalize... but slightly
     // different so look into that.
+    std::cout << "   Inflate receives" << std::endl;
     max_step = -1;
     int task;
     CommEvent * evt;
@@ -710,4 +718,105 @@ Partition * Partition::newest_partition()
     while (p != p->new_partition)
         p = p->new_partition;
     return p;
+}
+
+// use GraphViz to see partition graph for debugging
+void Partition::output_graph(QString filename)
+{
+    std::ofstream graph;
+    graph.open(filename.toStdString().c_str());
+    std::ofstream graph2;
+    QString graph2string = filename + ".eventlist";
+    graph2.open(graph2string.toStdString().c_str());
+
+    QString indent = "     ";
+
+    graph << "digraph {\n";
+    graph << indent.toStdString().c_str() << "graph [bgcolor=transparent];\n";
+    graph << indent.toStdString().c_str() << "node [label=\"\\N\"];\n";
+
+    graph2 << "digraph {\n";
+    graph2 << indent.toStdString().c_str() << "graph [bgcolor=transparent];\n";
+    graph2 << indent.toStdString().c_str() << "node [label=\"\\N\"];\n";
+
+    QMap<int, QString> tasks = QMap<int, QString>();
+
+    int id = 0;
+    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+         evtlist != events->end(); ++evtlist)
+    {
+        tasks.insert(evtlist.key(), QString::number(id));
+        graph2 << indent.toStdString().c_str() << tasks.value(evtlist.key()).toStdString().c_str();
+        graph2 << " [label=\"";
+        graph2 << "t=" << QString::number(evtlist.key()).toStdString().c_str();\
+        graph2 << "\"];\n";
+        id++;
+        for (QList<CommEvent *>::Iterator evt = evtlist.value()->begin();
+             evt != evtlist.value()->end(); ++evt)
+        {
+            (*evt)->gvid = QString::number(id);
+            graph << indent.toStdString().c_str() << (*evt)->gvid.toStdString().c_str();
+            graph << " [label=\"";
+            graph << "t=" << QString::number((*evt)->task).toStdString().c_str();\
+            graph << ", p=" << QString::number((*evt)->pe).toStdString().c_str();
+            graph << ", s: " << QString::number((*evt)->step).toStdString().c_str();
+            graph << ", e: " << QString::number((*evt)->enter).toStdString().c_str();
+            graph << "\"];\n";
+
+            graph2 << indent.toStdString().c_str() << (*evt)->gvid.toStdString().c_str();
+            graph2 << " [label=\"";
+            graph2 << "t=" << QString::number((*evt)->task).toStdString().c_str();\
+            graph2 << ", p=" << QString::number((*evt)->pe).toStdString().c_str();
+            graph2 << ", s: " << QString::number((*evt)->step).toStdString().c_str();
+            graph2 << ", e: " << QString::number((*evt)->enter).toStdString().c_str();
+            graph2 << "\"];\n";
+            ++id;
+        }
+    }
+
+
+    CommEvent * prev = NULL;
+    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+         evtlist != events->end(); ++evtlist)
+    {
+        prev = NULL;
+        for (QList<CommEvent *>::Iterator evt = evtlist.value()->begin();
+             evt != evtlist.value()->end(); ++evt)
+        {
+            if (prev)
+            {
+                graph2 << indent.toStdString().c_str() << prev->gvid.toStdString().c_str();
+                graph2 << " -> " << (*evt)->gvid.toStdString().c_str() << ";\n";
+            }
+            else
+            {
+                graph2 << indent.toStdString().c_str() << tasks.value(evtlist.key()).toStdString().c_str();
+                graph2 << " -> " << (*evt)->gvid.toStdString().c_str() << ";\n";
+            }
+            if ((*evt)->comm_next && (*evt)->comm_next->partition == this)
+            {
+                graph << "edge [color=red];\n";
+                graph << indent.toStdString().c_str() << (*evt)->gvid.toStdString().c_str();
+                graph << " -> " << (*evt)->comm_next->gvid.toStdString().c_str() << ";\n";
+            }
+            if ((*evt)->isP2P() && !(*evt)->isReceive())
+            {
+                QVector<Message *> * messages = (*evt)->getMessages();
+                for (QVector<Message *>::Iterator msg = messages->begin();
+                     msg != messages->end(); ++msg)
+                {
+                    graph << "edge [color=black];\n";
+                    graph << indent.toStdString().c_str() << (*evt)->gvid.toStdString().c_str();
+                    graph << " -> " << (*msg)->receiver->gvid.toStdString().c_str() << ";\n";
+                }
+            }
+            prev = *evt;
+        }
+    }
+
+    graph << "}";
+    graph.close();
+
+    graph2 << "}";
+    graph2.close();
 }

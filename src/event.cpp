@@ -24,11 +24,25 @@ Event::~Event()
 
 bool Event::operator<(const Event &event)
 {
+    if (enter == event.enter)
+    {
+        if (this->isReceive())
+            return true;
+        else
+            return false;
+    }
     return enter < event.enter;
 }
 
 bool Event::operator>(const Event &event)
 {
+    if (enter == event.enter)
+    {
+        if (this->isReceive())
+            return false;
+        else
+            return true;
+    }
     return enter > event.enter;
 }
 

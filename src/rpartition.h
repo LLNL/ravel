@@ -46,6 +46,9 @@ public:
     Partition * newest_partition();
     int num_events();
 
+    // For debugging
+    void output_graph(QString filename);
+
     // Core partition information, events per process and step summary
     QMap<int, QList<CommEvent *> *> * events;
     int max_step;

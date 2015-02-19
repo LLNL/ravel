@@ -883,13 +883,13 @@ void CharmImporter::parseLine(QString line, int my_pe)
         {
             // +1 to make sort properly
             // Note only the enter needs the message, as that's where we look for it
-            evt = new CharmEvt(RECV_FXN, time+1, my_pe,
+            evt = new CharmEvt(RECV_FXN, time, my_pe,
                                entries->value(entry)->chare, arrayid,
                                true);
             evt->index = id;
             charm_events->at(my_pe)->append(evt);
 
-            CharmEvt * recv_end = new CharmEvt(RECV_FXN, time+2, my_pe,
+            CharmEvt * recv_end = new CharmEvt(RECV_FXN, time+1, my_pe,
                                                entries->value(entry)->chare,
                                                arrayid, false);
             recv_end->index = id;

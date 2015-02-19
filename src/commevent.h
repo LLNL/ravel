@@ -82,6 +82,9 @@ public:
     int step;
     int phase;
 
+    // For graph drawing
+    QString gvid;
+
 };
 
 #endif // COMMEVENT_H
