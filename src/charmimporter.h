@@ -5,6 +5,7 @@
 #include <QMap>
 #include <QSet>
 #include <QLinkedList>
+#include <iostream>
 
 class Trace;
 class Task;
@@ -61,9 +62,18 @@ public:
                 return true;
             if (array < other.array)
                 return true;
-            for (int i = 0; i < 4; i++)
+            for (int i = 3; i >= 0; i--)
+            {
                 if (index[i] < other.index[i])
+                {
                     return true;
+                }
+                else if (index[i] > other.index[i])
+                {
+                    return false;
+                }
+            }
+
             return false;
         }
 
@@ -73,9 +83,17 @@ public:
                 return true;
             if (array > other.array)
                 return true;
-            for (int i = 0; i < 4; i++)
+            for (int i = 3; i >= 0; i--)
+            {
                 if (index[i] > other.index[i])
+                {
                     return true;
+                }
+                else if (index[i] < other.index[i])
+                {
+                    return false;
+                }
+            }
             return false;
         }
 
@@ -91,7 +109,7 @@ public:
             else if (array != other.array)
                 return false;
 
-            for (int i = 0; i < 4; i++)
+            for (int i = 3; i >= 0; i--)
                 if (index[i] < other.index[i])
                     return true;
                 else if (index[i] != other.index[i])
@@ -111,7 +129,7 @@ public:
             else if (array != other.array)
                 return false;
 
-            for (int i = 0; i < 4; i++)
+            for (int i = 3; i >= 0; i--)
                 if (index[i] > other.index[i])
                     return true;
                 else if (index[i] != other.index[i])
@@ -129,6 +147,7 @@ public:
             for (int i = 0; i < 4; i++)
                 if (index[i] != other.index[i])
                     return false;
+
             return true;
         }
 
@@ -339,7 +358,7 @@ private:
     QMap<int, QString> * functiongroups;
     QMap<int, Function *> * functions;
     QMap<int, ChareArray *> * arrays;
-    QMap<ChareIndex, int> chare_to_task;
+    QMap<ChareIndex, int> * chare_to_task;
     CharmEvt * last;
     CharmMsg * last_send;
 
@@ -390,7 +409,10 @@ private:
 
 inline uint qHash(const CharmImporter::ChareIndex& key)
 {
-    return qHash(key.index[3]) ^ qHash(key.index[2]) ^ qHash(key.index[1]) ^ qHash(key.index[0]);
+    uint myhash = qHash(key.chare) ^ qHash(key.array)
+                  ^ qHash(key.index[3]) ^ qHash(key.index[2])
+                  ^ qHash(key.index[1]) ^ qHash(key.index[0]);
+    return myhash;
 }
 
 #endif // CHARMIMPORTER_H

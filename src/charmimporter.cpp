@@ -51,7 +51,7 @@ CharmImporter::CharmImporter()
       functiongroups(new QMap<int, QString>()),
       functions(new QMap<int, Function *>()),
       arrays(new QMap<int, ChareArray *>()),
-      chare_to_task(QMap<ChareIndex, int>()),
+      chare_to_task(new QMap<ChareIndex, int>()),
       last(NULL),
       last_send(NULL),
       seen_chares(QSet<QString>()),
@@ -86,6 +86,7 @@ CharmImporter::~CharmImporter()
 
 void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _options)
 {
+    std::cout << "Reading " << dataFileName.toStdString().c_str() << std::endl;
     readSts(dataFileName);
 
     unmatched_recvs = new QVector<QMap<int, QList<CharmMsg *> *> *>(processes);
@@ -106,10 +107,11 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
     // Read individual log files
     QFileInfo file_info = QFileInfo(dataFileName);
     QDir directory = file_info.dir();
-    QString basename = file_info.baseName();
+    QString basename = file_info.completeBaseName();
     QString suffix = ".log";
     QString path = file_info.absolutePath();
     bool gzflag = false;
+    std::cout << "Base: " << basename.toStdString().c_str() << std::endl;
     if (directory.exists(basename + ".0.log.gz"))
     {
         gzflag = true;
@@ -264,8 +266,8 @@ void CharmImporter::makeTaskEvents()
     if (arrays->size() > 0)
         have_arrays = true;
 
-    for (QMap<ChareIndex, int>::Iterator map = chare_to_task.begin();
-         map != chare_to_task.end(); ++map)
+    for (QMap<ChareIndex, int>::Iterator map = chare_to_task->begin();
+         map != chare_to_task->end(); ++map)
     {
         std::cout << map.key().toVerboseString().toStdString().c_str() << " <---> " << map.value() << std::endl;
     }
@@ -300,8 +302,10 @@ void CharmImporter::makeTaskEvents()
                     }
                     else // Should get main if nothing else works
                     {
-                        (*evt)->task = chare_to_task.value((*evt)->index);
-                        std::cout << "           Setting task to " << chare_to_task.value((*evt)->index) << std::endl;
+                        (*evt)->task = chare_to_task->value((*evt)->index);
+                        std::cout << "           Setting task to " << chare_to_task->value((*evt)->index);
+                        std::cout << " form index " << (*evt)->index.toVerboseString().toStdString().c_str() << std::endl;
+                        //if (*evt->task == 0 && (*evt)->index != main)
                     }
                 }
                 else
@@ -310,7 +314,7 @@ void CharmImporter::makeTaskEvents()
                         && !application_chares.contains((*evt)->chare))
                         (*evt)->task = -1;
                     else
-                        (*evt)->task = chare_to_task.value((*evt)->index);
+                        (*evt)->task = chare_to_task->value((*evt)->index);
                 }
 
                 std::cout << "                    Task is now " << (*evt)->task << std::endl;
@@ -492,7 +496,7 @@ void CharmImporter::charify()
                 continue;
             }
 
-            int taskid = chare_to_task.value((*event)->index);
+            int taskid = chare_to_task->value((*event)->index);
             (*event)->task = taskid;
             task_events->at(taskid)->append(*event);
         }
@@ -545,7 +549,7 @@ int CharmImporter::makeTasks()
     primaries->insert(0, new PrimaryTaskGroup(0, "main"));
     Task * mainTask = new Task(0, "main", primaries->value(0));
     primaries->value(0)->tasks->append(mainTask);
-    chare_to_task.insert(ChareIndex(main, 0, 0, 0, 0), 0);
+    chare_to_task->insert(ChareIndex(main, 0, 0, 0, 0), 0);
     application_chares.insert(main);
 
     int taskid = 1;
@@ -561,6 +565,7 @@ int CharmImporter::makeTasks()
                                                    + "_" + QString::number(array.key())));
             QList<ChareIndex> indices_list = array.value()->indices->toList();
             qSort(indices_list.begin(), indices_list.end());
+
             for (QList<ChareIndex>::Iterator index = indices_list.begin();
                  index != indices_list.end(); ++index)
             {
@@ -570,8 +575,8 @@ int CharmImporter::makeTasks()
                                        (*index).toString(),
                                        primaries->value(array.key()));
                 primaries->last()->tasks->append(task);
-                chare_to_task.insert(*index, taskid);
-                std::cout << "Index " << (*index).toString().toStdString().c_str() << " maps to task " << chare_to_task.value(*index) << std::endl;
+                chare_to_task->insert(*index, taskid);
+                std::cout << "ASSIGNING " << (*index).toVerboseString().toStdString().c_str() << " to " << taskid << std::endl;
                 taskid++;
             }
 
@@ -599,7 +604,7 @@ int CharmImporter::makeTasks()
                                            primaries->value(chare.key()));
                     primaries->last()->tasks->append(task);
                     std::cout << "Index " << (*index).toString().toStdString().c_str() << " maps to task " << taskid << std::endl;
-                    chare_to_task.insert(*index, taskid);
+                    chare_to_task->insert(*index, taskid);
                     taskid++;
                 }
 
