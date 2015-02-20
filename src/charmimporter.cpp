@@ -111,7 +111,6 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
     QString suffix = ".log";
     QString path = file_info.absolutePath();
     bool gzflag = false;
-    std::cout << "Base: " << basename.toStdString().c_str() << std::endl;
     if (directory.exists(basename + ".0.log.gz"))
     {
         gzflag = true;
@@ -162,11 +161,14 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
     buildPartitions();
 
     // Keep a list of what chares have been seen
-    QList<QString> tmp = seen_chares.toList();
-    qSort(tmp.begin(), tmp.end());
-    for (QList<QString>::Iterator ch = tmp.begin(); ch != tmp.end(); ++ch)
+    if (verbose)
     {
-        std::cout << "Seen chare: " << (*ch).toStdString().c_str() << std::endl;
+        QList<QString> tmp = seen_chares.toList();
+        qSort(tmp.begin(), tmp.end());
+        for (QList<QString>::Iterator ch = tmp.begin(); ch != tmp.end(); ++ch)
+        {
+            std::cout << "Seen chare: " << (*ch).toStdString().c_str() << std::endl;
+        }
     }
 
     // Delete newly created temp stuff
@@ -266,11 +268,12 @@ void CharmImporter::makeTaskEvents()
     if (arrays->size() > 0)
         have_arrays = true;
 
-    for (QMap<ChareIndex, int>::Iterator map = chare_to_task->begin();
-         map != chare_to_task->end(); ++map)
-    {
-        std::cout << map.key().toVerboseString().toStdString().c_str() << " <---> " << map.value() << std::endl;
-    }
+    if (verbose)
+        for (QMap<ChareIndex, int>::Iterator map = chare_to_task->begin();
+             map != chare_to_task->end(); ++map)
+        {
+            std::cout << map.key().toVerboseString().toStdString().c_str() << " <---> " << map.value() << std::endl;
+        }
 
     // Go through each PE separately, creating events and if necessary
     // putting them into charm_p2ps and setting their tasks appropriately
@@ -286,10 +289,13 @@ void CharmImporter::makeTaskEvents()
         {
             if ((*evt)->enter)
             {
-                std::cout << "    Enter stack " << " on pe " << (*evt)->pe << " my array " << (*evt)->arrayid;
-                std::cout << " for " << chares->value(entries->value((*evt)->entry)->chare)->name.toStdString().c_str();
-                std::cout << "::" << entries->value((*evt)->entry)->name.toStdString().c_str();
-                std::cout << " with index " << (*evt)->index.toVerboseString().toStdString().c_str() << std::endl;
+                if (verbose)
+                {
+                    std::cout << "    Enter stack " << " on pe " << (*evt)->pe << " my array " << (*evt)->arrayid;
+                    std::cout << " for " << chares->value(entries->value((*evt)->entry)->chare)->name.toStdString().c_str();
+                    std::cout << "::" << entries->value((*evt)->entry)->name.toStdString().c_str();
+                    std::cout << " with index " << (*evt)->index.toVerboseString().toStdString().c_str() << std::endl;
+                }
 
                 // Enter is the only place with the true array id so we must
                 // get the task id here.
@@ -298,14 +304,10 @@ void CharmImporter::makeTaskEvents()
                     if ((*evt)->arrayid == 0 && !application_chares.contains((*evt)->chare))
                     {
                         (*evt)->task = -1;
-                        std::cout << "           Setting task to neg 1" << std::endl;
                     }
                     else // Should get main if nothing else works
                     {
                         (*evt)->task = chare_to_task->value((*evt)->index);
-                        std::cout << "           Setting task to " << chare_to_task->value((*evt)->index);
-                        std::cout << " form index " << (*evt)->index.toVerboseString().toStdString().c_str() << std::endl;
-                        //if (*evt->task == 0 && (*evt)->index != main)
                     }
                 }
                 else
@@ -316,8 +318,6 @@ void CharmImporter::makeTaskEvents()
                     else
                         (*evt)->task = chare_to_task->value((*evt)->index);
                 }
-
-                std::cout << "                    Task is now " << (*evt)->task << std::endl;
 
                 stack->push(*evt);
                 depth++;
@@ -370,10 +370,13 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
 {
     Event * e = NULL;
 
-    std::cout << "    Pop stack " << " on pe " << bgn->pe << " my array " << bgn->arrayid;
-    std::cout << " for " << chares->value(entries->value(bgn->entry)->chare)->name.toStdString().c_str();
-    std::cout << "::" << entries->value(bgn->entry)->name.toStdString().c_str();
-    std::cout << " with index " << bgn->index.toString().toStdString().c_str() << std::endl;
+    if (verbose)
+    {
+        std::cout << "    Pop stack " << " on pe " << bgn->pe << " my array " << bgn->arrayid;
+        std::cout << " for " << chares->value(entries->value(bgn->entry)->chare)->name.toStdString().c_str();
+        std::cout << "::" << entries->value(bgn->entry)->name.toStdString().c_str();
+        std::cout << " with index " << bgn->index.toString().toStdString().c_str() << std::endl;
+    }
 
     if (trace->functions->value(bgn->entry)->group == 0) // Send or Recv
     {
@@ -414,7 +417,8 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                                                              msgs);
                     (*cmsg)->send_evt->trace_evt = (*cmsg)->tracemsg->sender;
                     charm_p2ps->at(bgn->task)->append((*cmsg)->tracemsg->sender);
-                    std::cout << "                      Adding" << std::endl;
+                    if (verbose)
+                        std::cout << "                      Adding" << std::endl;
 
                     e = (*cmsg)->tracemsg->sender;
 
@@ -438,7 +442,8 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
 
                 (*cmsg)->tracemsg->receiver->is_recv = true;
                 charm_p2ps->at(bgn->task)->append((*cmsg)->tracemsg->receiver);
-                std::cout << "                      Adding" << std::endl;
+                if (verbose)
+                    std::cout << "                      Adding" << std::endl;
 
                 e = (*cmsg)->tracemsg->receiver;
             }
@@ -459,7 +464,8 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
     if (depth == 0)
     {
         (*(trace->roots))[bgn->pe]->append(e);
-        std::cout << "                    Adding as root event between " << e->enter << " and " << e->exit << std::endl;
+        if (verbose)
+            std::cout << "                    Adding as root event between " << e->enter << " and " << e->exit << std::endl;
     }
 
     if (e->exit > endtime)
@@ -558,7 +564,6 @@ int CharmImporter::makeTasks()
         for (QMap<int, ChareArray *>::Iterator array = arrays->begin();
              array != arrays->end(); ++array)
         {
-            std::cout << "Adding " << chares->value(array.value()->chare)->name.toStdString().c_str() << " with num indices " << array.value()->indices->size() << std::endl;
             primaries->insert(array.key(),
                               new PrimaryTaskGroup(array.key(),
                                                    chares->value(array.value()->chare)->name
@@ -576,7 +581,6 @@ int CharmImporter::makeTasks()
                                        primaries->value(array.key()));
                 primaries->last()->tasks->append(task);
                 chare_to_task->insert(*index, taskid);
-                std::cout << "ASSIGNING " << (*index).toVerboseString().toStdString().c_str() << " to " << taskid << std::endl;
                 taskid++;
             }
 
@@ -603,7 +607,6 @@ int CharmImporter::makeTasks()
                                            //chare.value()->name + "_" + (*index).toString(),
                                            primaries->value(chare.key()));
                     primaries->last()->tasks->append(task);
-                    std::cout << "Index " << (*index).toString().toStdString().c_str() << " maps to task " << taskid << std::endl;
                     chare_to_task->insert(*index, taskid);
                     taskid++;
                 }
@@ -623,7 +626,6 @@ void CharmImporter::parseLine(QString line, int my_pe)
     ChareIndex id = ChareIndex(-1, 0,0,0,0);
     long time, msglen, sendTime, recvTime, numpes, cpuStart, cpuEnd;
 
-    //std::cout << line.toStdString().c_str() << std::endl;
     QStringList lineList = line.split(" ");
     int rectype = lineList.at(0).toInt();
     if (rectype == CREATION || rectype == CREATION_BCAST || rectype == CREATION_MULTICAST)
@@ -756,25 +758,32 @@ void CharmImporter::parseLine(QString line, int my_pe)
                 msg->sendtime = time;
                 msg->send_evt = evt;
             }
-            std::cout << "CREATE!" << " on pe " << my_pe << " to " << pe << " at " << time;
-            std::cout << " with event " << event << " my array " << arrayid << " and last index array " << send_end->index.array;
-            std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
-            std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
-            if (last)
-                std::cout << " with index " << last->index.toString().toStdString().c_str() << std::endl;
-            else
-                std::cout << std::endl;
+
+            if (verbose)
+            {
+                std::cout << "CREATE!" << " on pe " << my_pe << " to " << pe << " at " << time;
+                std::cout << " with event " << event << " my array " << arrayid << " and last index array " << send_end->index.array;
+                std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
+                std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
+                if (last)
+                    std::cout << " with index " << last->index.toString().toStdString().c_str() << std::endl;
+                else
+                    std::cout << std::endl;
+            }
         }
         else // True CREATION_BCAST / CREATION_MULTICAST
         {
-            std::cout << "BCAST/MULTICAST!" << " on pe " << pe;
-            std::cout << " with event " << event;
-            std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
-            std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
-            if (last)
-                std::cout << " with index " << last->index.toString().toStdString().c_str() << std::endl;
-            else
-                std::cout << std::endl;
+            if (verbose)
+            {
+                std::cout << "BCAST/MULTICAST!" << " on pe " << pe;
+                std::cout << " with event " << event;
+                std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
+                std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
+                if (last)
+                    std::cout << " with index " << last->index.toString().toStdString().c_str() << std::endl;
+                else
+                    std::cout << std::endl;
+            }
             /*for (int i = 0; i < numpes; i++)
             {
                 CharmMsg * msg = new CharmMsg(mtype, msglen, pe, entry, event, my_pe);
@@ -860,11 +869,14 @@ void CharmImporter::parseLine(QString line, int my_pe)
 
         last = evt;
 
-        std::cout << "BEGIN!" << " on pe " << my_pe << " at " << time;
-        std::cout << " with event " << event << " my array " << arrayid;
-        std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
-        std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
-        std::cout << " with index " << id.toString().toStdString().c_str() << std::endl;
+        if (verbose)
+        {
+            std::cout << "BEGIN!" << " on pe " << my_pe << " at " << time;
+            std::cout << " with event " << event << " my array " << arrayid;
+            std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
+            std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
+            std::cout << " with index " << id.toString().toStdString().c_str() << std::endl;
+        }
 
         CharmMsg * msg = NULL;
         if (pe > my_pe) // We get send later
@@ -923,19 +935,25 @@ void CharmImporter::parseLine(QString line, int my_pe)
             msg->recv_evt = evt;
             evt->charmmsgs->append(msg);
 
-            std::cout << "RECV!" << " on pe " << my_pe << " from " << pe;
-            std::cout << " with event " << event << " my array " << arrayid;
-            std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
-            std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
-            std::cout << " with index " << id.toString().toStdString().c_str() << std::endl;
+            if (verbose)
+            {
+                std::cout << "RECV!" << " on pe " << my_pe << " from " << pe;
+                std::cout << " with event " << event << " my array " << arrayid;
+                std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
+                std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
+                std::cout << " with index " << id.toString().toStdString().c_str() << std::endl;
+            }
         }
         else
         {
-            std::cout << "NO RECV MSG!!!" << " on pe " << my_pe << " was expecting message from ";
-            std::cout << pe << " with event " << event;
-            std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
-            std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
-            std::cout << " with index " << id.toString().toStdString().c_str() << std::endl;
+            if (verbose)
+            {
+                std::cout << "NO RECV MSG!!!" << " on pe " << my_pe << " was expecting message from ";
+                std::cout << pe << " with event " << event;
+                std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
+                std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
+                std::cout << " with index " << id.toString().toStdString().c_str() << std::endl;
+            }
         }
 
         if (time > traceEnd)
@@ -989,11 +1007,14 @@ void CharmImporter::parseLine(QString line, int my_pe)
         evt->index.chare = entries->value(entry)->chare;
         charm_events->at(my_pe)->append(evt);
 
-        std::cout << "END!" << " on pe " << my_pe;
-        std::cout << " with event " << event << " my array " << arrayid;
-        std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
-        std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
-        std::cout << " with index " << evt->index.toString().toStdString().c_str() << std::endl;
+        if (verbose)
+        {
+            std::cout << "END!" << " on pe " << my_pe;
+            std::cout << " with event " << event << " my array " << arrayid;
+            std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
+            std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
+            std::cout << " with index " << evt->index.toString().toStdString().c_str() << std::endl;
+        }
 
         last = NULL;
 
@@ -1006,12 +1027,12 @@ void CharmImporter::parseLine(QString line, int my_pe)
         if (time > traceEnd)
             traceEnd = time;
     }
-    else if (rectype == MESSAGE_RECV) // just in case we ever find one
-    {
+    else if (rectype == MESSAGE_RECV && verbose) // just in case we ever find one
+    {     
         std::cout << "Message Recv!" << std::endl;
     }
     else if ((rectype < 14 || rectype > 19) && rectype != 6 && rectype != 7
-             && rectype != 11 && rectype != 12)
+             && rectype != 11 && rectype != 12 && verbose)
     {
         std::cout << "Event of type " << rectype << " spotted!" << std::endl;
     }

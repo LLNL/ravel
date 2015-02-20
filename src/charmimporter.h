@@ -405,6 +405,8 @@ private:
     static const int QD_BOC_MSG = 14;
     static const int QD_BROACAST_BOC_MSG = 15;
 
+    static const bool verbose = true;
+
 };
 
 inline uint qHash(const CharmImporter::ChareIndex& key)
