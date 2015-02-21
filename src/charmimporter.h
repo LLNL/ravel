@@ -226,13 +226,24 @@ private:
     class ChareArray {
     public:
         ChareArray(int _id, int _chare)
-            : id(_id), chare(_chare), mark(false),
+            : id(_id), chare(_chare),
               indices(new QSet<ChareIndex>()) {}
 
         int id;
         int chare;
-        bool mark; // indicates whether we have used it
         QSet<ChareIndex> * indices;
+    };
+
+    class ChareGroup {
+    public:
+        ChareGroup(int _chare)
+            : chare(_chare),
+              first_task(-1),
+              pes(QSet<int>()) {}
+
+        int chare;
+        int first_task;
+        QSet<int> pes;
     };
 
     class CharmMsg {
@@ -341,6 +352,7 @@ private:
     int numPAPI;
     int main;
     long traceEnd;
+    int num_application_tasks;
 
     Trace * trace;
 
@@ -358,6 +370,7 @@ private:
     QMap<int, QString> * functiongroups;
     QMap<int, Function *> * functions;
     QMap<int, ChareArray *> * arrays;
+    QMap<int, ChareGroup *> * groups;
     QMap<ChareIndex, int> * chare_to_task;
     CharmEvt * last;
     CharmMsg * last_send;

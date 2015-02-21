@@ -36,6 +36,7 @@ CharmImporter::CharmImporter()
       hasPAPI(false),
       numPAPI(0),
       traceEnd(0),
+      num_application_tasks(0),
       trace(NULL),
       unmatched_recvs(NULL),
       sends(NULL),
@@ -51,6 +52,7 @@ CharmImporter::CharmImporter()
       functiongroups(new QMap<int, QString>()),
       functions(new QMap<int, Function *>()),
       arrays(new QMap<int, ChareArray *>()),
+      groups(new QMap<int, ChareGroup *>()),
       chare_to_task(new QMap<ChareIndex, int>()),
       last(NULL),
       last_send(NULL),
@@ -317,6 +319,11 @@ void CharmImporter::makeTaskEvents()
                         (*evt)->task = -1;
                     else
                         (*evt)->task = chare_to_task->value((*evt)->index);
+                }
+
+                if ((*evt)->task == -1) // runtime chare
+                {
+                    (*evt)->task = num_application_tasks + (*evt)->pe;
                 }
 
                 stack->push(*evt);
@@ -615,6 +622,19 @@ int CharmImporter::makeTasks()
             }
         }
     }
+
+    num_application_tasks = taskid;
+    primaries->insert(chares->size(),
+                      new PrimaryTaskGroup(chares->size(),
+                                           "charm"));
+    for (int i = 0; i < processes; i++)
+    {
+        Task * task = new Task(taskid,
+                               "pe " + QString::number(i),
+                               primaries->value(chares->size()));
+        primaries->last()->tasks->append(task);
+        taskid++;
+    }
     return taskid;
 }
 
@@ -693,7 +713,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
         {
             evt->index = last->index;
         }
-        else
+        else if (my_pe == 0)
         {
             evt->index = ChareIndex(main, 0, 0, 0, 0);
         }
@@ -853,6 +873,13 @@ void CharmImporter::parseLine(QString line, int my_pe)
                 id.array = arrayid;
                 id.chare = entries->value(entry)->chare;
                 arrays->value(arrayid)->indices->insert(id);
+            }
+            else
+            {
+                if (!groups->contains(entries->value(entry)->chare))
+                    groups->insert(entries->value(entry)->chare,
+                                   new ChareGroup(entries->value(entry)->chare));
+                groups->value(entries->value(entry)->chare)->pes.insert(my_pe);
             }
         }
 
@@ -1050,8 +1077,10 @@ bool CharmImporter::matchingMessages(CharmMsg * send, CharmMsg * recv)
     return false;
 }
 
+
 const int CharmImporter::SEND_FXN;
 const int CharmImporter::RECV_FXN;
+
 
 void CharmImporter::processDefinitions()
 {
@@ -1071,6 +1100,7 @@ void CharmImporter::processDefinitions()
     entries->insert(SEND_FXN, new Entry(0, "Send", 0));
     entries->insert(RECV_FXN, new Entry(0, "Recv", 0));
 }
+
 
 // STS is never gzipped
 void CharmImporter::readSts(QString dataFileName)
