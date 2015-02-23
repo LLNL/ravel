@@ -198,7 +198,7 @@ private:
                           long endtime, int phase, int depth);
     void charify();
 
-    void makeSingletonPartition(CommEvent * evt);
+    void makePartition(QList<P2PEvent *> *events);
     void buildPartitions();
 
     void cleanUp();
@@ -362,7 +362,6 @@ private:
     QVector<QVector<CharmEvt *> *> * charm_events;
     QVector<QVector<CharmEvt *> *> * task_events;
     QVector<QVector<Event *> *> * pe_events;
-    //QVector<QVector<Event *> *> * roots;
     QVector<QVector<P2PEvent *> *> * charm_p2ps;
     QVector<CharmMsg *> * messages;
     QMap<int, PrimaryTaskGroup *> * primaries;

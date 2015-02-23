@@ -492,6 +492,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
     return depth;
 }
 
+
 // Convert per-PE charm Events into per-chare events
 void CharmImporter::charify()
 {
@@ -526,11 +527,16 @@ void CharmImporter::charify()
 
 void CharmImporter::buildPartitions()
 {
+    QList<P2PEvent *> * events = new QList<P2PEvent *>();
+
     P2PEvent * prev = NULL;
+    Event * prev_caller = NULL;
+
     for (QVector<QVector<P2PEvent *> *>::Iterator p2plist = charm_p2ps->begin();
          p2plist != charm_p2ps->end(); ++p2plist)
     {
         prev = NULL;
+        prev_caller = NULL;
         for (QVector<P2PEvent *>::Iterator p2p = (*p2plist)->begin();
              p2p != (*p2plist)->end(); ++p2p)
         {
@@ -539,18 +545,43 @@ void CharmImporter::buildPartitions()
             (*p2p)->comm_prev = prev;
             prev = *p2p;
 
-            makeSingletonPartition(*p2p);
+            // End previous by making it into a partition
+            if ((*p2p)->caller == NULL || (*p2p)->caller != prev_caller)
+            {
+                if (!events->isEmpty())
+                {
+                    makePartition(events);
+                    events->clear();
+                }
+            }
+
+            events->append(*p2p);
             trace->events->at((*p2p)->task)->append(*p2p);
+            prev_caller = (*p2p)->caller;
+        }
+
+        // Clear remaining in events;
+        if (!events->isEmpty())
+        {
+            makePartition(events);
+            events->clear();
         }
     }
+
+    delete events;
 }
 
 
-void CharmImporter::makeSingletonPartition(CommEvent * evt)
+// We expect events to be in order, therefore we don't sort the partition at the end.
+void CharmImporter::makePartition(QList<P2PEvent *> * events)
 {
     Partition * p = new Partition();
-    p->addEvent(evt);
-    evt->partition = p;
+    for (QList<P2PEvent *>::Iterator evt = events->begin();
+         evt != events->end(); ++evt)
+    {
+        p->addEvent(*evt);
+        (*evt)->partition = p;
+    }
     p->new_partition = p;
     trace->partitions->append(p);
 }

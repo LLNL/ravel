@@ -351,7 +351,9 @@ void Trace::partition()
     if (!options.partitionByFunction)
     {
         traceTimer.start();
-          // Merge communication
+        // Merge communication
+        // Note at this part the partitions do not have parent/child
+        // relationships among them. That is first set in the merging of cycles.
         std::cout << "Merging for messages..." << std::endl;
         mergeForMessages();
         traceElapsed = traceTimer.nsecsElapsed();
@@ -370,22 +372,19 @@ void Trace::partition()
         std::cout << std::endl;
         std::cout << "Partitions = " << partitions->size() << std::endl;
 
-        /*
         // Merge by call tree
-      if (options.callerMerge)
-      {
-          std::cout << "Merging based on call tree..." << std::endl;
-          traceTimer.start();
-          set_dag_steps();
-          mergeByCommonCaller();
-          traceElapsed = traceTimer.nsecsElapsed();
-          std::cout << "Caller Merge: ";
-          gu_printTime(traceElapsed);
-          std::cout << std::endl;
+        if (options.callerMerge)
+        {
+            std::cout << "Merging based on call tree..." << std::endl;
+            traceTimer.start();
+            set_dag_steps();
+            mergeByCommonCaller();
+            traceElapsed = traceTimer.nsecsElapsed();
+            std::cout << "Caller Merge: ";
+            gu_printTime(traceElapsed);
+            std::cout << std::endl;
 
-      }
-      */
-
+        }
           // Merge by rank level [ later ]
         if (options.leapMerge)
         {
