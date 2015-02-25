@@ -296,7 +296,8 @@ void CharmImporter::makeTaskEvents()
                     std::cout << "    Enter stack " << " on pe " << (*evt)->pe << " my array " << (*evt)->arrayid;
                     std::cout << " for " << chares->value(entries->value((*evt)->entry)->chare)->name.toStdString().c_str();
                     std::cout << "::" << entries->value((*evt)->entry)->name.toStdString().c_str();
-                    std::cout << " with index " << (*evt)->index.toVerboseString().toStdString().c_str() << std::endl;
+                    std::cout << " with index " << (*evt)->index.toVerboseString().toStdString().c_str();
+                    std::cout << " at " << (*evt)->time << std::endl;
                 }
 
                 // Enter is the only place with the true array id so we must
@@ -382,7 +383,8 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
         std::cout << "    Pop stack " << " on pe " << bgn->pe << " my array " << bgn->arrayid;
         std::cout << " for " << chares->value(entries->value(bgn->entry)->chare)->name.toStdString().c_str();
         std::cout << "::" << entries->value(bgn->entry)->name.toStdString().c_str();
-        std::cout << " with index " << bgn->index.toString().toStdString().c_str() << std::endl;
+        std::cout << " with index " << bgn->index.toString().toStdString().c_str();
+        std::cout << " at " << endtime << std::endl;
     }
 
     if (trace->functions->value(bgn->entry)->group == 0) // Send or Recv
@@ -403,6 +405,10 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
             {
                 msgs->append((*cmsg)->tracemsg);
             }
+            else if (!(*cmsg)->send_evt || !(*cmsg)->recv_evt) // incomplete, discard
+            {
+               continue;
+            }
             else
             {
                 Message * msg = new Message((*cmsg)->sendtime,
@@ -411,6 +417,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                 (*cmsg)->tracemsg = msg;
                 msgs->append(msg);
             }
+
             if (bgn->entry == SEND_FXN)
             {
                 if (!((*cmsg)->send_evt->trace_evt))
@@ -831,9 +838,8 @@ void CharmImporter::parseLine(QString line, int my_pe)
                 std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
                 std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
                 if (last)
-                    std::cout << " with index " << last->index.toString().toStdString().c_str() << std::endl;
-                else
-                    std::cout << std::endl;
+                    std::cout << " with index " << last->index.toString().toStdString().c_str();
+                std::cout << " at " << time << std::endl;
             }
             /*for (int i = 0; i < numpes; i++)
             {
@@ -1126,7 +1132,8 @@ void CharmImporter::processDefinitions()
         int id = entry.key();
         Entry * e = entry.value();
 
-        functions->insert(id, new Function(e->name, 1));
+        functions->insert(id, new Function(chares->value(entries->value(id)->chare)->name
+                                           + "::" + e->name, 1));
     }
     entries->insert(SEND_FXN, new Entry(0, "Send", 0));
     entries->insert(RECV_FXN, new Entry(0, "Recv", 0));
