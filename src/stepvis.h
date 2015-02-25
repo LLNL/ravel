@@ -64,6 +64,8 @@ private:
     int ellipse_height;
     QMap<int, int> * overdrawYMap;
 
+    QMap<int, QColor> * groupColorMap;
+
     static const int colorBarHeight = 24;
 };
 

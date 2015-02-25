@@ -10,6 +10,7 @@
 #include "event.h"
 #include "p2pevent.h"
 #include "collectiveevent.h"
+#include "primarytaskgroup.h"
 #include <iostream>
 #include <cmath>
 #include <QLocale>
@@ -32,7 +33,8 @@ StepVis::StepVis(QWidget* parent, VisOptions * _options)
       blockheight(0),
       ellipse_width(0),
       ellipse_height(0),
-      overdrawYMap(new QMap<int, int>())
+      overdrawYMap(new QMap<int, int>()),
+      groupColorMap(new QMap<int, QColor>())
 {
 
 }
@@ -40,6 +42,7 @@ StepVis::StepVis(QWidget* parent, VisOptions * _options)
 StepVis::~StepVis()
 {
     delete overdrawYMap;
+    delete groupColorMap;
 }
 
 void StepVis::setTrace(Trace * t)
@@ -58,6 +61,42 @@ void StepVis::setTrace(Trace * t)
 
     maxStep = trace->global_max_step;
     setupMetric();
+
+    int num_groups = trace->primaries->size();
+    if (num_groups == 1)
+    {
+        groupColorMap->insert(0, QColor(Qt::white));
+    }
+    else
+    {
+        int top = 255;
+        int bottom = 55;
+        int separation = 200 / num_groups;
+        if (separation > 16)
+        {
+            separation = 16;
+            bottom = 255 - num_groups * separation;
+        }
+        bool flip = false;
+        int offset = 0;
+        int color;
+        for (QMap<int, PrimaryTaskGroup *>::Iterator tg = trace->primaries->begin();
+             tg != trace->primaries->end(); ++tg)
+        {
+            if (flip)
+            {
+                color = top - offset;
+                groupColorMap->insert(tg.key(), QColor(color, color, color));
+                offset += separation;
+            }
+            else
+            {
+                color = bottom + offset;
+                groupColorMap->insert(tg.key(), QColor(color, color, color));
+            }
+            flip = !flip;
+        }
+    }
 }
 
 void StepVis::setupMetric()
@@ -641,6 +680,26 @@ void StepVis::paintEvents(QPainter * painter)
         opacity = 0.50;
 
     QList<int> overdraw_tasks;
+
+    // Draw backgrounds for primaries
+    int tg_extent = 0;
+    for (QMap<int, PrimaryTaskGroup *>::Iterator tg = trace->primaries->begin();
+         tg != trace->primaries->end(); ++tg)
+    {
+        y = floor((tg_extent - startEntity) * blockheight) + 1;
+        if (y > effectiveHeight)
+            continue;
+        h = tg.value()->tasks->size() * entityheight;
+        if (y + h > effectiveHeight)
+            h = effectiveHeight - y;
+        painter->fillRect(QRectF(labelWidth,
+                                 y,
+                                 effectiveWidth - labelWidth,
+                                 h),
+                          QBrush(groupColorMap->value(tg.key())));
+        tg_extent += tg.value()->tasks->size();
+    }
+
 
     // Only do partitions in our range
     for (int i = startPartition; i < trace->partitions->length(); ++i)
