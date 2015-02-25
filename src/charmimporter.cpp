@@ -308,6 +308,16 @@ void CharmImporter::makeTaskEvents()
                     {
                         (*evt)->task = -1;
                     }
+                    else if (!stack->isEmpty()
+                             && (*evt)->chare == main
+                             && (*evt)->entry == SEND_FXN
+                             && stack->top()->chare != main)
+                    {
+                        // This is the case where we attributed to main incorrectly since
+                        // a send records its send destination chare rather than its called
+                        // chare.
+                        (*evt)->task = num_application_tasks + (*evt)->pe;
+                    }
                     else // Should get main if nothing else works
                     {
                         (*evt)->task = chare_to_task->value((*evt)->index);
@@ -737,7 +747,9 @@ void CharmImporter::parseLine(QString line, int my_pe)
         }
 
         if (last)
+        {
             arrayid = last->index.array;
+        }
 
         CharmEvt * evt = new CharmEvt(SEND_FXN, time, my_pe,
                                       entries->value(entry)->chare, arrayid,
@@ -750,6 +762,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
         if (last)
         {
             evt->index = last->index;
+            std::cout << "         Using last index" << std::endl;
         }
         else if (my_pe == 0)
         {
@@ -824,7 +837,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
                 std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
                 std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
                 if (last)
-                    std::cout << " with index " << last->index.toString().toStdString().c_str() << std::endl;
+                    std::cout << " with index " << last->index.toVerboseString().toStdString().c_str() << std::endl;
                 else
                     std::cout << std::endl;
             }
@@ -838,7 +851,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
                 std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
                 std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
                 if (last)
-                    std::cout << " with index " << last->index.toString().toStdString().c_str();
+                    std::cout << " with index " << last->index.toVerboseString().toStdString().c_str();
                 std::cout << " at " << time << std::endl;
             }
             /*for (int i = 0; i < numpes; i++)
@@ -939,7 +952,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
             std::cout << " with event " << event << " my array " << arrayid;
             std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
             std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
-            std::cout << " with index " << id.toString().toStdString().c_str() << std::endl;
+            std::cout << " with index " << id.toVerboseString().toStdString().c_str() << std::endl;
         }
 
         CharmMsg * msg = NULL;
@@ -1005,7 +1018,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
                 std::cout << " with event " << event << " my array " << arrayid;
                 std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
                 std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
-                std::cout << " with index " << id.toString().toStdString().c_str() << std::endl;
+                std::cout << " with index " << id.toVerboseString().toStdString().c_str() << std::endl;
             }
         }
         else
@@ -1016,7 +1029,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
                 std::cout << pe << " with event " << event;
                 std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
                 std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
-                std::cout << " with index " << id.toString().toStdString().c_str() << std::endl;
+                std::cout << " with index " << id.toVerboseString().toStdString().c_str() << std::endl;
             }
         }
 
@@ -1077,7 +1090,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
             std::cout << " with event " << event << " my array " << arrayid;
             std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
             std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
-            std::cout << " with index " << evt->index.toString().toStdString().c_str() << std::endl;
+            std::cout << " with index " << evt->index.toVerboseString().toStdString().c_str() << std::endl;
         }
 
         last = NULL;
