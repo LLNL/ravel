@@ -762,7 +762,6 @@ void CharmImporter::parseLine(QString line, int my_pe)
         if (last)
         {
             evt->index = last->index;
-            std::cout << "         Using last index" << std::endl;
         }
         else if (my_pe == 0)
         {

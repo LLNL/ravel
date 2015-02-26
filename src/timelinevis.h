@@ -10,7 +10,7 @@ class TimelineVis : public VisWidget
 public:
     TimelineVis(QWidget* parent = 0, VisOptions * _options = new VisOptions());
     ~TimelineVis();
-    void processVis();
+    virtual void processVis();
 
     void mousePressEvent(QMouseEvent * event);
     void mouseReleaseEvent(QMouseEvent * event);

@@ -43,6 +43,7 @@ public:
     int num_tasks;
     int num_pes;
     int units;
+    bool use_aggregates;
 
     QList<Partition *> * partitions;
     QList<QString> * metrics;

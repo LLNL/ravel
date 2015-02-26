@@ -283,6 +283,8 @@ void MainWindow::launchVisOptions()
         visdialog = new VisOptionsDialog(this, visoptions);
     visdialog->show();
 
+    if (!traces[activeTrace]->use_aggregates)
+        visoptions->showAggregateSteps = false;
     for(int i = 0; i < viswidgets.size(); i++)
         viswidgets[i]->repaint();
 }
@@ -390,6 +392,7 @@ void MainWindow::importTrace(QString dataFileName){
         otfoptions->waitallMerge = false; // Not applicable
         otfoptions->leapMerge = false; // Not applicable across all chare arrays -- perhaps per chare array
         otfoptions->isendCoalescing = false; // Not applicable
+        visoptions->showAggregateSteps = false;
         connect(this, SIGNAL(operate(QString)), importWorker,
                 SLOT(doImportCharm(QString)));
     }

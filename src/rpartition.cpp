@@ -422,7 +422,7 @@ void Partition::step()
     // We set up by looking for children only and having the parents set
     // the children links
 
-    std::cout << "   Init strides" << std::endl;
+    //std::cout << "   Init strides" << std::endl;
     QList<CommEvent *> * stride_events = new QList<CommEvent *>();
     QList<CommEvent *> * recv_events = new QList<CommEvent *>();
     for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
@@ -435,12 +435,12 @@ void Partition::step()
         }
     }
 
-    std::cout << "   Build stride graph" << std::endl;
+    //std::cout << "   Build stride graph" << std::endl;
     // Set strides
     int max_stride = set_stride_dag(stride_events);
     delete stride_events;
 
-    std::cout << "   Update stride boundaries" << std::endl;
+    //std::cout << "   Update stride boundaries" << std::endl;
     //. Find recv stride boundaries based on dependencies
     for (QList<CommEvent *>::Iterator recv = recv_events->begin();
          recv != recv_events->end(); ++recv)
@@ -453,7 +453,7 @@ void Partition::step()
     // dependencies are built into the stride graph).
     // This may be somewhat similar to restep/finalize... but slightly
     // different so look into that.
-    std::cout << "   Inflate receives" << std::endl;
+    //std::cout << "   Inflate receives" << std::endl;
     max_step = -1;
     int task;
     CommEvent * evt;

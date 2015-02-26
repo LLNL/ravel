@@ -29,6 +29,7 @@ Trace::Trace(int nt, int np)
       num_tasks(nt),
       num_pes(np),
       units(-9),
+      use_aggregates(true),
       partitions(new QList<Partition *>()),
       metrics(new QList<QString>()),
       metric_units(new QMap<QString, QString>()),
@@ -420,6 +421,9 @@ void Trace::set_global_steps()
         current_leap->insert(*part);
     }
 
+    int per_step = 2;
+    if (!use_aggregates)
+        per_step = 1;
     int accumulated_step;
     global_max_step = 0;
 
@@ -445,10 +449,10 @@ void Trace::set_global_steps()
                     allParents = false;
                 }
                 // Find maximum step of all predecessors
-                // We +2 because individual steps start at 0, so when we add 0,
+                // We +per_step because individual steps start at 0, so when we add 0,
                 // we want it to be offset from the parent
                 accumulated_step = std::max(accumulated_step,
-                                            (*parent)->max_global_step + 2);
+                                            (*parent)->max_global_step + per_step);
             }
 
             // Skip since all parents haven't been handled
@@ -456,7 +460,7 @@ void Trace::set_global_steps()
                 continue;
 
             // Set steps for the partition
-            (*part)->max_global_step = 2 * ((*part)->max_step)
+            (*part)->max_global_step = per_step * ((*part)->max_step)
                                        + accumulated_step;
             (*part)->min_global_step = accumulated_step;
             (*part)->mark = false; // Using this to debug again
@@ -470,7 +474,7 @@ void Trace::set_global_steps()
                      = (event_list.value())->begin();
                      evt != (event_list.value())->end(); ++evt)
                 {
-                    (*evt)->step *= 2;
+                    (*evt)->step *= per_step;
                     (*evt)->step += accumulated_step;
                 }
             }
@@ -551,6 +555,9 @@ void Trace::calculate_partition_lateness()
     }
 
     unsigned long long int mintime, aggmintime;
+    int per_step = 2;
+    if (!use_aggregates)
+        per_step = 1;
 
 
     int count = 0;
@@ -561,7 +568,7 @@ void Trace::calculate_partition_lateness()
             std::cout << "...at partition " << count << std::endl;
         count++;
         for (int i = (*part)->min_global_step;
-             i <= (*part)->max_global_step; i += 2)
+             i <= (*part)->max_global_step; i += per_step)
         {
             QList<CommEvent *> * i_list = new QList<CommEvent *>();
 
@@ -583,40 +590,74 @@ void Trace::calculate_partition_lateness()
             aggmintime = ULLONG_MAX;
             for (int j = 0; j < valueslist.size(); j++)
                 valueslist[j] = DBL_MAX;
-            for (QList<CommEvent *>::Iterator evt = i_list->begin();
-                 evt != i_list->end(); ++evt)
-            {
-                if ((*evt)->exit < mintime)
-                    mintime = (*evt)->exit;
-                if ((*evt)->enter < aggmintime)
-                    aggmintime = (*evt)->enter;
-                for (int j = 0; j < counterlist.size(); j++)
-                {
-                    if ((*evt)->getMetric(counterlist[j]) < valueslist[2*j])
-                        valueslist[2*j] = (*evt)->getMetric(counterlist[j]);
-                    if ((*evt)->getMetric(counterlist[j],true) < valueslist[2*j+1])
-                        valueslist[2*j+1] = (*evt)->getMetric(counterlist[j], true);
-                }
-            }
+
 
             // Set lateness;
-            for (QList<CommEvent *>::Iterator evt = i_list->begin();
-                 evt != i_list->end(); ++evt)
+            if (use_aggregates)
             {
-                (*evt)->addMetric(p_late, (*evt)->exit - mintime,
-                                  (*evt)->enter - aggmintime);
-                double evt_time = (*evt)->exit - (*evt)->enter;
-                double agg_time = (*evt)->enter;
-                if ((*evt)->comm_prev)
-                    agg_time = (*evt)->enter - (*evt)->comm_prev->exit;
-                for (int j = 0; j < counterlist.size(); j++)
+                for (QList<CommEvent *>::Iterator evt = i_list->begin();
+                     evt != i_list->end(); ++evt)
                 {
-                    (*evt)->addMetric("Step " + counterlist[j],
-                                     (*evt)->getMetric(counterlist[j]) - valueslist[2*j],
-                                     (*evt)->getMetric(counterlist[j], true) - valueslist[2*j+1]);
-                    (*evt)->setMetric(counterlist[j],
-                                      (*evt)->getMetric(counterlist[j]) / 1.0 / evt_time,
-                                      (*evt)->getMetric(counterlist[j], true) / 1.0 / agg_time);
+                    if ((*evt)->exit < mintime)
+                        mintime = (*evt)->exit;
+                    if ((*evt)->enter < aggmintime)
+                        aggmintime = (*evt)->enter;
+                    for (int j = 0; j < counterlist.size(); j++)
+                    {
+                        if ((*evt)->getMetric(counterlist[j]) < valueslist[per_step*j])
+                            valueslist[per_step*j] = (*evt)->getMetric(counterlist[j]);
+                        if ((*evt)->getMetric(counterlist[j],true) < valueslist[per_step*j+1])
+                            valueslist[per_step*j+1] = (*evt)->getMetric(counterlist[j], true);
+                    }
+                }
+
+                for (QList<CommEvent *>::Iterator evt = i_list->begin();
+                     evt != i_list->end(); ++evt)
+                {
+                    (*evt)->addMetric(p_late, (*evt)->exit - mintime,
+                                      (*evt)->enter - aggmintime);
+                    double evt_time = (*evt)->exit - (*evt)->enter;
+                    double agg_time = (*evt)->enter;
+                    if ((*evt)->comm_prev)
+                        agg_time = (*evt)->enter - (*evt)->comm_prev->exit;
+                    for (int j = 0; j < counterlist.size(); j++)
+                    {
+                        (*evt)->addMetric("Step " + counterlist[j],
+                                         (*evt)->getMetric(counterlist[j]) - valueslist[per_step*j],
+                                         (*evt)->getMetric(counterlist[j], true) - valueslist[per_step*j+1]);
+                        (*evt)->setMetric(counterlist[j],
+                                          (*evt)->getMetric(counterlist[j]) / 1.0 / evt_time,
+                                          (*evt)->getMetric(counterlist[j], true) / 1.0 / agg_time);
+                    }
+                }
+            }
+            else
+            {
+                for (QList<CommEvent *>::Iterator evt = i_list->begin();
+                     evt != i_list->end(); ++evt)
+                {
+                    if ((*evt)->exit < mintime)
+                        mintime = (*evt)->exit;
+
+                    for (int j = 0; j < counterlist.size(); j++)
+                    {
+                        if ((*evt)->getMetric(counterlist[j]) < valueslist[per_step*j])
+                            valueslist[per_step*j] = (*evt)->getMetric(counterlist[j]);
+                    }
+                }
+
+                for (QList<CommEvent *>::Iterator evt = i_list->begin();
+                     evt != i_list->end(); ++evt)
+                {
+                    (*evt)->addMetric(p_late, (*evt)->exit - mintime);
+                    double evt_time = (*evt)->exit - (*evt)->enter;
+                    for (int j = 0; j < counterlist.size(); j++)
+                    {
+                        (*evt)->addMetric("Step " + counterlist[j],
+                                         (*evt)->getMetric(counterlist[j]) - valueslist[per_step*j]);
+                        (*evt)->setMetric(counterlist[j],
+                                          (*evt)->getMetric(counterlist[j]) / 1.0 / evt_time);
+                    }
                 }
             }
             delete i_list;
@@ -651,8 +692,11 @@ void Trace::calculate_lateness()
                                    1.0);
     int currentPortion = 0;
     int currentIter = 0;
+    int per_step = 2;
+    if (!use_aggregates)
+        per_step = 1;
 
-    for (int i = 0; i <= global_max_step; i+= 2)
+    for (int i = 0; i <= global_max_step; i+= per_step)
     {
         if (round(currentIter / 1.0 / progressPortion) > currentPortion)
         {
@@ -696,11 +740,22 @@ void Trace::calculate_lateness()
         }
 
         // Set lateness
-        for (QList<CommEvent *>::Iterator evt = i_list->begin();
-             evt != i_list->end(); ++evt)
+        if (use_aggregates)
         {
-            (*evt)->addMetric("G. Lateness", (*evt)->exit - mintime,
-                              (*evt)->enter - aggmintime);
+            for (QList<CommEvent *>::Iterator evt = i_list->begin();
+                 evt != i_list->end(); ++evt)
+            {
+                (*evt)->addMetric("G. Lateness", (*evt)->exit - mintime,
+                                  (*evt)->enter - aggmintime);
+            }
+        }
+        else
+        {
+            for (QList<CommEvent *>::Iterator evt = i_list->begin();
+                 evt != i_list->end(); ++evt)
+            {
+                (*evt)->addMetric("G. Lateness", (*evt)->exit - mintime);
+            }
         }
         delete i_list;
 
@@ -719,7 +774,7 @@ void Trace::calculate_lateness()
                 {
                     // Only insert if we're the max parent,
                     // otherwise wait for max parent
-                    if ((*child)->min_global_step == i + 2)
+                    if ((*child)->min_global_step == i + per_step)
                     {
                         toAdd->insert(*child);
                     }

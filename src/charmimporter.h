@@ -161,15 +161,10 @@ public:
 
         QString toString() const
         {
-            bool flag = false;
             QString str = "";
-            for (int i = 0; i < 3; i++)
-                if (index[i] > 0 || flag)
-                {
-                    str += QString::number(index[i]) + ".";
-                    flag = true;
-                }
-            str += QString::number(index[3]);
+            str += QString::number(index[0]);
+            for (int i = 1; i <= 3; i++)
+                str += "." + QString::number(index[i]);
             return str;
         }
 
@@ -417,7 +412,7 @@ private:
     static const int QD_BOC_MSG = 14;
     static const int QD_BROACAST_BOC_MSG = 15;
 
-    static const bool verbose = true;
+    static const bool verbose = false;
 
 };
 

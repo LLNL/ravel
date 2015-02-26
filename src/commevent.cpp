@@ -71,18 +71,23 @@ double CommEvent::getMetric(QString name, bool aggregate)
 }
 
 void CommEvent::calculate_differential_metric(QString metric_name,
-                                              QString base_name)
+                                              QString base_name, bool aggregates)
 {
     long long max_parent = getMetric(base_name, true);
     long long max_agg_parent = 0;
-    if (comm_prev)
+    if (aggregates && comm_prev)
         max_agg_parent = (comm_prev->getMetric(base_name));
 
-    addMetric(metric_name,
-              std::max(0.,
-                       getMetric(base_name)- max_parent),
-              std::max(0.,
-                       getMetric(base_name, true)- max_agg_parent));
+    if (aggregates)
+        addMetric(metric_name,
+                  std::max(0.,
+                           getMetric(base_name)- max_parent),
+                  std::max(0.,
+                           getMetric(base_name, true)- max_agg_parent));
+    else
+        addMetric(metric_name,
+                  std::max(0.,
+                           getMetric(base_name)- max_parent));
 }
 
 void CommEvent::writeOTF2Leave(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap)

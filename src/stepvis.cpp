@@ -11,6 +11,7 @@
 #include "p2pevent.h"
 #include "collectiveevent.h"
 #include "primarytaskgroup.h"
+#include "task.h"
 #include <iostream>
 #include <cmath>
 #include <QLocale>
@@ -98,6 +99,28 @@ void StepVis::setTrace(Trace * t)
         }
     }
 }
+
+void StepVis::processVis()
+{
+    TimelineVis::processVis();
+
+    QPainter * painter = new QPainter();
+    painter->begin(this);
+    painter->setPen(Qt::black);
+    painter->setFont(QFont("Helvetica", 10));
+    QFontMetrics font_metrics = painter->fontMetrics();
+    int primary;
+    for (QMap<int, PrimaryTaskGroup *>::Iterator tg = trace->primaries->begin();
+         tg != trace->primaries->end(); ++tg)
+    {
+        primary = font_metrics.width((*tg)->name);
+        if (primary > labelWidth)
+            labelWidth = primary;
+    }
+    painter->end();
+    delete painter;
+}
+
 
 void StepVis::setupMetric()
 {
@@ -417,7 +440,7 @@ void StepVis::qtPaint(QPainter *painter)
     }
 
     // Always done by qt
-    drawEntityLabels(painter, rect().height() - colorBarHeight,
+    drawPrimaryLabels(painter, rect().height() - colorBarHeight,
                       entityheight);
     drawColorBarText(painter);
 
@@ -1312,4 +1335,49 @@ void StepVis::drawColorValue(QPainter * painter)
     painter->setPen(Qt::black);
     painter->drawText(mousex + 2, mousey + textRect.height() - 2 - 20,
                       hoverText);
+}
+
+
+void StepVis::drawPrimaryLabels(QPainter * painter, int effectiveHeight,
+                                float barHeight)
+{
+    painter->setPen(Qt::black);
+    painter->setFont(QFont("Helvetica", 10));
+    painter->fillRect(0,0,labelWidth,effectiveHeight, QColor(Qt::white));
+    int total_labels = floor(effectiveHeight / labelHeight);
+    int y;
+    int skip = 1;
+    if (total_labels < entitySpan)
+    {
+        skip = ceil(float(entitySpan) / total_labels);
+    }
+
+    int start = std::max(floor(startEntity), 0.0);
+    int end = std::min(ceil(startEntity + entitySpan),
+                       maxEntities - 1.0);
+
+    int current = start;
+    int offset = 0;
+    for (QMap<int, PrimaryTaskGroup *>::Iterator tg = trace->primaries->begin();
+         tg != trace->primaries->end(); ++tg)
+    {
+        while (current < offset + (*tg)->tasks->size() && current <= end)
+        {
+            y = floor((current - startEntity) * barHeight) + 1
+                + barHeight / 2 + labelDescent;
+            if (y < effectiveHeight)
+            {
+                if (current == offset)
+                    painter->drawText(1, y, (*tg)->name);
+                else
+                    painter->drawText(1, y,
+                                      (*tg)->tasks->at(current - offset)->name);
+            }
+            current += skip;
+        }
+        if (current > end)
+            break;
+
+        offset += (*tg)->tasks->size();
+    }
 }

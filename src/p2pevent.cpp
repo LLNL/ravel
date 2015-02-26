@@ -140,11 +140,11 @@ bool P2PEvent::calculate_local_step()
 }
 
 void P2PEvent::calculate_differential_metric(QString metric_name,
-                                             QString base_name)
+                                             QString base_name, bool aggregates)
 {
     long long max_parent = getMetric(base_name, true);
     long long max_agg_parent = 0;
-    if (comm_prev)
+    if (aggregates && comm_prev)
         max_agg_parent = (comm_prev->getMetric(base_name));
 
     if (is_recv)
@@ -158,11 +158,16 @@ void P2PEvent::calculate_differential_metric(QString metric_name,
         }
     }
 
-    addMetric(metric_name,
-              std::max(0.,
-                       getMetric(base_name)- max_parent),
-              std::max(0.,
-                       getMetric(base_name, true)- max_agg_parent));
+    if (aggregates)
+        addMetric(metric_name,
+                  std::max(0.,
+                           getMetric(base_name)- max_parent),
+                  std::max(0.,
+                           getMetric(base_name, true)- max_agg_parent));
+    else
+        addMetric(metric_name,
+                  std::max(0.,
+                           getMetric(base_name)- max_parent));
 }
 
 void P2PEvent::initialize_basic_strides(QSet<CollectiveRecord *> * collectives)

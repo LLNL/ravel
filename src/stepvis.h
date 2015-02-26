@@ -14,6 +14,7 @@ public:
     StepVis(QWidget* parent = 0, VisOptions *_options = new VisOptions());
     ~StepVis();
     void setTrace(Trace * t);
+    void processVis();
 
     void mouseMoveEvent(QMouseEvent * event);
     void wheelEvent(QWheelEvent * event);
@@ -49,6 +50,8 @@ protected:
     void drawColorValue(QPainter * painter);
     int getX(CommEvent * evt);
     int getY(CommEvent * evt);
+    void drawPrimaryLabels(QPainter * painter, int effectiveHeight,
+                           float barHeight);
 
 private:
     double maxMetric;
