@@ -116,6 +116,13 @@ void StepVis::processVis()
         primary = font_metrics.width((*tg)->name);
         if (primary > labelWidth)
             labelWidth = primary;
+        for (QList<Task *>::Iterator t = (*tg)->tasks->begin();
+             t != (*tg)->tasks->end(); ++t)
+        {
+            primary = font_metrics.width((*t)->name);
+            if (primary > labelWidth)
+                labelWidth = primary;
+        }
     }
     painter->end();
     delete painter;

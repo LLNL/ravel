@@ -616,13 +616,27 @@ int CharmImporter::makeTasks()
     int taskid = 1;
     if (arrays->size() > 0)
     {
+        QMap<int, int> chare_count = QMap<int, int>();
         for (QMap<int, ChareArray *>::Iterator array = arrays->begin();
              array != arrays->end(); ++array)
         {
+            if (!chare_count.contains(array.value()->chare))
+                chare_count.insert(array.value()->chare, 1);
+            else
+                chare_count.insert(array.value()->chare,
+                                   1 + chare_count.value(array.value()->chare));
+        }
+
+        QString ptg_name;
+        for (QMap<int, ChareArray *>::Iterator array = arrays->begin();
+             array != arrays->end(); ++array)
+        {
+            ptg_name = chares->value(array.value()->chare)->name;
+            if (chare_count.value(array.value()->chare) > 1)
+                ptg_name += "_" + QString::number(array.key());
             primaries->insert(array.key(),
                               new PrimaryTaskGroup(array.key(),
-                                                   chares->value(array.value()->chare)->name
-                                                   + "_" + QString::number(array.key())));
+                                                   ptg_name));
             QList<ChareIndex> indices_list = array.value()->indices->toList();
             qSort(indices_list.begin(), indices_list.end());
 
@@ -674,7 +688,7 @@ int CharmImporter::makeTasks()
     num_application_tasks = taskid;
     primaries->insert(chares->size(),
                       new PrimaryTaskGroup(chares->size(),
-                                           "charm"));
+                                           "pe 0"));
     for (int i = 0; i < processes; i++)
     {
         Task * task = new Task(taskid,
