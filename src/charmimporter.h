@@ -6,6 +6,7 @@
 #include <QSet>
 #include <QLinkedList>
 #include <iostream>
+#include <QStack>
 
 class Trace;
 class Task;

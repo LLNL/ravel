@@ -648,7 +648,7 @@ int CharmImporter::makeTasks()
                                        //+ "_" +
                                        (*index).toString(),
                                        primaries->value(array.key()));
-                primaries->last()->tasks->append(task);
+                primaries->value(array.key())->tasks->append(task);
                 chare_to_task->insert(*index, taskid);
                 taskid++;
             }
@@ -675,7 +675,7 @@ int CharmImporter::makeTasks()
                                            (*index).toString(),
                                            //chare.value()->name + "_" + (*index).toString(),
                                            primaries->value(chare.key()));
-                    primaries->last()->tasks->append(task);
+                    primaries->value(chare.key())->tasks->append(task);
                     chare_to_task->insert(*index, taskid);
                     taskid++;
                 }
@@ -694,7 +694,7 @@ int CharmImporter::makeTasks()
         Task * task = new Task(taskid,
                                "pe " + QString::number(i),
                                primaries->value(chares->size()));
-        primaries->last()->tasks->append(task);
+        primaries->value(chares->size())->tasks->append(task);
         taskid++;
     }
     return taskid;
