@@ -12,6 +12,7 @@ public:
     QString name;
     int group;
     int comms; // max comms in a function
+    bool isMain;
 };
 
 #endif // FUNCTION_H

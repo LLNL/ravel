@@ -86,6 +86,7 @@ public:
     QMap<int, int> * cluster_step_starts;
 
     bool debug_mark;
+    int debug_name;
 
 private:
     // Stepping logic -- probably want to rewrite

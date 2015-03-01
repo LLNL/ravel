@@ -34,6 +34,7 @@ Partition::Partition()
       cluster_vectors(new QMap<int, QVector<long long int> *>()),
       cluster_step_starts(new QMap<int, int>()),
       debug_mark(false),
+      debug_name(-1),
       free_recvs(NULL)
 {
     group->insert(this); // We are always in our own group
@@ -760,7 +761,7 @@ void Partition::output_graph(QString filename)
             graph << "t=" << QString::number((*evt)->task).toStdString().c_str();\
             graph << ", p=" << QString::number((*evt)->pe).toStdString().c_str();
             graph << ", s: " << QString::number((*evt)->step).toStdString().c_str();
-            graph << ", e: " << QString::number((*evt)->enter).toStdString().c_str();
+            graph << ", e: " << QString::number((*evt)->exit).toStdString().c_str();
             graph << "\"];\n";
 
             graph2 << indent.toStdString().c_str() << (*evt)->gvid.toStdString().c_str();
@@ -768,7 +769,7 @@ void Partition::output_graph(QString filename)
             graph2 << "t=" << QString::number((*evt)->task).toStdString().c_str();\
             graph2 << ", p=" << QString::number((*evt)->pe).toStdString().c_str();
             graph2 << ", s: " << QString::number((*evt)->step).toStdString().c_str();
-            graph2 << ", e: " << QString::number((*evt)->enter).toStdString().c_str();
+            graph2 << ", e: " << QString::number((*evt)->exit).toStdString().c_str();
             graph2 << "\"];\n";
             ++id;
         }

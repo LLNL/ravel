@@ -563,7 +563,8 @@ void CharmImporter::buildPartitions()
             prev = *p2p;
 
             // End previous by making it into a partition
-            if ((*p2p)->caller == NULL || (*p2p)->caller != prev_caller)
+            if ((*p2p)->caller == NULL || (*p2p)->caller != prev_caller
+                || trace->functions->value((*p2p)->caller->function)->isMain)
             {
                 if (!events->isEmpty())
                 {
@@ -1160,6 +1161,8 @@ void CharmImporter::processDefinitions()
 
         functions->insert(id, new Function(chares->value(entries->value(id)->chare)->name
                                            + "::" + e->name, 1));
+        if (entries->value(id)->chare == main)
+            functions->value(id)->isMain = true;
     }
     entries->insert(SEND_FXN, new Entry(0, "Send", 0));
     entries->insert(RECV_FXN, new Entry(0, "Recv", 0));

@@ -464,6 +464,11 @@ void Trace::set_global_steps()
                                        + accumulated_step;
             (*part)->min_global_step = accumulated_step;
             (*part)->mark = false; // Using this to debug again
+            if (debug)
+            {
+                std::cout << "Global stepping partition " << (*part)->debug_name << " with ";
+                std::cout << (*part)->min_global_step << " to " << (*part)->max_global_step << std::endl;
+            }
 
             // Set steps for partition events
             for (QMap<int, QList<CommEvent *> *>::Iterator event_list
@@ -565,11 +570,22 @@ void Trace::calculate_partition_lateness()
          part != partitions->end(); ++part)
     {
         if (debug)
-            std::cout << "...at partition " << count << std::endl;
+        {
+            std::cout << "...at partition " << (*part)->debug_name;
+            std::cout << " with min step " << (*part)->min_global_step;
+            std::cout << " and max step: " << (*part)->max_global_step << std::endl;
+            (*part)->output_graph("../debug-output/Partition-"
+                                   + QString::number((*part)->debug_name)
+                                   + "-adv-gstep.dot");
+        }
         count++;
         for (int i = (*part)->min_global_step;
              i <= (*part)->max_global_step; i += per_step)
         {
+            if (debug)
+            {
+                std::cout << "        on step " << i << std::endl;
+            }
             QList<CommEvent *> * i_list = new QList<CommEvent *>();
 
             for (QMap<int, QList<CommEvent *> *>::Iterator event_list
@@ -829,6 +845,7 @@ void Trace::assignSteps()
             ++currentIter;
             if (debug)
             {
+                (*partition)->debug_name = currentIter;
                 std::cout << "Stepping partition " << currentIter << " of " << partitions->size() << std::endl;
                 (*partition)->output_graph("../debug-output/Partition-"
                                           + QString::number(currentIter)
@@ -855,6 +872,7 @@ void Trace::assignSteps()
             ++currentIter;
             if (debug)
             {
+                (*partition)->debug_name = currentIter;
                 std::cout << "Stepping partition " << currentIter << " of " << partitions->size() << std::endl;
                 (*partition)->output_graph("../debug-output/Partition-"
                                            + QString::number(currentIter)
