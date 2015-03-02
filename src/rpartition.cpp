@@ -211,6 +211,26 @@ Event * Partition::least_common_caller(int taskid, QMap<Event *, int> * memo)
     }
 }
 
+// Set up comm_next/comm_prev to be the order in the event_list
+// In the future, we may change this order around based on other things.
+void Partition::finalizeTaskEventOrder()
+{
+    CommEvent * prev;
+    for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
+         event_list != events->end(); ++event_list)
+    {
+        prev = NULL;
+        for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
+             evt != (event_list.value())->end(); ++evt)
+        {
+            (*evt)->comm_prev = NULL;
+            if (prev)
+                prev->comm_next = *evt;
+            prev = *evt;
+        }
+    }
+}
+
 void Partition::basic_step()
 {
     // Find collectives / mark as strides

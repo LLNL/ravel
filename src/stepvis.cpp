@@ -988,7 +988,7 @@ int StepVis::getY(CommEvent * evt)
 int StepVis::getX(CommEvent *evt)
 {
     int x = 0;
-    if (options->showAggregateSteps) // Factor these calcs into own fxn!
+    if (options->showAggregateSteps || !trace->use_aggregates) // Factor these calcs into own fxn!
         x = floor((evt->step - startStep) * blockwidth) + 1
             + labelWidth;
     else

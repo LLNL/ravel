@@ -142,10 +142,18 @@ bool P2PEvent::calculate_local_step()
 void P2PEvent::calculate_differential_metric(QString metric_name,
                                              QString base_name, bool aggregates)
 {
-    long long max_parent = getMetric(base_name, true);
-    long long max_agg_parent = 0;
-    if (aggregates && comm_prev)
-        max_agg_parent = (comm_prev->getMetric(base_name));
+    long long max_parent = 0, max_agg_parent = 0;
+    if (aggregates) // If we have aggregates, the aggregate is the prev
+    {
+        max_parent = getMetric(base_name, true);
+        if (comm_prev)
+            max_agg_parent = comm_prev->getMetric(base_name);
+    }
+    else if (comm_prev) // Otheriwse, just look at the previous if it exists
+    {
+        max_parent = comm_prev->getMetric(base_name);
+    }
+
 
     if (is_recv)
     {

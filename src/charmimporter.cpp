@@ -557,12 +557,19 @@ void CharmImporter::buildPartitions()
         for (QVector<P2PEvent *>::Iterator p2p = (*p2plist)->begin();
              p2p != (*p2plist)->end(); ++p2p)
         {
-            if (prev)
+            // comm_next / comm_prev only set within the same caller
+            if (prev && prev->caller != NULL
+                && prev->caller == (*p2p)->caller)
+            {
                 prev->comm_next = *p2p;
-            (*p2p)->comm_prev = prev;
+                (*p2p)->comm_prev = prev;
+            }
             prev = *p2p;
 
-            // End previous by making it into a partition
+            // End previous by making it into a partition if we have
+            // changed functions... we may also split the function if:
+            // 1) We are in the main function
+            // 2) We are changing from app->runtime or runtime->app
             if ((*p2p)->caller == NULL || (*p2p)->caller != prev_caller
                 || trace->functions->value((*p2p)->caller->function)->isMain)
             {

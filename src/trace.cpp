@@ -177,6 +177,9 @@ void Trace::preprocess(OTFImportOptions * _options)
     traceTimer.start();
 
     options = *_options;
+    if (options.origin == OTFImportOptions::OF_CHARM)
+        use_aggregates = false;
+
     partition();
     assignSteps();
 
@@ -513,13 +516,12 @@ void Trace::calculate_differential_lateness(QString metric_name,
     metrics->append(metric_name);
     (*metric_units)[metric_name] = metric_units->value(base_name);
 
-    int count = 0;
     for (QList<Partition *>::Iterator part = partitions->begin();
          part != partitions->end(); ++part)
     {
         if (debug)
-            std::cout << "...at partition " << count << std::endl;
-        count++;
+            std::cout << "...at partition " << (*part)->debug_name << std::endl;
+
         for (QMap<int, QList<CommEvent *> *>::Iterator event_list
              = (*part)->events->begin();
              event_list != (*part)->events->end(); ++event_list)
@@ -528,7 +530,9 @@ void Trace::calculate_differential_lateness(QString metric_name,
                  = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
             {
-                (*evt)->calculate_differential_metric(metric_name, base_name);
+                (*evt)->calculate_differential_metric(metric_name,
+                                                      base_name,
+                                                      use_aggregates);
             }
         }
     }
@@ -816,12 +820,25 @@ void Trace::calculate_lateness()
     delete active_partitions;
 }
 
+// What was left ambiguous is now set in stone
+void Trace::finalizeTaskEventOrder()
+{
+    for (QList<Partition *>::Iterator part = partitions->begin();
+         part != partitions->end(); ++part)
+    {
+        (*part)->finalizeTaskEventOrder();
+    }
+}
+
 // Iterates through all partitions and sets the steps
 void Trace::assignSteps()
 {
     // Step
     QElapsedTimer traceTimer;
     qint64 traceElapsed;
+
+    if (options.origin == OTFImportOptions::OF_CHARM)
+        finalizeTaskEventOrder();
 
     traceTimer.start();
     if (debug)
