@@ -33,19 +33,22 @@ public:
 
     void fromSaved();
 
-     // Time gap between partitions
+    // Time gap between partitions
     unsigned long long int distance(Partition * other);
 
     // For common caller merge
     Event * least_common_caller(int taskid, QMap<Event *, int> * memo = NULL);
 
-     // For leap merge - which children can we merge to
+    // For leap merge - which children can we merge to
     void calculate_dag_leap();
     QString generate_process_string(); // For debugging
 
-     // When we're merging, find what this merged into
+    // When we're merging, find what this merged into
     Partition * newest_partition();
     int num_events();
+
+    // For partition ordering
+    Partition * earlier_partition(Partition * other);
 
     // For debugging
     void output_graph(QString filename);

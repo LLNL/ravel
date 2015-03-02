@@ -138,6 +138,7 @@ private:
     QList<QList<Partition *> *> * tarjan();
 
     // Steps and metrics
+    void forcePartitionDag();
     void finalizeTaskEventOrder();
     void set_global_steps();
     void calculate_lateness();

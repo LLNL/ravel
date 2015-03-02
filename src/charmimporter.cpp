@@ -557,7 +557,15 @@ void CharmImporter::buildPartitions()
         for (QVector<P2PEvent *>::Iterator p2p = (*p2plist)->begin();
              p2p != (*p2plist)->end(); ++p2p)
         {
+            // We always set these
+            if (prev)
+                prev->true_next = *p2p;
+            (*p2p)->true_prev = prev;
+
             // comm_next / comm_prev only set within the same caller
+            // as that's what we know is a true ordering
+            // This is true for charm++, may not be true for
+            // general task-based models
             if (prev && prev->caller != NULL
                 && prev->caller == (*p2p)->caller)
             {
@@ -565,6 +573,7 @@ void CharmImporter::buildPartitions()
                 (*p2p)->comm_prev = prev;
             }
             prev = *p2p;
+
 
             // End previous by making it into a partition if we have
             // changed functions... we may also split the function if:

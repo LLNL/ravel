@@ -70,6 +70,8 @@ public:
     Partition * partition;
     CommEvent * comm_next;
     CommEvent * comm_prev;
+    CommEvent * true_next;
+    CommEvent * true_prev;
 
     // Used in stepping procedure
     CommEvent * last_stride;

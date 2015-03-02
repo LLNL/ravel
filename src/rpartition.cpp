@@ -211,6 +211,45 @@ Event * Partition::least_common_caller(int taskid, QMap<Event *, int> * memo)
     }
 }
 
+// Figure out which partition comes before the other. This
+// assumes that there is at least one task of overlap.
+// If we can find a caller (comm_next/comm_prev) ordering,
+// we will use that. Otherwise, we will take a vote of
+// which has the earliest earlier events per task.
+// Presumable we won't have the latter happening since that
+// would be set up in order by earlier stuff and hopefully
+// any cycles would have been found their earlier as well.
+Partition * Partition::earlier_partition(Partition * other)
+{
+    // Counts for which one has the earlier earliest event
+    int me = 0, them = 0;
+
+    for (QMap<int, QList<CommEvent *> *>::Iterator tasklist = events->begin();
+         tasklist != events->end(); ++tasklist)
+    {
+        // We can't compare
+        if (!other->contains(tasklist.key()))
+            continue;
+
+        // Now let's just do the voting and avoid the comm/prev/next
+        // thing for now because we believe it already taken care of
+        if (events->at(tasklist.key())->first()->enter
+            < other->events->at(tasklist.key())->first()->enter)
+        {
+            me++;
+        }
+        else
+        {
+            them++;
+        }
+    }
+
+    if (me > them)
+        return this;
+    else
+        return other;
+}
+
 // Set up comm_next/comm_prev to be the order in the event_list
 // In the future, we may change this order around based on other things.
 void Partition::finalizeTaskEventOrder()

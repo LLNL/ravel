@@ -830,6 +830,106 @@ void Trace::finalizeTaskEventOrder()
     }
 }
 
+
+// Sweep through by leap ordering partitions that have task overlaps
+void Trace::forcePartitionDag()
+{
+    int leap = 0;
+    QSet<Partition *> to_remove = QSet<Partition *>();
+    QSet<Partition *> * current_leap = new QSet<Partition *>();
+    for (QList<Partition *>::Iterator part = dag_entries->begin();
+         part != dag_entries->end(); ++part)
+    {
+        current_leap->insert(*part);
+    }
+
+    while (!current_leap->isEmpty())
+    {
+        QSet<Partition *> * next_leap = new QSet<Partition *>();
+
+        for (QSet<Partition *>::Iterator part = current_leap->begin();
+             part != current_leap->end(); ++part)
+        {
+            // We have already dealt with this one and/or moved it forward
+            if ((*part)->dag_leap != leap)
+                continue;
+
+            for (QSet<Partition *>::Iterator other = current_leap->begin();
+                 other != current_leap->end(); ++other)
+            {
+                // Cases in which we skip this one
+                if (*other == *part)
+                    continue;
+                if ((*other)->dag_leap != leap)
+                    continue;
+
+                for (QMap<int, QList<CommEvent *> *>::Iterator tasklist
+                     = (*other)->events->begin();
+                     tasklist != (*other)->events->end(); ++tasklist)
+                {
+                    // No overlap here
+                    if (!(*part)->events->contains(tasklist.key()))
+                        continue;
+
+                    // Now we have to figure out which one comes before the other
+                    // We then create a parent/child relationship
+                    // - We should be careful if they both have the same parents
+                    // so that the correct ordering of that is preserved but only
+                    // parents that have an overlap
+                    // - We set the dag_leap as a mark so we know to move on
+                    // - We set the dag_leap again later when we are doing
+                    // parent/child lookups in order to set the next_leap
+                    Partition * earlier = (*part)->earlier_partition(*other);
+                    Partition * later = *other;
+                    if (earlier == *other)
+                    {
+                        later = *part;
+                    }
+
+                    for (QSet<Partition *>::Iterator parent = later->parents->begin();
+                         parent != later->parents->end(); ++parent)
+                    {
+                        if (earlier->parents->contains(*parent))
+
+                    }
+                }
+            }
+        }
+
+        // Set up the next leap
+        for (QList<Partition *>::Iterator part = current_leap->begin();
+             part != current_leap->end(); ++part)
+        {
+            if ((*part)->dag_leap != leap)
+                continue;
+
+            for (QSet<Partition *>::Iterator child = (*part)->children->begin();
+                 child != (*part)->children->end(); ++child)
+            {
+                (*child)->calculate_dag_leap();
+                if ((*child)->dag_leap == leap + 1)
+                    next_leap->insert(*child);
+            }
+        }
+
+        leap++;
+
+        delete current_leap;
+        current_leap = next_leap;
+    } // End Leap While
+    delete current_leap;
+
+    // Need to calculate new dag_entries
+    delete dag_entries;
+    dag_entries = new QList<Partition *>();
+    for (QList<Partition *>::Iterator partition = partitions->begin();
+         partition != partitions->end(); ++partition)
+    {
+        if ((*partition)->parents->size() <= 0)
+            dag_entries->append(*partition);
+    }
+}
+
 // Iterates through all partitions and sets the steps
 void Trace::assignSteps()
 {
@@ -838,7 +938,10 @@ void Trace::assignSteps()
     qint64 traceElapsed;
 
     if (options.origin == OTFImportOptions::OF_CHARM)
+    {
+        forcePartitionDag();
         finalizeTaskEventOrder();
+    }
 
     traceTimer.start();
     if (debug)
