@@ -831,6 +831,7 @@ void Trace::calculate_lateness()
 // What was left ambiguous is now set in stone
 void Trace::finalizeTaskEventOrder()
 {
+    std::cout << "Forcing event order per partition..." << std::endl;
     for (QList<Partition *>::Iterator part = partitions->begin();
          part != partitions->end(); ++part)
     {
@@ -838,10 +839,158 @@ void Trace::finalizeTaskEventOrder()
     }
 }
 
-
 // Sweep through by leap ordering partitions that have task overlaps
 void Trace::forcePartitionDag()
 {
+    std::cout << "Forcing partition dag..." << std::endl;
+
+    // First things first, change parent/child relationships based on true_next/true_prev
+    for (QList<Partition *>::Iterator part = partitions->begin();
+         part != partitions->end(); ++part)
+    {
+        (*part)->true_children();
+        if ((*part)->group->size() > 1)
+            std::cout << "I'm wrong about group state" << std::endl;
+    }
+
+    // Now that we have done that, reset the dag leaps
+    set_dag_steps();
+
+    output_graph("../debug-output/tracegraph-middle.dot");
+
+    // Now we want to merge everything in the same leap... but we treat the
+    // partitions with only runtime chares in them differently
+    int leap = 0;
+    QList<QList<Partition *> *> * components = new QList<QList<Partition *> *>();
+    QSet<Partition *> * current_leap = new QSet<Partition *>();
+    for (QList<Partition *>::Iterator part = dag_entries->begin();
+         part != dag_entries->end(); ++part)
+    {
+        current_leap->insert(*part);
+    }
+
+    Partition * earlier, *later;
+
+    while (!current_leap->isEmpty())
+    {
+        QSet<Partition *> * next_leap = new QSet<Partition *>();
+
+        // For each leap, we want to merge all groups that belong together
+        // due to overlapping tasks. However, we treat partitions that have
+        // application tasks (and possibly runtime ones) different from
+        // those that have only runtime tasks.
+        for (QSet<Partition *>::Iterator part = current_leap->begin();
+             part != current_leap->end(); ++part)
+        {
+            // We have already dealt with this one and/or moved it forward
+            if ((*part)->dag_leap != leap)
+                continue;
+
+            for (QSet<Partition *>::Iterator other = current_leap->begin();
+                 other != current_leap->end(); ++other)
+            {
+                // Cases in which we skip this one
+                if (*other == *part)
+                    continue;
+                if ((*other)->dag_leap != leap)
+                    continue;
+
+                QSet<int> overlap_tasks = (*part)->task_overlap(*other);
+                if (!overlap_tasks.isEmpty())
+                {
+                    // Now we have to figure out which one comes before the other
+                    // We then create a parent/child relationship
+                    // - We should be careful if they both have the same parents
+                    // so that the correct ordering of that is preserved but only
+                    // parents that have an overlap
+                    // - We set the dag_leap as a mark so we know to move on
+                    // - We set the dag_leap again later when we are doing
+                    // parent/child lookups in order to set the next_leap
+                    earlier = (*part)->earlier_partition(*other, overlap_tasks);
+                    later = *other;
+                    if (earlier == *other)
+                    {
+                        later = *part;
+                    }
+
+                    // Find overlapping parents that need to be removed
+                    for (QSet<Partition *>::Iterator parent = later->parents->begin();
+                         parent != later->parents->end(); ++parent)
+                    {
+                        // This parent is not shared
+                        if (!earlier->parents->contains(*parent))
+                            continue;
+
+                        // Now test if parent has a task overlap, if so stage it
+                        // for removal
+                        for (QMap<int, QList<CommEvent *> *>::Iterator tasklist
+                             = (*parent)->events->begin();
+                             tasklist != (*parent)->events->end(); ++tasklist)
+                        {
+                            if (overlap_tasks.contains(tasklist.key()))
+                            {
+                                to_remove.insert(*parent);
+                                continue;
+                            }
+                        }
+                    }
+
+                    // Now remove the overlaps that we found
+                    for (QSet<Partition *>::Iterator parent = to_remove.begin();
+                         parent != to_remove.end(); ++parent)
+                    {
+                        (*parent)->children->remove(later);
+                        later->parents->remove(*parent);
+                    }
+
+                    // Now set up earlier vs. later relationship
+                    later->parents->insert(earlier);
+                    earlier->children->insert(later);
+                    later->dag_leap = leap + 1;
+                }
+            }
+        }
+
+        // Set up the next leap
+        for (QSet<Partition *>::Iterator part = current_leap->begin();
+             part != current_leap->end(); ++part)
+        {
+            if ((*part)->dag_leap != leap)
+                continue;
+
+            for (QSet<Partition *>::Iterator child = (*part)->children->begin();
+                 child != (*part)->children->end(); ++child)
+            {
+                (*child)->calculate_dag_leap();
+                if ((*child)->dag_leap == leap + 1)
+                    next_leap->insert(*child);
+            }
+        }
+
+        leap++;
+
+        delete current_leap;
+        current_leap = next_leap;
+    } // End Leap While
+    delete current_leap;
+
+    // Need to calculate new dag_entries
+    delete dag_entries;
+    dag_entries = new QList<Partition *>();
+    for (QList<Partition *>::Iterator partition = partitions->begin();
+         partition != partitions->end(); ++partition)
+    {
+        if ((*partition)->parents->size() <= 0)
+            dag_entries->append(*partition);
+    }
+}
+
+
+
+// Sweep through by leap ordering partitions that have task overlaps
+/*void Trace::forcePartitionDag()
+{
+    std::cout << "Forcing partition dag..." << std::endl;
     int leap = 0;
     QSet<Partition *> to_remove = QSet<Partition *>();
     QSet<Partition *> * current_leap = new QSet<Partition *>();
@@ -961,7 +1110,7 @@ void Trace::forcePartitionDag()
         if ((*partition)->parents->size() <= 0)
             dag_entries->append(*partition);
     }
-}
+}*/
 
 // Iterates through all partitions and sets the steps
 void Trace::assignSteps()
@@ -2104,11 +2253,14 @@ void Trace::mergeCycles()
     // Determine partition parents/children through dag
     // and then determine strongly connected components (SCCs) with tarjan.
     emit(updatePreprocess(41, "Merging cycles..."));
+    std::cout << "Setting partition dag..." << std::endl;
     set_partition_dag();
 
+    std::cout << "Tarjan... " << std::endl;
     QList<QList<Partition *> *> * components = tarjan();
     emit(updatePreprocess(43, "Merging cycles..."));
 
+    std::cout << "Merging from the cycles..." << std::endl;
     mergePartitions(components);
     emit(updatePreprocess(45, "Merging cycles..."));
 }

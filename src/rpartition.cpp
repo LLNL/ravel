@@ -211,6 +211,31 @@ Event * Partition::least_common_caller(int taskid, QMap<Event *, int> * memo)
     }
 }
 
+
+// True the partition... anything we a true_next that is not us we will set as
+// our child partition.
+void Partition::true_children()
+{
+    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+         evtlist != events->end(); ++evtlist)
+    {
+        for (QList<CommEvent *>::Iterator evt = evtlist.value()->begin();
+             evt != evtlist.value()->end(); ++evt)
+        {
+            if ((*evt)->true_next && (*evt)->true_next->partition != this)
+            {
+                children->insert((*evt)->true_next->partition);
+                if ((*evt)->true_next->partition == NULL)
+                    std::cout << "Why no partition?" << std::endl;
+                if ((*evt)->true_next->partition->parents == NULL)
+                    std::cout << "Why no parents?" << std::endl;
+                Partition * p = (*evt)->true_next->partition;
+                (*evt)->true_next->partition->parents->insert(this);
+            }
+        }
+    }
+}
+
 QSet<int> Partition::task_overlap(Partition * other)
 {
     QSet<int> overlap = QSet<int>();

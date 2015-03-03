@@ -547,20 +547,24 @@ void CharmImporter::buildPartitions()
     QList<P2PEvent *> * events = new QList<P2PEvent *>();
 
     P2PEvent * prev = NULL;
+    P2PEvent * true_prev = NULL;
     Event * prev_caller = NULL;
 
     for (QVector<QVector<P2PEvent *> *>::Iterator p2plist = charm_p2ps->begin();
          p2plist != charm_p2ps->end(); ++p2plist)
     {
         prev = NULL;
+        true_prev = NULL;
         prev_caller = NULL;
         for (QVector<P2PEvent *>::Iterator p2p = (*p2plist)->begin();
              p2p != (*p2plist)->end(); ++p2p)
         {
             // We always set these
-            if (prev)
+            /*if (prev)
                 prev->true_next = *p2p;
             (*p2p)->true_prev = prev;
+            */
+
 
             // comm_next / comm_prev only set within the same caller
             // as that's what we know is a true ordering
@@ -573,6 +577,17 @@ void CharmImporter::buildPartitions()
                 (*p2p)->comm_prev = prev;
             }
             prev = *p2p;
+
+            // The ordering of
+            if (!(*p2p)->is_recv && (*p2p)->comm_prev == NULL)
+            {
+                (*p2p)->true_prev = true_prev;
+                if (true_prev)
+                {
+                    true_prev->true_next = *p2p;
+                }
+                true_prev = *p2p;
+            }
 
 
             // End previous by making it into a partition if we have

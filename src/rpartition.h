@@ -48,6 +48,7 @@ public:
     int num_events();
 
     // For partition ordering
+    void true_children();
     QSet<int> task_overlap(Partition * other);
     Partition * earlier_partition(Partition * other, QSet<int> overlap_tasks);
 
