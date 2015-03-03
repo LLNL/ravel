@@ -580,8 +580,12 @@ void CharmImporter::buildPartitions()
             // 1) We are in the main function
             // 2) We are changing from app->runtime or runtime->app
             if ((*p2p)->caller == NULL || (*p2p)->caller != prev_caller
-                || trace->functions->value((*p2p)->caller->function)->isMain)
-            {
+                || trace->functions->value((*p2p)->caller->function)->isMain // 1)
+                )/*|| (!(*p2p)->is_recv
+                    && (*p2p)->messages->first()->receiver->task
+                        > num_application_tasks)) */// 2)
+            {    
+
                 if (!events->isEmpty())
                 {
                     makePartition(events);

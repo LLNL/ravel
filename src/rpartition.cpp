@@ -211,6 +211,20 @@ Event * Partition::least_common_caller(int taskid, QMap<Event *, int> * memo)
     }
 }
 
+QSet<int> Partition::task_overlap(Partition * other)
+{
+    QSet<int> overlap = QSet<int>();
+    for (QMap<int, QList<CommEvent *> *>::Iterator tasklist = events->begin();
+         tasklist != events->end(); ++tasklist)
+    {
+        // We can't compare
+        if (other->events->contains(tasklist.key()))
+            overlap.insert(tasklist.key());
+    }
+
+    return overlap;
+}
+
 // Figure out which partition comes before the other. This
 // assumes that there is at least one task of overlap.
 // If we can find a caller (comm_next/comm_prev) ordering,
@@ -219,22 +233,18 @@ Event * Partition::least_common_caller(int taskid, QMap<Event *, int> * memo)
 // Presumable we won't have the latter happening since that
 // would be set up in order by earlier stuff and hopefully
 // any cycles would have been found their earlier as well.
-Partition * Partition::earlier_partition(Partition * other)
+Partition * Partition::earlier_partition(Partition * other, QSet<int> overlap_tasks)
 {
     // Counts for which one has the earlier earliest event
     int me = 0, them = 0;
 
-    for (QMap<int, QList<CommEvent *> *>::Iterator tasklist = events->begin();
-         tasklist != events->end(); ++tasklist)
+    for (QSet<int>::Iterator task = overlap_tasks.begin();
+         task != overlap_tasks.end(); ++task)
     {
-        // We can't compare
-        if (!other->contains(tasklist.key()))
-            continue;
-
         // Now let's just do the voting and avoid the comm/prev/next
         // thing for now because we believe it already taken care of
-        if (events->at(tasklist.key())->first()->enter
-            < other->events->at(tasklist.key())->first()->enter)
+        if (events->value(*task)->first()->enter
+            < other->events->value(*task)->first()->enter)
         {
             me++;
         }
@@ -262,7 +272,7 @@ void Partition::finalizeTaskEventOrder()
         for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
         {
-            (*evt)->comm_prev = NULL;
+            (*evt)->comm_prev = prev;
             if (prev)
                 prev->comm_next = *evt;
             prev = *evt;

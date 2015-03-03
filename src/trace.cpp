@@ -843,6 +843,8 @@ void Trace::forcePartitionDag()
         current_leap->insert(*part);
     }
 
+    Partition * earlier, *later;
+
     while (!current_leap->isEmpty())
     {
         QSet<Partition *> * next_leap = new QSet<Partition *>();
@@ -863,14 +865,9 @@ void Trace::forcePartitionDag()
                 if ((*other)->dag_leap != leap)
                     continue;
 
-                for (QMap<int, QList<CommEvent *> *>::Iterator tasklist
-                     = (*other)->events->begin();
-                     tasklist != (*other)->events->end(); ++tasklist)
+                QSet<int> overlap_tasks = (*part)->task_overlap(*other);
+                if (!overlap_tasks.isEmpty())
                 {
-                    // No overlap here
-                    if (!(*part)->events->contains(tasklist.key()))
-                        continue;
-
                     // Now we have to figure out which one comes before the other
                     // We then create a parent/child relationship
                     // - We should be careful if they both have the same parents
@@ -879,25 +876,53 @@ void Trace::forcePartitionDag()
                     // - We set the dag_leap as a mark so we know to move on
                     // - We set the dag_leap again later when we are doing
                     // parent/child lookups in order to set the next_leap
-                    Partition * earlier = (*part)->earlier_partition(*other);
-                    Partition * later = *other;
+                    earlier = (*part)->earlier_partition(*other, overlap_tasks);
+                    later = *other;
                     if (earlier == *other)
                     {
                         later = *part;
                     }
 
+                    // Find overlapping parents that need to be removed
                     for (QSet<Partition *>::Iterator parent = later->parents->begin();
                          parent != later->parents->end(); ++parent)
                     {
-                        if (earlier->parents->contains(*parent))
+                        // This parent is not shared
+                        if (!earlier->parents->contains(*parent))
+                            continue;
 
+                        // Now test if parent has a task overlap, if so stage it
+                        // for removal
+                        for (QMap<int, QList<CommEvent *> *>::Iterator tasklist
+                             = (*parent)->events->begin();
+                             tasklist != (*parent)->events->end(); ++tasklist)
+                        {
+                            if (overlap_tasks.contains(tasklist.key()))
+                            {
+                                to_remove.insert(*parent);
+                                continue;
+                            }
+                        }
                     }
+
+                    // Now remove the overlaps that we found
+                    for (QSet<Partition *>::Iterator parent = to_remove.begin();
+                         parent != to_remove.end(); ++parent)
+                    {
+                        (*parent)->children->remove(later);
+                        later->parents->remove(*parent);
+                    }
+
+                    // Now set up earlier vs. later relationship
+                    later->parents->insert(earlier);
+                    earlier->children->insert(later);
+                    later->dag_leap = leap + 1;
                 }
             }
         }
 
         // Set up the next leap
-        for (QList<Partition *>::Iterator part = current_leap->begin();
+        for (QSet<Partition *>::Iterator part = current_leap->begin();
              part != current_leap->end(); ++part)
         {
             if ((*part)->dag_leap != leap)
@@ -937,9 +962,12 @@ void Trace::assignSteps()
     QElapsedTimer traceTimer;
     qint64 traceElapsed;
 
+    set_dag_steps();
     if (options.origin == OTFImportOptions::OF_CHARM)
     {
+        output_graph("../debug-output/tracegraph-before.dot");
         forcePartitionDag();
+        output_graph("../debug-output/tracegraph-after.dot");
         finalizeTaskEventOrder();
     }
 
