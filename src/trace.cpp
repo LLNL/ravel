@@ -367,6 +367,7 @@ void Trace::partition()
         std::cout << "Partitions = " << partitions->size() << std::endl;
 
           // Tarjan
+        output_graph("../debug-output/mergecycle-before.dot");
         std::cout << "Merging cycles..." << std::endl;
         traceTimer.start();
         mergeCycles();
@@ -395,7 +396,14 @@ void Trace::partition()
             std::cout << "Merging to complete leaps..." << std::endl;
             traceTimer.start();
             set_dag_steps();
-            mergeByLeap();
+            if (options.origin = OTFImportOptions::OF_CHARM)
+            {
+                //mergePrimaryByLeap();
+            }
+            else
+            {
+                mergeByLeap();
+            }
             traceElapsed = traceTimer.nsecsElapsed();
             std::cout << "Leap Merge: ";
             gu_printTime(traceElapsed);
