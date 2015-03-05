@@ -17,6 +17,7 @@ Partition::Partition()
       max_global_step(-1),
       min_global_step(-1),
       dag_leap(-1),
+      runtime(false),
       mark(false),
       parents(new QSet<Partition *>()),
       children(new QSet<Partition *>()),
@@ -225,15 +226,26 @@ void Partition::true_children()
             if ((*evt)->true_next && (*evt)->true_next->partition != this)
             {
                 children->insert((*evt)->true_next->partition);
-                if ((*evt)->true_next->partition == NULL)
-                    std::cout << "Why no partition?" << std::endl;
-                if ((*evt)->true_next->partition->parents == NULL)
-                    std::cout << "Why no parents?" << std::endl;
                 Partition * p = (*evt)->true_next->partition;
                 (*evt)->true_next->partition->parents->insert(this);
             }
         }
     }
+}
+
+bool Partition::mergable(Partition * other)
+{
+    if (runtime != other->runtime)
+        return false;
+
+    bool overlap = false;
+    for (QMap<int, QList<CommEvent *> *>::Iterator tasklist = events->begin();
+         tasklist != events->end(); ++tasklist)
+    {
+        if (other->events->contains(tasklist.key()))
+            overlap = true;
+    }
+    return overlap;
 }
 
 QSet<int> Partition::task_overlap(Partition * other)
@@ -303,6 +315,84 @@ void Partition::finalizeTaskEventOrder()
             prev = *evt;
         }
     }
+}
+
+void Partition::receive_reorder()
+{
+    // Partitions always start with some sends that have no previous parent
+    // We will start these and set stride.
+    QList<P2PEvent *> * part_entries = new QList<P2PEvent *>();
+
+    for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
+         event_list != events->end(); ++event_list)
+    {
+        if (!event_list.value()->first()->is_recv)
+        {
+            event_list.value()->first()->stride = 0;
+            part_entries->append(event_list.value()->first());
+        }
+    }
+
+    // We insert receives into the stride_map at their given stride;
+    QMap<int, QList<P2PEvent *> *> stride_map = QMap<int, QList<P2PEvent *> *>();
+    stride_map.insert(0, part_entries);
+    int max_stride = 0;
+    int current_stride = 0;
+    P2PEvent * local_evt = NULL;
+    while (current_stride <= max_stride)
+    {
+        // Update this
+        current_stride++;
+
+        // No events at this stride.
+        if (!stride_map.contains(current_stride))
+            continue;
+
+        // Go through all the events at this stride.
+        QList<P2PEvent *> * stride_events = stride_map.value(current_stride);
+        for (QList<P2PEvent *>::Iterator evt = stride_events->begin();
+             evt != stride_events->end(); ++evt)
+        {
+            local_evt = *evt;
+
+            // Handle all the events under the common caller
+            // (which are those that follow through comm_next in this case
+            while (local_evt)  // here we assume the local_evt has a stride already
+            {
+                if (!local_evt->is_recv) // We have a send - update matching recvs
+                {
+                    if (max_stride < local_evt->stride + 1)
+                        max_stride = local_evt->stride + 1;
+
+                    for (QVector<Message *>::Iterator msg
+                         = local_evt->messages->begin();
+                         msg != local_evt->messages->end(); ++msg)
+                    {
+                        (*msg)->receiver->stride = local_evt->stride + 1;
+                        if (!stride_map.contains(local_evt->stride + 1))
+                        {
+                            stride_map.insert(local_evt->stride + 1,
+                                              new QList<P2PEvent *>());
+                        }
+                        stride_map.value(local_evt->stride + 1, (*msg)->receiver);
+                    }
+                } // Handled send
+
+                if (local_evt->comm_next)
+                {
+                    local_evt->comm_next->stride = local_evt->stride + 1;
+                    local_evt = local_evt->comm_next;
+
+                    if (max_stride < local_evt->stride + 1)
+                        max_stride = local_evt->stride + 1;
+                }
+                else
+                {
+                    local_evt = NULL;
+                }
+            } // End looping through common caller
+        } // End looping through events at this stride
+    } // End stride increasing
 }
 
 void Partition::basic_step()

@@ -49,6 +49,7 @@ public:
 
     // For partition ordering
     void true_children();
+    bool mergable(Partition * other);
     QSet<int> task_overlap(Partition * other);
     Partition * earlier_partition(Partition * other, QSet<int> overlap_tasks);
 
@@ -61,6 +62,7 @@ public:
     int max_global_step;
     int min_global_step;
     int dag_leap;
+    bool runtime;
 
     // For message merge
     bool mark;

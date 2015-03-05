@@ -635,6 +635,8 @@ void CharmImporter::makePartition(QList<P2PEvent *> * events)
         p->addEvent(*evt);
         (*evt)->partition = p;
     }
+    if (events->first()->task >= num_application_tasks)
+        p->runtime = true;
     p->new_partition = p;
     trace->partitions->append(p);
 }
@@ -1074,7 +1076,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
         {
             if (verbose)
             {
-                std::cout << "NO RECV MSG!!!" << " on pe " << my_pe << " was expecting message from ";
+                std::cout << "NO MSG FOR RECV!!!" << " on pe " << my_pe << " was expecting message from ";
                 std::cout << pe << " with event " << event;
                 std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
                 std::cout << "::" << entries->value(entry)->name.toStdString().c_str();

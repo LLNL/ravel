@@ -138,6 +138,7 @@ private:
     QList<QList<Partition *> *> * tarjan();
 
     // Steps and metrics
+    void mergeForCharmLeaps();
     void forcePartitionDag();
     void finalizeTaskEventOrder();
     void set_global_steps();
@@ -164,7 +165,7 @@ private:
     //QSet<RecurseInfo *> * riTracker;
     //QSet<QList<Partition *> *> * riChildrenTracker;
 
-    static const bool debug = true;
+    static const bool debug = false;
     static const int partition_portion = 25;
     static const int lateness_portion = 45;
     static const int steps_portion = 30;
