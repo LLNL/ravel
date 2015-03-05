@@ -83,7 +83,7 @@ P2PEvent::~P2PEvent()
         delete subevents;
 }
 
-bool P2PEvent::isReceive()
+bool P2PEvent::isReceive() const
 {
     return is_recv;
 }
@@ -285,6 +285,25 @@ void P2PEvent::update_strides()
         {
             last_stride = (*msg)->sender;
         }
+    }
+}
+
+void P2PEvent::set_reorder_strides(QMap<int, QList<CommEvent *> *> * stride_map,
+                                   int offset)
+{
+    for (QVector<Message *>::Iterator msg = messages->begin();
+         msg != messages->end(); ++msg)
+    {
+        (*msg)->receiver->stride = stride + offset;
+        if (!stride_map->contains(stride + offset))
+        {
+            stride_map->insert(stride + offset,
+                               new QList<CommEvent *>());
+        }
+        stride_map->value(stride + offset)->append((*msg)->receiver);
+
+        // Last stride set for tie-breaking
+        (*msg)->receiver->last_stride = this;
     }
 }
 

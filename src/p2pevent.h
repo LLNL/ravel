@@ -13,11 +13,13 @@ public:
     ~P2PEvent();
     int comm_count(QMap<Event *, int> *memo = NULL) { Q_UNUSED(memo); return 1; }
     bool isP2P() { return true; }
-    bool isReceive();
+    bool isReceive() const;
     void fixPhases();
     void initialize_strides(QList<CommEvent *> * stride_events,
                             QList<CommEvent *> * recv_events);
     void update_strides();
+    void set_reorder_strides(QMap<int, QList<CommEvent *> *> * stride_map,
+                             int offset);
     void initialize_basic_strides(QSet<CollectiveRecord *> * collectives);
     void update_basic_strides();
     bool calculate_local_step();

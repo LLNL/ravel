@@ -20,6 +20,7 @@ public:
     void addEvent(CommEvent * e);
     void deleteEvents();
     void sortEvents();
+    void receive_reorder();
     void finalizeTaskEventOrder();
     void step();
     void basic_step();

@@ -30,7 +30,7 @@ public:
     virtual int comm_count(QMap<Event *, int> *memo = NULL)=0;
     bool isCommEvent() { return true; }
     virtual bool isP2P() { return false; }
-    virtual bool isReceive() { return false; }
+    virtual bool isReceive() const { return false; }
     virtual bool isCollective() { return false; }
     virtual void writeOTF2Leave(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap);
 
@@ -41,6 +41,9 @@ public:
     virtual void initialize_strides(QList<CommEvent *> * stride_events,
                                     QList<CommEvent *> * recv_events)=0;
     virtual void update_strides() { return; }
+    virtual void set_reorder_strides(QMap<int, QList<CommEvent *> *> * stride_map,
+                                     int offset)
+                                    { Q_UNUSED(stride_map); Q_UNUSED(offset); return; }
     virtual void initialize_basic_strides(QSet<CollectiveRecord *> * collectives)=0;
     virtual void update_basic_strides()=0;
     virtual bool calculate_local_step()=0;
@@ -90,4 +93,29 @@ public:
 
 };
 
+// Compare based on strides... if there is a tie, take the one
+// that comes from a less task id. If the task ids are the same
+// we prioriize the send as that is probably connected to a preceding
+// recv. Otherwise, we just go by time
+static bool eventStrideLessThan(const CommEvent * evt1, const CommEvent * evt2)
+{
+    if (evt1->stride == evt2->stride)
+    {
+        if (evt1->last_stride->task == evt2->last_stride->task)
+        {
+            if (evt1->isReceive() && !evt2->isReceive())
+                return evt2;
+            else if (!evt1->isReceive() && evt2->isReceive())
+                return evt1;
+            else
+                return evt1->enter < evt2->enter;
+        }
+        else
+        {
+            return evt1->last_stride->task < evt2->last_stride->task;
+        }
+    }
+
+    return evt1->stride < evt2->stride;
+}
 #endif // COMMEVENT_H

@@ -32,7 +32,7 @@ public:
     Event * least_multiple_function_caller(QMap<int, Function *> * functions);
     virtual int comm_count(QMap<Event *, int> * memo = NULL);
     virtual bool isCommEvent() { return false; }
-    virtual bool isReceive() { return false; }
+    virtual bool isReceive() const { return false; }
     virtual bool isCollective() { return false; }
     virtual void writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap);
     virtual void writeOTF2Leave(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap);

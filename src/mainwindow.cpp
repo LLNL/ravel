@@ -393,6 +393,7 @@ void MainWindow::importTrace(QString dataFileName){
         otfoptions->leapMerge = false; // Not applicable across all chare arrays -- perhaps per chare array
         otfoptions->isendCoalescing = false; // Not applicable
         otfoptions->callerMerge = false; // Done differently in charm importer
+        otfoptions->advancedStepping = false; // Not for this
         visoptions->showAggregateSteps = false;
         connect(this, SIGNAL(operate(QString)), importWorker,
                 SLOT(doImportCharm(QString)));

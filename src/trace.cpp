@@ -835,6 +835,7 @@ void Trace::finalizeTaskEventOrder()
     for (QList<Partition *>::Iterator part = partitions->begin();
          part != partitions->end(); ++part)
     {
+        (*part)->receive_reorder();
         (*part)->finalizeTaskEventOrder();
     }
 }

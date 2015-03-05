@@ -309,6 +309,8 @@ void Partition::finalizeTaskEventOrder()
         for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
         {
+            (*evt)->stride = -1;
+            (*evt)->last_stride = NULL;
             (*evt)->comm_prev = prev;
             if (prev)
                 prev->comm_next = *evt;
@@ -321,78 +323,111 @@ void Partition::receive_reorder()
 {
     // Partitions always start with some sends that have no previous parent
     // We will start these and set stride.
-    QList<P2PEvent *> * part_entries = new QList<P2PEvent *>();
+    QMap<int, QList<CommEvent *> *> * stride_map = new QMap<int, QList<CommEvent *> *>();
+    stride_map->insert(0, new QList<CommEvent *>());
+    int max_stride = 0;
+    int current_stride = 0;
+    int my_stride = 0;
+    CommEvent * local_evt = NULL;
 
     for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
     {
-        if (!event_list.value()->first()->is_recv)
+        if (!event_list.value()->first()->isReceive())
         {
             event_list.value()->first()->stride = 0;
-            part_entries->append(event_list.value()->first());
+            event_list.value()->first()->last_stride = event_list.value()->first();
+            stride_map->value(0)->append(event_list.value()->first());
         }
     }
 
     // We insert receives into the stride_map at their given stride;
-    QMap<int, QList<P2PEvent *> *> stride_map = QMap<int, QList<P2PEvent *> *>();
-    stride_map.insert(0, part_entries);
-    int max_stride = 0;
-    int current_stride = 0;
-    P2PEvent * local_evt = NULL;
     while (current_stride <= max_stride)
     {
-        // Update this
-        current_stride++;
-
         // No events at this stride.
-        if (!stride_map.contains(current_stride))
+        if (!stride_map->contains(current_stride))
+        {
+            current_stride++;
             continue;
+        }
 
         // Go through all the events at this stride.
-        QList<P2PEvent *> * stride_events = stride_map.value(current_stride);
-        for (QList<P2PEvent *>::Iterator evt = stride_events->begin();
+        QList<CommEvent *> * stride_events = stride_map->value(current_stride);
+        for (QList<CommEvent *>::Iterator evt = stride_events->begin();
              evt != stride_events->end(); ++evt)
         {
             local_evt = *evt;
+            my_stride = 1;
 
             // Handle all the events under the common caller
-            // (which are those that follow through comm_next in this case
+            // (which are those that follow through comm_next in this case without
+            // changing the partition)
+            // This tells us the maximum stride for this entry method
             while (local_evt)  // here we assume the local_evt has a stride already
             {
-                if (!local_evt->is_recv) // We have a send - update matching recvs
-                {
-                    if (max_stride < local_evt->stride + 1)
-                        max_stride = local_evt->stride + 1;
-
-                    for (QVector<Message *>::Iterator msg
-                         = local_evt->messages->begin();
-                         msg != local_evt->messages->end(); ++msg)
-                    {
-                        (*msg)->receiver->stride = local_evt->stride + 1;
-                        if (!stride_map.contains(local_evt->stride + 1))
-                        {
-                            stride_map.insert(local_evt->stride + 1,
-                                              new QList<P2PEvent *>());
-                        }
-                        stride_map.value(local_evt->stride + 1, (*msg)->receiver);
-                    }
-                } // Handled send
-
-                if (local_evt->comm_next)
+                if (local_evt->comm_next && local_evt->comm_next->partition == this)
                 {
                     local_evt->comm_next->stride = local_evt->stride + 1;
+                    local_evt->comm_next->last_stride = local_evt;
                     local_evt = local_evt->comm_next;
 
                     if (max_stride < local_evt->stride + 1)
                         max_stride = local_evt->stride + 1;
+
+                    my_stride++;
                 }
                 else
                 {
                     local_evt = NULL;
                 }
             } // End looping through common caller
+
+
+            // Now that we know the max stride, we loop through again to handle recvs
+            local_evt = *evt;
+            while (local_evt)
+            {
+                if (!local_evt->isReceive()) // We have a send - update matching recvs
+                {
+                    if (max_stride < local_evt->stride + my_stride)
+                        max_stride = local_evt->stride + my_stride;
+
+                    local_evt->set_reorder_strides(stride_map, my_stride);
+                } // Handled send
+
+                if (local_evt->comm_next)
+                {
+                    local_evt = local_evt->comm_next;
+                }
+                else
+                {
+                    local_evt = NULL;
+                }
+            } // End looping through common caller
+
+
         } // End looping through events at this stride
+
+        // Update this
+        current_stride++;
+
     } // End stride increasing
+
+    // Now that we have strides, sort them by stride
+    for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
+         event_list != events->end(); ++event_list)
+    {
+        qSort(event_list.value()->begin(), event_list.value()->end(),
+              eventStrideLessThan);
+    }
+
+    // Finally clean up stride_map
+    for (QMap<int, QList<CommEvent *> *>::Iterator lst = stride_map->begin();
+         lst != stride_map->end(); ++lst)
+    {
+        delete lst.value();
+    }
+    delete stride_map;
 }
 
 void Partition::basic_step()
