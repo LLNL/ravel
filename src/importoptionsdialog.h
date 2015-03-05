@@ -31,6 +31,7 @@ public slots:
     void onIsend(bool coalesce);
     void onMessageSize(bool enforce);
     void onAdvancedStep(bool advanced);
+    void onRecvReorder(bool reorder);
     void onFunctionEdit(const QString& text);
     void onCluster(bool cluster);
     void onSeedEdit(const QString& text);

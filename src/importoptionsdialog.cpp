@@ -36,9 +36,10 @@ ImportOptionsDialog::ImportOptionsDialog(QWidget *parent,
             SLOT(onMessageSize(bool)));
     connect(ui->stepCheckbox, SIGNAL(clicked(bool)), this,
             SLOT(onAdvancedStep(bool)));
+    connect(ui->recvReorderCheckbox, SIGNAL(clicked(bool)), this,
+            SLOT(onRecvReorder(bool)));
     connect(ui->seedEdit, SIGNAL(textChanged(QString)), this,
             SLOT(onSeedEdit(QString)));
-
     setUIState();
 }
 
@@ -117,6 +118,13 @@ void ImportOptionsDialog::onAdvancedStep(bool advanced)
     options->advancedStepping = advanced;
 }
 
+
+void ImportOptionsDialog::onRecvReorder(bool reorder)
+{
+    options->reorderReceives = reorder;
+}
+
+
 void ImportOptionsDialog::onFunctionEdit(const QString& text)
 {
     options->partitionFunction = text;
@@ -150,6 +158,7 @@ void ImportOptionsDialog::setUIState()
     ui->isendCheckbox->setChecked(options->isendCoalescing);
     ui->messageSizeCheckbox->setChecked(options->enforceMessageSizes);
     ui->stepCheckbox->setChecked(options->advancedStepping);
+    ui->recvReorderCheckbox->setChecked(options->reorderReceives);
 
     ui->functionEdit->setText(options->partitionFunction);
 

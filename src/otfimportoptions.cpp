@@ -14,6 +14,7 @@ OTFImportOptions::OTFImportOptions(bool _waitall, bool _leap, bool _skip,
       seedClusters(false),
       clusterSeed(0),
       advancedStepping(true),
+      reorderReceives(false),
       partitionFunction(_fxn),
       origin(OF_NONE)
 {
@@ -35,6 +36,7 @@ QList<QString> OTFImportOptions::getOptionNames()
     names.append("option_seedClusters");
     names.append("option.clusterSeed");
     names.append("option.advancedStepping");
+    names.append("option.reorderReceives");
     return names;
 }
 
@@ -65,6 +67,8 @@ QString OTFImportOptions::getOptionValue(QString option)
     else if (option == "option_clusterSeed")
         return QString::number(clusterSeed);
     else if (option == "option.advancedStepping")
+        return advancedStepping ? "true" : "";
+    else if (option == "option.reorderReceives")
         return advancedStepping ? "true" : "";
     else
         return "";
@@ -98,4 +102,6 @@ void OTFImportOptions::setOption(QString option, QString value)
         clusterSeed = value.toLong();
     else if (option == "option_advancedStepping")
         advancedStepping = value.size();
+    else if (option == "option_reorderReceives")
+        reorderReceives = value.size();
 }

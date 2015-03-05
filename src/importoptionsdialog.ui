@@ -204,6 +204,13 @@
     </widget>
    </item>
    <item>
+    <widget class="QCheckBox" name="recvReorderCheckbox">
+     <property name="text">
+      <string>Idealized order of receives</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QCheckBox" name="stepCheckbox">
      <property name="toolTip">
       <string>Structure favors aligning of Send events.</string>

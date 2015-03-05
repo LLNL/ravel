@@ -1221,7 +1221,7 @@ void Trace::assignSteps()
         output_graph("../debug-output/tracegraph-after.dot");
         finalizeTaskEventOrder();
     }
-    else
+    else if (options.reorderReceives)
     {
         std::cout << "Forcing event order per partition..." << std::endl;
         for (QList<Partition *>::Iterator part = partitions->begin();

@@ -35,6 +35,7 @@ public:
     long clusterSeed; // random seed for clustering
 
     bool advancedStepping; // send structure over receives
+    bool reorderReceives; // idealized receive order;
 
     OriginFormat origin;
     QString partitionFunction;
