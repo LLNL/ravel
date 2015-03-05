@@ -21,6 +21,7 @@ public:
     void deleteEvents();
     void sortEvents();
     void receive_reorder();
+    void receive_reorder_mpi();
     void finalizeTaskEventOrder();
     void step();
     void basic_step();
