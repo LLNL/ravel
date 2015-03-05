@@ -386,7 +386,7 @@ void MainWindow::importTrace(QString dataFileName){
         connect(this, SIGNAL(operate(QString)), importWorker,
                 SLOT(doImportOTF2(QString)));
     }
-    else
+    else if (dataFileName.endsWith("sts", Qt::CaseInsensitive))
     {
         otfoptions->origin = OTFImportOptions::OF_CHARM;
         otfoptions->waitallMerge = false; // Not applicable
@@ -397,6 +397,14 @@ void MainWindow::importTrace(QString dataFileName){
         visoptions->showAggregateSteps = false;
         connect(this, SIGNAL(operate(QString)), importWorker,
                 SLOT(doImportCharm(QString)));
+    }
+    else
+    {
+        std::cout << "Unrecognized trace format!" << std::endl;
+        progress->close();
+        delete progress;
+        delete importThread;
+        delete importWorker;
     }
 
     connect(importWorker, SIGNAL(switching()), this, SLOT(traceSwitch()));

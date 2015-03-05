@@ -396,7 +396,7 @@ void Trace::partition()
             std::cout << "Merging to complete leaps..." << std::endl;
             traceTimer.start();
             set_dag_steps();
-            if (options.origin = OTFImportOptions::OF_CHARM)
+            if (options.origin == OTFImportOptions::OF_CHARM)
             {
                 //mergePrimaryByLeap();
             }
