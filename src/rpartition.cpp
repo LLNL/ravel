@@ -318,6 +318,7 @@ void Partition::finalizeTaskEventOrder()
                 prev->comm_next = *evt;
             prev = *evt;
         }
+        prev->comm_next = NULL;
     }
 }
 
@@ -356,10 +357,11 @@ void Partition::receive_reorder_mpi()
 
         // Go through all the events at this stride.
         QList<CommEvent *> * stride_events = stride_map->value(current_stride);
+        std::cout << "Starting event list of " << stride_events->size() << std::endl;
         for (QList<CommEvent *>::Iterator evt = stride_events->begin();
              evt != stride_events->end(); ++evt)
         {
-            local_evt = *evt;
+            local_evt = (*evt)->comm_next;
             my_stride = 1;
             sendflag = false;
             if ((*evt)->isReceive())
@@ -371,24 +373,27 @@ void Partition::receive_reorder_mpi()
 
             while (local_evt)  // here we assume the local_evt has a stride already
             {
-                if (local_evt->comm_next && local_evt->comm_next->partition == this
-                        && (!sendflag || !local_evt->comm_next->isReceive()))
+                if (local_evt->partition == this
+                    && (!sendflag || !local_evt->isReceive()))
                 {
-                    if (!local_evt->comm_next->isReceive())
+                    if (!local_evt->isReceive())
                     {
-                        if (local_evt->comm_next->stride < (*evt)->stride + my_stride)
+                        if (local_evt->stride < (*evt)->stride + my_stride)
                         {
-                            if (local_evt->comm_next->stride >= 0)
-                                stride_map->value(local_evt->comm_next->stride)->removeOne(local_evt->comm_next);
-                            local_evt->comm_next->stride = (*evt)->stride + my_stride;
-                            local_evt->comm_next->last_stride = *evt;
-                            if (!stride_map->contains(local_evt->comm_next->stride))
-                                stride_map->insert(local_evt->comm_next->stride,
-                                                   new QList<CommEvent *>());
-                            stride_map->value(local_evt->comm_next->stride)->append(local_evt->comm_next);
+                            if (local_evt->stride >= 0)
+                                stride_map->value(local_evt->stride)->removeOne(local_evt);
+                            else if (local_evt->stride == current_stride)
+                                std::cout << "This is a problem..." << std::endl;
 
-                            if (max_stride < local_evt->comm_next->stride)
-                                max_stride = local_evt->comm_next->stride;
+                            local_evt->stride = (*evt)->stride + my_stride;
+                            local_evt->last_stride = *evt;
+                            if (!stride_map->contains(local_evt->stride))
+                                stride_map->insert(local_evt->stride,
+                                                   new QList<CommEvent *>());
+                            stride_map->value(local_evt->stride)->append(local_evt);
+
+                            if (max_stride < local_evt->stride)
+                                max_stride = local_evt->stride;
                         }
 
                         my_stride++;
@@ -418,9 +423,11 @@ void Partition::receive_reorder_mpi()
 
         // Update this
         current_stride++;
+        std::cout << "Current stride is thus..." << current_stride << " of " << max_stride << std::endl;
 
     } // End stride increasing
 
+    std::cout << "Sorting..." << std::endl;
     // Now that we have strides, sort them by stride
     for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
@@ -429,6 +436,7 @@ void Partition::receive_reorder_mpi()
               eventStrideLessThan);
     }
 
+    std::cout << "Deleting..." << std::endl;
     // Finally clean up stride_map
     for (QMap<int, QList<CommEvent *> *>::Iterator lst = stride_map->begin();
          lst != stride_map->end(); ++lst)

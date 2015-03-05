@@ -1227,8 +1227,11 @@ void Trace::assignSteps()
         for (QList<Partition *>::Iterator part = partitions->begin();
              part != partitions->end(); ++part)
         {
+            std::cout << "                STARTING PARTITION " << (*part)->debug_name << " of " << partitions->size() << std::endl;
             (*part)->receive_reorder_mpi();
             (*part)->finalizeTaskEventOrder();
+            std::cout << "                FINISHED PARTITION " << (*part)->debug_name << " of " << partitions->size() << std::endl;
+
         }
     }
 
