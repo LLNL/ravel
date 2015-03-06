@@ -460,11 +460,16 @@ void Partition::receive_reorder()
     for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
     {
-        if (!event_list.value()->first()->isReceive())
+        for (QList<CommEvent *>::Iterator evt = event_list.value()->begin();
+             evt != event_list.value()->end(); ++evt)
         {
-            event_list.value()->first()->stride = 0;
-            event_list.value()->first()->last_stride = event_list.value()->first();
-            stride_map->value(0)->append(event_list.value()->first());
+            if (!(*evt)->isReceive() && ((*evt)->comm_prev == NULL
+                                         || (*evt)->comm_prev->partition != this))
+            {
+                (*evt)->stride = 0;
+                (*evt)->last_stride = (*evt);
+                stride_map->value(0)->append(*evt);
+            }
         }
     }
 
