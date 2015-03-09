@@ -501,7 +501,7 @@ void Partition::receive_reorder()
                 if (local_evt->comm_next && local_evt->comm_next->partition == this)
                 {
                     local_evt->comm_next->stride = local_evt->stride + 1;
-                    local_evt->comm_next->last_stride = local_evt;
+                    local_evt->comm_next->last_stride = *evt;
 
                     if (max_stride < local_evt->stride + 1)
                         max_stride = local_evt->stride + 1;
