@@ -302,8 +302,11 @@ void P2PEvent::set_reorder_strides(QMap<int, QList<CommEvent *> *> * stride_map,
         }
         stride_map->value(stride + offset)->append((*msg)->receiver);
 
-        // Last stride set for tie-breaking
-        (*msg)->receiver->last_stride = this;
+        // Last stride to self for ordering
+        (*msg)->receiver->last_stride = (*msg)->receiver; //this;
+
+        // next stride for tie-breaking
+        (*msg)->receiver->next_stride = this;
     }
 }
 

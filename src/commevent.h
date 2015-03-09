@@ -103,7 +103,24 @@ static bool eventStrideLessThan(const CommEvent * evt1, const CommEvent * evt2)
     {
         if (evt1->stride == evt2->stride)
         {
-            if (evt1->last_stride->task == evt2->last_stride->task)
+            // This should only happen on receives, but just in case
+            if (evt1->next_stride && evt2->next_stride)
+            {
+                if (evt1->next_stride->task == evt2->next_stride->task)
+                {
+                    if (evt1->isReceive() && !evt2->isReceive())
+                        return evt2;
+                    else if (!evt1->isReceive() && evt2->isReceive())
+                        return evt1;
+                    else
+                        return evt1->enter < evt2->enter;
+                }
+                else
+                {
+                    return evt1->next_stride->task < evt2->next_stride->task;
+                }
+            }
+            else
             {
                 if (evt1->isReceive() && !evt2->isReceive())
                     return evt2;
@@ -111,10 +128,6 @@ static bool eventStrideLessThan(const CommEvent * evt1, const CommEvent * evt2)
                     return evt1;
                 else
                     return evt1->enter < evt2->enter;
-            }
-            else
-            {
-                return evt1->last_stride->task < evt2->last_stride->task;
             }
         }
         else
