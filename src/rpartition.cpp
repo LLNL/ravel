@@ -457,12 +457,14 @@ void Partition::receive_reorder()
     int my_stride = 0;
     CommEvent * local_evt = NULL;
 
+    int count = 0;
     for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
     {
         for (QList<CommEvent *>::Iterator evt = event_list.value()->begin();
              evt != event_list.value()->end(); ++evt)
         {
+            count++;
             if (!(*evt)->isReceive() && ((*evt)->comm_prev == NULL
                                          || (*evt)->comm_prev->partition != this))
             {
@@ -529,7 +531,7 @@ void Partition::receive_reorder()
                     local_evt->set_reorder_strides(stride_map, my_stride);
                 } // Handled send
 
-                if (local_evt->comm_next)
+                if (local_evt->comm_next && local_evt->comm_next->partition == this)
                 {
                     local_evt = local_evt->comm_next;
                 }

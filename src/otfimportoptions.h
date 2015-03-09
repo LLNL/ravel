@@ -39,6 +39,7 @@ public:
 
     OriginFormat origin;
     QString partitionFunction;
+    QString breakFunctions;
 
 };
 

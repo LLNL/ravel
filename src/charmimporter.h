@@ -342,6 +342,8 @@ private:
     QMap<int, Chare *> * chares;
     QMap<int, Entry *> * entries;
 
+    OTFImportOptions * options;
+
     float version;
     int processes;
     bool hasPAPI;

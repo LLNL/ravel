@@ -15,8 +15,9 @@ OTFImportOptions::OTFImportOptions(bool _waitall, bool _leap, bool _skip,
       clusterSeed(0),
       advancedStepping(true),
       reorderReceives(false),
+      origin(OF_NONE),
       partitionFunction(_fxn),
-      origin(OF_NONE)
+      breakFunctions("")
 {
 }
 
@@ -28,6 +29,7 @@ QList<QString> OTFImportOptions::getOptionNames()
     names.append("option_leapMerge");
     names.append("option_leapSkip");
     names.append("option_partitionByFunction");
+    names.append("option_breakFunctions");
     names.append("option_globalMerge");
     names.append("option_cluster");
     names.append("option_isendCoalescing");
@@ -62,6 +64,8 @@ QString OTFImportOptions::getOptionValue(QString option)
         return enforceMessageSizes ? "true" : "";
     else if (option == "option_partitionFunction")
         return partitionFunction;
+    else if (option == "option_breakFunctions")
+        return breakFunctions;
     else if (option == "option_seedClusters")
         return seedClusters ? "true" : "";
     else if (option == "option_clusterSeed")
@@ -69,7 +73,7 @@ QString OTFImportOptions::getOptionValue(QString option)
     else if (option == "option.advancedStepping")
         return advancedStepping ? "true" : "";
     else if (option == "option.reorderReceives")
-        return advancedStepping ? "true" : "";
+        return reorderReceives ? "true" : "";
     else
         return "";
 }
@@ -96,6 +100,8 @@ void OTFImportOptions::setOption(QString option, QString value)
         enforceMessageSizes = value.size();
     else if (option == "option_partitionFunction")
         partitionFunction = value;
+    else if (option == "option_breakFunctions")
+        breakFunctions = value;
     else if (option == "option_seedClusters")
         seedClusters = value.size();
     else if (option == "option_clusterSeed")

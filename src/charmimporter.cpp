@@ -31,6 +31,7 @@
 CharmImporter::CharmImporter()
     : chares(new QMap<int, Chare*>()),
       entries(new QMap<int, Entry*>()),
+      options(NULL),
       version(0),
       processes(0),
       hasPAPI(false),
@@ -89,6 +90,7 @@ CharmImporter::~CharmImporter()
 void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _options)
 {
     std::cout << "Reading " << dataFileName.toStdString().c_str() << std::endl;
+    options = _options;
     readSts(dataFileName);
 
     unmatched_recvs = new QVector<QMap<int, QList<CharmMsg *> *> *>(processes);
@@ -550,6 +552,10 @@ void CharmImporter::buildPartitions()
     P2PEvent * true_prev = NULL;
     Event * prev_caller = NULL;
 
+    QList<QString> breakables = QList<QString>();
+    if (!options->partitionByFunction && options->breakFunctions.length() > 0)
+        breakables = options->breakFunctions.split(",");
+
     for (QVector<QVector<P2PEvent *> *>::Iterator p2plist = charm_p2ps->begin();
          p2plist != charm_p2ps->end(); ++p2plist)
     {
@@ -594,19 +600,36 @@ void CharmImporter::buildPartitions()
             // changed functions... we may also split the function if:
             // 1) We are in the main function
             // 2) We are changing from app->runtime or runtime->app
-            if ((*p2p)->caller == NULL || (*p2p)->caller != prev_caller
-                || trace->functions->value((*p2p)->caller->function)->isMain // 1)
-                )/*|| (!(*p2p)->is_recv
-                    && (*p2p)->messages->first()->receiver->task
-                        > num_application_tasks)) */// 2)
-            {    
+            // 3) This is one of the breakable functions
 
-                if (!events->isEmpty())
+            if (!events->isEmpty())
+            {
+                // 1) and 2)
+                if ((*p2p)->caller == NULL || (*p2p)->caller != prev_caller
+                    || trace->functions->value((*p2p)->caller->function)->isMain // 1)
+                    )/*|| (!(*p2p)->is_recv
+                        && (*p2p)->messages->first()->receiver->task
+                            > num_application_tasks)) */// 2)
                 {
                     makePartition(events);
                     events->clear();
                 }
+                else if (!options->partitionByFunction)// 3)
+                {
+                    QString caller = trace->functions->value((*p2p)->caller->function)->shortname;
+                    for (QList<QString>::Iterator fxn = breakables.begin();
+                         fxn != breakables.end(); ++fxn)
+                    {
+                        if (caller.startsWith(*fxn, Qt::CaseInsensitive))
+                        {
+                            makePartition(events);
+                            events->clear();
+                            break;
+                        }
+                    }
+                }
             }
+
 
             events->append(*p2p);
             trace->events->at((*p2p)->task)->append(*p2p);
@@ -1197,7 +1220,8 @@ void CharmImporter::processDefinitions()
         Entry * e = entry.value();
 
         functions->insert(id, new Function(chares->value(entries->value(id)->chare)->name
-                                           + "::" + e->name, 1));
+                                           + "::" + e->name, 1,
+                                           e->name));
         if (entries->value(id)->chare == main)
             functions->value(id)->isMain = true;
     }

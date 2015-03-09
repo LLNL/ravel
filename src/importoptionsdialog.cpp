@@ -28,6 +28,8 @@ ImportOptionsDialog::ImportOptionsDialog(QWidget *parent,
             SLOT(onGlobalMerge(bool)));
     connect(ui->functionEdit, SIGNAL(textChanged(QString)), this,
             SLOT(onFunctionEdit(QString)));
+    connect(ui->breakEdit, SIGNAL(textChanged(QString)), this,
+            SLOT(onBreakEdit(QString)));
     connect(ui->clusterCheckbox, SIGNAL(clicked(bool)), this,
             SLOT(onCluster(bool)));
     connect(ui->isendCheckbox, SIGNAL(clicked(bool)), this,
@@ -124,10 +126,14 @@ void ImportOptionsDialog::onRecvReorder(bool reorder)
     options->reorderReceives = reorder;
 }
 
-
 void ImportOptionsDialog::onFunctionEdit(const QString& text)
 {
     options->partitionFunction = text;
+}
+
+void ImportOptionsDialog::onBreakEdit(const QString& text)
+{
+    options->breakFunctions = text;
 }
 
 void ImportOptionsDialog::onSeedEdit(const QString& text)
@@ -161,6 +167,7 @@ void ImportOptionsDialog::setUIState()
     ui->recvReorderCheckbox->setChecked(options->reorderReceives);
 
     ui->functionEdit->setText(options->partitionFunction);
+    ui->breakEdit->setText(options->breakFunctions);
 
     // Make available leap merge options
     if (options->leapMerge)
@@ -192,6 +199,7 @@ void ImportOptionsDialog::setUIState()
         ui->leapCheckbox->setEnabled(false);
         ui->skipCheckbox->setEnabled(false);
         ui->functionEdit->setEnabled(true);
+        ui->breakEdit->setEnabled(false);
         ui->globalMergeBox->setEnabled(false);
     }
     else
@@ -202,6 +210,7 @@ void ImportOptionsDialog::setUIState()
         ui->callerCheckbox->setEnabled(true);
         ui->leapCheckbox->setEnabled(true);
         ui->functionEdit->setEnabled(false);
+        ui->breakEdit->setEnabled(true);
         ui->globalMergeBox->setEnabled(true);
     }
 }
