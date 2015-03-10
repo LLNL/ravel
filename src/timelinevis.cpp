@@ -237,6 +237,7 @@ void TimelineVis::drawHover(QPainter * painter)
             text += " : ";
         }
         text += trace->functions->value(hover_event->function)->name;
+        text += ", task: " + QString::number(hover_event->task);
         // + ", " + QString::number(hover_event->step).toStdString().c_str();
     }
 

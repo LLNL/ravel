@@ -61,8 +61,14 @@ public:
         {
             if (chare < other.chare)
                 return true;
+            else if (chare > other.chare)
+                return false;
+
             if (array < other.array)
                 return true;
+            else if (array > other.array)
+                return false;
+
             for (int i = 3; i >= 0; i--)
             {
                 if (index[i] < other.index[i])
@@ -74,7 +80,6 @@ public:
                     return false;
                 }
             }
-
             return false;
         }
 
@@ -82,8 +87,14 @@ public:
         {
             if (chare > other.chare)
                 return true;
+            else if (chare < other.chare)
+                return false;
+
             if (array > other.array)
                 return true;
+            else if (array < other.array)
+                return false;
+
             for (int i = 3; i >= 0; i--)
             {
                 if (index[i] > other.index[i])

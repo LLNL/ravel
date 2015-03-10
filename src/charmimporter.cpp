@@ -295,7 +295,7 @@ void CharmImporter::makeTaskEvents()
             {
                 if (verbose)
                 {
-                    std::cout << "    Enter stack " << " on pe " << (*evt)->pe << " my array " << (*evt)->arrayid;
+                    std::cout << "    Push stack " << " on pe " << (*evt)->pe << " my array " << (*evt)->arrayid;
                     std::cout << " for " << chares->value(entries->value((*evt)->entry)->chare)->name.toStdString().c_str();
                     std::cout << "::" << entries->value((*evt)->entry)->name.toStdString().c_str();
                     std::cout << " with index " << (*evt)->index.toVerboseString().toStdString().c_str();
@@ -323,6 +323,7 @@ void CharmImporter::makeTaskEvents()
                     else // Should get main if nothing else works
                     {
                         (*evt)->task = chare_to_task->value((*evt)->index);
+                        std::cout << "            Looking up index getting " << (*evt)->task << std::endl;
                     }
                 }
                 else
@@ -338,6 +339,8 @@ void CharmImporter::makeTaskEvents()
                 {
                     (*evt)->task = num_application_tasks + (*evt)->pe;
                 }
+                if (verbose)
+                    std::cout << "            Setting Task to " << (*evt)->task << std::endl;
 
                 stack->push(*evt);
                 depth++;
@@ -395,7 +398,8 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
         std::cout << "    Pop stack " << " on pe " << bgn->pe << " my array " << bgn->arrayid;
         std::cout << " for " << chares->value(entries->value(bgn->entry)->chare)->name.toStdString().c_str();
         std::cout << "::" << entries->value(bgn->entry)->name.toStdString().c_str();
-        std::cout << " with index " << bgn->index.toString().toStdString().c_str();
+        std::cout << " with index " << bgn->index.toVerboseString().toStdString().c_str();
+        std::cout << " indicating task " << bgn->task;
         std::cout << " at " << endtime << std::endl;
     }
 
