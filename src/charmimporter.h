@@ -59,11 +59,11 @@ public:
 
         bool operator<(const ChareIndex & other) const
         {
-            if (chare < other.chare)
+            /*if (chare < other.chare)
                 return true;
             else if (chare > other.chare)
                 return false;
-
+            */
             if (array < other.array)
                 return true;
             else if (array > other.array)
@@ -85,10 +85,12 @@ public:
 
         bool operator>(const ChareIndex & other) const
         {
+            /*
             if (chare > other.chare)
                 return true;
             else if (chare < other.chare)
                 return false;
+            */
 
             if (array > other.array)
                 return true;
@@ -111,10 +113,10 @@ public:
 
         bool operator<=(const ChareIndex & other) const
         {
-            if (chare < other.chare)
-                return true;
-            else if (chare != other.chare)
-                return false;
+            //if (chare < other.chare)
+            //    return true;
+            //else if (chare != other.chare)
+            //    return false;
 
             if (array < other.array)
                 return true;
@@ -131,10 +133,10 @@ public:
 
         bool operator>=(const ChareIndex & other) const
         {
-            if (chare > other.chare)
-                return true;
-            else if (chare != other.chare)
-                return false;
+            //if (chare > other.chare)
+            //    return true;
+            //else if (chare != other.chare)
+            //    return false;
 
             if (array > other.array)
                 return true;
@@ -151,8 +153,8 @@ public:
 
         bool operator==(const ChareIndex & other) const
         {
-            if (chare != other.chare)
-                return false;
+            //if (chare != other.chare)
+             //   return false;
             if (array != other.array)
                 return false;
 
@@ -426,13 +428,13 @@ private:
     static const int QD_BOC_MSG = 14;
     static const int QD_BROACAST_BOC_MSG = 15;
 
-    static const bool verbose = false;
+    static const bool verbose = true;
 
 };
 
 inline uint qHash(const CharmImporter::ChareIndex& key)
 {
-    uint myhash = qHash(key.chare) ^ qHash(key.array)
+    uint myhash = qHash(key.array)
                   ^ qHash(key.index[3]) ^ qHash(key.index[2])
                   ^ qHash(key.index[1]) ^ qHash(key.index[0]);
     return myhash;

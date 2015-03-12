@@ -323,7 +323,6 @@ void CharmImporter::makeTaskEvents()
                     else // Should get main if nothing else works
                     {
                         (*evt)->task = chare_to_task->value((*evt)->index);
-                        std::cout << "            Looking up index getting " << (*evt)->task << std::endl;
                     }
                 }
                 else
