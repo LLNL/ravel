@@ -36,6 +36,8 @@ CharmImporter::CharmImporter()
       processes(0),
       hasPAPI(false),
       numPAPI(0),
+      main(-1),
+      contribute(-1),
       traceEnd(0),
       num_application_tasks(0),
       trace(NULL),
@@ -306,12 +308,15 @@ void CharmImporter::makeTaskEvents()
                 // get the task id here.
                 if (have_arrays)
                 {
-                    if ((*evt)->arrayid == 0 && !application_chares.contains((*evt)->chare))
+                    if (verbose)
+                        std::cout << "            ArrayID " << (*evt)->arrayid << " and chare " << (*evt)->index.chare << std::endl;
+                    if ((*evt)->arrayid == 0 && (!application_chares.contains((*evt)->index.chare)
+                                                 || ((*evt)->index.chare == main && (*evt)->pe != 0)))
                     {
                         (*evt)->task = -1;
                     }
                     else if (!stack->isEmpty()
-                             && (*evt)->chare == main
+                             && (*evt)->index.chare == main
                              && (*evt)->entry == SEND_FXN
                              && stack->top()->chare != main)
                     {
@@ -327,8 +332,8 @@ void CharmImporter::makeTaskEvents()
                 }
                 else
                 {
-                    if (chares->value((*evt)->chare)->indices->size() <= 1
-                        && !application_chares.contains((*evt)->chare))
+                    if (chares->value((*evt)->index.chare)->indices->size() <= 1
+                        && !application_chares.contains((*evt)->index.chare))
                         (*evt)->task = -1;
                     else
                         (*evt)->task = chare_to_task->value((*evt)->index);
@@ -559,12 +564,46 @@ void CharmImporter::buildPartitions()
     if (!options->partitionByFunction && options->breakFunctions.length() > 0)
         breakables = options->breakFunctions.split(",");
 
+    int count = 0;
     for (QVector<QVector<P2PEvent *> *>::Iterator p2plist = charm_p2ps->begin();
          p2plist != charm_p2ps->end(); ++p2plist)
     {
+
+        // first make sure everything is in the absolutely right order.
+        QList<int> toswap = QList<int>();
+        prev = NULL;
+        true_prev = NULL;
+        for (int i = 0; i < (*p2plist)->size(); i++)
+        {
+            P2PEvent * p2p = (*p2plist)->value(i);
+            if (prev && true_prev && prev->enter == true_prev->enter
+                && p2p->caller != true_prev->caller
+                && p2p->caller == prev->caller)
+            {
+                toswap.append(i-2);
+                std::cout << "Swapping list " << count;
+                std::cout << " for " << trace->functions->value(true_prev->caller->function)->name.toStdString().c_str();
+                std::cout << " at " << p2p->enter << std::endl;
+            }
+            prev = true_prev;
+            true_prev = p2p;
+        }
+        for (QList<int>::Iterator swapper = toswap.begin();
+             swapper != toswap.end(); ++swapper)
+        {
+            P2PEvent * a = (*p2plist)->value(*swapper);
+            (**p2plist)[*swapper] = (*p2plist)->at(*swapper + 1);
+            (**p2plist)[*swapper + 1] = a;
+        }
+
         prev = NULL;
         true_prev = NULL;
         prev_caller = NULL;
+
+        if (verbose)
+            std::cout << "PARTITIONING ON " << count << std::endl;
+
+        count++;
         for (QVector<P2PEvent *>::Iterator p2p = (*p2plist)->begin();
              p2p != (*p2plist)->end(); ++p2p)
         {
@@ -579,8 +618,21 @@ void CharmImporter::buildPartitions()
             // as that's what we know is a true ordering
             // This is true for charm++, may not be true for
             // general task-based models
+            if (verbose && !(prev && prev->caller))
+            {
+               std::cout << "-- no prev or prev->caller at time " << (*p2p)->enter << std::endl;
+            }
+            else
+            {
+                std::cout << "-- prev caller is" << trace->functions->value(prev->caller->function)->name.toStdString().c_str();
+                std::cout << " and my caller is " << trace->functions->value((*p2p)->caller->function)->name.toStdString().c_str();
+                std::cout << " at " << (*p2p)->enter << std::endl;
+            }
             if (prev && prev->caller != NULL
-                && prev->caller == (*p2p)->caller)
+                && (prev->caller == (*p2p)->caller))
+                    /*|| ((*p2p)->caller->function == contribute
+                        && (*p2p)->caller->caller
+                        && (*p2p)->caller->caller == prev_caller)))*/
             {
                 prev->comm_next = *p2p;
                 (*p2p)->comm_prev = prev;
@@ -608,12 +660,17 @@ void CharmImporter::buildPartitions()
             if (!events->isEmpty())
             {
                 // 1) and 2)
-                if ((*p2p)->caller == NULL || (*p2p)->caller != prev_caller
+                if ((*p2p)->caller == NULL
+                    || ((*p2p)->caller != prev_caller)
+                       /* && (((*p2p)->caller->function != contribute)
+                            || (*p2p)->caller->caller == NULL
+                            || (*p2p)->caller->caller != prev_caller))*/
                     || trace->functions->value((*p2p)->caller->function)->isMain // 1)
                     )/*|| (!(*p2p)->is_recv
                         && (*p2p)->messages->first()->receiver->task
                             > num_application_tasks)) */// 2)
                 {
+                    std::cout << " ----- Making a partition " << std::endl;
                     makePartition(events);
                     events->clear();
                 }
@@ -1227,6 +1284,8 @@ void CharmImporter::processDefinitions()
                                            e->name));
         if (entries->value(id)->chare == main)
             functions->value(id)->isMain = true;
+        if (e->name.startsWith("contribute_wrap"))
+            contribute = id;
     }
     entries->insert(SEND_FXN, new Entry(0, "Send", 0));
     entries->insert(RECV_FXN, new Entry(0, "Recv", 0));

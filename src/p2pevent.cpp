@@ -289,7 +289,7 @@ void P2PEvent::update_strides()
 }
 
 void P2PEvent::set_reorder_strides(QMap<int, QList<CommEvent *> *> * stride_map,
-                                   int offset)
+                                   int offset, CommEvent *last)
 {
     for (QVector<Message *>::Iterator msg = messages->begin();
          msg != messages->end(); ++msg)
@@ -304,6 +304,15 @@ void P2PEvent::set_reorder_strides(QMap<int, QList<CommEvent *> *> * stride_map,
 
         // Last stride to self for ordering
         (*msg)->receiver->last_stride = (*msg)->receiver; //this;
+        if ((*msg)->receiver->comm_prev)
+        {
+            CommEvent * prev = (*msg)->receiver->comm_prev;
+            while (prev && !prev->isReceive() && prev->partition == partition)
+                prev = prev->comm_prev;
+
+            if (prev && prev->partition == partition && prev->isReceive())
+                (*msg)->receiver->last_stride = prev;
+        }
 
         // next stride for tie-breaking
         (*msg)->receiver->next_stride = this;

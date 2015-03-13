@@ -362,6 +362,7 @@ private:
     bool hasPAPI;
     int numPAPI;
     int main;
+    int contribute;
     long traceEnd;
     int num_application_tasks;
 

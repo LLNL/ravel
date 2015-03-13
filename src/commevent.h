@@ -42,8 +42,8 @@ public:
                                     QList<CommEvent *> * recv_events)=0;
     virtual void update_strides() { return; }
     virtual void set_reorder_strides(QMap<int, QList<CommEvent *> *> * stride_map,
-                                     int offset)
-                                    { Q_UNUSED(stride_map); Q_UNUSED(offset); return; }
+                                     int offset, CommEvent * last = NULL)
+                                    { Q_UNUSED(stride_map); Q_UNUSED(offset); Q_UNUSED(last); return; }
     virtual void initialize_basic_strides(QSet<CollectiveRecord *> * collectives)=0;
     virtual void update_basic_strides()=0;
     virtual bool calculate_local_step()=0;
