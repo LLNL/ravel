@@ -386,9 +386,12 @@ private:
     CharmEvt * last;
     CharmMsg * last_send;
 
+    QList<Event *> idles;
+
     QSet<QString> seen_chares;
     QSet<int> application_chares;
 
+    static const int IDLE_FXN = 999997;
     static const int SEND_FXN = 999998;
     static const int RECV_FXN = 999999;
 

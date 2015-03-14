@@ -59,6 +59,7 @@ CharmImporter::CharmImporter()
       chare_to_task(new QMap<ChareIndex, int>()),
       last(NULL),
       last_send(NULL),
+      idles(QList<Event *>()),
       seen_chares(QSet<QString>()),
       application_chares(QSet<int>())
 {
@@ -314,6 +315,8 @@ void CharmImporter::makeTaskEvents()
                                                  || ((*evt)->index.chare == main && (*evt)->pe != 0)))
                     {
                         (*evt)->task = -1;
+                        if (verbose)
+                            std::cout << "            setting to -1" << std::endl;
                     }
                     else if (!stack->isEmpty()
                              && (*evt)->index.chare == main
@@ -324,14 +327,20 @@ void CharmImporter::makeTaskEvents()
                         // a send records its send destination chare rather than its called
                         // chare.
                         (*evt)->task = num_application_tasks + (*evt)->pe;
+                        if (verbose)
+                            std::cout << "            setting to runtime" << std::endl;
                     }
                     else // Should get main if nothing else works
                     {
                         (*evt)->task = chare_to_task->value((*evt)->index);
+                        if (verbose)
+                            std::cout << "            setting from chare_to_task" << std::endl;
                     }
                 }
                 else
                 {
+                    if (verbose)
+                        std::cout << "            setting from no arrays" << std::endl;
                     if (chares->value((*evt)->index.chare)->indices->size() <= 1
                         && !application_chares.contains((*evt)->index.chare))
                         (*evt)->task = -1;
@@ -342,6 +351,8 @@ void CharmImporter::makeTaskEvents()
                 if ((*evt)->task == -1) // runtime chare
                 {
                     (*evt)->task = num_application_tasks + (*evt)->pe;
+                    if (verbose)
+                        std::cout << "            setting to runtime from -1" << std::endl;
                 }
                 if (verbose)
                     std::cout << "            Setting Task to " << (*evt)->task << std::endl;
@@ -493,6 +504,9 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                       bgn->task, bgn->pe);
     }
 
+    if (trace->functions->value(bgn->entry)->group == 2) // IDLE
+        idles.append(e);
+
     depth--;
     e->depth = depth;
     if (depth == 0)
@@ -618,16 +632,19 @@ void CharmImporter::buildPartitions()
             // as that's what we know is a true ordering
             // This is true for charm++, may not be true for
             // general task-based models
-            if (verbose && !(prev && prev->caller))
+            /*if (verbose)
             {
-               std::cout << "-- no prev or prev->caller at time " << (*p2p)->enter << std::endl;
-            }
-            else
-            {
-                std::cout << "-- prev caller is" << trace->functions->value(prev->caller->function)->name.toStdString().c_str();
-                std::cout << " and my caller is " << trace->functions->value((*p2p)->caller->function)->name.toStdString().c_str();
-                std::cout << " at " << (*p2p)->enter << std::endl;
-            }
+                if (!(prev && prev->caller))
+                {
+                   std::cout << "-- no prev or prev->caller at time " << (*p2p)->enter << std::endl;
+                }
+                else
+                {
+                    std::cout << "-- prev caller is" << trace->functions->value(prev->caller->function)->name.toStdString().c_str();
+                    std::cout << " and my caller is " << trace->functions->value((*p2p)->caller->function)->name.toStdString().c_str();
+                    std::cout << " at " << (*p2p)->enter << std::endl;
+                }
+            }*/
             if (prev && prev->caller != NULL
                 && (prev->caller == (*p2p)->caller))
                     /*|| ((*p2p)->caller->function == contribute
@@ -1232,6 +1249,48 @@ void CharmImporter::parseLine(QString line, int my_pe)
         if (time > traceEnd)
             traceEnd = time;
     }
+    else if (rectype == BEGIN_IDLE)
+    {
+        // Beginning of Idleness
+        time = lineList.at(1).toLong();
+        pe = lineList.at(2).toInt();
+
+        CharmEvt * evt = new CharmEvt(IDLE_FXN, time, pe,
+                                      0, 0, true);
+
+        charm_events->at(pe)->append(evt);
+
+        if (verbose)
+        {
+            std::cout << "BEGIN IDLE" << " on pe " << my_pe << " at " << time << std::endl;
+        }
+
+        last = NULL;
+
+        if (time > traceEnd)
+            traceEnd = time;
+    }
+    else if (rectype == END_IDLE)
+    {
+        // End of Idleness
+        time = lineList.at(1).toLong();
+        pe = lineList.at(2).toInt();
+
+        CharmEvt * evt = new CharmEvt(IDLE_FXN, time, pe,
+                                      0, 0, false);
+
+        charm_events->at(pe)->append(evt);
+
+        if (verbose)
+        {
+            std::cout << "END IDLE" << " on pe " << my_pe << " at " << time << std::endl;
+        }
+
+        last = NULL;
+
+        if (time > traceEnd)
+            traceEnd = time;
+    }
     else if (rectype == END_TRACE)
     {
         time = lineList.at(1).toLong();
@@ -1264,15 +1323,18 @@ bool CharmImporter::matchingMessages(CharmMsg * send, CharmMsg * recv)
 
 const int CharmImporter::SEND_FXN;
 const int CharmImporter::RECV_FXN;
+const int CharmImporter::IDLE_FXN;
 
 
 void CharmImporter::processDefinitions()
 {
     functiongroups->insert(0, "MPI");
     functiongroups->insert(1, "Entry");
+    functiongroups->insert(2, "Idle");
 
     functions->insert(SEND_FXN, new Function("Send", 0));
     functions->insert(RECV_FXN, new Function("Recv", 0));
+    functions->insert(IDLE_FXN, new Function("Idle", 2));
     for (QMap<int, Entry *>::Iterator entry = entries->begin();
          entry != entries->end(); ++entry)
     {
@@ -1289,6 +1351,7 @@ void CharmImporter::processDefinitions()
     }
     entries->insert(SEND_FXN, new Entry(0, "Send", 0));
     entries->insert(RECV_FXN, new Entry(0, "Recv", 0));
+    entries->insert(IDLE_FXN, new Entry(0, "Idle", 0));
 }
 
 
