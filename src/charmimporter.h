@@ -205,7 +205,6 @@ private:
     void makeTaskEvents();
     int makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                           long endtime, int phase, int depth);
-    void charify();
 
     void makePartition(QList<P2PEvent *> *events);
     void buildPartitions();
@@ -362,6 +361,8 @@ private:
     bool hasPAPI;
     int numPAPI;
     int main;
+    int traceChare;
+    int reductionChare;
     int contribute;
     long traceEnd;
     int num_application_tasks;

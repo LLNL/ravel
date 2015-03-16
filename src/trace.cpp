@@ -832,12 +832,19 @@ void Trace::calculate_lateness()
 void Trace::finalizeTaskEventOrder()
 {
     std::cout << "Forcing event order per partition..." << std::endl;
-    for (QList<Partition *>::Iterator part = partitions->begin();
-         part != partitions->end(); ++part)
-    {
-        (*part)->receive_reorder();
-        (*part)->finalizeTaskEventOrder();
-    }
+    if (options.reorderReceives)
+        for (QList<Partition *>::Iterator part = partitions->begin();
+             part != partitions->end(); ++part)
+        {
+            (*part)->receive_reorder();
+            (*part)->finalizeTaskEventOrder();
+        }
+    else
+        for (QList<Partition *>::Iterator part = partitions->begin();
+             part != partitions->end(); ++part)
+        {
+            (*part)->finalizeTaskEventOrder();
+        }
 }
 
 // Ordering between unordered sends and merging

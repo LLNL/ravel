@@ -37,6 +37,8 @@ CharmImporter::CharmImporter()
       hasPAPI(false),
       numPAPI(0),
       main(-1),
+      traceChare(-1),
+      reductionChare(-1),
       contribute(-1),
       traceEnd(0),
       num_application_tasks(0),
@@ -161,7 +163,6 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
     //trace->roots = roots;
 
     // Change per-PE stuff to per-chare stuff
-    //charify();
     makeTaskEvents();
 
     // Build partitions
@@ -533,39 +534,6 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
     return depth;
 }
 
-
-// Convert per-PE charm Events into per-chare events
-void CharmImporter::charify()
-{
-    // Convert PE events into Chare events
-    for (QVector<QVector<CharmEvt *> *>::Iterator event_list = charm_events->begin();
-         event_list != charm_events->end(); ++event_list)
-    {
-        for (QVector<CharmEvt *>::Iterator event = (*event_list)->begin();
-             event != (*event_list)->end(); ++event)
-        {
-            // Skip if the chare doesn't map to a task event
-            if ((*event)->arrayid == 0 // we have array ids
-                && chares->value((*event)->chare)->indices->size() <= 1) // we don't
-            {
-                continue;
-            }
-
-            int taskid = chare_to_task->value((*event)->index);
-            (*event)->task = taskid;
-            task_events->at(taskid)->append(*event);
-        }
-    }
-
-    // Sort chare events in time
-    for (QVector<QVector<CharmEvt *> *>::Iterator event_list
-         = task_events->begin(); event_list != task_events->end();
-         ++event_list)
-    {
-        qSort((*event_list)->begin(), (*event_list)->end(), dereferencedLessThan<CharmEvt>);
-    }
-}
-
 void CharmImporter::buildPartitions()
 {
     QList<P2PEvent *> * events = new QList<P2PEvent *>();
@@ -673,6 +641,7 @@ void CharmImporter::buildPartitions()
             // 1) We are in the main function
             // 2) We are changing from app->runtime or runtime->app
             // 3) This is one of the breakable functions
+            // 4) We are starting a a multicast? (probably a sign?)
 
             if (!events->isEmpty())
             {
@@ -1064,6 +1033,11 @@ void CharmImporter::parseLine(QString line, int my_pe)
             arrayid = lineList.at(index).toInt();
             index++;
 
+            // Special case now that CkReductionMgr has the wrong array id for some reason
+            int chare = entries->value(entry)->chare;
+            if (chare == reductionChare || chare == traceChare)
+                arrayid = 0;
+
             if (arrayid > 0)
             {
                 if (!arrays->contains(arrayid))
@@ -1096,6 +1070,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
                             + "::" + entries->value(entry)->name);
 
         last = evt;
+        charm_stack->push(evt);
 
         if (verbose)
         {
@@ -1227,6 +1202,34 @@ void CharmImporter::parseLine(QString line, int my_pe)
             }
         }
 
+        // Handle unfinished inside requests
+        CharmEvt * front = NULL;
+        bool found = false;
+
+        // Check for unfinished outside request
+        if (!charm_stack->isEmtpy() && charm_stack->top->chare == reductionChare)
+        {
+
+        }
+
+        // Handle unfinished inside requests
+        while (!charm_stack->isEmpty() && !found)
+        {
+            front = charm_stack->pop();
+            if (front->chare != entries->value(entry)->chare
+                || front->entry != entry)
+            {
+                CharmEvt * back = new CharmEvt(front->entry, time, my_pe,
+                                               front->chare, front->arrayid,
+                                               false);
+                charm_events->at(my_pe)->append(back);
+            }
+            else
+            {
+                found = true;
+            }
+        }
+
         CharmEvt * evt = new CharmEvt(entry, time, my_pe,
                                       entries->value(entry)->chare,
                                       arrayid, false);
@@ -1246,7 +1249,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
 
         last = NULL;
 
-        if (time > traceEnd)
+\        if (time > traceEnd)
             traceEnd = time;
     }
     else if (rectype == BEGIN_IDLE)
@@ -1378,8 +1381,13 @@ void CharmImporter::readSts(QString dataFileName)
         {
             chares->insert(lineList.at(1).toInt(),
                            new Chare(lineList.at(2)));
-            if (QString::compare(lineList.at(2), "main", Qt::CaseInsensitive) == 0)
-                main = lineList.at(1).toInt();
+
+            if (reductionChare < 0 && QString::compare(lineList.at(2), "CkReductionMgr") == 0)
+                reductionChare = lineList.at(1).toInt();
+            else if (main < 0 && QString::compare(lineList.at(2), "main", Qt::CaseInsensitive) == 0)
+                 main = lineList.at(1).toInt();
+            else if (traceChare < 0 && QString::compare(lineList.at(2), "TraceProjectionsBOC") == 0)
+                 traceChare = lineList.at(1).toInt();
         }
         else if (lineList.at(0) == "VERSION")
         {
