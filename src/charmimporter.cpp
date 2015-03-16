@@ -1060,6 +1060,19 @@ void CharmImporter::parseLine(QString line, int my_pe)
             }
         }
 
+        // recvMsg or addContribution we'll close off
+        if (!charm_stack->isEmpty()
+            && (charm_stack->top()->entry == recvMsg
+                || charm_stack->top()->entry == addContribution)
+            && (entry == recvMsg || entry == addContribution))
+        {
+            CharmEvt * front = charm_stack->pop();
+            CharmEvt * back = new CharmEvt(front->entry, time, my_pe,
+                                           front->chare, front->arrayid,
+                                           false);
+            charm_events->at(my_pe)->append(back);
+        }
+
         CharmEvt * evt = new CharmEvt(entry, time, my_pe,
                                       entries->value(entry)->chare, arrayid,
                                       true);
@@ -1264,7 +1277,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
 
         last = NULL;
 
-\        if (time > traceEnd)
+        if (time > traceEnd)
             traceEnd = time;
     }
     else if (rectype == BEGIN_IDLE)
