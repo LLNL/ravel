@@ -39,6 +39,8 @@ CharmImporter::CharmImporter()
       main(-1),
       traceChare(-1),
       reductionChare(-1),
+      addContribution(-1),
+      recvMsg(-1),
       contribute(-1),
       traceEnd(0),
       num_application_tasks(0),
@@ -1070,6 +1072,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
                             + "::" + entries->value(entry)->name);
 
         last = evt;
+
         charm_stack->push(evt);
 
         if (verbose)
@@ -1205,13 +1208,6 @@ void CharmImporter::parseLine(QString line, int my_pe)
         // Handle unfinished inside requests
         CharmEvt * front = NULL;
         bool found = false;
-
-        // Check for unfinished outside request
-        if (!charm_stack->isEmtpy() && charm_stack->top->chare == reductionChare)
-        {
-
-        }
-
         // Handle unfinished inside requests
         while (!charm_stack->isEmpty() && !found)
         {
@@ -1237,6 +1233,25 @@ void CharmImporter::parseLine(QString line, int my_pe)
             evt->index = last->index;
         evt->index.chare = entries->value(entry)->chare;
         charm_events->at(my_pe)->append(evt);
+
+        // Close off others
+        if (entry == addContribution || entry == recvMsg)
+        {
+            while (!charm_stack->isEmpty()
+                   && (charm_stack->top()->entry == addContribution
+                       || charm_stack->top()->entry == recvMsg))
+            {
+                front = charm_stack->pop();
+                if (front->chare != entries->value(entry)->chare
+                    || front->entry != entry)
+                {
+                    CharmEvt * back = new CharmEvt(front->entry, time, my_pe,
+                                                   front->chare, front->arrayid,
+                                                   false);
+                    charm_events->at(my_pe)->append(back);
+                }
+            }
+        }
 
         if (verbose)
         {
@@ -1376,6 +1391,11 @@ void CharmImporter::readSts(QString dataFileName)
             entries->insert(lineList.at(2).toInt(),
                             new Entry(lineList.at(len-2).toInt(), name,
                                       lineList.at(len-1).toInt()));
+
+            if (name.startsWith("addContribution(CkReductionMsg"))
+                addContribution = lineList.at(2).toInt();
+            else if (name.startsWith("RecvMsg(CkReductionMsg"))
+                recvMsg = lineList.at(2).toInt();
         }
         else if (lineList.at(0) == "CHARE")
         {

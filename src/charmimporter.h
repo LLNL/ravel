@@ -363,6 +363,8 @@ private:
     int main;
     int traceChare;
     int reductionChare;
+    int addContribution;
+    int recvMsg;
     int contribute;
     long traceEnd;
     int num_application_tasks;
