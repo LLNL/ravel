@@ -544,13 +544,13 @@ void CharmImporter::buildPartitions()
 
     P2PEvent * prev = NULL;
     P2PEvent * true_prev = NULL;
-    Event * prev_caller = NULL;
 
     QList<QString> breakables = QList<QString>();
     if (!options->partitionByFunction && options->breakFunctions.length() > 0)
         breakables = options->breakFunctions.split(",");
 
     int count = 0;
+    int taskid = 0;
     for (QVector<QVector<P2PEvent *> *>::Iterator p2plist = charm_p2ps->begin();
          p2plist != charm_p2ps->end(); ++p2plist)
     {
@@ -584,7 +584,6 @@ void CharmImporter::buildPartitions()
 
         prev = NULL;
         true_prev = NULL;
-        prev_caller = NULL;
 
         if (verbose)
             std::cout << "PARTITIONING ON " << count << std::endl;
@@ -619,9 +618,6 @@ void CharmImporter::buildPartitions()
             }*/
             if (prev && prev->caller != NULL
                 && (prev->caller == (*p2p)->caller))
-                    /*|| ((*p2p)->caller->function == contribute
-                        && (*p2p)->caller->caller
-                        && (*p2p)->caller->caller == prev_caller)))*/
             {
                 prev->comm_next = *p2p;
                 (*p2p)->comm_prev = prev;
@@ -649,22 +645,62 @@ void CharmImporter::buildPartitions()
 
             if (!events->isEmpty())
             {
-                // 1) and 2)
+                // 1) & 2)
                 if ((*p2p)->caller == NULL
-                    || ((*p2p)->caller != prev_caller)
-                       /* && (((*p2p)->caller->function != contribute)
-                            || (*p2p)->caller->caller == NULL
-                            || (*p2p)->caller->caller != prev_caller))*/
-                    || trace->functions->value((*p2p)->caller->function)->isMain // 1)
-                    )/*|| (!(*p2p)->is_recv
-                        && (*p2p)->messages->first()->receiver->task
-                            > num_application_tasks)) */// 2)
+                    || ((*p2p)->caller != prev->caller)
+                    || trace->functions->value((*p2p)->caller->function)->isMain) // 1)
                 {
-                    std::cout << " ----- Making a partition " << std::endl;
+                    if (verbose)
+                        std::cout << " ----- Making a partition due to caller split" << std::endl;
                     makePartition(events);
                     events->clear();
                 }
-                else if (!options->partitionByFunction)// 3)
+                else if (prev && taskid < num_application_tasks) // 2)
+                {
+                    // First figure out if the previous comm event was app only or not.
+                    bool prev_app = true, my_app = true;
+                    if (prev->is_recv)
+                    {
+                        if (prev->messages->first()->sender->task >= num_application_tasks)
+                        {
+                            prev_app = false;
+                        }
+                    }
+                    else
+                    {
+                        if (prev->messages->first()->receiver->task >= num_application_tasks)
+                        {
+                            prev_app = false;
+                        }
+                    }
+
+                    // Check if we are application only
+                    if ((*p2p)->is_recv)
+                    {
+                        if ((*p2p)->messages->first()->sender->task >= num_application_tasks)
+                        {
+                            my_app = false;
+                        }
+                    }
+                    else
+                    {
+                        if ((*p2p)->messages->first()->receiver->task >= num_application_tasks)
+                        {
+                            my_app = false;
+                        }
+                    }
+
+                    // These should be the same or split.
+                    if (my_app != prev_app)
+                    {
+                        if (verbose)
+                            std::cout << " ----- Making a partition due to runtime split" << std::endl;
+                        makePartition(events);
+                        events->clear();
+                    }
+                }
+
+                if (!events->isEmpty() && !options->partitionByFunction)// 3)
                 {
                     QString caller = trace->functions->value((*p2p)->caller->function)->shortname;
                     for (QList<QString>::Iterator fxn = breakables.begin();
@@ -672,6 +708,8 @@ void CharmImporter::buildPartitions()
                     {
                         if (caller.startsWith(*fxn, Qt::CaseInsensitive))
                         {
+                            if (verbose)
+                                std::cout << " ----- Making a partition due to given split" << std::endl;
                             makePartition(events);
                             events->clear();
                             break;
@@ -683,7 +721,6 @@ void CharmImporter::buildPartitions()
 
             events->append(*p2p);
             trace->events->at((*p2p)->task)->append(*p2p);
-            prev_caller = (*p2p)->caller;
         }
 
         // Clear remaining in events;
@@ -692,6 +729,8 @@ void CharmImporter::buildPartitions()
             makePartition(events);
             events->clear();
         }
+
+        taskid++;
     }
 
     delete events;
