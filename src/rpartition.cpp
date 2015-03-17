@@ -270,25 +270,51 @@ QSet<int> Partition::task_overlap(Partition * other)
 // Presumable we won't have the latter happening since that
 // would be set up in order by earlier stuff and hopefully
 // any cycles would have been found their earlier as well.
+//
+// Actually, what probably matters most are the partition beginning events
+// so we're only going to count those at the beginning of each partition
+// e.g. things that are sends where the comm_prev is non-existent or
+// is in a different partition.
 Partition * Partition::earlier_partition(Partition * other, QSet<int> overlap_tasks)
 {
     // Counts for which one has the earlier earliest event
     int me = 0, them = 0;
+    bool mine_first, theirs_first;
 
     for (QSet<int>::Iterator task = overlap_tasks.begin();
          task != overlap_tasks.end(); ++task)
     {
         // Now let's just do the voting and avoid the comm/prev/next
         // thing for now because we believe it already taken care of
-        if (events->value(*task)->first()->enter
-            < other->events->value(*task)->first()->enter)
+        CommEvent * mine = events->value(*task)->first();
+        CommEvent * theirs = other->events->value(*task)->first();
+        mine_first = false;
+        theirs_first = false;
+        if (!mine->isReceive() || !(mine->comm_prev)
+            || mine->comm_prev->partition != this)
+        {
+            mine_first = true;
+        }
+        if (!theirs->isReceive() || !(theirs->comm_prev)
+            || theirs->comm_prev->partition != this)
+        {
+            theirs_first = true;
+        }
+
+        // We only count if at least one of ours is first
+        if (mine_first && theirs_first)
+        {
+            (mine->enter < theirs->enter) ? me++ : them++;
+        }
+        else if (mine_first)
         {
             me++;
         }
-        else
+        else if (theirs_first)
         {
             them++;
         }
+
     }
 
     if (me > them)

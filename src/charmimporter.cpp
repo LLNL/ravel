@@ -40,7 +40,8 @@ CharmImporter::CharmImporter()
       traceChare(-1),
       reductionChare(-1),
       addContribution(-1),
-      recvMsg(-1),
+      ckArrayChare(-1)
+,      recvMsg(-1),
       contribute(-1),
       traceEnd(0),
       num_application_tasks(0),
@@ -314,8 +315,9 @@ void CharmImporter::makeTaskEvents()
                 {
                     if (verbose)
                         std::cout << "            ArrayID " << (*evt)->arrayid << " and chare " << (*evt)->index.chare << std::endl;
-                    if ((*evt)->arrayid == 0 && (!application_chares.contains((*evt)->index.chare)
+                    if (((*evt)->arrayid == 0 && (!application_chares.contains((*evt)->index.chare)
                                                  || ((*evt)->index.chare == main && (*evt)->pe != 0)))
+                         || (*evt)->index.chare == -1)
                     {
                         (*evt)->task = -1;
                         if (verbose)
@@ -886,10 +888,6 @@ void CharmImporter::parseLine(QString line, int my_pe)
         {
             evt->index = last->index;
         }
-        else if (my_pe == 0)
-        {
-            evt->index = ChareIndex(main, 0, 0, 0, 0);
-        }
 
         charm_events->at(my_pe)->append(evt);
 
@@ -903,8 +901,6 @@ void CharmImporter::parseLine(QString line, int my_pe)
         charm_events->at(my_pe)->append(send_end);
         if (last)
             send_end->index = last->index;
-        else
-            evt->index = ChareIndex(main, 0, 0, 0, 0);
 
         if (rectype == CREATION)
         {
@@ -955,7 +951,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
             if (verbose)
             {
                 std::cout << "CREATE!" << " on pe " << my_pe << " to " << pe << " at " << time;
-                std::cout << " with event " << event << " my array " << arrayid << " and last index array " << send_end->index.array;
+                std::cout << " with event " << event << " my array " << arrayid << " and send_end index array " << send_end->index.array;
                 std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
                 std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
                 if (last)
@@ -1037,7 +1033,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
 
             // Special case now that CkReductionMgr has the wrong array id for some reason
             int chare = entries->value(entry)->chare;
-            if (chare == reductionChare || chare == traceChare)
+            if (chare == reductionChare || chare == traceChare || chare == ckArrayChare)
                 arrayid = 0;
 
             if (arrayid > 0)
@@ -1417,6 +1413,8 @@ void CharmImporter::readSts(QString dataFileName)
 
             if (reductionChare < 0 && QString::compare(lineList.at(2), "CkReductionMgr") == 0)
                 reductionChare = lineList.at(1).toInt();
+            else if (ckArrayChare < 0 && QString::compare(lineList.at(2), "CkArray") == 0)
+                 ckArrayChare = lineList.at(1).toInt();
             else if (main < 0 && QString::compare(lineList.at(2), "main", Qt::CaseInsensitive) == 0)
                  main = lineList.at(1).toInt();
             else if (traceChare < 0 && QString::compare(lineList.at(2), "TraceProjectionsBOC") == 0)
