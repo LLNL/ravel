@@ -280,11 +280,18 @@ void CharmImporter::makeTaskEvents()
         have_arrays = true;
 
     if (verbose)
+    {
         for (QMap<ChareIndex, int>::Iterator map = chare_to_task->begin();
              map != chare_to_task->end(); ++map)
         {
             std::cout << map.key().toVerboseString().toStdString().c_str() << " <---> " << map.value() << std::endl;
         }
+        for (QSet<int>::Iterator appchare = application_chares.begin();
+             appchare != application_chares.end(); ++appchare)
+        {
+            std::cout << "App Chare: " << (*appchare) << std::endl;
+        }
+    }
 
     // Go through each PE separately, creating events and if necessary
     // putting them into charm_p2ps and setting their tasks appropriately
@@ -690,6 +697,8 @@ void CharmImporter::buildPartitions()
                         }
                     }
 
+                    if (verbose)
+                        std::cout << " --- my_app is " << my_app << " and theirs is " << prev_app << std::endl;
                     // These should be the same or split.
                     if (my_app != prev_app)
                     {
@@ -902,6 +911,9 @@ void CharmImporter::parseLine(QString line, int my_pe)
             arrayid = lineList.at(index).toInt();
             index++;
 
+            int chare = entries->value(entry)->chare;
+            if (chare == reductionChare || chare == traceChare || chare == ckArrayChare)
+                arrayid = 0;
             if (arrayid > 0 && !arrays->contains(arrayid))
             {
                 arrays->insert(arrayid,
