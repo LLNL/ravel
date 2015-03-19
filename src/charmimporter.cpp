@@ -498,6 +498,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
 
                     e = (*cmsg)->tracemsg->sender;
                     pe_p2ps->at(bgn->pe)->append((*cmsg)->tracemsg->sender);
+                    (*cmsg)->tracemsg->sender->addMetric("Idle", 0, 0);
 
                 }
                 else
@@ -523,6 +524,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                     std::cout << "                      Adding" << std::endl;
 
                 e = (*cmsg)->tracemsg->receiver;
+                (*cmsg)->tracemsg->receiver->addMetric("Idle", 0, 0);
                 pe_p2ps->at(bgn->pe)->append((*cmsg)->tracemsg->receiver);
             }
         }
@@ -580,7 +582,50 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
 // for each recv, which there is only one, and see whether there's a sizable gap
 void CharmImporter::chargeIdleness()
 {
+    Event * idle_evt = NULL;
+    P2PEvent * comm_evt = NULL;
+    P2PEvent * sender = NULL;
+    int idle_pos = -1;
+    bool flag = false;
+    long idle_diff;
+    for (QMap<Event *, int>::Iterator idle = idle_to_next->begin();
+         idle != idle_to_next->end(); ++idle)
+    {
+        idle_evt = idle.key();
+        idle_pos = idle.value();
+        flag = true;
+        while (flag)
+        {
+            comm_evt = pe_p2ps->at(idle_evt->pe)->at(idle_pos);
+            if (comm_evt->is_recv) // only makes sense for recvs
+            {
+                // Basically if there's required send doesn't take place
+                // until after the idle begins, charge it to that sender.
+                // If we have a caller, we know the send doesn't happen until
+                // the end of the caller, so use that as the true time.
+                // One we get to an event where the sender doesn't exhibit
+                // this behavior, then we figure the rest of it must be okay
+                // because it was no longer being held up.
+                sender = comm_evt->messages->first()->sender;
+                idle_diff = sender->enter - idle_evt->enter;
+                if (sender->caller)
+                {
+                    idle_diff = sender->caller->exit - idle_evt->enter;
+                }
 
+                if (idle_diff > 0)
+                {
+                    idle_diff += sender->getMetric("Idle");
+                    sender->setMetric("Idle", idle_diff, 0);
+                }
+                else
+                {
+                    flag = false;
+                }
+            }
+            idle_pos++;
+        }
+    }
 }
 
 void CharmImporter::buildPartitions()
