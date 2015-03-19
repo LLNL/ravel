@@ -54,6 +54,8 @@ CharmImporter::CharmImporter()
       pe_events(NULL),
       //roots(NULL),
       charm_p2ps(NULL),
+      pe_p2ps(NULL),
+      idle_to_next(new QMap<Event *, int>()),
       messages(new QVector<CharmMsg *>()),
       primaries(new QMap<int, PrimaryTaskGroup *>()),
       taskgroups(new QMap<int, TaskGroup *>()),
@@ -93,6 +95,23 @@ CharmImporter::~CharmImporter()
     }
 
     delete charm_stack;
+
+    delete idle_to_next;
+
+    for (int i = 0; i < processes; i++)
+    {
+        delete (*unmatched_recvs)[i];
+        delete (*sends)[i];
+        delete (*charm_events)[i];
+        delete (*pe_events)[i];
+        delete (*pe_p2ps)[i];
+    }
+
+    delete unmatched_recvs;
+    delete sends;
+    delete charm_events;
+    delete pe_events;
+    delete pe_p2ps;
 }
 
 void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _options)
@@ -105,13 +124,13 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
     sends = new QVector<QMap<int, QList<CharmMsg *> *> *>(processes);
     charm_events = new QVector<QVector<CharmEvt *> *>(processes);
     pe_events = new QVector<QVector<Event *> *>(processes);
-    //roots = new QVector<QVector<Event *> *>(processes);
+    pe_p2ps = new QVector<QVector<P2PEvent *> *>(processes);
     for (int i = 0; i < processes; i++) {
         (*unmatched_recvs)[i] = new QMap<int, QList<CharmMsg *> *>();
         (*sends)[i] = new QMap<int, QList<CharmMsg *> *>();
         (*charm_events)[i] = new QVector<CharmEvt *>();
         (*pe_events)[i] = new QVector<Event *>();
-        //(*roots)[i] = new QVector<Event *>();
+        (*pe_p2ps)[i] = new QVector<P2PEvent *>();
     }
 
     processDefinitions();
@@ -478,6 +497,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                         std::cout << "                      Adding" << std::endl;
 
                     e = (*cmsg)->tracemsg->sender;
+                    pe_p2ps->at(bgn->pe)->append((*cmsg)->tracemsg->sender);
 
                 }
                 else
@@ -503,6 +523,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                     std::cout << "                      Adding" << std::endl;
 
                 e = (*cmsg)->tracemsg->receiver;
+                pe_p2ps->at(bgn->pe)->append((*cmsg)->tracemsg->receiver);
             }
         }
         if (!e) // No messages were recorded with this, skip for now and don't include
@@ -514,6 +535,11 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
     {
         e = new Event(bgn->time, endtime, bgn->entry,
                       bgn->task, bgn->pe);
+        if (bgn->entry == IDLE_FXN)
+        {
+            // Index of the next comm event after this IDLE
+            idle_to_next->insert(e, pe_p2ps->at(bgn->pe)->size());
+        }
     }
 
     if (trace->functions->value(bgn->entry)->group == 2) // IDLE
@@ -543,6 +569,18 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
 
     (*(trace->pe_events))[bgn->pe]->append(e);
     return depth;
+}
+
+
+// Look through all idle events and check which events after them
+// are triggered by events that occur before them. This is difficult
+// when clocks are not synchronized. This is also difficult because
+// it may occur chainings of happened before relationships.
+// So I guess we need to look at all the happened before relationships
+// for each recv, which there is only one, and see whether there's a sizable gap
+void CharmImporter::chargeIdleness()
+{
+
 }
 
 void CharmImporter::buildPartitions()

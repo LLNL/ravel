@@ -206,6 +206,8 @@ private:
     int makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                           long endtime, int phase, int depth);
 
+    void chargeIdleness();
+
     void makePartition(QList<P2PEvent *> *events);
     void buildPartitions();
 
@@ -348,7 +350,6 @@ private:
 
     };
 
-
     bool matchingMessages(CharmMsg * send, CharmMsg * recv);
 
     QMap<int, Chare *> * chares;
@@ -379,6 +380,8 @@ private:
     QVector<QVector<CharmEvt *> *> * task_events;
     QVector<QVector<Event *> *> * pe_events;
     QVector<QVector<P2PEvent *> *> * charm_p2ps;
+    QVector<QVector<P2PEvent *> *> * pe_p2ps;
+    QMap<Event *, int> * idle_to_next;
     QVector<CharmMsg *> * messages;
     QMap<int, PrimaryTaskGroup *> * primaries;
     QMap<int, TaskGroup *> * taskgroups;
