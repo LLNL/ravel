@@ -95,23 +95,7 @@ CharmImporter::~CharmImporter()
     }
 
     delete charm_stack;
-
     delete idle_to_next;
-
-    for (int i = 0; i < processes; i++)
-    {
-        delete (*unmatched_recvs)[i];
-        delete (*sends)[i];
-        delete (*charm_events)[i];
-        delete (*pe_events)[i];
-        delete (*pe_p2ps)[i];
-    }
-
-    delete unmatched_recvs;
-    delete sends;
-    delete charm_events;
-    delete pe_events;
-    delete pe_p2ps;
 }
 
 void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _options)
@@ -185,7 +169,10 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
     //trace->roots = roots;
 
     // Change per-PE stuff to per-chare stuff
-    makeTaskEvents();
+    makeTaskEvents();    
+
+    // Idle calcs
+    chargeIdleness();
 
     // Build partitions
     buildPartitions();
@@ -253,6 +240,16 @@ void CharmImporter::cleanUp()
         delete *itr;
     }
     delete task_events;
+
+
+    for (int i = 0; i < processes; i++)
+    {
+        delete (*pe_events)[i];
+        delete (*pe_p2ps)[i];
+    }
+
+    delete pe_events;
+    delete pe_p2ps;
 }
 
 void CharmImporter::readLog(QString logFileName, bool gzipped, int pe)
@@ -287,6 +284,10 @@ void CharmImporter::readLog(QString logFileName, bool gzipped, int pe)
 // turn them into partitions.
 void CharmImporter::makeTaskEvents()
 {
+
+    // Setup idle metric.
+    trace->metrics->append("Idle");
+    (*(trace->metric_units))["Idle"] = getUnits(trace->units);
 
     // Now make the task event hierarchy with roots and such
     QStack<CharmEvt *>  * stack = new QStack<CharmEvt *>();
@@ -449,9 +450,6 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
         std::cout << " at " << endtime << std::endl;
     }
 
-    trace->metrics->append("Idle");
-    (*(trace->metric_units))["Idle"] = getUnits(trace->units);
-
     if (trace->functions->value(bgn->entry)->group == 0) // Send or Recv
     {
         // We need to go and wire up all the mesages appropriately
@@ -599,6 +597,11 @@ void CharmImporter::chargeIdleness()
         flag = true;
         while (flag)
         {
+            if (idle_pos >= pe_p2ps->at(idle_evt->pe)->size())
+            {
+                flag = false;
+                break;
+            }
             comm_evt = pe_p2ps->at(idle_evt->pe)->at(idle_pos);
             if (comm_evt->is_recv) // only makes sense for recvs
             {
