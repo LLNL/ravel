@@ -449,6 +449,9 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
         std::cout << " at " << endtime << std::endl;
     }
 
+    trace->metrics->append("Idle");
+    (*(trace->metric_units))["Idle"] = getUnits(trace->units);
+
     if (trace->functions->value(bgn->entry)->group == 0) // Send or Recv
     {
         // We need to go and wire up all the mesages appropriately

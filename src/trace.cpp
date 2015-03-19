@@ -547,6 +547,91 @@ void Trace::calculate_differential_lateness(QString metric_name,
 
 }
 
+// Calculates duration difference per partition rather than global step
+void Trace::calculate_partition_duration()
+{
+    if (debug)
+        std::cout << "Calculating duration difference..." << std::endl;
+
+    QString p_duration = "Duration";
+    metrics->append(p_duration);
+    (*metric_units)[p_duration] = getUnits(units);
+
+    unsigned long long int minduration;
+    int per_step = 2;
+    if (!use_aggregates)
+        per_step = 1;
+
+    int count = 0;
+    for (QList<Partition *>::Iterator part = partitions->begin();
+         part != partitions->end(); ++part)
+    {
+        if (debug)
+        {
+            std::cout << "...at partition " << (*part)->debug_name;
+            std::cout << " with min step " << (*part)->min_global_step;
+            std::cout << " and max step: " << (*part)->max_global_step << std::endl;
+            (*part)->output_graph("../debug-output/Partition-duration-"
+                                   + QString::number((*part)->debug_name)
+                                   + "-adv-gstep.dot");
+        }
+        count++;
+        for (int i = (*part)->min_global_step;
+             i <= (*part)->max_global_step; i += per_step)
+        {
+            if (debug)
+            {
+                std::cout << "        on step " << i << std::endl;
+            }
+            QList<CommEvent *> * i_list = new QList<CommEvent *>();
+
+            for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+                 = (*part)->events->begin();
+                 event_list != (*part)->events->end(); ++event_list)
+            {
+                for (QList<CommEvent *>::Iterator evt
+                     = (event_list.value())->begin();
+                     evt != (event_list.value())->end(); ++evt)
+                {
+                    if ((*evt)->step == i)
+                        i_list->append(*evt);
+                }
+            }
+
+            // Find min leave time
+            minduration = ULLONG_MAX;
+
+            for (QList<CommEvent *>::Iterator evt = i_list->begin();
+                 evt != i_list->end(); ++evt)
+            {
+                // The time a send takes is actually charged to the amount
+                // of time between it and the last thing that happend, so it
+                // essentially acts as a divisor for its caller.
+                // Receives are instantaneous because anything that happened
+                // before them may be on another PE or due to another task.
+                if ((*evt)->isReceive())
+                    minduration = 1;
+                else if (!(*evt)->isReceive() && (*evt)->comm_prev
+                    && (*evt)->enter - (*evt)->comm_prev->exit < minduration)
+                    minduration = (*evt)->enter - (*evt)->comm_prev->exit;
+            }
+
+            for (QList<CommEvent *>::Iterator evt = i_list->begin();
+                 evt != i_list->end(); ++evt)
+            {
+                if ((*evt)->isReceive())
+                    (*evt)->addMetric(p_duration, 1);
+                else if (!(*evt)->isReceive() && (*evt)->comm_prev)
+                    (*evt)->addMetric(p_duration, ((*evt)->enter - (*evt)->comm_prev->exit) - minduration);
+                else
+                    (*evt)->addMetric(p_duration, 1);
+            }
+            delete i_list;
+        }
+    }
+
+}
+
 // Calculates lateness per partition rather than global step
 void Trace::calculate_partition_lateness()
 {
@@ -1336,6 +1421,8 @@ void Trace::assignSteps()
     calculate_differential_lateness("D. Lateness", "Lateness");
     calculate_lateness();
     calculate_differential_lateness("D.G. Lateness", "G. Lateness");
+    if (options.origin == OTFImportOptions::OF_CHARM)
+        calculate_partition_duration();
 
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "Lateness Calculation: ";

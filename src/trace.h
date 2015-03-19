@@ -145,6 +145,7 @@ private:
     void calculate_lateness();
     void calculate_differential_lateness(QString metric_name, QString base_name);
     void calculate_partition_lateness();
+    void calculate_partition_duration();
 
     // For debugging
     void output_graph(QString filename, bool byparent = false);
