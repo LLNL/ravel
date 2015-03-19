@@ -285,9 +285,11 @@ void CharmImporter::readLog(QString logFileName, bool gzipped, int pe)
 void CharmImporter::makeTaskEvents()
 {
 
-    // Setup idle metric.
+    // Setup idle metrics.
     trace->metrics->append("Idle");
     (*(trace->metric_units))["Idle"] = getUnits(trace->units);
+    trace->metrics->append("Idle Blame");
+    (*(trace->metric_units))["Idle Blame"] = getUnits(trace->units);
 
     // Now make the task event hierarchy with roots and such
     QStack<CharmEvt *>  * stack = new QStack<CharmEvt *>();
@@ -500,6 +502,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                     e = (*cmsg)->tracemsg->sender;
                     pe_p2ps->at(bgn->pe)->append((*cmsg)->tracemsg->sender);
                     (*cmsg)->tracemsg->sender->addMetric("Idle", 0, 0);
+                    (*cmsg)->tracemsg->sender->addMetric("Idle Blame", 0, 0);
 
                 }
                 else
@@ -526,6 +529,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
 
                 e = (*cmsg)->tracemsg->receiver;
                 (*cmsg)->tracemsg->receiver->addMetric("Idle", 0, 0);
+                (*cmsg)->tracemsg->receiver->addMetric("Idle Blame", 0, 0);
                 pe_p2ps->at(bgn->pe)->append((*cmsg)->tracemsg->receiver);
             }
         }
@@ -621,8 +625,12 @@ void CharmImporter::chargeIdleness()
 
                 if (idle_diff > 0)
                 {
-                    idle_diff += sender->getMetric("Idle");
-                    sender->setMetric("Idle", idle_diff, 0);
+                    // Let the recv collect that as well in a different metric
+                    comm_evt->setMetric("Idle", idle_diff, 0);
+
+                    idle_diff += sender->getMetric("Idle Blame");
+                    sender->setMetric("Idle Blame", idle_diff, 0);
+
                 }
                 else
                 {
