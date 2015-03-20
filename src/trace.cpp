@@ -918,18 +918,25 @@ void Trace::finalizeTaskEventOrder()
 {
     std::cout << "Forcing event order per partition..." << std::endl;
     if (options.reorderReceives)
+    {
         for (QList<Partition *>::Iterator part = partitions->begin();
              part != partitions->end(); ++part)
         {
-            (*part)->receive_reorder();
+            if (debug)
+                std::cout << "Partition runtime is " << (*part)->runtime << std::endl;
+            if (!(*part)->runtime)
+                (*part)->receive_reorder();
             (*part)->finalizeTaskEventOrder();
         }
+    }
     else
+    {
         for (QList<Partition *>::Iterator part = partitions->begin();
              part != partitions->end(); ++part)
         {
             (*part)->finalizeTaskEventOrder();
         }
+    }
 }
 
 // Ordering between unordered sends and merging
@@ -1045,12 +1052,13 @@ void Trace::mergeForCharmLeaps()
         Partition * p = new Partition();
         int min_leap = (*group)->dag_leap;
 
+        bool runtime = false;
         for (QSet<Partition *>::Iterator partition
              = (*group)->group->begin();
              partition != (*group)->group->end(); ++partition)
         {
             min_leap = std::min((*partition)->dag_leap, min_leap);
-
+            runtime = runtime || (*partition)->runtime;
             // Merge all the events into the new partition
             QList<int> keys = (*partition)->events->keys();
             for (QList<int>::Iterator k = keys.begin(); k != keys.end(); ++k)
@@ -1067,6 +1075,7 @@ void Trace::mergeForCharmLeaps()
             }
 
             p->dag_leap = min_leap;
+            p->runtime = runtime;
 
 
             // Update parents/children links
@@ -1307,10 +1316,12 @@ void Trace::assignSteps()
     set_dag_steps();
     if (options.origin == OTFImportOptions::OF_CHARM)
     {
-        output_graph("../debug-output/tracegraph-before.dot");
+        if (debug)
+            output_graph("../debug-output/tracegraph-before.dot");
         mergeForCharmLeaps();
         forcePartitionDag();
-        output_graph("../debug-output/tracegraph-after.dot");
+        if (debug)
+            output_graph("../debug-output/tracegraph-after.dot");
         finalizeTaskEventOrder();
     }
     else if (options.reorderReceives)
@@ -2491,12 +2502,12 @@ void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
 
         // Otherwise, iterate through the SCC and merge into new partition
         Partition * p = new Partition();
-        bool runtime = true;
+        bool runtime = false;
         for (QList<Partition *>::Iterator partition = (*component)->begin();
              partition != (*component)->end(); ++partition)
         {
             (*partition)->new_partition = p;
-            runtime = runtime && (*partition)->runtime;
+            runtime = runtime || (*partition)->runtime;
 
             // Merge all the events into the new partition
             QList<int> keys = (*partition)->events->keys();
