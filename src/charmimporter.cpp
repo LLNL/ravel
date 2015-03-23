@@ -696,13 +696,6 @@ void CharmImporter::buildPartitions()
         for (QVector<P2PEvent *>::Iterator p2p = (*p2plist)->begin();
              p2p != (*p2plist)->end(); ++p2p)
         {
-            // We always set these
-            /*if (prev)
-                prev->true_next = *p2p;
-            (*p2p)->true_prev = prev;
-            */
-
-
             // comm_next / comm_prev only set within the same caller
             // as that's what we know is a true ordering
             // This is true for charm++, may not be true for
@@ -751,7 +744,9 @@ void CharmImporter::buildPartitions()
             {
                 // 1) & 2)
                 if ((*p2p)->caller == NULL
-                    || ((*p2p)->caller != prev->caller)
+                    || ((prev && (*p2p)->caller != prev->caller)
+                        && !((*p2p)->caller->function == contribute
+                             && prev->caller->function == recvMsg))
                     || trace->functions->value((*p2p)->caller->function)->isMain) // 1)
                 {
                     if (verbose)
@@ -821,6 +816,29 @@ void CharmImporter::buildPartitions()
                             break;
                         }
                     }
+                }
+
+                if (prev && prev->caller != NULL
+                    && ((prev->caller == (*p2p)->caller)
+                        || ((*p2p)->caller && (*p2p)->caller->function == contribute
+                             && prev->caller->function == recvMsg)
+                       )
+                   )
+                {
+                    prev->comm_next = *p2p;
+                    (*p2p)->comm_prev = prev;
+                }
+                prev = *p2p;
+
+                // The ordering of
+                if (!(*p2p)->is_recv && (*p2p)->comm_prev == NULL)
+                {
+                    (*p2p)->true_prev = true_prev;
+                    if (true_prev)
+                    {
+                        true_prev->true_next = *p2p;
+                    }
+                    true_prev = *p2p;
                 }
             }
 
