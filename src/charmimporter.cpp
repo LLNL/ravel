@@ -64,8 +64,7 @@ CharmImporter::CharmImporter()
       arrays(new QMap<int, ChareArray *>()),
       groups(new QMap<int, ChareGroup *>()),
       chare_to_task(new QMap<ChareIndex, int>()),
-      last(NULL),
-      last_send(NULL),
+      last(QStack<CharmEvt *>()),
       idles(QList<Event *>()),
       seen_chares(QSet<QString>()),
       application_chares(QSet<int>())
@@ -254,7 +253,7 @@ void CharmImporter::cleanUp()
 
 void CharmImporter::readLog(QString logFileName, bool gzipped, int pe)
 {
-    last = NULL;
+    last.clear();
     if (gzipped)
     {
         gzFile logfile = gzopen(logFileName.toStdString().c_str(), "r");
@@ -747,7 +746,7 @@ void CharmImporter::buildPartitions()
                     || ((prev && (*p2p)->caller != prev->caller)
                         && !((*p2p)->caller->function == contribute
                              && prev->caller->function == recvMsg))
-                    || trace->functions->value((*p2p)->caller->function)->isMain) // 1)
+                    )//|| trace->functions->value((*p2p)->caller->function)->isMain) // 1)
                 {
                     if (verbose)
                         std::cout << " ----- Making a partition due to caller split" << std::endl;
@@ -1037,9 +1036,9 @@ void CharmImporter::parseLine(QString line, int my_pe)
             }
         }
 
-        if (last)
+        if (!last.isEmpty())
         {
-            arrayid = last->index.array;
+            arrayid = last.top()->index.array;
         }
 
         CharmEvt * evt = new CharmEvt(SEND_FXN, time, my_pe,
@@ -1050,9 +1049,9 @@ void CharmImporter::parseLine(QString line, int my_pe)
         // what last should hold. However, the send may not be meaningful
         // should its recv not exist or go to a not-kept chare, so this needs
         // to be processed later.
-        if (last)
+        if (!last.isEmpty())
         {
-            evt->index = last->index;
+            evt->index = last.top()->index;
         }
 
         charm_events->at(my_pe)->append(evt);
@@ -1065,8 +1064,8 @@ void CharmImporter::parseLine(QString line, int my_pe)
                                            entries->value(entry)->chare, arrayid,
                                            false);
         charm_events->at(my_pe)->append(send_end);
-        if (last)
-            send_end->index = last->index;
+        if (!last.isEmpty())
+            send_end->index = last.top()->index;
 
         if (rectype == CREATION)
         {
@@ -1120,8 +1119,8 @@ void CharmImporter::parseLine(QString line, int my_pe)
                 std::cout << " with event " << event << " my array " << arrayid << " and send_end index array " << send_end->index.array;
                 std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
                 std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
-                if (last)
-                    std::cout << " with index " << last->index.toVerboseString().toStdString().c_str() << std::endl;
+                if (!last.isEmpty())
+                    std::cout << " with index " << last.top()->index.toVerboseString().toStdString().c_str() << std::endl;
                 else
                     std::cout << std::endl;
             }
@@ -1134,8 +1133,8 @@ void CharmImporter::parseLine(QString line, int my_pe)
                 std::cout << " with event " << event;
                 std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
                 std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
-                if (last)
-                    std::cout << " with index " << last->index.toVerboseString().toStdString().c_str();
+                if (!last.isEmpty())
+                    std::cout << " with index " << last.top()->index.toVerboseString().toStdString().c_str();
                 std::cout << " at " << time << std::endl;
             }
             /*for (int i = 0; i < numpes; i++)
@@ -1246,7 +1245,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
         seen_chares.insert(chares->value(entries->value(entry)->chare)->name
                             + "::" + entries->value(entry)->name);
 
-        last = evt;
+        last.push(evt);
 
         charm_stack->push(evt);
 
@@ -1404,8 +1403,8 @@ void CharmImporter::parseLine(QString line, int my_pe)
         CharmEvt * evt = new CharmEvt(entry, time, my_pe,
                                       entries->value(entry)->chare,
                                       arrayid, false);
-        if (last) // Last may not exist since we can begin recording at a function end
-            evt->index = last->index;
+        if (!last.isEmpty()) // Last may not exist since we can begin recording at a function end
+            evt->index = last.top()->index;
         evt->index.chare = entries->value(entry)->chare;
         charm_events->at(my_pe)->append(evt);
 
@@ -1437,7 +1436,8 @@ void CharmImporter::parseLine(QString line, int my_pe)
             std::cout << " with index " << evt->index.toVerboseString().toStdString().c_str() << std::endl;
         }
 
-        last = NULL;
+        if (!last.isEmpty())
+            last.pop();
 
         if (time > traceEnd)
             traceEnd = time;
@@ -1458,7 +1458,8 @@ void CharmImporter::parseLine(QString line, int my_pe)
             std::cout << "BEGIN IDLE" << " on pe " << my_pe << " at " << time << std::endl;
         }
 
-        last = NULL;
+        if (!last.isEmpty())
+            last.pop();
 
         if (time > traceEnd)
             traceEnd = time;
@@ -1479,7 +1480,8 @@ void CharmImporter::parseLine(QString line, int my_pe)
             std::cout << "END IDLE" << " on pe " << my_pe << " at " << time << std::endl;
         }
 
-        last = NULL;
+        if (!last.isEmpty())
+            last.pop();
 
         if (time > traceEnd)
             traceEnd = time;
