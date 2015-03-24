@@ -364,11 +364,8 @@ private:
     int main;
     int forravel;
     int traceChare;
-    int reductionChare;
-    int ckArrayChare;
     int addContribution;
     int recvMsg;
-    int contribute;
     long traceEnd;
     int num_application_tasks;
 
@@ -392,6 +389,7 @@ private:
     QMap<int, ChareGroup *> * groups;
     QMap<ChareIndex, int> * chare_to_task;
     QStack<CharmEvt *> last;
+    CharmEvt * last_complete;
 
     QList<Event *> idles;
 

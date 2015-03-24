@@ -39,11 +39,8 @@ CharmImporter::CharmImporter()
       main(-1),
       forravel(-1),
       traceChare(-1),
-      reductionChare(-1),
       addContribution(-1),
-      ckArrayChare(-1),
       recvMsg(-1),
-      contribute(-1),
       traceEnd(0),
       num_application_tasks(0),
       trace(NULL),
@@ -53,7 +50,6 @@ CharmImporter::CharmImporter()
       charm_events(NULL),
       task_events(NULL),
       pe_events(NULL),
-      //roots(NULL),
       charm_p2ps(NULL),
       pe_p2ps(NULL),
       idle_to_next(new QMap<Event *, int>()),
@@ -745,7 +741,7 @@ void CharmImporter::buildPartitions()
                 // 1) & 2)
                 if ((*p2p)->caller == NULL
                     || ((prev && (*p2p)->caller != prev->caller)
-                        && !((*p2p)->caller->function == contribute
+                        && !((*p2p)->caller->function == addContribution
                              && prev->caller->function == recvMsg))
                     )//|| trace->functions->value((*p2p)->caller->function)->isMain) // 1)
                 {
@@ -820,7 +816,7 @@ void CharmImporter::buildPartitions()
 
                 if (prev && prev->caller != NULL
                     && ((prev->caller == (*p2p)->caller)
-                        || ((*p2p)->caller && (*p2p)->caller->function == contribute
+                        || ((*p2p)->caller && (*p2p)->caller->function == addContribution
                              && prev->caller->function == recvMsg)
                        )
                    )
@@ -1027,7 +1023,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
             index++;
 
             int chare = entries->value(entry)->chare;
-            if (chare == reductionChare || chare == traceChare || chare == forravel
+            if (chare == traceChare || chare == forravel
                 || chares->value(chare)->name.startsWith("Ck"))
                 arrayid = 0;
             if (arrayid > 0 && !arrays->contains(arrayid))
@@ -1200,7 +1196,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
 
             // Special case now that CkReductionMgr has the wrong array id for some reason
             int chare = entries->value(entry)->chare;
-            if (chare == reductionChare || chare == traceChare || chare == forravel
+            if (chare == traceChare || chare == forravel
                 || chares->value(chare)->name.startsWith("Ck"))
                 arrayid = 0;
 
@@ -1549,8 +1545,8 @@ void CharmImporter::processDefinitions()
                                            e->name));
         if (entries->value(id)->chare == main)
             functions->value(id)->isMain = true;
-        if (e->name.startsWith("contribute_wrap"))
-            contribute = id;
+        //if (e->name.startsWith("contribute_wrap"))
+        //    contribute = id;
     }
     entries->insert(SEND_FXN, new Entry(0, "Send", 0));
     entries->insert(RECV_FXN, new Entry(0, "Recv", 0));
@@ -1587,11 +1583,7 @@ void CharmImporter::readSts(QString dataFileName)
             chares->insert(lineList.at(1).toInt(),
                            new Chare(lineList.at(2)));
 
-            if (reductionChare < 0 && QString::compare(lineList.at(2), "CkReductionMgr") == 0)
-                reductionChare = lineList.at(1).toInt();
-            else if (ckArrayChare < 0 && QString::compare(lineList.at(2), "CkArray") == 0)
-                 ckArrayChare = lineList.at(1).toInt();
-            else if (main < 0 && QString::compare(lineList.at(2), "main", Qt::CaseInsensitive) == 0)
+            if (main < 0 && QString::compare(lineList.at(2), "main", Qt::CaseInsensitive) == 0)
                  main = lineList.at(1).toInt();
             else if (forravel < 0 && QString::compare(lineList.at(2), "ForRavel") == 0)
                 forravel = lineList.at(1).toInt();
