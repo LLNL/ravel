@@ -362,6 +362,7 @@ private:
     bool hasPAPI;
     int numPAPI;
     int main;
+    int forravel;
     int traceChare;
     int reductionChare;
     int ckArrayChare;

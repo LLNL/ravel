@@ -946,15 +946,25 @@ void Trace::mergeForCharmLeaps()
 
 
     // First things first, change parent/child relationships based on true_next/true_prev
+    int count = 0;
     for (QList<Partition *>::Iterator part = partitions->begin();
          part != partitions->end(); ++part)
     {
+        if (debug)
+        {
+            std::cout << "Truing children " << count << std::endl;
+            count++;
+        }
         (*part)->true_children();
         if ((*part)->group->size() > 1)
             std::cout << "I'm wrong about group state" << std::endl;
     }
 
+    // fix cycles we have created
+    mergeCycles();
 
+    if (debug)
+        std::cout << "charm leap debug: finding dag entries" << std::endl;
     delete dag_entries;
     dag_entries = new QList<Partition *>();
     for (QList<Partition *>::Iterator partition = partitions->begin();
@@ -964,10 +974,16 @@ void Trace::mergeForCharmLeaps()
             dag_entries->append(*partition);
     }
 
+    if (debug)
+        output_graph("../debug-output/tracegraph-middle-nostep.dot");
+
     // Now that we have done that, reset the dag leaps
+    if (debug)
+        std::cout << "charm leap debug: Setting the dag steps" << std::endl;
     set_dag_steps();
 
-    output_graph("../debug-output/tracegraph-middle.dot");
+    if (debug)
+        output_graph("../debug-output/tracegraph-middle.dot");
 
 
     // Now we want to merge everything in the same leap... but we treat the
@@ -1152,10 +1168,16 @@ void Trace::mergeForCharmLeaps()
     }
     delete partitions;
     partitions = new QList<Partition *>();
+    count = 0;
     for (QSet<Partition *>::Iterator partition = new_partitions->begin();
         partition != new_partitions->end(); ++partition)
     {
         partitions->append(*partition);
+        if (debug)
+        {
+            (*partition)->debug_name = count;
+            count++;
+        }
     }
 }
 
@@ -1178,6 +1200,9 @@ void Trace::forcePartitionDag()
 
     while (!current_leap->isEmpty())
     {
+        //if (debug)
+        //    std::cout << " charm debug: leap " << leap << std::endl;
+
         QSet<Partition *> * next_leap = new QSet<Partition *>();
 
         for (QSet<Partition *>::Iterator part = current_leap->begin();
@@ -1305,7 +1330,7 @@ void Trace::assignSteps()
         set_dag_steps();
         if (debug)
             output_graph("../debug-output/tracegraph-leap.dot");
-        forcePartitionDag();
+        forcePartitionDag(); // overlap due to runtime versus application
 
         if (debug)
             output_graph("../debug-output/tracegraph-after.dot");
@@ -2743,6 +2768,8 @@ void Trace::set_dag_steps()
 
             // All parents were handled, so we can set our steps
             (*partition)->dag_leap = accumulated_leap;
+            if (debug)
+                std::cout << "Setting leap to " << accumulated_leap << std::endl;
             if (!dag_step_dict->contains((*partition)->dag_leap))
                 (*dag_step_dict)[(*partition)->dag_leap] = new QSet<Partition *>();
             ((*dag_step_dict)[(*partition)->dag_leap])->insert(*partition);
@@ -2853,6 +2880,7 @@ void Trace::output_graph(QString filename, bool byparent)
         graph << " - " << QString::number((*partition)->max_global_step).toStdString().c_str();
         graph << ", gv: " << (*partition)->gvid.toStdString().c_str();
         graph << ", ne: " << (*partition)->num_events();
+        graph << ", leap: " << (*partition)->dag_leap;
         graph << "\"];\n";
         ++id;
     }

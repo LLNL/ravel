@@ -37,11 +37,12 @@ CharmImporter::CharmImporter()
       hasPAPI(false),
       numPAPI(0),
       main(-1),
+      forravel(-1),
       traceChare(-1),
       reductionChare(-1),
       addContribution(-1),
-      ckArrayChare(-1)
-,      recvMsg(-1),
+      ckArrayChare(-1),
+      recvMsg(-1),
       contribute(-1),
       traceEnd(0),
       num_application_tasks(0),
@@ -1026,7 +1027,8 @@ void CharmImporter::parseLine(QString line, int my_pe)
             index++;
 
             int chare = entries->value(entry)->chare;
-            if (chare == reductionChare || chare == traceChare || chare == ckArrayChare)
+            if (chare == reductionChare || chare == traceChare || chare == forravel
+                || chares->value(chare)->name.startsWith("Ck"))
                 arrayid = 0;
             if (arrayid > 0 && !arrays->contains(arrayid))
             {
@@ -1198,7 +1200,8 @@ void CharmImporter::parseLine(QString line, int my_pe)
 
             // Special case now that CkReductionMgr has the wrong array id for some reason
             int chare = entries->value(entry)->chare;
-            if (chare == reductionChare || chare == traceChare || chare == ckArrayChare)
+            if (chare == reductionChare || chare == traceChare || chare == forravel
+                || chares->value(chare)->name.startsWith("Ck"))
                 arrayid = 0;
 
             if (arrayid > 0)
@@ -1221,6 +1224,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
             }
         }
 
+        // Only do this for entries
         // recvMsg or addContribution we'll close off
         // Actually anything we'll close off -- that's what projections does
         if (!charm_stack->isEmpty())
@@ -1589,6 +1593,8 @@ void CharmImporter::readSts(QString dataFileName)
                  ckArrayChare = lineList.at(1).toInt();
             else if (main < 0 && QString::compare(lineList.at(2), "main", Qt::CaseInsensitive) == 0)
                  main = lineList.at(1).toInt();
+            else if (forravel < 0 && QString::compare(lineList.at(2), "ForRavel") == 0)
+                forravel = lineList.at(1).toInt();
             else if (traceChare < 0 && QString::compare(lineList.at(2), "TraceProjectionsBOC") == 0)
                  traceChare = lineList.at(1).toInt();
         }
