@@ -942,8 +942,9 @@ void Trace::finalizeTaskEventOrder()
 // Ordering between unordered sends and merging
 void Trace::mergeForCharmLeaps()
 {
-    std::cout << "Forcing partition dag..." << std::endl;
+    std::cout << "Forcing partition dag of unordered sends..." << std::endl;
 
+    /*
     // First things first, change parent/child relationships based on true_next/true_prev
     for (QList<Partition *>::Iterator part = partitions->begin();
          part != partitions->end(); ++part)
@@ -952,6 +953,7 @@ void Trace::mergeForCharmLeaps()
         if ((*part)->group->size() > 1)
             std::cout << "I'm wrong about group state" << std::endl;
     }
+    */
 
     delete dag_entries;
     dag_entries = new QList<Partition *>();
@@ -1155,28 +1157,6 @@ void Trace::mergeForCharmLeaps()
     {
         partitions->append(*partition);
     }
-
-    // Need to calculate new dag_entries
-    delete dag_entries;
-    dag_entries = new QList<Partition *>();
-    for (QList<Partition *>::Iterator partition = partitions->begin();
-         partition != partitions->end(); ++partition)
-    {
-        if ((*partition)->parents->size() <= 0)
-            dag_entries->append(*partition);
-
-        // Update event's reference just in case
-        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
-             = (*partition)->events->begin();
-             event_list != (*partition)->events->end(); ++event_list)
-        {
-            for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
-                 evt != (event_list.value())->end(); ++evt)
-            {
-                (*evt)->partition = *partition;
-            }
-        }
-    }
 }
 
 
@@ -1318,8 +1298,17 @@ void Trace::assignSteps()
     {
         if (debug)
             output_graph("../debug-output/tracegraph-before.dot");
-        mergeForCharmLeaps();
+
+        set_dag_entries();
+        set_dag_steps();
+        if (debug)
+            output_graph("../debug-output/tracegraph-leap.dot");
         forcePartitionDag();
+
+        mergeForCharmLeaps();
+        set_dag_entries();
+        set_dag_steps();
+
         if (debug)
             output_graph("../debug-output/tracegraph-after.dot");
         finalizeTaskEventOrder();
@@ -2634,6 +2623,31 @@ void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
          part != partitions->end(); ++part)
     {
         (*part)->new_partition = NULL;
+    }
+}
+
+void Trace::set_dag_entries()
+{
+    // Need to calculate new dag_entries
+    delete dag_entries;
+    dag_entries = new QList<Partition *>();
+    for (QList<Partition *>::Iterator partition = partitions->begin();
+         partition != partitions->end(); ++partition)
+    {
+        if ((*partition)->parents->size() <= 0)
+            dag_entries->append(*partition);
+
+        // Update event's reference just in case
+        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+             = (*partition)->events->begin();
+             event_list != (*partition)->events->end(); ++event_list)
+        {
+            for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
+                 evt != (event_list.value())->end(); ++evt)
+            {
+                (*evt)->partition = *partition;
+            }
+        }
     }
 }
 

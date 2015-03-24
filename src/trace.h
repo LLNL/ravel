@@ -109,6 +109,7 @@ private:
     // Partition Dag
     void set_partition_dag();
     void set_dag_steps();
+    void set_dag_entries();
 
     // Partitioning process
     void mergeForMessages();
@@ -166,7 +167,7 @@ private:
     //QSet<RecurseInfo *> * riTracker;
     //QSet<QList<Partition *> *> * riChildrenTracker;
 
-    static const bool debug = false;
+    static const bool debug = true;
     static const int partition_portion = 25;
     static const int lateness_portion = 45;
     static const int steps_portion = 30;

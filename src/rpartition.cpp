@@ -233,6 +233,8 @@ void Partition::true_children()
     }
 }
 
+// Check if these are mergable in that they are the same from a runtime
+// inclusion standpoint and they have task overlap.
 bool Partition::mergable(Partition * other)
 {
     if (runtime != other->runtime)
@@ -248,6 +250,7 @@ bool Partition::mergable(Partition * other)
     return overlap;
 }
 
+// Find task overlaps between partitions.
 QSet<int> Partition::task_overlap(Partition * other)
 {
     QSet<int> overlap = QSet<int>();
@@ -275,11 +278,15 @@ QSet<int> Partition::task_overlap(Partition * other)
 // so we're only going to count those at the beginning of each partition
 // e.g. things that are sends where the comm_prev is non-existent or
 // is in a different partition.
+// We also want to take PE into account since some will share a PE.
+// Then we can probably compare them even if they're different tasks.
 Partition * Partition::earlier_partition(Partition * other, QSet<int> overlap_tasks)
 {
     // Counts for which one has the earlier earliest event
-    int me = 0, them = 0;
+    int me = 0, them = 0, me_both = 0, them_both = 0;
     bool mine_first, theirs_first;
+
+    QMap<int, QList<CommEvent *> *> by_pe = QMap<int, QList<CommEvent *> *>();
 
     for (QSet<int>::Iterator task = overlap_tasks.begin();
          task != overlap_tasks.end(); ++task)
@@ -288,6 +295,14 @@ Partition * Partition::earlier_partition(Partition * other, QSet<int> overlap_ta
         // thing for now because we believe it already taken care of
         CommEvent * mine = events->value(*task)->first();
         CommEvent * theirs = other->events->value(*task)->first();
+        if (!by_pe.contains(mine->pe))
+            by_pe.insert(mine->pe, new QList<CommEvent *>());
+        if (!by_pe.contains(theirs->pe))
+            by_pe.insert(theirs->pe, new QList<CommEvent *>());
+
+        by_pe.value(mine->pe)->append(mine);
+        by_pe.value(theirs->pe)->append(theirs);
+
         mine_first = false;
         theirs_first = false;
         if (!mine->isReceive() || !(mine->comm_prev)
@@ -304,7 +319,7 @@ Partition * Partition::earlier_partition(Partition * other, QSet<int> overlap_ta
         // We only count if at least one of ours is first
         if (mine_first && theirs_first)
         {
-            (mine->enter < theirs->enter) ? me++ : them++;
+            (mine->enter < theirs->enter) ? me_both++ : them_both++;
         }
         else if (mine_first)
         {
@@ -316,6 +331,37 @@ Partition * Partition::earlier_partition(Partition * other, QSet<int> overlap_ta
         }
 
     }
+
+    // Well we can't do this by task, so let's do this by pe
+    int me_pe = 0, them_pe = 0;
+    if (me_both == them_both)
+    {
+        for (QMap<int, QList<CommEvent *> *>::Iterator pe_list = by_pe.begin();
+             pe_list != by_pe.end(); ++pe_list)
+        {
+            qSort(pe_list.value()->begin(), pe_list.value()->end());
+            if (pe_list.value()->first()->partition == this)
+                me_pe++;
+            else
+                them_pe++;
+        }
+    }
+
+    for (QMap<int, QList<CommEvent *> *>::Iterator pe_list = by_pe.begin();
+         pe_list != by_pe.end(); ++pe_list)
+    {
+        delete pe_list.value();
+    }
+
+    if (me_both > them_both)
+        return this;
+    else if (them_both > me_both)
+        return other;
+
+    if (me_pe > them_pe)
+        return this;
+    else if (them_pe > me_pe)
+        return other;
 
     if (me > them)
         return this;
