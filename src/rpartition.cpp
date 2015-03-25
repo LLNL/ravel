@@ -223,11 +223,33 @@ void Partition::true_children()
         for (QList<CommEvent *>::Iterator evt = evtlist.value()->begin();
              evt != evtlist.value()->end(); ++evt)
         {
-            if ((*evt)->true_next && (*evt)->true_next->partition != this)
+            // Let's try this only with sends as they carry more meaning
+            // whereas receives can come late, especially if we need to collect
+            // a bunch of receives before something happens
+            if (!(*evt)->isReceive())
             {
-                children->insert((*evt)->true_next->partition);
-                Partition * p = (*evt)->true_next->partition;
-                (*evt)->true_next->partition->parents->insert(this);
+                CommEvent * tmp = (*evt)->true_next;
+                while (tmp)
+                {
+                    if (!tmp->isReceive())
+                    {
+                        if (tmp->partition != this)
+                        {
+                            Partition * p = (*evt)->true_next->partition;
+                            children->insert(p);
+                            p->parents->insert(this);
+                        }
+                        break;
+                    }
+                    tmp = tmp->true_next;
+                }
+            }
+
+            if ((*evt)->comm_next && (*evt)->comm_next->partition != this)
+            {
+                Partition * p = (*evt)->comm_next->partition;
+                children->insert(p);
+                p->parents->insert(this);
             }
         }
     }
