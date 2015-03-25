@@ -62,6 +62,7 @@ CharmImporter::CharmImporter()
       groups(new QMap<int, ChareGroup *>()),
       chare_to_task(new QMap<ChareIndex, int>()),
       last(QStack<CharmEvt *>()),
+      last_complete(NULL),
       idles(QList<Event *>()),
       seen_chares(QSet<QString>()),
       application_chares(QSet<int>())
@@ -251,6 +252,7 @@ void CharmImporter::cleanUp()
 void CharmImporter::readLog(QString logFileName, bool gzipped, int pe)
 {
     last.clear();
+    last_complete = NULL;
     if (gzipped)
     {
         gzFile logfile = gzopen(logFileName.toStdString().c_str(), "r");
@@ -1038,6 +1040,10 @@ void CharmImporter::parseLine(QString line, int my_pe)
         {
             arrayid = last.top()->index.array;
         }
+        else if (last_complete)
+        {
+            arrayid = last_complete->index.array;
+        }
 
         CharmEvt * evt = new CharmEvt(SEND_FXN, time, my_pe,
                                       entries->value(entry)->chare, arrayid,
@@ -1051,6 +1057,13 @@ void CharmImporter::parseLine(QString line, int my_pe)
         {
             evt->index = last.top()->index;
         }
+        else if (last_complete)
+        {
+            evt->index = last_complete->index;
+            last_complete->time = time + 1; // Nudge edge of last_complete to contain this value
+            charm_events->at(my_pe)->removeLast(); // Remove that end to move it
+
+        }
 
         charm_events->at(my_pe)->append(evt);
 
@@ -1063,7 +1076,14 @@ void CharmImporter::parseLine(QString line, int my_pe)
                                            false);
         charm_events->at(my_pe)->append(send_end);
         if (!last.isEmpty())
+        {
             send_end->index = last.top()->index;
+        }
+        else if (last_complete)
+        {
+            send_end->index = last_complete->index;
+            charm_events->at(my_pe)->append(last_complete);
+        }
 
         if (rectype == CREATION)
         {
@@ -1220,19 +1240,18 @@ void CharmImporter::parseLine(QString line, int my_pe)
             }
         }
 
-        // Only do this for entries
-        // recvMsg or addContribution we'll close off
-        // Actually anything we'll close off -- that's what projections does
+
+        // Close off anything that is missing the end message, that's what
+        // Projections does
         if (!charm_stack->isEmpty())
-           /* && (charm_stack->top()->entry == recvMsg
-                || charm_stack->top()->entry == addContribution)
-            && (entry == recvMsg || entry == addContribution))*/
         {
             CharmEvt * front = charm_stack->pop();
             CharmEvt * back = new CharmEvt(front->entry, time, my_pe,
                                            front->chare, front->arrayid,
                                            false);
             charm_events->at(my_pe)->append(back);
+            if (!last.isEmpty())
+                last.pop();
         }
 
         CharmEvt * evt = new CharmEvt(entry, time, my_pe,
@@ -1380,28 +1399,6 @@ void CharmImporter::parseLine(QString line, int my_pe)
             }
         }
 
-        // Handle unfinished inside requests
-        /*CharmEvt * front = NULL;
-        bool found = false;
-        // Handle unfinished inside requests
-        while (!charm_stack->isEmpty() && !found)
-        {
-            front = charm_stack->pop();
-            if (front->chare != entries->value(entry)->chare
-                || front->entry != entry)
-            {
-                CharmEvt * back = new CharmEvt(front->entry, time, my_pe,
-                                               front->chare, front->arrayid,
-                                               false);
-                charm_events->at(my_pe)->append(back);
-            }
-            else
-            {
-                found = true;
-            }
-        }
-        */
-
         CharmEvt * evt = new CharmEvt(entry, time, my_pe,
                                       entries->value(entry)->chare,
                                       arrayid, false);
@@ -1409,27 +1406,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
             evt->index = last.top()->index;
         evt->index.chare = entries->value(entry)->chare;
         charm_events->at(my_pe)->append(evt);
-
-        // Close off others
-        /*
-        if (entry == addContribution || entry == recvMsg)
-        {
-            while (!charm_stack->isEmpty()
-                   && (charm_stack->top()->entry == addContribution
-                       || charm_stack->top()->entry == recvMsg))
-            {
-                front = charm_stack->pop();
-                if (front->chare != entries->value(entry)->chare
-                    || front->entry != entry)
-                {
-                    CharmEvt * back = new CharmEvt(front->entry, time, my_pe,
-                                                   front->chare, front->arrayid,
-                                                   false);
-                    charm_events->at(my_pe)->append(back);
-                }
-            }
-        }
-        */
+        last_complete = evt;
 
         if (verbose)
         {
@@ -1442,6 +1419,8 @@ void CharmImporter::parseLine(QString line, int my_pe)
 
         if (!last.isEmpty())
             last.pop();
+        if (!charm_stack->isEmpty())
+            charm_stack->pop();
 
         if (time > traceEnd)
             traceEnd = time;
