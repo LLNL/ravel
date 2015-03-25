@@ -389,7 +389,6 @@ private:
     QMap<int, ChareGroup *> * groups;
     QMap<ChareIndex, int> * chare_to_task;
     QStack<CharmEvt *> last;
-    CharmEvt * last_complete;
 
     QList<Event *> idles;
 
