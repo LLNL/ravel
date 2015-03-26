@@ -50,6 +50,7 @@ public:
     int num_events();
 
     // For partition ordering
+    bool broken_entry(Partition * child);
     void true_children();
     bool mergable(Partition * other);
     QSet<int> task_overlap(Partition * other);

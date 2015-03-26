@@ -272,6 +272,33 @@ bool Partition::mergable(Partition * other)
     return overlap;
 }
 
+// Check if this partition shares a broken entry with one of its children.
+// The only ones with broken entries should be the child partitions.
+bool Partition::broken_entry(Partition * child)
+{
+    CommEvent * evt = NULL;
+    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+         evtlist != events->end(); ++evtlist)
+    {
+        if (evtlist.value()->size() == 0)
+            continue;
+        for (int i = evtlist.value()->size() - 1; i >= 0; i--)
+        {
+            // The event comm_next must point to the child partition
+            // and the callers must be the same.
+            // Note we may want to re-write this whole bit later to
+            // just find and merge all children.
+            evt = evtlist.value()->at(i);
+            if (evt->comm_next && evt->comm_next->partition == child
+                && evt->caller == evt->comm_next->caller)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 // Find task overlaps between partitions.
 QSet<int> Partition::task_overlap(Partition * other)
 {

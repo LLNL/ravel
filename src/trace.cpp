@@ -366,6 +366,11 @@ void Trace::partition()
         std::cout << std::endl;
         std::cout << "Partitions = " << partitions->size() << std::endl;
 
+        if (options.origin == OTFImportOptions::OF_CHARM)
+        {
+            mergeForEntryRepair();
+        }
+
           // Tarjan
         output_graph("../debug-output/mergecycle-before.dot");
         std::cout << "Merging cycles..." << std::endl;
@@ -939,6 +944,239 @@ void Trace::finalizeTaskEventOrder()
     }
 }
 
+// Ensure entries broken between runtime and non-runtime partitions are repaired.
+// We want to merge all child partitions with this property together, not just
+// for overlaps.  This is because the parent is one partition and if we had
+// not broken due to runtime, so would this be.
+void Trace::mergeForEntryRepair()
+{
+    std::cout << "Repairing entries..." << std::endl;
+
+    // We will try to do this in order
+    set_partition_dag();
+    dag_entries->clear();
+    for (QList<Partition *>::Iterator partition = partitions->begin();
+         partition != partitions->end(); ++partition)
+    {
+        if ((*partition)->parents->size() <= 0)
+            dag_entries->append(*partition);
+    }
+    set_dag_steps();
+
+
+    // Now we want to merge everything in the same leap... but we treat the
+    // partitions with only runtime chares in them differently
+    int leap = 0;
+    QSet<Partition *> * new_partitions = new QSet<Partition *>();
+    QSet<Partition *> * current_leap = new QSet<Partition *>();
+    QSet<QSet<Partition *> *> * toDelete = new QSet<QSet<Partition *> *>();
+    QSet<Partition *> * partition_delete = new QSet<Partition *>();
+    for (QList<Partition *>::Iterator part = dag_entries->begin();
+         part != dag_entries->end(); ++part)
+    {
+        current_leap->insert(*part);
+    }
+    while (!current_leap->isEmpty())
+    {
+        QSet<Partition *> * next_leap = new QSet<Partition *>();
+        QSet<QSet<Partition *> *> * merge_groups = new QSet<QSet<Partition *> *>();
+        for (QSet<Partition *>::Iterator partition = current_leap->begin();
+             partition != current_leap->end(); ++partition)
+        {
+            // If we have a broken entry, that means we must have switched
+            // between runtime and app. That means we can definitely merge
+            // all children because they should be all runtime or all app.
+            QSet<Partition *> * child_group = NULL;
+            Partition * key_child = NULL;
+            for (QSet<Partition *>::Iterator child
+                 = (*partition)->children->begin();
+                 child != (*partition)->children->end(); ++child)
+            {
+                if ((*partition)->broken_entry(*child))
+                {
+                    if (!child_group)
+                    {
+                        child_group = (*child)->group;
+                        key_child = *child;
+                    }
+                    else
+                    {
+                        child_group->unite(*((*child)->group));
+                        for (QSet<Partition *>::Iterator group_member
+                             = child_group->begin();
+                             group_member != child_group->end();
+                             ++group_member)
+                        {
+                            if (*group_member != key_child)
+                            {
+                                // Check if added by a partition
+                                if (merge_groups->contains((*group_member)->group))
+                                    merge_groups->remove((*group_member)->group);
+
+                                // Prep for deletion
+                                toDelete->insert((*group_member)->group);
+
+                                // Update
+                                (*group_member)->group = child_group;
+                            }
+                        } // Update group members
+
+                    } // unite child group
+
+                } // found broken entry
+
+            } // check partition's children
+            if (child_group)
+            {
+                merge_groups->insert(child_group);
+            }
+
+        } // check current leap
+
+        // Now do the merger - we go through the leap and look at each
+        // partition's group and mark anything we've already merged.
+        for (QSet<QSet<Partition *> *>::Iterator group = merge_groups->begin();
+             group != merge_groups->end(); ++group)
+        {
+            Partition * p = new Partition();
+            int min_leap = leap + 1;
+
+            for (QSet<Partition *>::Iterator partition = (*group)->begin();
+                 partition != (*group)->end(); ++partition)
+            {
+                partition_delete->insert(*partition);
+                min_leap = std::min((*partition)->dag_leap, min_leap);
+
+                // Merge all the events into the new partition
+                QList<int> keys = (*partition)->events->keys();
+                for (QList<int>::Iterator k = keys.begin(); k != keys.end(); ++k)
+                {
+                    if (p->events->contains(*k))
+                    {
+                        *((*(p->events))[*k]) += *((*((*partition)->events))[*k]);
+                    }
+                    else
+                    {
+                        (*(p->events))[*k] = new QList<CommEvent *>();
+                        *((*(p->events))[*k]) += *((*((*partition)->events))[*k]);
+                    }
+                }
+
+                p->dag_leap = min_leap;
+
+
+                // Update parents/children links
+                for (QSet<Partition *>::Iterator child
+                     = (*partition)->children->begin();
+                     child != (*partition)->children->end(); ++child)
+                {
+                    if (!((*group)->contains(*child)))
+                    {
+                        p->children->insert(*child);
+                        for (QSet<Partition *>::Iterator group_member
+                             = (*group)->begin();
+                             group_member != (*group)->end();
+                             ++group_member)
+                        {
+                            if ((*child)->parents->contains(*group_member))
+                                (*child)->parents->remove(*group_member);
+                        }
+                        (*child)->parents->insert(p);
+                    }
+                }
+
+                for (QSet<Partition *>::Iterator parent
+                     = (*partition)->parents->begin();
+                     parent != (*partition)->parents->end(); ++parent)
+                {
+                    if (!((*group)->contains(*parent)))
+                    {
+                        p->parents->insert(*parent);
+                        for (QSet<Partition *>::Iterator group_member
+                             = (*group)->begin();
+                             group_member != (*group)->end();
+                             ++group_member)
+                        {
+                            if ((*parent)->children->contains(*group_member))
+                                (*parent)->children->remove(*group_member);
+                        }
+                        (*parent)->children->insert(p);
+                    }
+                }
+
+                // Update new partitions
+                if (new_partitions->contains(*partition))
+                    new_partitions->remove(*partition);
+            }
+
+            p->sortEvents();
+            new_partitions->insert(p);
+        }
+
+        // Next leap
+        for (QSet<Partition *>::Iterator partition
+             = current_leap->begin();
+             partition != current_leap->end(); ++partition)
+        {
+            for (QSet<Partition *>::Iterator child
+                 = (*partition)->children->begin();
+                 child != (*partition)->children->end(); ++child)
+            {
+                (*child)->calculate_dag_leap();
+                if ((*child)->dag_leap == leap + 1)
+                    next_leap->insert(*child);
+            }
+        }
+        ++leap;
+
+        delete current_leap;
+        delete merge_groups;
+        current_leap = next_leap;
+    } // End through current leap
+    delete current_leap;
+
+    // Delete all the old partition groups
+    for (QSet<QSet<Partition *> *>::Iterator group = toDelete->begin();
+         group != toDelete->end(); ++group)
+    {
+        delete *group;
+    }
+    delete toDelete;
+
+    // Get rid of stuff we put in new partitions
+    for (QSet<Partition *>::Iterator partition = partition_delete->begin();
+         partition != partition_delete->end(); ++partition)
+    {
+        partitions->removeOne(*partition);
+        delete *partition;
+    }
+
+    // Need to calculate new dag_entries
+    dag_entries->clear();
+    for (QSet<Partition *>::Iterator partition = new_partitions->begin();
+         partition != new_partitions->end(); ++partition)
+    {
+        partitions->append(*partition);
+        if ((*partition)->parents->size() <= 0)
+            dag_entries->append(*partition);
+
+        // Update event's reference just in case
+        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+             = (*partition)->events->begin();
+             event_list != (*partition)->events->end(); ++event_list)
+        {
+            for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
+                 evt != (event_list.value())->end(); ++evt)
+            {
+                (*evt)->partition = *partition;
+            }
+        }
+    }
+    set_dag_steps();
+
+    delete new_partitions;
+}
+
 // Ordering between unordered sends and merging
 void Trace::mergeForCharmLeaps()
 {
@@ -965,8 +1203,8 @@ void Trace::mergeForCharmLeaps()
 
     if (debug)
         std::cout << "charm leap debug: finding dag entries" << std::endl;
-    delete dag_entries;
-    dag_entries = new QList<Partition *>();
+
+    dag_entries->clear();
     for (QList<Partition *>::Iterator partition = partitions->begin();
          partition != partitions->end(); ++partition)
     {
@@ -1301,8 +1539,7 @@ void Trace::forcePartitionDag()
     delete current_leap;
 
     // Need to calculate new dag_entries
-    delete dag_entries;
-    dag_entries = new QList<Partition *>();
+    dag_entries->clear();
     for (QList<Partition *>::Iterator partition = partitions->begin();
          partition != partitions->end(); ++partition)
     {
@@ -1321,9 +1558,14 @@ void Trace::assignSteps()
     set_dag_steps();
     if (options.origin == OTFImportOptions::OF_CHARM)
     {
-        if (debug)
+        //if (debug)
             output_graph("../debug-output/tracegraph-before.dot");
 
+        /*mergeForEntryRepair();
+
+        //if (debug)
+            output_graph("../debug-output/tracegraph-repair.dot");
+*/
         mergeForCharmLeaps();
 
         set_dag_entries();
@@ -1695,8 +1937,7 @@ void Trace::mergeByCommonCaller()
     partitions = new QList<Partition *>();
 
     // Need to calculate new dag_entries
-    delete dag_entries;
-    dag_entries = new QList<Partition *>();
+    dag_entries->clear();
     for (QSet<Partition *>::Iterator partition = new_partitions->begin();
          partition != new_partitions->end(); ++partition)
     {
@@ -2073,8 +2314,7 @@ void Trace::mergeByLeap()
     partitions = new QList<Partition *>();
 
     // Need to calculate new dag_entries
-    delete dag_entries;
-    dag_entries = new QList<Partition *>();
+    dag_entries->clear();
     for (QSet<Partition *>::Iterator partition = new_partitions->begin();
          partition != new_partitions->end(); ++partition)
     {
@@ -2251,8 +2491,7 @@ void Trace::mergeGlobalSteps()
 
     // Need to calculate new dag_entries
     std::cout << "New dag..." << std::endl;
-    delete dag_entries;
-    dag_entries = new QList<Partition *>();
+    dag_entries->clear();
     for (QSet<Partition *>::Iterator partition = new_partitions->begin();
          partition != new_partitions->end(); ++partition)
     {
@@ -2652,8 +2891,7 @@ void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
 void Trace::set_dag_entries()
 {
     // Need to calculate new dag_entries
-    delete dag_entries;
-    dag_entries = new QList<Partition *>();
+    dag_entries->clear();
     for (QList<Partition *>::Iterator partition = partitions->begin();
          partition != partitions->end(); ++partition)
     {
