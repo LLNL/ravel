@@ -299,6 +299,24 @@ bool Partition::broken_entry(Partition * child)
     return false;
 }
 
+void Partition::broken_entries(QSet<Partition *> * repairees)
+{
+    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+         evtlist != events->end(); ++evtlist)
+    {
+        for (QList<CommEvent *>::Iterator evt = evtlist.value()->begin();
+             evt != evtlist.value()->end(); ++evt)
+        {
+            if ((*evt)->comm_next && (*evt)->comm_next->partition->newest_partition() != this
+                && (*evt)->caller == (*evt)->comm_next->caller
+                && runtime != (*evt)->comm_next->partition->newest_partition()->runtime)
+            {
+                repairees->insert((*evt)->comm_next->partition);
+            }
+        }
+    }
+}
+
 // Find task overlaps between partitions.
 QSet<int> Partition::task_overlap(Partition * other)
 {
@@ -881,7 +899,7 @@ void Partition::basic_step()
             // Save where we are
             next_step[task] = evt;
             // We still need to keep going through this
-            if (evt)
+            if (evt && evt->partition == this)
                 not_done = true;
         }
     }
@@ -1195,6 +1213,23 @@ Partition * Partition::newest_partition()
     while (p != p->new_partition)
         p = p->new_partition;
     return p;
+}
+
+bool Partition::verify_members()
+{
+    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+         evtlist != events->end(); ++evtlist)
+    {
+        for (QList<CommEvent *>::Iterator evt = evtlist.value()->begin();
+             evt != evtlist.value()->end(); ++evt)
+        {
+            if ((*evt)->partition != this)
+            {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 // use GraphViz to see partition graph for debugging

@@ -125,9 +125,13 @@ bool P2PEvent::calculate_local_step()
              msg != messages->end(); ++msg)
         {
             if ((*msg)->sender->step < 0)
+            {
                 return false;
+            }
             else if ((*msg)->sender->step >= temp_step)
+            {
                 temp_step = (*msg)->sender->step + 1;
+            }
         }
     }
 
@@ -136,6 +140,7 @@ bool P2PEvent::calculate_local_step()
         step = temp_step;
         return true;
     }
+
     return false;
 }
 

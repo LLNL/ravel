@@ -51,6 +51,7 @@ public:
 
     // For partition ordering
     bool broken_entry(Partition * child);
+    void broken_entries(QSet<Partition *> * repairees);
     void true_children();
     bool mergable(Partition * other);
     QSet<int> task_overlap(Partition * other);
@@ -58,6 +59,7 @@ public:
 
     // For debugging
     void output_graph(QString filename);
+    bool verify_members();
 
     // Core partition information, events per process and step summary
     QMap<int, QList<CommEvent *> *> * events;

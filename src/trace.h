@@ -151,6 +151,7 @@ private:
 
     // For debugging
     void output_graph(QString filename, bool byparent = false);
+    void verify_partitions();
 
     // Extra metrics somewhat for debugging
     void setGnomeMetric(Partition * part, int gnome_index);

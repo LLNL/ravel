@@ -365,10 +365,15 @@ void Trace::partition()
         gu_printTime(traceElapsed);
         std::cout << std::endl;
         std::cout << "Partitions = " << partitions->size() << std::endl;
+        verify_partitions();
 
         if (options.origin == OTFImportOptions::OF_CHARM)
         {
+            std::cout << "Merge for entries" << std::endl;
             mergeForEntryRepair();
+            verify_partitions();
+            if (debug)
+                output_graph("../debug-output/post-entryrepair.dot");
         }
 
           // Tarjan
@@ -376,6 +381,7 @@ void Trace::partition()
         std::cout << "Merging cycles..." << std::endl;
         traceTimer.start();
         mergeCycles();
+        verify_partitions();
         traceElapsed = traceTimer.nsecsElapsed();
         std::cout << "Cycle Merge: ";
         gu_printTime(traceElapsed);
@@ -578,16 +584,16 @@ void Trace::calculate_partition_duration()
             std::cout << " and max step: " << (*part)->max_global_step << std::endl;
             (*part)->output_graph("../debug-output/Partition-duration-"
                                    + QString::number((*part)->debug_name)
-                                   + "-adv-gstep.dot");
+                                   + "-gstep.dot");
         }
         count++;
         for (int i = (*part)->min_global_step;
              i <= (*part)->max_global_step; i += per_step)
         {
-            if (debug)
+            /*if (debug)
             {
                 std::cout << "        on step " << i << std::endl;
-            }
+            }*/
             QList<CommEvent *> * i_list = new QList<CommEvent *>();
 
             for (QMap<int, QList<CommEvent *> *>::Iterator event_list
@@ -678,7 +684,7 @@ void Trace::calculate_partition_lateness()
             std::cout << " and max step: " << (*part)->max_global_step << std::endl;
             (*part)->output_graph("../debug-output/Partition-"
                                    + QString::number((*part)->debug_name)
-                                   + "-adv-gstep.dot");
+                                   + "-gstep.dot");
         }
         count++;
         for (int i = (*part)->min_global_step;
@@ -955,14 +961,18 @@ void Trace::mergeForEntryRepair()
     // We will try to do this in order
     set_partition_dag();
     dag_entries->clear();
+    int count = 0;
     for (QList<Partition *>::Iterator partition = partitions->begin();
          partition != partitions->end(); ++partition)
     {
         if ((*partition)->parents->size() <= 0)
             dag_entries->append(*partition);
+        (*partition)->debug_name = count;
+        (*partition)->new_partition = *partition;
+        count++;
     }
     set_dag_steps();
-
+    output_graph("../debug-output/tracegraph-repairnames.dot");
 
     // Now we want to merge everything in the same leap... but we treat the
     // partitions with only runtime chares in them differently
@@ -976,6 +986,9 @@ void Trace::mergeForEntryRepair()
     {
         current_leap->insert(*part);
     }
+
+    QSet<Partition *> * repairees = new QSet<Partition *>();
+
     while (!current_leap->isEmpty())
     {
         QSet<Partition *> * next_leap = new QSet<Partition *>();
@@ -988,42 +1001,42 @@ void Trace::mergeForEntryRepair()
             // all children because they should be all runtime or all app.
             QSet<Partition *> * child_group = NULL;
             Partition * key_child = NULL;
-            for (QSet<Partition *>::Iterator child
-                 = (*partition)->children->begin();
-                 child != (*partition)->children->end(); ++child)
+            repairees->clear();
+            (*partition)->broken_entries(repairees);
+            if (repairees->size() > 0)
+                std::cout << "Merging children of " << (*partition)->debug_name << std::endl;
+            for (QSet<Partition *>::Iterator child = repairees->begin();
+                 child != repairees->end(); ++child)
             {
-                if ((*partition)->broken_entry(*child))
+                std::cout << "     child: " << (*child)->debug_name << std::endl;
+                if (!child_group)
                 {
-                    if (!child_group)
+                    child_group = (*child)->group;
+                    key_child = *child;
+                }
+                else
+                {
+                    child_group->unite(*((*child)->group));
+                    for (QSet<Partition *>::Iterator group_member
+                         = child_group->begin();
+                         group_member != child_group->end();
+                         ++group_member)
                     {
-                        child_group = (*child)->group;
-                        key_child = *child;
-                    }
-                    else
-                    {
-                        child_group->unite(*((*child)->group));
-                        for (QSet<Partition *>::Iterator group_member
-                             = child_group->begin();
-                             group_member != child_group->end();
-                             ++group_member)
+                        if (*group_member != key_child)
                         {
-                            if (*group_member != key_child)
-                            {
-                                // Check if added by a partition
-                                if (merge_groups->contains((*group_member)->group))
-                                    merge_groups->remove((*group_member)->group);
+                            // Check if added by a partition
+                            if (merge_groups->contains((*group_member)->group))
+                                merge_groups->remove((*group_member)->group);
 
-                                // Prep for deletion
-                                toDelete->insert((*group_member)->group);
+                            // Prep for deletion
+                            toDelete->insert((*group_member)->group);
 
-                                // Update
-                                (*group_member)->group = child_group;
-                            }
-                        } // Update group members
+                            // Update
+                            (*group_member)->group = child_group;
+                        }
+                    } // Update group members
 
-                    } // unite child group
-
-                } // found broken entry
+                } // unite child group
 
             } // check partition's children
             if (child_group)
@@ -1039,13 +1052,19 @@ void Trace::mergeForEntryRepair()
              group != merge_groups->end(); ++group)
         {
             Partition * p = new Partition();
-            int min_leap = leap + 1;
+            p->debug_name = count;
+            p->new_partition = p;
+            count++;
+            std::cout << "Created " << p->debug_name << " at leap " << (leap+1) << std::endl;
+            //int min_leap = leap + 1;
 
             for (QSet<Partition *>::Iterator partition = (*group)->begin();
                  partition != (*group)->end(); ++partition)
             {
                 partition_delete->insert(*partition);
-                min_leap = std::min((*partition)->dag_leap, min_leap);
+                (*partition)->new_partition = p;
+                std::cout << "Staging " << (*partition)->debug_name << " for deletion" << std::endl;
+                //min_leap = std::min((*partition)->dag_leap, min_leap);
 
                 // Merge all the events into the new partition
                 QList<int> keys = (*partition)->events->keys();
@@ -1062,7 +1081,7 @@ void Trace::mergeForEntryRepair()
                     }
                 }
 
-                p->dag_leap = min_leap;
+                p->dag_leap = leap + 1;
 
 
                 // Update parents/children links
@@ -1072,6 +1091,7 @@ void Trace::mergeForEntryRepair()
                 {
                     if (!((*group)->contains(*child)))
                     {
+                        std::cout << "    adding child " << (*child)->debug_name << std::endl;
                         p->children->insert(*child);
                         for (QSet<Partition *>::Iterator group_member
                              = (*group)->begin();
@@ -1079,7 +1099,10 @@ void Trace::mergeForEntryRepair()
                              ++group_member)
                         {
                             if ((*child)->parents->contains(*group_member))
+                            {
+                                std::cout << "     removing " << (*group_member)->debug_name << " as parent of " << (*child)->debug_name << std::endl;
                                 (*child)->parents->remove(*group_member);
+                            }
                         }
                         (*child)->parents->insert(p);
                     }
@@ -1091,6 +1114,8 @@ void Trace::mergeForEntryRepair()
                 {
                     if (!((*group)->contains(*parent)))
                     {
+                        std::cout << "    adding parent " << (*parent)->debug_name << std::endl;
+
                         p->parents->insert(*parent);
                         for (QSet<Partition *>::Iterator group_member
                              = (*group)->begin();
@@ -1098,7 +1123,10 @@ void Trace::mergeForEntryRepair()
                              ++group_member)
                         {
                             if ((*parent)->children->contains(*group_member))
+                            {
+                                std::cout << "     removing " << (*group_member)->debug_name << " as child of " << (*parent)->debug_name << std::endl;
                                 (*parent)->children->remove(*group_member);
+                            }
                         }
                         (*parent)->children->insert(p);
                     }
@@ -1134,6 +1162,7 @@ void Trace::mergeForEntryRepair()
         current_leap = next_leap;
     } // End through current leap
     delete current_leap;
+    delete repairees;
 
     // Delete all the old partition groups
     for (QSet<QSet<Partition *> *>::Iterator group = toDelete->begin();
@@ -1149,6 +1178,12 @@ void Trace::mergeForEntryRepair()
     {
         partitions->removeOne(*partition);
         delete *partition;
+    }
+
+    for (QList<Partition *>::Iterator part = partitions->begin();
+         part != partitions->end(); ++part)
+    {
+        std::cout << "Partition " << (*part)->debug_name << " remains" << std::endl;
     }
 
     // Need to calculate new dag_entries
@@ -1565,14 +1600,20 @@ void Trace::assignSteps()
 
         //if (debug)
             output_graph("../debug-output/tracegraph-repair.dot");
-*/
-        mergeForCharmLeaps();
+        */
 
+        std::cout << "Merging for leaps in charm" << std::endl;
+        mergeForCharmLeaps();
+        verify_partitions();
+
+        std::cout << "Forcing DAG" << std::endl;
         set_dag_entries();
         set_dag_steps();
         if (debug)
             output_graph("../debug-output/tracegraph-leap.dot");
         forcePartitionDag(); // overlap due to runtime versus application
+        verify_partitions();
+
 
         if (debug)
             output_graph("../debug-output/tracegraph-after.dot");
@@ -1656,6 +1697,9 @@ void Trace::assignSteps()
             }
         }
     }
+    if (debug)
+        output_graph("../debug-output/tracegraph-named.dot");
+
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "Local Stepping: ";
     gu_printTime(traceElapsed);
@@ -3095,6 +3139,19 @@ Event * Trace::findEvent(int task, unsigned long long time)
     return found;
 }
 
+void Trace::verify_partitions()
+{
+    for (QList<Partition *>::Iterator part = partitions->begin();
+         part != partitions->end(); ++part)
+    {
+        if (!(*part)->verify_members())
+        {
+            std::cout << "BROKEN PARTITION" << std::endl;
+            return;
+        }
+    }
+}
+
 // use GraphViz to see partition graph for debugging
 void Trace::output_graph(QString filename, bool byparent)
 {
@@ -3119,6 +3176,7 @@ void Trace::output_graph(QString filename, bool byparent)
         graph << ", gv: " << (*partition)->gvid.toStdString().c_str();
         graph << ", ne: " << (*partition)->num_events();
         graph << ", leap: " << (*partition)->dag_leap;
+        graph << ", name: " << (*partition)->debug_name;
         graph << "\"];\n";
         ++id;
     }
