@@ -741,8 +741,10 @@ void CharmImporter::buildPartitions()
                 // 1) & 2)
                 if ((*p2p)->caller == NULL
                     || ((prev && (*p2p)->caller != prev->caller)
-                        && !((*p2p)->caller->function == addContribution
-                             && prev->caller->function == recvMsg))
+                        && !(((*p2p)->caller->function == addContribution
+                               && prev->caller->function == recvMsg))
+                            || ((*p2p)->caller->function == recvMsg)
+                                 && prev->caller->function == addContribution)
                     )//|| trace->functions->value((*p2p)->caller->function)->isMain) // 1)
                 {
                     if (verbose)

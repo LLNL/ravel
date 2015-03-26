@@ -372,7 +372,7 @@ void Trace::partition()
             std::cout << "Merge for entries" << std::endl;
             mergeForEntryRepair();
             verify_partitions();
-            if (debug)
+            //if (debug)
                 output_graph("../debug-output/post-entryrepair.dot");
         }
 
