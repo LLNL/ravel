@@ -27,6 +27,7 @@ Trace::Trace(int nt, int np)
     : name(""),
       fullpath(""),
       num_tasks(nt),
+      num_application_tasks(nt), // for debug
       num_pes(np),
       units(-9),
       use_aggregates(true),
@@ -354,6 +355,7 @@ void Trace::partition()
     // at the converter stage, now we have to do a lot of merging
     if (!options.partitionByFunction)
     {
+        verify_partitions();
         traceTimer.start();
         // Merge communication
         // Note at this part the partitions do not have parent/child
@@ -1060,11 +1062,14 @@ void Trace::mergeForEntryRepair()
             std::cout << "Created " << p->debug_name << " at leap " << (leap+1) << std::endl;
             //int min_leap = leap + 1;
 
+            bool runtime = false;
             for (QSet<Partition *>::Iterator partition = (*group)->begin();
                  partition != (*group)->end(); ++partition)
             {
+                runtime = runtime || (*partition)->runtime;
                 partition_delete->insert(*partition);
                 (*partition)->new_partition = p;
+
                 std::cout << "Staging " << (*partition)->debug_name << " for deletion" << std::endl;
                 //min_leap = std::min((*partition)->dag_leap, min_leap);
 
@@ -1139,6 +1144,7 @@ void Trace::mergeForEntryRepair()
                     new_partitions->remove(*partition);
             }
 
+            p->runtime = runtime;
             p->sortEvents();
             new_partitions->insert(p);
         }
@@ -1605,7 +1611,7 @@ void Trace::assignSteps()
         */
 
         std::cout << "Merging for leaps in charm" << std::endl;
-        mergeForCharmLeaps();
+        //mergeForCharmLeaps();
         verify_partitions();
 
         std::cout << "Forcing DAG" << std::endl;
@@ -1627,10 +1633,10 @@ void Trace::assignSteps()
         for (QList<Partition *>::Iterator part = partitions->begin();
              part != partitions->end(); ++part)
         {
-            std::cout << "                STARTING PARTITION " << (*part)->debug_name << " of " << partitions->size() << std::endl;
+            //std::cout << "                STARTING PARTITION " << (*part)->debug_name << " of " << partitions->size() << std::endl;
             (*part)->receive_reorder_mpi();
             (*part)->finalizeTaskEventOrder();
-            std::cout << "                FINISHED PARTITION " << (*part)->debug_name << " of " << partitions->size() << std::endl;
+            //std::cout << "                FINISHED PARTITION " << (*part)->debug_name << " of " << partitions->size() << std::endl;
 
         }
     }
@@ -3149,6 +3155,11 @@ void Trace::verify_partitions()
         if (!(*part)->verify_members())
         {
             std::cout << "BROKEN PARTITION" << std::endl;
+            return;
+        }
+        if (!(*part)->verify_runtime(num_application_tasks))
+        {
+            std::cout << "RUNTIME MISMATCH" << std::endl;
             return;
         }
     }

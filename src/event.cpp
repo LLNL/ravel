@@ -11,7 +11,8 @@ Event::Event(unsigned long long _enter, unsigned long long _exit,
       function(_function),
       task(_task),
       pe(_pe),
-      depth(-1)
+      depth(-1),
+      partition(NULL)
 {
 
 }

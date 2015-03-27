@@ -1232,6 +1232,18 @@ bool Partition::verify_members()
     return true;
 }
 
+
+bool Partition::verify_runtime(int runtime_id)
+{
+    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+         evtlist != events->end(); ++evtlist)
+    {
+        if (evtlist.key() >= runtime_id && !runtime)
+            return false;
+    }
+    return true;
+}
+
 // use GraphViz to see partition graph for debugging
 void Partition::output_graph(QString filename)
 {

@@ -41,6 +41,7 @@ public:
     QString name;
     QString fullpath;
     int num_tasks;
+    int num_application_tasks; // debug
     int num_pes;
     int units;
     bool use_aggregates;

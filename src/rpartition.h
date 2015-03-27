@@ -60,6 +60,7 @@ public:
     // For debugging
     void output_graph(QString filename);
     bool verify_members();
+    bool verify_runtime(int runtime_id);
 
     // Core partition information, events per process and step summary
     QMap<int, QList<CommEvent *> *> * events;

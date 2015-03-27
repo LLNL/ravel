@@ -70,7 +70,7 @@ public:
 
     QMap<QString, MetricPair *> * metrics; // Lateness or Counters etc
 
-    Partition * partition;
+    //Partition * partition;
     CommEvent * comm_next;
     CommEvent * comm_prev;
     CommEvent * true_next;

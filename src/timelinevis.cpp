@@ -10,6 +10,7 @@
 #include "trace.h"
 #include "event.h"
 #include "function.h"
+#include "rpartition.h"
 
 TimelineVis::TimelineVis(QWidget* parent, VisOptions * _options)
     : VisWidget(parent = parent, _options),
@@ -238,6 +239,13 @@ void TimelineVis::drawHover(QPainter * painter)
         }
         text += trace->functions->value(hover_event->function)->name;
         text += ", task: " + QString::number(hover_event->task);
+        if (hover_event->partition)
+        {
+            if (hover_event->partition->runtime)
+                text += ", runtime";
+            else
+                text += ", application";
+        }
         // + ", " + QString::number(hover_event->step).toStdString().c_str();
     }
 

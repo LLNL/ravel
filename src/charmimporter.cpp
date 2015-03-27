@@ -142,6 +142,7 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
 
     // Now that we have num_tasks, create the rawtrace to hold the conversion
     trace = new Trace(num_tasks, processes);
+    trace->num_application_tasks = num_application_tasks;
     trace->units = 9;
     trace->functions = functions;
     trace->functionGroups = functiongroups;
@@ -913,8 +914,17 @@ void CharmImporter::makePartition(QList<P2PEvent *> * events)
         p->addEvent(*evt);
         (*evt)->partition = p;
     }
+    if (verbose)
+        std::cout << "Making partition of task " << events->first()->task << " of " << (num_application_tasks + 1);
     if (events->first()->task >= num_application_tasks)
+    {
+        if (verbose)
+            std::cout << " RUNTIME" << std::endl;
         p->runtime = true;
+    }
+    if (verbose)
+        std::cout << std::endl;
+
     p->new_partition = p;
     trace->partitions->append(p);
 }
