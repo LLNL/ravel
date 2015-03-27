@@ -359,6 +359,7 @@ void Trace::partition()
         // Note at this part the partitions do not have parent/child
         // relationships among them. That is first set in the merging of cycles.
         std::cout << "Merging for messages..." << std::endl;
+        output_graph("../debug-output/pre-message.dot");
         mergeForMessages();
         traceElapsed = traceTimer.nsecsElapsed();
         std::cout << "Message Merge: ";
@@ -366,6 +367,7 @@ void Trace::partition()
         std::cout << std::endl;
         std::cout << "Partitions = " << partitions->size() << std::endl;
         verify_partitions();
+        output_graph("../debug-output/post-message.dot");
 
         if (options.origin == OTFImportOptions::OF_CHARM)
         {

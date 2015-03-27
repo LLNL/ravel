@@ -729,26 +729,38 @@ void CharmImporter::buildPartitions()
             }
 
 
-            // End previous by making it into a partition if we have
-            // changed functions... we may also split the function if:
-            // 1) We are in the main function
+            // End previous by making it into a partition if:
+            // 1) We have changed functions (not including addContribution/recvMsg)
             // 2) We are changing from app->runtime or runtime->app
             // 3) This is one of the breakable functions
             // 4) We are starting a a multicast? (probably a sign?)
 
+            if (verbose)
+            {
+                std::cout << "NEXT EVENT I am " << functions->value((*p2p)->caller->function)->name.toStdString().c_str();
+                std::cout << " we have prev: " << prev << " and taskid " << taskid << std::endl;
+            }
             if (!events->isEmpty())
             {
-                // 1) & 2)
+                // 1)
                 if ((*p2p)->caller == NULL
                     || ((prev && (*p2p)->caller != prev->caller)
-                        && !(((*p2p)->caller->function == addContribution
-                               && prev->caller->function == recvMsg))
-                            || ((*p2p)->caller->function == recvMsg)
-                                 && prev->caller->function == addContribution)
+                        && !( ((*p2p)->caller->function == addContribution
+                               && prev->caller->function == recvMsg
+                              )
+                             || (((*p2p)->caller->function == recvMsg)
+                                 && prev->caller->function == addContribution
+                                )
+                            )
+                       )
                     )//|| trace->functions->value((*p2p)->caller->function)->isMain) // 1)
                 {
                     if (verbose)
-                        std::cout << " ----- Making a partition due to caller split" << std::endl;
+                    {
+                        std::cout << " --- Making a partition due to caller split";
+                        std::cout << " between " << functions->value(prev->caller->function)->name.toStdString().c_str();
+                        std::cout << " and " << functions->value((*p2p)->caller->function)->name.toStdString().c_str() << std::endl;
+                    }
                     makePartition(events);
                     events->clear();
                 }
@@ -758,6 +770,8 @@ void CharmImporter::buildPartitions()
                     bool prev_app = true, my_app = true;
                     if (prev->is_recv)
                     {
+                        if (verbose)
+                            std::cout << " * Prev sender task is " << prev->messages->first()->sender->task << std::endl;
                         if (prev->messages->first()->sender->task >= num_application_tasks)
                         {
                             prev_app = false;
@@ -765,6 +779,8 @@ void CharmImporter::buildPartitions()
                     }
                     else
                     {
+                        if (verbose)
+                            std::cout << " * Prev receiver task is " << prev->messages->first()->receiver->task << std::endl;
                         if (prev->messages->first()->receiver->task >= num_application_tasks)
                         {
                             prev_app = false;
@@ -774,6 +790,8 @@ void CharmImporter::buildPartitions()
                     // Check if we are application only
                     if ((*p2p)->is_recv)
                     {
+                        if (verbose)
+                            std::cout << " * My sender task is " << (*p2p)->messages->first()->sender->task << std::endl;
                         if ((*p2p)->messages->first()->sender->task >= num_application_tasks)
                         {
                             my_app = false;
@@ -781,6 +799,8 @@ void CharmImporter::buildPartitions()
                     }
                     else
                     {
+                        if (verbose)
+                            std::cout << " * My receiver task is " << (*p2p)->messages->first()->receiver->task << std::endl;
                         if ((*p2p)->messages->first()->receiver->task >= num_application_tasks)
                         {
                             my_app = false;
@@ -788,15 +808,36 @@ void CharmImporter::buildPartitions()
                     }
 
                     if (verbose)
+                    {
+                        std::cout << " --- We are " << trace->functions->value(prev->caller->function)->shortname.toStdString().c_str() << std::endl;
                         std::cout << " --- my_app is " << my_app << " and theirs is " << prev_app << std::endl;
                     // These should be the same or split.
                     if (my_app != prev_app)
                     {
                         if (verbose)
-                            std::cout << " ----- Making a partition due to runtime split" << std::endl;
+                        {
+                            std::cout << " --- Making a partition due to runtime split in function ";
+                            std::cout << functions->value(prev->caller->function)->name.toStdString().c_str();
+                            std::cout << " with prev app " << prev_app << " and my app " << my_app << std::endl;
+
+                        }
                         makePartition(events);
                         events->clear();
                     }
+                    else
+                    {
+                        if (verbose)
+                        {
+                            std::cout << " --- No runtime split in function ";
+                            std::cout << functions->value(prev->caller->function)->name.toStdString().c_str();
+                            std::cout << " with prev app " << prev_app << " and my app " << my_app << std::endl;
+
+                        }
+                    }
+                }
+                else if (verbose)
+                {
+                    std::cout << " --- Split conditions not met" << std::endl;
                 }
 
                 if (!events->isEmpty() && !options->partitionByFunction)// 3)
@@ -808,38 +849,41 @@ void CharmImporter::buildPartitions()
                         if (caller.startsWith(*fxn, Qt::CaseInsensitive))
                         {
                             if (verbose)
-                                std::cout << " ----- Making a partition due to given split" << std::endl;
+                                std::cout << " --- Making a partition due to given split" << std::endl;
                             makePartition(events);
                             events->clear();
                             break;
                         }
                     }
                 }
-
-                if (prev && prev->caller != NULL
-                    && ((prev->caller == (*p2p)->caller)
-                        || ((*p2p)->caller && (*p2p)->caller->function == addContribution
-                             && prev->caller->function == recvMsg)
-                       )
-                   )
-                {
-                    prev->comm_next = *p2p;
-                    (*p2p)->comm_prev = prev;
-                }
-                prev = *p2p;
-
-                // The ordering of
-                if (!(*p2p)->is_recv && (*p2p)->comm_prev == NULL)
-                {
-                    (*p2p)->true_prev = true_prev;
-                    if (true_prev)
-                    {
-                        true_prev->true_next = *p2p;
-                    }
-                    true_prev = *p2p;
-                }
+            }
+            else if (verbose)
+            {
+                std::cout << " --- Nothing to split" << std::endl;
             }
 
+            if (prev && prev->caller != NULL
+                && ((prev->caller == (*p2p)->caller)
+                    || ((*p2p)->caller && (*p2p)->caller->function == addContribution
+                         && prev->caller->function == recvMsg)
+                   )
+               )
+            {
+                prev->comm_next = *p2p;
+                (*p2p)->comm_prev = prev;
+            }
+            prev = *p2p;
+
+            // The ordering of
+            if (!(*p2p)->is_recv && (*p2p)->comm_prev == NULL)
+            {
+                (*p2p)->true_prev = true_prev;
+                if (true_prev)
+                {
+                    true_prev->true_next = *p2p;
+                }
+                true_prev = *p2p;
+            }
 
             events->append(*p2p);
             trace->events->at((*p2p)->task)->append(*p2p);
