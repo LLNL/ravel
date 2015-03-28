@@ -286,6 +286,13 @@ void Partition::true_children()
                     tmp = tmp->true_next;
                 }
             }
+
+            if ((*evt)->comm_next && (*evt)->comm_next->partition != this)
+            {
+                Partition * p = (*evt)->comm_next->partition;
+                children->insert(p);
+                p->parents->insert(this);
+            }
         }
     }
 }

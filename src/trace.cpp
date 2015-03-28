@@ -1241,8 +1241,10 @@ void Trace::mergeForCharmLeaps()
             std::cout << "Truing children " << count << std::endl;
             count++;
         }
-        (*part)->true_children();
+
         (*part)->semantic_children();
+        (*part)->true_children();
+
         if ((*part)->group->size() > 1)
             std::cout << "I'm wrong about group state" << std::endl;
     }
