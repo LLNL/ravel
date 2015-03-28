@@ -60,6 +60,7 @@ CharmImporter::CharmImporter()
       functions(new QMap<int, Function *>()),
       arrays(new QMap<int, ChareArray *>()),
       groups(new QMap<int, ChareGroup *>()),
+      atomics(new QMap<int, int>()),
       chare_to_task(new QMap<ChareIndex, int>()),
       last(QStack<CharmEvt *>()),
       idles(QList<Event *>()),
@@ -293,6 +294,7 @@ void CharmImporter::makeTaskEvents()
     int depth, phase;
     CharmEvt * bgn = NULL;
     int counter = 0;
+    int atomic = -1;
 
     bool have_arrays = false;
     if (arrays->size() > 0)
@@ -388,6 +390,33 @@ void CharmImporter::makeTaskEvents()
                 if (verbose)
                     std::cout << "            Setting Task to " << (*evt)->task << std::endl;
 
+
+                if (atomics->contains((*evt)->entry))
+                {
+                    atomic = atomics->value((*evt)->entry);
+
+                    // Check to see if we have a previous entry on the same
+                    // task. That may indicate a when clause.
+                    P2PEvent * last_p2p = charm_p2ps->at((*evt)->task)->last();
+                    Event * last_evt = trace->pe_events->at((*evt)->pe)->last();
+                    if (last_evt->task == (*evt)->task)
+                    {
+                        // If these didn't have atomics set in them. We have
+                        // to go through charm_p2ps because we need P2PEvents
+                        int index = charm_p2ps->at((*evt)->task)->size() - 1;
+                        while (last_p2p->caller == last_evt
+                               && last_p2p->atomic < 0)
+                        {
+                            last_p2p->atomic = atomic;
+                            index--;
+                            if (index < 0)
+                                break;
+                            last_p2p = charm_p2ps->at((*evt)->task)->at(index);
+                        }
+                    }
+
+                }
+
                 stack->push(*evt);
                 depth++;
             } // Handle enter stuff
@@ -413,13 +442,19 @@ void CharmImporter::makeTaskEvents()
                 } */
 
                 if (bgn)
-                    depth = makeTaskEventsPop(stack, bgn, (*evt)->time, phase, depth);
+                    depth = makeTaskEventsPop(stack, bgn, (*evt)->time, phase, depth, atomic);
+
+                // Unset atomic
+                if (atomics->contains(bgn->entry))
+                {
+                    atomic = -1;
+                }
             } // Handle this Event
         } // Loop Event
 
         // Unfinished begins
         while (!stack->isEmpty())
-            depth = makeTaskEventsPop(stack, stack->pop(), traceEnd, phase, depth);
+            depth = makeTaskEventsPop(stack, stack->pop(), traceEnd, phase, depth, atomic);
     } // Loop Event Lists
 
 
@@ -435,7 +470,7 @@ void CharmImporter::makeTaskEvents()
 }
 
 int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
-                                     long endtime, int phase, int depth)
+                                     long endtime, int phase, int depth, int atomic)
 {
     Event * e = NULL;
 
@@ -500,6 +535,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                     pe_p2ps->at(bgn->pe)->append((*cmsg)->tracemsg->sender);
                     (*cmsg)->tracemsg->sender->addMetric("Idle", 0, 0);
                     (*cmsg)->tracemsg->sender->addMetric("Idle Blame", 0, 0);
+                    (*cmsg)->tracemsg->sender->atomic = atomic;
 
                 }
                 else
@@ -527,6 +563,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                 e = (*cmsg)->tracemsg->receiver;
                 (*cmsg)->tracemsg->receiver->addMetric("Idle", 0, 0);
                 (*cmsg)->tracemsg->receiver->addMetric("Idle Blame", 0, 0);
+                (*cmsg)->tracemsg->receiver->atomic = atomic;
                 pe_p2ps->at(bgn->pe)->append((*cmsg)->tracemsg->receiver);
             }
         }
@@ -564,6 +601,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
     {
         stack->top()->children->append(e);
     }
+
     for (QList<Event *>::Iterator child = bgn->children->begin();
          child != bgn->children->end(); ++child)
     {
@@ -914,6 +952,17 @@ void CharmImporter::makePartition(QList<P2PEvent *> * events)
     {
         p->addEvent(*evt);
         (*evt)->partition = p;
+        if ((*evt)->atomic >= 0)
+        {
+            if ((*evt)->atomic < p->min_atomic)
+            {
+                p->min_atomic = (*evt)->atomic;
+            }
+            if ((*evt)->atomic > p->max_atomic)
+            {
+                p->max_atomic = (*evt)->atomic;
+            }
+        }
     }
     if (verbose)
         std::cout << "Making partition of task " << events->first()->task << " of " << (num_application_tasks + 1);
@@ -1594,10 +1643,15 @@ void CharmImporter::readSts(QString dataFileName)
                             new Entry(lineList.at(len-2).toInt(), name,
                                       lineList.at(len-1).toInt()));
 
-            if (name.startsWith("addContribution(CkReductionMsg"))
+            if (addContribution < 0 && name.startsWith("addContribution(CkReductionMsg"))
                 addContribution = lineList.at(2).toInt();
-            else if (name.startsWith("RecvMsg(CkReductionMsg"))
+            else if (recvMsg < 0 && name.startsWith("RecvMsg(CkReductionMsg"))
                 recvMsg = lineList.at(2).toInt();
+            else if (name.contains("atomic"))
+            {
+                atomics->insert(lineList.at(2).toInt(),
+                                name.split("_atomic_").at(1).toInt());
+            }
         }
         else if (lineList.at(0) == "CHARE")
         {

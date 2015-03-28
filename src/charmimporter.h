@@ -204,7 +204,7 @@ private:
     int makeTasks();
     void makeTaskEvents();
     int makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
-                          long endtime, int phase, int depth);
+                          long endtime, int phase, int depth, int atomic);
 
     void chargeIdleness();
 
@@ -387,6 +387,7 @@ private:
     QMap<int, Function *> * functions;
     QMap<int, ChareArray *> * arrays;
     QMap<int, ChareGroup *> * groups;
+    QMap<int, int> * atomics; // Map EntryID to Atomic Number
     QMap<ChareIndex, int> * chare_to_task;
     QStack<CharmEvt *> last;
 

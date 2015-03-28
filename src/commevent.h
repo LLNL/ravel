@@ -76,6 +76,9 @@ public:
     CommEvent * true_next;
     CommEvent * true_prev;
 
+    // Charm atomic
+    int atomic;
+
     // Used in stepping procedure
     CommEvent * last_stride;
     CommEvent * next_stride;

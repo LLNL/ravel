@@ -52,7 +52,9 @@ public:
     // For partition ordering
     bool broken_entry(Partition * child);
     void broken_entries(QSet<Partition *> * repairees);
+    void semantic_children();
     void true_children();
+    void set_atomics();
     bool mergable(Partition * other);
     QSet<int> task_overlap(Partition * other);
     Partition * earlier_partition(Partition * other, QSet<int> overlap_tasks);
@@ -85,6 +87,10 @@ public:
     // For leap merge
     bool leapmark;
     QSet<Partition *> * group;
+
+    // For charm++ atomics
+    int min_atomic;
+    int max_atomic;
 
     // For graph drawing
     QString gvid;

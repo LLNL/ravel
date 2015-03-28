@@ -239,13 +239,7 @@ void TimelineVis::drawHover(QPainter * painter)
         }
         text += trace->functions->value(hover_event->function)->name;
         text += ", task: " + QString::number(hover_event->task);
-        if (hover_event->partition)
-        {
-            if (hover_event->partition->runtime)
-                text += ", runtime";
-            else
-                text += ", application";
-        }
+        //text += ", atomic: " + QString::number(hover_event->atomic);
         // + ", " + QString::number(hover_event->step).toStdString().c_str();
     }
 

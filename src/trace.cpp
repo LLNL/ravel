@@ -1067,6 +1067,11 @@ void Trace::mergeForEntryRepair()
                  partition != (*group)->end(); ++partition)
             {
                 runtime = runtime || (*partition)->runtime;
+                if ((*partition)->min_atomic < p->min_atomic)
+                    p->min_atomic = (*partition)->min_atomic;
+                if ((*partition)->max_atomic > p->max_atomic)
+                    p->max_atomic = (*partition)->max_atomic;
+
                 partition_delete->insert(*partition);
                 (*partition)->new_partition = p;
 
@@ -1237,6 +1242,7 @@ void Trace::mergeForCharmLeaps()
             count++;
         }
         (*part)->true_children();
+        (*part)->semantic_children();
         if ((*part)->group->size() > 1)
             std::cout << "I'm wrong about group state" << std::endl;
     }
@@ -1358,6 +1364,11 @@ void Trace::mergeForCharmLeaps()
         {
             min_leap = std::min((*partition)->dag_leap, min_leap);
             runtime = runtime || (*partition)->runtime;
+            if ((*partition)->min_atomic < p->min_atomic)
+                p->min_atomic = (*partition)->min_atomic;
+            if ((*partition)->max_atomic > p->max_atomic)
+                p->max_atomic = (*partition)->max_atomic;
+
             // Merge all the events into the new partition
             QList<int> keys = (*partition)->events->keys();
             for (QList<int>::Iterator k = keys.begin(); k != keys.end(); ++k)
@@ -1611,7 +1622,7 @@ void Trace::assignSteps()
         */
 
         std::cout << "Merging for leaps in charm" << std::endl;
-        //mergeForCharmLeaps();
+        mergeForCharmLeaps();
         verify_partitions();
 
         std::cout << "Forcing DAG" << std::endl;
@@ -2811,6 +2822,10 @@ void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
         {
             (*partition)->new_partition = p;
             runtime = runtime || (*partition)->runtime;
+            if ((*partition)->min_atomic < p->min_atomic)
+                p->min_atomic = (*partition)->min_atomic;
+            if ((*partition)->max_atomic > p->max_atomic)
+                p->max_atomic = (*partition)->max_atomic;
 
             // Merge all the events into the new partition
             QList<int> keys = (*partition)->events->keys();

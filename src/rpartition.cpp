@@ -28,6 +28,8 @@ Partition::Partition()
       lowlink(-1),
       leapmark(false),
       group(new QSet<Partition *>()),
+      min_atomic(INT_MAX),
+      max_atomic(-1),
       gvid(""),
       gnome(NULL),
       gnome_type(0),
@@ -212,6 +214,46 @@ Event * Partition::least_common_caller(int taskid, QMap<Event *, int> * memo)
     }
 }
 
+void Partition::set_atomics()
+{
+
+}
+
+// Set children based on semantic heuristics like comm_next/comm_prev (though
+// that should have been done already) and atomic order.
+// For atomic order, we just need to know the number since we know by our
+// events list are by task so we know all atomic numbers belong to the
+// same task.
+void Partition::semantic_children()
+{
+    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+         evtlist != events->end(); ++evtlist)
+    {
+        for (QList<CommEvent *>::Iterator evt = evtlist.value()->begin();
+             evt != evtlist.value()->end(); ++evt)
+        {
+            // comm_next/comm_prev
+            if ((*evt)->comm_next && (*evt)->comm_next->partition != this)
+            {
+                Partition * p = (*evt)->comm_next->partition;
+                children->insert(p);
+                p->parents->insert(this);
+            }
+
+            // atomic - check if true_next is an atomic difference
+            if ((*evt)->true_next && (*evt)->true_next->partition != this)
+            {
+                if ((*evt)->atomic < (*evt)->true_next->atomic)
+                {
+                    Partition * p = (*evt)->true_next->partition;
+                    children->insert(p);
+                    p->parents->insert(this);
+                }
+            }
+        }
+    }
+}
+
 
 // True the partition... anything we a true_next that is not us we will set as
 // our child partition.
@@ -243,13 +285,6 @@ void Partition::true_children()
                     }
                     tmp = tmp->true_next;
                 }
-            }
-
-            if ((*evt)->comm_next && (*evt)->comm_next->partition != this)
-            {
-                Partition * p = (*evt)->comm_next->partition;
-                children->insert(p);
-                p->parents->insert(this);
             }
         }
     }
