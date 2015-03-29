@@ -243,7 +243,7 @@ void Partition::semantic_children()
             // atomic - check if true_next is an atomic difference
             if ((*evt)->true_next && (*evt)->true_next->partition != this)
             {
-                if ((*evt)->atomic < (*evt)->true_next->atomic)
+                if ((*evt)->atomic + 1 == (*evt)->true_next->atomic)
                 {
                     Partition * p = (*evt)->true_next->partition;
                     children->insert(p);
@@ -353,7 +353,24 @@ void Partition::broken_entries(QSet<Partition *> * repairees)
                 && (*evt)->caller == (*evt)->comm_next->caller
                 && runtime != (*evt)->comm_next->partition->newest_partition()->runtime)
             {
-                repairees->insert((*evt)->comm_next->partition);
+                repairees->insert((*evt)->comm_next->partition->newest_partition());
+            }
+        }
+    }
+}
+
+void Partition::stitched_atomics(QSet<Partition *> * stitchees)
+{
+    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+         evtlist != events->end(); ++evtlist)
+    {
+        for (QList<CommEvent *>::Iterator evt = evtlist.value()->begin();
+             evt != evtlist.value()->end(); ++evt)
+        {
+            if ((*evt)->true_next && (*evt)->true_next->partition->newest_partition() != this
+                && (*evt)->atomic + 1 == (*evt)->true_next->atomic)
+            {
+                stitchees->insert((*evt)->true_next->partition->newest_partition());
             }
         }
     }

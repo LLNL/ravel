@@ -70,14 +70,14 @@ public:
 
     QMap<QString, MetricPair *> * metrics; // Lateness or Counters etc
 
-    //Partition * partition;
+    //Partition * partition; debugging
     CommEvent * comm_next;
     CommEvent * comm_prev;
     CommEvent * true_next;
     CommEvent * true_prev;
 
     // Charm atomic
-    int atomic;
+    //int atomic; debugging
     long matching;
 
     // Used in stepping procedure

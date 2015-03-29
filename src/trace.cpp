@@ -392,12 +392,27 @@ void Trace::partition()
             std::cout << "Merge for entries" << std::endl;
             mergeForEntryRepair();
             verify_partitions();
+            //if (debug)
+                output_graph("../debug-output/post-entryrepair.dot");
+
             std::cout << "Second merge cycles..." << std::endl;
             mergeCycles();
             verify_partitions();
-
             //if (debug)
-                output_graph("../debug-output/post-entryrepair.dot");
+                output_graph("../debug-output/post-entryrepair-cycle.dot");
+
+            std::cout << "Merge for atomics" << std::endl;
+            mergeForEntryRepair(false);
+            verify_partitions();
+            //if (debug)
+                output_graph("../debug-output/post-atomics.dot");
+
+            std::cout << "Third merge cycles..." << std::endl;
+            mergeCycles();
+            verify_partitions();
+            //if (debug)
+                output_graph("../debug-output/post-atomics-cycle.dot");
+
         }
 
         std::cout << "Partitions = " << partitions->size() << std::endl;
@@ -941,7 +956,7 @@ void Trace::calculate_lateness()
 // What was left ambiguous is now set in stone
 void Trace::finalizeTaskEventOrder()
 {
-    std::cout << "Forcing event order per partition..." << std::endl;
+    std::cout << "Forcing event order per partition (charm)..." << std::endl;
     if (options.reorderReceives)
     {
         for (QList<Partition *>::Iterator part = partitions->begin();
@@ -968,7 +983,7 @@ void Trace::finalizeTaskEventOrder()
 // We want to merge all child partitions with this property together, not just
 // for overlaps.  This is because the parent is one partition and if we had
 // not broken due to runtime, so would this be.
-void Trace::mergeForEntryRepair()
+void Trace::mergeForEntryRepair(bool entries)
 {
     std::cout << "Repairing entries..." << std::endl;
 
@@ -1017,13 +1032,17 @@ void Trace::mergeForEntryRepair()
             QSet<Partition *> * child_group = NULL;
             Partition * key_child = NULL;
             repairees->clear();
-            (*partition)->broken_entries(repairees);
-            if (repairees->size() > 0)
+            if (entries)
+                (*partition)->broken_entries(repairees);
+            else
+                (*partition)->stitched_atomics(repairees);
+            if (repairees->size() > 0 && debug)
                 std::cout << "Merging children of " << (*partition)->debug_name << std::endl;
             for (QSet<Partition *>::Iterator child = repairees->begin();
                  child != repairees->end(); ++child)
             {
-                std::cout << "     child: " << (*child)->debug_name << std::endl;
+                if (debug)
+                    std::cout << "     child: " << (*child)->debug_name << std::endl;
                 if (!child_group)
                 {
                     child_group = (*child)->group;
@@ -1070,8 +1089,9 @@ void Trace::mergeForEntryRepair()
             p->debug_name = count;
             p->new_partition = p;
             count++;
-            std::cout << "Created " << p->debug_name << " at leap " << (leap+1) << std::endl;
-            //int min_leap = leap + 1;
+            if (debug)
+                std::cout << "Created " << p->debug_name << " at leap " << (leap+1) << std::endl;
+            int min_leap = leap + 1;
 
             bool runtime = false;
             for (QSet<Partition *>::Iterator partition = (*group)->begin();
@@ -1087,7 +1107,7 @@ void Trace::mergeForEntryRepair()
                 (*partition)->new_partition = p;
 
                 std::cout << "Staging " << (*partition)->debug_name << " for deletion" << std::endl;
-                //min_leap = std::min((*partition)->dag_leap, min_leap);
+                min_leap = std::min((*partition)->dag_leap, min_leap);
 
                 // Merge all the events into the new partition
                 QList<int> keys = (*partition)->events->keys();
@@ -1104,7 +1124,7 @@ void Trace::mergeForEntryRepair()
                     }
                 }
 
-                p->dag_leap = leap + 1;
+                p->dag_leap = min_leap;
 
 
                 // Update parents/children links
@@ -1253,7 +1273,7 @@ void Trace::mergeForCharmLeaps()
             count++;
         }
 
-        //(*part)->semantic_children();
+        (*part)->semantic_children();
         (*part)->true_children();
 
         if ((*part)->group->size() > 1)
@@ -1666,8 +1686,7 @@ void Trace::assignSteps()
     }
 
     traceTimer.start();
-    if (debug)
-        std::cout << "Assigning local steps" << std::endl;
+    std::cout << "Assigning local steps" << std::endl;
     int progressPortion = std::max(round(partitions->size() / 1.0
                                          / steps_portion),
                                    1.0);
@@ -3022,10 +3041,24 @@ void Trace::set_partition_dag()
                         (*evt)->comm_prev->partition->children->insert(*partition);
                         parent_flag = true;
                     }
+                    if ((*evt)->true_prev && (*evt)->true_prev->partition != *partition
+                            && (*evt)->atomic - 1 == (*evt)->true_prev->atomic)
+                    {
+                        (*partition)->parents->insert((*evt)->true_prev->partition);
+                        (*evt)->true_prev->partition->children->insert(*partition);
+                        parent_flag = true;
+                    }
+
                     if ((*evt)->comm_next && (*evt)->comm_next->partition != *partition)
                     {
                         (*partition)->children->insert((*evt)->comm_next->partition);
                         (*evt)->comm_next->partition->parents->insert(*partition);
+                    }
+                    if((*evt)->true_next && (*evt)->true_next->partition != *partition
+                       && (*evt)->atomic + 1 == (*evt)->true_next->atomic)
+                    {
+                        (*partition)->children->insert((*evt)->true_next->partition);
+                        (*evt)->true_next->partition->parents->insert(*partition);
                     }
                 }
 

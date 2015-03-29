@@ -49,6 +49,7 @@ public:
     int pe;
     int depth;
     Partition * partition; // for debugging
+    int atomic; // for debugging
 };
 
 static bool eventTaskLessThan(const Event * evt1, const Event * evt2)

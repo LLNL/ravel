@@ -245,6 +245,7 @@ void TimelineVis::drawHover(QPainter * painter)
         {
             text += ((hover_event->partition->runtime) ? ", runtime" : ", application");
         }
+        text += ", atomic: " + QString::number(hover_event->atomic);
     }
 
     // Determine bounding box of FontMetrics

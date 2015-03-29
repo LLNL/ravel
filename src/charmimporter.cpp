@@ -605,6 +605,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
 
     depth--;
     e->depth = depth;
+    e->atomic = atomic; // debugging
     if (depth == 0)
     {
         (*(trace->roots))[bgn->pe]->append(e);
@@ -748,43 +749,6 @@ void CharmImporter::buildPartitions()
         for (QVector<P2PEvent *>::Iterator p2p = (*p2plist)->begin();
              p2p != (*p2plist)->end(); ++p2p)
         {
-            // comm_next / comm_prev only set within the same caller
-            // as that's what we know is a true ordering
-            // This is true for charm++, may not be true for
-            // general task-based models
-            /*if (verbose)
-            {
-                if (!(prev && prev->caller))
-                {
-                   std::cout << "-- no prev or prev->caller at time " << (*p2p)->enter << std::endl;
-                }
-                else
-                {
-                    std::cout << "-- prev caller is" << trace->functions->value(prev->caller->function)->name.toStdString().c_str();
-                    std::cout << " and my caller is " << trace->functions->value((*p2p)->caller->function)->name.toStdString().c_str();
-                    std::cout << " at " << (*p2p)->enter << std::endl;
-                }
-            }*/
-            if (prev && prev->caller != NULL
-                && (prev->caller == (*p2p)->caller))
-            {
-                prev->comm_next = *p2p;
-                (*p2p)->comm_prev = prev;
-            }
-            prev = *p2p;
-
-            // The ordering of
-            if (!(*p2p)->is_recv && (*p2p)->comm_prev == NULL)
-            {
-                (*p2p)->true_prev = true_prev;
-                if (true_prev)
-                {
-                    true_prev->true_next = *p2p;
-                }
-                true_prev = *p2p;
-            }
-
-
             // End previous by making it into a partition if:
             // 1) We have changed functions (not including addContribution/recvMsg)
             // 2) We are changing from app->runtime or runtime->app
@@ -927,6 +891,10 @@ void CharmImporter::buildPartitions()
                 std::cout << " --- Nothing to split" << std::endl;
             }
 
+            // comm_next / comm_prev only set within the same caller
+            // as that's what we know is a true ordering
+            // This is true for charm++, may not be true for
+            // general task-based models
             if (prev && prev->caller != NULL
                 && ((prev->caller == (*p2p)->caller)
                     || ((*p2p)->matching == prev->matching
@@ -944,7 +912,7 @@ void CharmImporter::buildPartitions()
             prev = *p2p;
 
             // The ordering of
-            if (!(*p2p)->is_recv && (*p2p)->comm_prev == NULL)
+            /*if (!(*p2p)->is_recv && (*p2p)->comm_prev == NULL)
             {
                 (*p2p)->true_prev = true_prev;
                 if (true_prev)
@@ -952,7 +920,13 @@ void CharmImporter::buildPartitions()
                     true_prev->true_next = *p2p;
                 }
                 true_prev = *p2p;
+            }*/
+            (*p2p)->true_prev = true_prev;
+            if (true_prev)
+            {
+                true_prev->true_next = *p2p;
             }
+            true_prev = *p2p;
 
             events->append(*p2p);
             trace->events->at((*p2p)->task)->append(*p2p);

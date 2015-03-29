@@ -52,6 +52,7 @@ public:
     // For partition ordering
     bool broken_entry(Partition * child);
     void broken_entries(QSet<Partition *> * repairees);
+    void stitched_atomics(QSet<Partition *> * stitchees);
     void semantic_children();
     void true_children();
     void set_atomics();

@@ -140,7 +140,7 @@ private:
     QList<QList<Partition *> *> * tarjan();
 
     // Steps and metrics
-    void mergeForEntryRepair();
+    void mergeForEntryRepair(bool entries = true);
     void mergeForCharmLeaps();
     void forcePartitionDag();
     void finalizeTaskEventOrder();
