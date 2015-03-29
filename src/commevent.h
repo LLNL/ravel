@@ -78,6 +78,7 @@ public:
 
     // Charm atomic
     int atomic;
+    long matching;
 
     // Used in stepping procedure
     CommEvent * last_stride;

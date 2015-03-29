@@ -371,15 +371,6 @@ void Trace::partition()
         verify_partitions();
         output_graph("../debug-output/post-message.dot");
 
-        if (options.origin == OTFImportOptions::OF_CHARM)
-        {
-            std::cout << "Merge for entries" << std::endl;
-            mergeForEntryRepair();
-            verify_partitions();
-            //if (debug)
-                output_graph("../debug-output/post-entryrepair.dot");
-        }
-
           // Tarjan
         output_graph("../debug-output/mergecycle-before.dot");
         std::cout << "Merging cycles..." << std::endl;
@@ -390,6 +381,25 @@ void Trace::partition()
         std::cout << "Cycle Merge: ";
         gu_printTime(traceElapsed);
         std::cout << std::endl;
+        std::cout << "Partitions = " << partitions->size() << std::endl;
+
+
+        if (options.origin == OTFImportOptions::OF_CHARM)
+        {
+            // We can do entry repair until merge cycles because
+            // it requires a dag. Then we have to do another
+            // merge cycles in case we have once again destroyed the dag
+            std::cout << "Merge for entries" << std::endl;
+            mergeForEntryRepair();
+            verify_partitions();
+            std::cout << "Second merge cycles..." << std::endl;
+            mergeCycles();
+            verify_partitions();
+
+            //if (debug)
+                output_graph("../debug-output/post-entryrepair.dot");
+        }
+
         std::cout << "Partitions = " << partitions->size() << std::endl;
 
         // Merge by call tree
@@ -975,6 +985,7 @@ void Trace::mergeForEntryRepair()
         (*partition)->new_partition = *partition;
         count++;
     }
+    output_graph("../debug-output/tracegraph-repairnames-nosteps.dot");
     set_dag_steps();
     output_graph("../debug-output/tracegraph-repairnames.dot");
 
@@ -1242,7 +1253,7 @@ void Trace::mergeForCharmLeaps()
             count++;
         }
 
-        (*part)->semantic_children();
+        //(*part)->semantic_children();
         (*part)->true_children();
 
         if ((*part)->group->size() > 1)
@@ -2869,7 +2880,7 @@ void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
 
     // Now that we have all the merged partitions, figure out parents/children
     // between them, and sort the event lists and such
-    // Note we could just set the event partition adn then use
+    // Note we could just set the event partition and then use
     // set_partition_dag... in theory
     bool parent_flag;
     dag_entries->clear();
@@ -2988,38 +2999,78 @@ void Trace::set_partition_dag()
 {
     dag_entries->clear();
     bool parent_flag;
-    for (QList<Partition *>::Iterator partition = partitions->begin();
-         partition != partitions->end(); ++partition)
+    if (options.origin == OTFImportOptions::OF_CHARM)
     {
-        parent_flag = false;
-        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
-             = (*partition)->events->begin();
-             event_list != (*partition)->events->end(); ++event_list)
+        for (QList<Partition *>::Iterator partition = partitions->begin();
+             partition != partitions->end(); ++partition)
         {
-            Q_ASSERT(event_list.value());
-            Q_ASSERT(event_list.value()->first());
-            // Note we insert parents and a children to ourselves and insert
-            // ourselves to our parents and children. In many cases this will
-            // duplicate the insert, but merging by Waitall can create
-            // situations where our first event is preceded by a partition but
-            // its last event points elsewhere. By connecting here, these
-            // cycles will be found later on in merge cycles.
-            if ((event_list.value())->first()->comm_prev)
+            parent_flag = false;
+
+            for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+                 = (*partition)->events->begin();
+                 event_list != (*partition)->events->end(); ++event_list)
             {
-                (*partition)->parents->insert(event_list.value()->first()->comm_prev->partition);
-                event_list.value()->first()->comm_prev->partition->children->insert(*partition);
-                parent_flag = true;
-            }
-            if ((event_list.value())->last()->comm_next)
-            {
-                (*partition)->children->insert(event_list.value()->last()->comm_next->partition);
-                event_list.value()->last()->comm_next->partition->parents->insert(*partition);
+                // For charm we have to look at every entry and weird stuff
+                // happens with order and comm_next/comm_prev so we have to
+                // check for self insertion
+                for (QList<CommEvent *>::Iterator evt = event_list.value()->begin();
+                     evt != event_list.value()->end(); ++evt)
+                {
+                    if ((*evt)->comm_prev && (*evt)->comm_prev->partition != *partition)
+                    {
+                        (*partition)->parents->insert((*evt)->comm_prev->partition);
+                        (*evt)->comm_prev->partition->children->insert(*partition);
+                        parent_flag = true;
+                    }
+                    if ((*evt)->comm_next && (*evt)->comm_next->partition != *partition)
+                    {
+                        (*partition)->children->insert((*evt)->comm_next->partition);
+                        (*evt)->comm_next->partition->parents->insert(*partition);
+                    }
+                }
+
             }
 
+            if (!parent_flag)
+                dag_entries->append(*partition);
         }
+    }
+    else
+    {
+        for (QList<Partition *>::Iterator partition = partitions->begin();
+             partition != partitions->end(); ++partition)
+        {
+            parent_flag = false;
 
-        if (!parent_flag)
-            dag_entries->append(*partition);
+            for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+                 = (*partition)->events->begin();
+                 event_list != (*partition)->events->end(); ++event_list)
+            {
+                Q_ASSERT(event_list.value());
+                Q_ASSERT(event_list.value()->first());
+                // Note we insert parents and a children to ourselves and insert
+                // ourselves to our parents and children. In many cases this will
+                // duplicate the insert, but merging by Waitall can create
+                // situations where our first event is preceded by a partition but
+                // its last event points elsewhere. By connecting here, these
+                // cycles will be found later on in merge cycles.
+                if ((event_list.value())->first()->comm_prev)
+                {
+                    (*partition)->parents->insert(event_list.value()->first()->comm_prev->partition);
+                    event_list.value()->first()->comm_prev->partition->children->insert(*partition);
+                    parent_flag = true;
+                }
+                if ((event_list.value())->last()->comm_next)
+                {
+                    (*partition)->children->insert(event_list.value()->last()->comm_next->partition);
+                    event_list.value()->last()->comm_next->partition->parents->insert(*partition);
+                }
+
+            }
+
+            if (!parent_flag)
+                dag_entries->append(*partition);
+        }
     }
 }
 
@@ -3064,6 +3115,8 @@ void Trace::set_dag_steps()
                 {
                     next_level->insert(*parent);
                     allParentsFlag = false;
+                    //std::cout << "Cannot do partition " << (*partition)->debug_name;
+                    //std::cout << " due to parent " << (*parent)->debug_name << std::endl;
                 }
                 accumulated_leap = std::max(accumulated_leap,
                                             (*parent)->dag_leap + 1);
@@ -3177,6 +3230,11 @@ void Trace::verify_partitions()
         if (!(*part)->verify_runtime(num_application_tasks))
         {
             std::cout << "RUNTIME MISMATCH" << std::endl;
+            return;
+        }
+        if (!(*part)->verify_parents())
+        {
+            std::cout << "SELF PARENT" << std::endl;
             return;
         }
     }

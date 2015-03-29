@@ -63,6 +63,7 @@ public:
     void output_graph(QString filename);
     bool verify_members();
     bool verify_runtime(int runtime_id);
+    bool verify_parents();
 
     // Core partition information, events per process and step summary
     QMap<int, QList<CommEvent *> *> * events;

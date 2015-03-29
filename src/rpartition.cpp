@@ -1286,6 +1286,17 @@ bool Partition::verify_runtime(int runtime_id)
     return true;
 }
 
+bool Partition::verify_parents()
+{
+    for (QSet<Partition *>::Iterator parent = parents->begin();
+         parent != parents->end(); ++parent)
+    {
+        if (*parent == this)
+            return false;
+    }
+    return true;
+}
+
 // use GraphViz to see partition graph for debugging
 void Partition::output_graph(QString filename)
 {

@@ -290,7 +290,7 @@ private:
               chare(_chare), index(ChareIndex(-1, 0,0,0,0)),
               arrayid(_array), entry(_entry),
               charmmsgs(new QList<CharmMsg *>()), children(new QList<Event *>()),
-              trace_evt(NULL)
+              trace_evt(NULL), associated_array(-1)
         { }
         ~CharmEvt()
         {
@@ -348,6 +348,8 @@ private:
 
        P2PEvent * trace_evt;
 
+       int associated_array;
+
     };
 
     bool matchingMessages(CharmMsg * send, CharmMsg * recv);
@@ -364,10 +366,12 @@ private:
     int main;
     int forravel;
     int traceChare;
-    int addContribution;
-    int recvMsg;
+    QSet<int> * addContribution;
+    QSet<int> * recvMsg;
+    QSet<int> * reductionEntries;
     long traceEnd;
     int num_application_tasks;
+    int reduction_count;
 
     Trace * trace;
 
@@ -388,6 +392,7 @@ private:
     QMap<int, ChareArray *> * arrays;
     QMap<int, ChareGroup *> * groups;
     QMap<int, int> * atomics; // Map EntryID to Atomic Number
+    QMap<int, QMap<int, int> *> * reductions; // ArrayID -> Event -> associated_array;
     QMap<ChareIndex, int> * chare_to_task;
     QStack<CharmEvt *> last;
 

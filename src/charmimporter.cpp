@@ -39,10 +39,12 @@ CharmImporter::CharmImporter()
       main(-1),
       forravel(-1),
       traceChare(-1),
-      addContribution(-1),
-      recvMsg(-1),
+      addContribution(new QSet<int>()),
+      recvMsg(new QSet<int>()),
+      reductionEntries(new QSet<int>()),
       traceEnd(0),
       num_application_tasks(0),
+      reduction_count(0),
       trace(NULL),
       unmatched_recvs(NULL),
       sends(NULL),
@@ -61,6 +63,7 @@ CharmImporter::CharmImporter()
       arrays(new QMap<int, ChareArray *>()),
       groups(new QMap<int, ChareGroup *>()),
       atomics(new QMap<int, int>()),
+      reductions(new QMap<int, QMap<int, int> *>()),
       chare_to_task(new QMap<ChareIndex, int>()),
       last(QStack<CharmEvt *>()),
       idles(QList<Event *>()),
@@ -91,8 +94,18 @@ CharmImporter::~CharmImporter()
         delete *itr;
     }
 
+    for (QMap<int, QMap<int, int> *>::Iterator itr = reductions->begin();
+         itr != reductions->end(); ++itr)
+    {
+        delete itr.value();
+    }
+    delete reductions;
+
     delete charm_stack;
     delete idle_to_next;
+    delete addContribution;
+    delete recvMsg;
+    delete reductionEntries;
 }
 
 void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _options)
@@ -115,6 +128,8 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
     }
 
     processDefinitions();
+    *reductionEntries += *addContribution;
+    *reductionEntries += *recvMsg;
 
     // Read individual log files
     QFileInfo file_info = QFileInfo(dataFileName);
@@ -536,6 +551,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                     (*cmsg)->tracemsg->sender->addMetric("Idle", 0, 0);
                     (*cmsg)->tracemsg->sender->addMetric("Idle Blame", 0, 0);
                     (*cmsg)->tracemsg->sender->atomic = atomic;
+                    (*cmsg)->tracemsg->sender->matching = bgn->associated_array;
 
                 }
                 else
@@ -564,6 +580,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                 (*cmsg)->tracemsg->receiver->addMetric("Idle", 0, 0);
                 (*cmsg)->tracemsg->receiver->addMetric("Idle Blame", 0, 0);
                 (*cmsg)->tracemsg->receiver->atomic = atomic;
+                (*cmsg)->tracemsg->receiver->matching = bgn->associated_array;
                 pe_p2ps->at(bgn->pe)->append((*cmsg)->tracemsg->receiver);
             }
         }
@@ -782,14 +799,21 @@ void CharmImporter::buildPartitions()
             if (!events->isEmpty())
             {
                 // 1)
+                if (verbose)
+                {
+                    std::cout << " --- Checking ";
+                    std::cout << " between " << functions->value(prev->caller->function)->name.toStdString().c_str();
+                    std::cout << " and " << functions->value((*p2p)->caller->function)->name.toStdString().c_str() << std::endl;
+                    std::cout << " ----- matching terms: " << prev->matching << " , " << (*p2p)->matching << std::endl;
+                }
                 if ((*p2p)->caller == NULL
                     || ((prev && (*p2p)->caller != prev->caller)
-                        && !( ((*p2p)->caller->function == addContribution
-                               && prev->caller->function == recvMsg
-                              )
-                             || (((*p2p)->caller->function == recvMsg)
-                                 && prev->caller->function == addContribution
-                                )
+                        // If they are from addContribution and recvMsg of the same chare
+                        && !((*p2p)->matching == prev->matching
+                             && entries->value((*p2p)->caller->function)->chare
+                                == entries->value(prev->caller->function)->chare
+                             && reductionEntries->contains((*p2p)->caller->function)
+                             && reductionEntries->contains(prev->caller->function)
                             )
                        )
                     )//|| trace->functions->value((*p2p)->caller->function)->isMain) // 1)
@@ -799,6 +823,7 @@ void CharmImporter::buildPartitions()
                         std::cout << " --- Making a partition due to caller split";
                         std::cout << " between " << functions->value(prev->caller->function)->name.toStdString().c_str();
                         std::cout << " and " << functions->value((*p2p)->caller->function)->name.toStdString().c_str() << std::endl;
+                        std::cout << " ----- matching terms: " << prev->matching << " , " << (*p2p)->matching << std::endl;
                     }
                     makePartition(events);
                     events->clear();
@@ -904,8 +929,12 @@ void CharmImporter::buildPartitions()
 
             if (prev && prev->caller != NULL
                 && ((prev->caller == (*p2p)->caller)
-                    || ((*p2p)->caller && (*p2p)->caller->function == addContribution
-                         && prev->caller->function == recvMsg)
+                    || ((*p2p)->matching == prev->matching
+                        && entries->value((*p2p)->caller->function)->chare
+                           == entries->value(prev->caller->function)->chare
+                        && reductionEntries->contains((*p2p)->caller->function)
+                        && reductionEntries->contains(prev->caller->function)
+                       )
                    )
                )
             {
@@ -1079,7 +1108,7 @@ int CharmImporter::makeTasks()
 
 void CharmImporter::parseLine(QString line, int my_pe)
 {
-    int index, mtype, entry, event, pe;
+    int index, mtype, entry, event, pe, assoc = -1;
     int arrayid = 0;
     ChareIndex id = ChareIndex(-1, 0,0,0,0);
     long time, msglen, sendTime, recvTime, numpes, cpuStart, cpuEnd;
@@ -1133,9 +1162,25 @@ void CharmImporter::parseLine(QString line, int my_pe)
             index++;
 
             int chare = entries->value(entry)->chare;
-            if (chare == traceChare || chare == forravel
-                || chares->value(chare)->name.startsWith("Ck"))
+            if (chare == traceChare || chare == forravel)
+            {
                 arrayid = 0;
+            }
+            else if (chares->value(chare)->name.startsWith("Ck"))
+            {
+                if (arrayid > 0)
+                {
+                    if (!reductions->contains(arrayid))
+                        reductions->insert(arrayid, new QMap<int, int>());
+                    if (!reductions->value(arrayid)->value(event))
+                    {
+                        reductions->value(arrayid)->insert(event, reduction_count);
+                        reduction_count++;
+                    }
+                    assoc = reductions->value(arrayid)->value(event);
+                }
+                arrayid = 0;
+            }
             if (arrayid > 0 && !arrays->contains(arrayid))
             {
                 arrays->insert(arrayid,
@@ -1162,6 +1207,8 @@ void CharmImporter::parseLine(QString line, int my_pe)
             evt->index = last.top()->index;
         }
 
+        evt->associated_array = assoc;
+
         charm_events->at(my_pe)->append(evt);
 
         /*seen_chares.insert(chares->value(entries->value(entry)->chare)->name
@@ -1176,6 +1223,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
         {
             send_end->index = last.top()->index;
         }
+        send_end->associated_array = assoc;
 
         if (rectype == CREATION)
         {
@@ -1308,9 +1356,25 @@ void CharmImporter::parseLine(QString line, int my_pe)
 
             // Special case now that CkReductionMgr has the wrong array id for some reason
             int chare = entries->value(entry)->chare;
-            if (chare == traceChare || chare == forravel
-                || chares->value(chare)->name.startsWith("Ck"))
+            if (chare == traceChare || chare == forravel)
+            {
                 arrayid = 0;
+            }
+            else if (chares->value(chare)->name.startsWith("Ck"))
+            {
+                if (arrayid > 0)
+                {
+                    if (!reductions->contains(arrayid))
+                        reductions->insert(arrayid, new QMap<int, int>());
+                    if (!reductions->value(arrayid)->value(event))
+                    {
+                        reductions->value(arrayid)->insert(event, reduction_count);
+                        reduction_count++;
+                    }
+                    assoc = reductions->value(arrayid)->value(event);
+                }
+                arrayid = 0;
+            }
 
             if (arrayid > 0)
             {
@@ -1415,12 +1479,14 @@ void CharmImporter::parseLine(QString line, int my_pe)
                                entries->value(entry)->chare, arrayid,
                                true);
             evt->index = id;
+            evt->associated_array = assoc;
             charm_events->at(my_pe)->append(evt);
 
             CharmEvt * recv_end = new CharmEvt(RECV_FXN, time+1, my_pe,
                                                entries->value(entry)->chare,
                                                arrayid, false);
             recv_end->index = id;
+            recv_end->associated_array = assoc;
             charm_events->at(my_pe)->append(recv_end);
 
             msg->recvtime = time;
@@ -1643,10 +1709,10 @@ void CharmImporter::readSts(QString dataFileName)
                             new Entry(lineList.at(len-2).toInt(), name,
                                       lineList.at(len-1).toInt()));
 
-            if (addContribution < 0 && name.startsWith("addContribution(CkReductionMsg"))
-                addContribution = lineList.at(2).toInt();
-            else if (recvMsg < 0 && name.startsWith("RecvMsg(CkReductionMsg"))
-                recvMsg = lineList.at(2).toInt();
+            if (name.startsWith("addContribution(CkReductionMsg"))
+                addContribution->insert(lineList.at(2).toInt());
+            else if (name.startsWith("RecvMsg(CkReductionMsg"))
+                recvMsg->insert(lineList.at(2).toInt());
             else if (name.contains("atomic"))
             {
                 atomics->insert(lineList.at(2).toInt(),
