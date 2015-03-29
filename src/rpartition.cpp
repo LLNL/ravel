@@ -268,16 +268,18 @@ void Partition::true_children()
             // Let's try this only with sends as they carry more meaning
             // whereas receives can come late, especially if we need to collect
             // a bunch of receives before something happens
-            if (!(*evt)->isReceive())
+            // We also only want to do this with 'first' sends, thouse
+            // without a comm_prev
+            if (!(*evt)->isReceive() && (*evt)->comm_prev == NULL)
             {
                 CommEvent * tmp = (*evt)->true_next;
                 while (tmp)
                 {
-                    if (!tmp->isReceive())
+                    if (!tmp->isReceive() && tmp->comm_prev == NULL)
                     {
                         if (tmp->partition != this)
                         {
-                            Partition * p = (*evt)->true_next->partition;
+                            Partition * p = tmp->partition;
                             children->insert(p);
                             p->parents->insert(this);
                         }
@@ -287,12 +289,12 @@ void Partition::true_children()
                 }
             }
 
-            if ((*evt)->comm_next && (*evt)->comm_next->partition != this)
+            /*if ((*evt)->comm_next && (*evt)->comm_next->partition != this)
             {
                 Partition * p = (*evt)->comm_next->partition;
                 children->insert(p);
                 p->parents->insert(this);
-            }
+            }*/
         }
     }
 }
