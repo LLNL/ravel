@@ -10,6 +10,7 @@
 #include "general_util.h"
 #include "message.h"
 #include "p2pevent.h"
+#include "function.h"
 
 Partition::Partition()
     : events(new QMap<int, QList<CommEvent *> *>),
@@ -38,6 +39,7 @@ Partition::Partition()
       cluster_step_starts(new QMap<int, int>()),
       debug_mark(false),
       debug_name(-1),
+      debug_functions(NULL),
       free_recvs(NULL)
 {
     group->insert(this); // We are always in our own group
@@ -238,16 +240,33 @@ void Partition::semantic_children()
                 Partition * p = (*evt)->comm_next->partition;
                 children->insert(p);
                 p->parents->insert(this);
+                if (true)
+                {
+                    std::cout << " --- link comm_next/comm_prev: " << debug_name << " -> " << (*evt)->comm_next->partition->debug_name << " : ";
+                    std::cout << debug_functions->value((*evt)->caller->function)->name.toStdString().c_str();
+                    std::cout << " to ";
+                    std::cout << debug_functions->value((*evt)->comm_next->caller->function)->name.toStdString().c_str();
+                    std::cout << " on " << (*evt)->task << std::endl;
+                }
             }
 
             // atomic - check if true_next is an atomic difference
             if ((*evt)->true_next && (*evt)->true_next->partition != this)
             {
-                if ((*evt)->atomic + 1 == (*evt)->true_next->atomic)
+                if ((*evt)->atomic + 1 == (*evt)->true_next->atomic
+                    && max_atomic < (*evt)->true_next->partition->min_atomic)
                 {
                     Partition * p = (*evt)->true_next->partition;
                     children->insert(p);
                     p->parents->insert(this);
+                    if (true)
+                    {
+                        std::cout << " --- link atomic difference: " << debug_name << " -> " << (*evt)->true_next->partition->debug_name << " : ";
+                        std::cout << debug_functions->value((*evt)->caller->function)->name.toStdString().c_str();
+                        std::cout << " to ";
+                        std::cout << debug_functions->value((*evt)->true_next->caller->function)->name.toStdString().c_str();
+                        std::cout << " on " << (*evt)->task << std::endl;
+                    }
                 }
             }
         }
@@ -282,10 +301,36 @@ void Partition::true_children()
                             Partition * p = tmp->partition;
                             children->insert(p);
                             p->parents->insert(this);
+                            if (true)
+                            {
+                                std::cout << " --- link true difference: " << debug_name << " -> " << tmp->partition->debug_name << " : ";
+                                std::cout << debug_functions->value((*evt)->caller->function)->name.toStdString().c_str();
+                                std::cout << " to ";
+                                std::cout << debug_functions->value(tmp->caller->function)->name.toStdString().c_str();
+                                std::cout << " on " << (*evt)->task << std::endl;
+                            }
                         }
                         break;
                     }
                     tmp = tmp->true_next;
+                }
+            }
+
+            // But let's also do it in the case of a receive followed immediately by an atomic?
+            else if ((*evt)->isReceive() && (*evt)->true_next && (*evt)->true_next->atomic >= 0
+                     && !(*evt)->true_next->isReceive() && (*evt)->true_next->partition != this
+                     && (*evt)->true_next->comm_prev == NULL)
+            {
+                Partition * p = (*evt)->true_next->partition;
+                children->insert(p);
+                p->parents->insert(this);
+                if (true)
+                {
+                    std::cout << " --- link true recv difference: " << debug_name << " -> " << (*evt)->true_next->partition->debug_name << " : ";
+                    std::cout << debug_functions->value((*evt)->caller->function)->name.toStdString().c_str();
+                    std::cout << " to ";
+                    std::cout << debug_functions->value((*evt)->true_next->caller->function)->name.toStdString().c_str();
+                    std::cout << " on " << (*evt)->task << std::endl;
                 }
             }
 
@@ -370,7 +415,8 @@ void Partition::stitched_atomics(QSet<Partition *> * stitchees)
              evt != evtlist.value()->end(); ++evt)
         {
             if ((*evt)->true_next && (*evt)->true_next->partition->newest_partition() != this
-                && (*evt)->atomic + 1 == (*evt)->true_next->atomic)
+                && (*evt)->atomic + 1 == (*evt)->true_next->atomic
+                && (*evt)->true_next->partition->newest_partition()->min_atomic > (*evt)->atomic)
             {
                 stitchees->insert((*evt)->true_next->partition->newest_partition());
             }
@@ -1314,6 +1360,31 @@ bool Partition::verify_parents()
             return false;
     }
     return true;
+}
+
+QString Partition::get_callers(QMap<int, Function *> * functions)
+{
+    QSet<QString> callers = QSet<QString>();
+    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+         evtlist != events->end(); ++evtlist)
+    {
+        for (QList<CommEvent *>::Iterator evt = evtlist.value()->begin();
+             evt != evtlist.value()->end(); ++evt)
+        {
+            callers.insert(functions->value((*evt)->caller->function)->name);
+        }
+    }
+
+    QList<QString> caller_list = callers.toList();
+    qSort(caller_list);
+    QString str = "";
+    for (QList<QString>::Iterator caller = caller_list.begin();
+         caller != caller_list.end(); ++caller)
+    {
+        str += "\n ";
+        str += *caller;
+    }
+    return str;
 }
 
 // use GraphViz to see partition graph for debugging

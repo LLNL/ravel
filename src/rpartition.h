@@ -11,6 +11,7 @@ class Gnome;
 class Event;
 class CommEvent;
 class ClusterTask;
+class Function;
 
 class Partition
 {
@@ -65,6 +66,7 @@ public:
     bool verify_members();
     bool verify_runtime(int runtime_id);
     bool verify_parents();
+    QString get_callers(QMap<int, Function *> * functions);
 
     // Core partition information, events per process and step summary
     QMap<int, QList<CommEvent *> *> * events;
@@ -109,6 +111,7 @@ public:
 
     bool debug_mark;
     int debug_name;
+    QMap<int, Function *> * debug_functions;
 
 private:
     // Stepping logic -- probably want to rewrite
