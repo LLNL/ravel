@@ -1083,7 +1083,7 @@ int CharmImporter::makeTasks()
 void CharmImporter::parseLine(QString line, int my_pe)
 {
     int index, mtype, entry, event, pe, assoc = -1;
-    int arrayid = 0;
+    int original_array, arrayid = 0;
     ChareIndex id = ChareIndex(-1, 0,0,0,0);
     long time, msglen, sendTime, recvTime, numpes, cpuStart, cpuEnd;
 
@@ -1134,6 +1134,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
         {
             arrayid = lineList.at(index).toInt();
             index++;
+            original_array = arrayid;
 
             int chare = entries->value(entry)->chare;
             if (chare == traceChare || chare == forravel)
@@ -1142,17 +1143,16 @@ void CharmImporter::parseLine(QString line, int my_pe)
             }
             else if (chares->value(chare)->name.startsWith("Ck"))
             {
-                if (arrayid > 0)
+
+                if (!reductions->contains(arrayid))
+                    reductions->insert(arrayid, new QMap<int, int>());
+                if (!reductions->value(arrayid)->value(event))
                 {
-                    if (!reductions->contains(arrayid))
-                        reductions->insert(arrayid, new QMap<int, int>());
-                    if (!reductions->value(arrayid)->value(event))
-                    {
-                        reductions->value(arrayid)->insert(event, reduction_count);
-                        reduction_count++;
-                    }
-                    assoc = reductions->value(arrayid)->value(event);
+                    reductions->value(arrayid)->insert(event, reduction_count);
+                    reduction_count++;
                 }
+                assoc = reductions->value(arrayid)->value(event);
+
                 arrayid = 0;
             }
             if (arrayid > 0 && !arrays->contains(arrayid))
@@ -1248,7 +1248,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
             if (verbose)
             {
                 std::cout << "CREATE!" << " on pe " << my_pe << " to " << pe << " at " << time;
-                std::cout << " with event " << event << " my array " << arrayid << " and send_end index array " << send_end->index.array;
+                std::cout << " with event " << event << " my array " << arrayid << " (" << original_array << ") and send_end index array " << send_end->index.array;
                 std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
                 std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
                 if (!last.isEmpty())
@@ -1327,6 +1327,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
         {
             arrayid = lineList.at(index).toInt();
             index++;
+            original_array = arrayid;
 
             // Special case now that CkReductionMgr has the wrong array id for some reason
             int chare = entries->value(entry)->chare;
@@ -1336,17 +1337,16 @@ void CharmImporter::parseLine(QString line, int my_pe)
             }
             else if (chares->value(chare)->name.startsWith("Ck"))
             {
-                if (arrayid > 0)
+
+                if (!reductions->contains(arrayid))
+                    reductions->insert(arrayid, new QMap<int, int>());
+                if (!reductions->value(arrayid)->value(event))
                 {
-                    if (!reductions->contains(arrayid))
-                        reductions->insert(arrayid, new QMap<int, int>());
-                    if (!reductions->value(arrayid)->value(event))
-                    {
-                        reductions->value(arrayid)->insert(event, reduction_count);
-                        reduction_count++;
-                    }
-                    assoc = reductions->value(arrayid)->value(event);
+                    reductions->value(arrayid)->insert(event, reduction_count);
+                    reduction_count++;
                 }
+                assoc = reductions->value(arrayid)->value(event);
+
                 arrayid = 0;
             }
 
@@ -1402,7 +1402,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
         if (verbose)
         {
             std::cout << "BEGIN!" << " on pe " << my_pe << " at " << time;
-            std::cout << " with event " << event << " my array " << arrayid;
+            std::cout << " with event " << event << " my array " << arrayid <<" (" << original_array << ")";
             std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
             std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
             std::cout << " with index " << id.toVerboseString().toStdString().c_str() << std::endl;
