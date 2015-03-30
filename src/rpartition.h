@@ -118,6 +118,7 @@ private:
     int set_stride_dag(QList<CommEvent *> *stride_events);
 
     QList<CommEvent *> * free_recvs;
+    static const bool debug = false;
 
 };
 

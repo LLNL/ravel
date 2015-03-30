@@ -240,7 +240,7 @@ void Partition::semantic_children()
                 Partition * p = (*evt)->comm_next->partition;
                 children->insert(p);
                 p->parents->insert(this);
-                if (true)
+                if (debug)
                 {
                     std::cout << " --- link comm_next/comm_prev: " << debug_name << " -> " << (*evt)->comm_next->partition->debug_name << " : ";
                     std::cout << debug_functions->value((*evt)->caller->function)->name.toStdString().c_str();
@@ -259,7 +259,7 @@ void Partition::semantic_children()
                     Partition * p = (*evt)->true_next->partition;
                     children->insert(p);
                     p->parents->insert(this);
-                    if (true)
+                    if (debug)
                     {
                         std::cout << " --- link atomic difference: " << debug_name << " -> " << (*evt)->true_next->partition->debug_name << " : ";
                         std::cout << debug_functions->value((*evt)->caller->function)->name.toStdString().c_str();
@@ -301,7 +301,7 @@ void Partition::true_children()
                             Partition * p = tmp->partition;
                             children->insert(p);
                             p->parents->insert(this);
-                            if (true)
+                            if (debug)
                             {
                                 std::cout << " --- link true difference: " << debug_name << " -> " << tmp->partition->debug_name << " : ";
                                 std::cout << debug_functions->value((*evt)->caller->function)->name.toStdString().c_str();
@@ -324,7 +324,7 @@ void Partition::true_children()
                 Partition * p = (*evt)->true_next->partition;
                 children->insert(p);
                 p->parents->insert(this);
-                if (true)
+                if (debug)
                 {
                     std::cout << " --- link true recv difference: " << debug_name << " -> " << (*evt)->true_next->partition->debug_name << " : ";
                     std::cout << debug_functions->value((*evt)->caller->function)->name.toStdString().c_str();

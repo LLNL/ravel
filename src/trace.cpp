@@ -361,7 +361,8 @@ void Trace::partition()
         // Note at this part the partitions do not have parent/child
         // relationships among them. That is first set in the merging of cycles.
         std::cout << "Merging for messages..." << std::endl;
-        output_graph("../debug-output/1-pre-message.dot");
+        if (debug)
+            output_graph("../debug-output/1-pre-message.dot");
         mergeForMessages();
         traceElapsed = traceTimer.nsecsElapsed();
         std::cout << "Message Merge: ";
@@ -369,10 +370,12 @@ void Trace::partition()
         std::cout << std::endl;
         std::cout << "Partitions = " << partitions->size() << std::endl;
         verify_partitions();
-        output_graph("../debug-output/2-post-message.dot");
+        if (debug)
+            output_graph("../debug-output/2-post-message.dot");
 
           // Tarjan
-        output_graph("../debug-output/3-mergecycle-before.dot");
+        if (debug)
+            output_graph("../debug-output/3-mergecycle-before.dot");
         std::cout << "Merging cycles..." << std::endl;
         traceTimer.start();
         mergeCycles();
@@ -382,7 +385,8 @@ void Trace::partition()
         gu_printTime(traceElapsed);
         std::cout << std::endl;
         std::cout << "Partitions = " << partitions->size() << std::endl;
-        output_graph("../debug-output/4-mergecycle-after.dot");
+        if (debug)
+            output_graph("../debug-output/4-mergecycle-after.dot");
 
         if (options.origin == OTFImportOptions::OF_CHARM)
         {
@@ -392,25 +396,25 @@ void Trace::partition()
             std::cout << "Merge for entries" << std::endl;
             mergeForEntryRepair();
             verify_partitions();
-            //if (debug)
+            if (debug)
                 output_graph("../debug-output/5-post-entryrepair.dot");
 
             std::cout << "Second merge cycles..." << std::endl;
             mergeCycles();
             verify_partitions();
-            //if (debug)
+            if (debug)
                 output_graph("../debug-output/6-post-entryrepair-cycle.dot");
 
             std::cout << "Merge for atomics" << std::endl;
             mergeForEntryRepair(false);
             verify_partitions();
-            //if (debug)
+            if (debug)
                 output_graph("../debug-output/7-post-atomics.dot");
 
             std::cout << "Third merge cycles..." << std::endl;
             mergeCycles();
             verify_partitions();
-            //if (debug)
+            if (debug)
                 output_graph("../debug-output/8-post-atomics-cycle.dot");
 
         }
@@ -1000,14 +1004,14 @@ void Trace::mergeForEntryRepair(bool entries)
         (*partition)->new_partition = *partition;
         count++;
     }
-    if (entries)
+    if (debug && entries)
         output_graph("../debug-output/5-tracegraph-repairnames-nosteps.dot");
-    else
+    else if (debug)
         output_graph("../debug-output/7-tracegraph-repairnames-nosteps.dot");
     set_dag_steps();
-    if (entries)
+    if (debug && entries)
         output_graph("../debug-output/5-tracegraph-repairnames.dot");
-    else
+    else if (debug)
         output_graph("../debug-output/7-tracegraph-repairnames.dot");
     std::cout << "Set dag steps for repairs" << std::endl;
     verify_partitions();
@@ -1031,9 +1035,9 @@ void Trace::mergeForEntryRepair(bool entries)
     {
         std::cout << "Starting leap " << leap << " with current_leap at size " << current_leap->size() << std::endl;
         verify_partitions();
-        if (entries)
+        if (debug && entries)
             output_graph("../debug-output/5-tracegraph-repairnames-" + QString::number(leap) + ".dot");
-        else
+        else if (debug)
             output_graph("../debug-output/7-tracegraph-repairnames-" + QString::number(leap) + ".dot");
 
         QSet<Partition *> * next_leap = new QSet<Partition *>();
@@ -1041,7 +1045,8 @@ void Trace::mergeForEntryRepair(bool entries)
         for (QSet<Partition *>::Iterator partition = current_leap->begin();
              partition != current_leap->end(); ++partition)
         {
-            std::cout << (*partition)->get_callers(functions).toStdString().c_str() << std::endl;
+            if (debug)
+                std::cout << (*partition)->get_callers(functions).toStdString().c_str() << std::endl;
 
             // If we have a broken entry, that means we must have switched
             // between runtime and app. That means we can definitely merge
@@ -1057,13 +1062,13 @@ void Trace::mergeForEntryRepair(bool entries)
             if (repairees->size() < 2)
                 continue;
 
-            //if (repairees->size() > 0 && debug)
+            if (repairees->size() > 1 && debug)
                 std::cout << "Merging children of " << (*partition)->debug_name << std::endl;
 
             for (QSet<Partition *>::Iterator child = repairees->begin();
                  child != repairees->end(); ++child)
             {
-                //if (debug)
+                if (debug)
                     std::cout << "     child: " << (*child)->debug_name << std::endl;
                 if (!child_group)
                 {
@@ -1128,7 +1133,7 @@ void Trace::mergeForEntryRepair(bool entries)
                 partition_delete->insert(*partition);
                 (*partition)->new_partition = p;
 
-                //if (debug)
+                if (debug)
                     std::cout << "Staging " << (*partition)->debug_name << " for deletion" << std::endl;
                 min_leap = std::min((*partition)->dag_leap, min_leap);
 
@@ -1157,7 +1162,7 @@ void Trace::mergeForEntryRepair(bool entries)
                 {
                     if (!((*group)->contains(*child)))
                     {
-                        //if (debug)
+                        if (debug)
                             std::cout << "    adding child " << (*child)->debug_name << std::endl;
                         p->children->insert(*child);
                         for (QSet<Partition *>::Iterator group_member
@@ -1167,7 +1172,7 @@ void Trace::mergeForEntryRepair(bool entries)
                         {
                             if ((*child)->parents->contains(*group_member))
                             {
-                                //if (debug)
+                                if (debug)
                                     std::cout << "     removing " << (*group_member)->debug_name << " as parent of " << (*child)->debug_name << std::endl;
                                 (*child)->parents->remove(*group_member);
                             }
@@ -1182,7 +1187,7 @@ void Trace::mergeForEntryRepair(bool entries)
                 {
                     if (!((*group)->contains(*parent)))
                     {
-                        //if (debug)
+                        if (debug)
                             std::cout << "    adding parent " << (*parent)->debug_name << std::endl;
 
                         p->parents->insert(*parent);
@@ -1193,7 +1198,7 @@ void Trace::mergeForEntryRepair(bool entries)
                         {
                             if ((*parent)->children->contains(*group_member))
                             {
-                                //if (debug)
+                                if (debug)
                                     std::cout << "     removing " << (*group_member)->debug_name << " as child of " << (*parent)->debug_name << std::endl;
                                 (*parent)->children->remove(*group_member);
                             }
@@ -1289,14 +1294,15 @@ void Trace::mergeForCharmLeaps()
     std::cout << "Forcing partition dag of unordered sends..." << std::endl;
     verify_partitions();
     std::cout << "charm leap debug: pre-true" << std::endl;
-    output_graph("../debug-output/9a-tracegraph-pretrue.dot");
+    if (debug)
+        output_graph("../debug-output/9a-tracegraph-pretrue.dot");
 
     // First things first, change parent/child relationships based on true_next/true_prev
     int count = 0;
     for (QList<Partition *>::Iterator part = partitions->begin();
          part != partitions->end(); ++part)
     {
-        //if (debug)
+        if (debug)
         {
             std::cout << "Truing children " << count << ", " << (*part)->debug_name << std::endl;
             count++;
@@ -1304,16 +1310,19 @@ void Trace::mergeForCharmLeaps()
         (*part)->debug_functions = functions;
 
         (*part)->semantic_children();
-        output_graph("../debug-output/9a-tracegraph-postsemantic-" + QString::number((*part)->debug_name) + ".dot");
+        if (debug)
+            output_graph("../debug-output/9a-tracegraph-postsemantic-" + QString::number((*part)->debug_name) + ".dot");
         (*part)->true_children();
-        output_graph("../debug-output/9a-tracegraph-posttrue-" + QString::number((*part)->debug_name) + ".dot");
+        if (debug)
+            output_graph("../debug-output/9a-tracegraph-posttrue-" + QString::number((*part)->debug_name) + ".dot");
 
         verify_partitions();
 
         if ((*part)->group->size() > 1)
             std::cout << "I'm wrong about group state" << std::endl;
     }
-    output_graph("../debug-output/9b-tracegraph-posttrue.dot");
+    if (debug)
+        output_graph("../debug-output/9b-tracegraph-posttrue.dot");
     verify_partitions();
     std::cout << "charm leap debug: pre-merge cycles" << std::endl;
 
@@ -1321,7 +1330,7 @@ void Trace::mergeForCharmLeaps()
     mergeCycles();
     verify_partitions();
 
-    //if (debug)
+    if (debug)
         std::cout << "charm leap debug: finding dag entries" << std::endl;
 
     dag_entries->clear();
@@ -1332,15 +1341,15 @@ void Trace::mergeForCharmLeaps()
             dag_entries->append(*partition);
     }
 
-    //if (debug)
+    if (debug)
         output_graph("../debug-output/9c-tracegraph-middle-nostep.dot");
 
     // Now that we have done that, reset the dag leaps
-    //if (debug)
+    if (debug)
         std::cout << "charm leap debug: Setting the dag steps" << std::endl;
     set_dag_steps();
 
-    //if (debug)
+    if (debug)
         output_graph("../debug-output/9d-tracegraph-middle.dot");
 
 
@@ -1692,7 +1701,7 @@ void Trace::assignSteps()
     verify_partitions();
     if (options.origin == OTFImportOptions::OF_CHARM)
     {
-        //if (debug)
+        if (debug)
             output_graph("../debug-output/9-tracegraph-before.dot");
 
         /*mergeForEntryRepair();
@@ -1708,13 +1717,13 @@ void Trace::assignSteps()
         std::cout << "Forcing DAG" << std::endl;
         set_dag_entries();
         set_dag_steps();
-        //if (debug)
+        if (debug)
             output_graph("../debug-output/10-tracegraph-leap.dot");
         forcePartitionDag(); // overlap due to runtime versus application
         verify_partitions();
 
 
-        //if (debug)
+        if (debug)
             output_graph("../debug-output/11-tracegraph-after.dot");
         finalizeTaskEventOrder();
     }
@@ -1796,7 +1805,7 @@ void Trace::assignSteps()
         }
     }
     if (debug)
-        output_graph("../debug-output/tracegraph-named.dot");
+        output_graph("../debug-output/12-tracegraph-named.dot");
 
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "Local Stepping: ";
