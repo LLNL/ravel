@@ -254,7 +254,7 @@ void Partition::semantic_children()
             if ((*evt)->true_next && (*evt)->true_next->partition != this)
             {
                 if ((*evt)->atomic + 1 == (*evt)->true_next->atomic
-                    && max_atomic < (*evt)->true_next->partition->min_atomic)
+                    && (*evt)->atomic == max_atomic)
                 {
                     Partition * p = (*evt)->true_next->partition;
                     children->insert(p);
@@ -415,8 +415,8 @@ void Partition::stitched_atomics(QSet<Partition *> * stitchees)
              evt != evtlist.value()->end(); ++evt)
         {
             if ((*evt)->true_next && (*evt)->true_next->partition->newest_partition() != this
-                && (*evt)->atomic + 1 == (*evt)->true_next->atomic
-                && (*evt)->true_next->partition->newest_partition()->min_atomic > (*evt)->atomic)
+                && (*evt)->atomic == max_atomic
+                && (*evt)->atomic + 1 == (*evt)->true_next->atomic)
             {
                 stitchees->insert((*evt)->true_next->partition->newest_partition());
             }
