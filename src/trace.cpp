@@ -596,6 +596,8 @@ void Trace::calculate_partition_metrics()
 {
     metrics->append("Imbalance");
     (*metric_units)["Imbalance"] = getUnits(units);
+    metrics->append("PE Imbalance");
+    (*metric_units)["PE Imbalance"] = getUnits(units);
     for (QList<Partition *>::Iterator part = partitions->begin();
          part != partitions->end(); ++part)
     {

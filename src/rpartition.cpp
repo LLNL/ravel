@@ -1250,10 +1250,29 @@ void Partition::calculate_imbalance(int num_pes)
         }
     }
 
-    qSort(durations);
+    unsigned long long min_duration = ULLONG_MAX;
+    unsigned long long max_duration = 0;
+    for (int i = 0; i < num_pes; i++)
+    {
+        if (durations[i] < min_duration)
+            min_duration = durations[i];
+        if (durations[i] > max_duration)
+            max_duration = durations[i];
+    }
 
-    unsigned long long imbalance = durations.last() - durations.first();
+    unsigned long long imbalance = max_duration - min_duration;
     metrics->addMetric("Imbalance", imbalance, imbalance);
+
+    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+         evtlist != events->end(); ++evtlist)
+    {
+        for (QList<CommEvent *>::Iterator evt = evtlist.value()->begin();
+             evt != evtlist.value()->end(); ++evt)
+        {
+            imbalance = durations[(*evt)->pe] - min_duration;
+            (*evt)->metrics->addMetric("PE Imbalance", imbalance, imbalance);
+        }
+    }
 }
 
 void Partition::makeClusterVectors(QString metric)
