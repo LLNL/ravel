@@ -23,6 +23,8 @@ public:
 
     void drawMessage(QPainter * painter, Message * message);
     void drawCollective(QPainter * painter, CollectiveRecord * cr);
+    void drawDelayTracking(QPainter * painter, CommEvent * c);
+
 
 signals:
     void timeScaleString(QString);
