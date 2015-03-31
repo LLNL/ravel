@@ -22,6 +22,7 @@
 #include "otfcollective.h"
 #include "general_util.h"
 #include "primarytaskgroup.h"
+#include "metrics.h"
 
 Trace::Trace(int nt, int np)
     : name(""),
@@ -317,7 +318,7 @@ void Trace::setGnomeMetric(Partition * part, int gnome_index)
         for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
         {
-            (*evt)->addMetric("Gnome", gnome_index, gnome_index);
+            (*evt)->metrics->addMetric("Gnome", gnome_index, gnome_index);
         }
     }
 }
@@ -338,7 +339,7 @@ void Trace::addPartitionMetric()
             for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
             {
-                (*evt)->addMetric("Partition", partition, partition);
+                (*evt)->metrics->addMetric("Partition", partition, partition);
             }
         }
         partition++;
@@ -664,11 +665,12 @@ void Trace::calculate_partition_duration()
                  evt != i_list->end(); ++evt)
             {
                 if ((*evt)->isReceive())
-                    (*evt)->addMetric(p_duration, 1);
+                    (*evt)->metrics->addMetric(p_duration, 1);
                 else if (!(*evt)->isReceive() && (*evt)->comm_prev)
-                    (*evt)->addMetric(p_duration, ((*evt)->enter - (*evt)->comm_prev->exit) - minduration);
+                    (*evt)->metrics->addMetric(p_duration,
+                                               ((*evt)->enter - (*evt)->comm_prev->exit) - minduration);
                 else
-                    (*evt)->addMetric(p_duration, 1);
+                    (*evt)->metrics->addMetric(p_duration, 1);
             }
             delete i_list;
         }
@@ -771,20 +773,20 @@ void Trace::calculate_partition_lateness()
                 for (QList<CommEvent *>::Iterator evt = i_list->begin();
                      evt != i_list->end(); ++evt)
                 {
-                    (*evt)->addMetric(p_late, (*evt)->exit - mintime,
-                                      (*evt)->enter - aggmintime);
+                    (*evt)->metrics->addMetric(p_late, (*evt)->exit - mintime,
+                                               (*evt)->enter - aggmintime);
                     double evt_time = (*evt)->exit - (*evt)->enter;
                     double agg_time = (*evt)->enter;
                     if ((*evt)->comm_prev)
                         agg_time = (*evt)->enter - (*evt)->comm_prev->exit;
                     for (int j = 0; j < counterlist.size(); j++)
                     {
-                        (*evt)->addMetric("Step " + counterlist[j],
-                                         (*evt)->getMetric(counterlist[j]) - valueslist[per_step*j],
-                                         (*evt)->getMetric(counterlist[j], true) - valueslist[per_step*j+1]);
-                        (*evt)->setMetric(counterlist[j],
-                                          (*evt)->getMetric(counterlist[j]) / 1.0 / evt_time,
-                                          (*evt)->getMetric(counterlist[j], true) / 1.0 / agg_time);
+                        (*evt)->metrics->addMetric("Step " + counterlist[j],
+                                                   (*evt)->getMetric(counterlist[j]) - valueslist[per_step*j],
+                                                   (*evt)->getMetric(counterlist[j], true) - valueslist[per_step*j+1]);
+                        (*evt)->metrics->setMetric(counterlist[j],
+                                                   (*evt)->getMetric(counterlist[j]) / 1.0 / evt_time,
+                                                   (*evt)->getMetric(counterlist[j], true) / 1.0 / agg_time);
                     }
                 }
             }
@@ -806,14 +808,14 @@ void Trace::calculate_partition_lateness()
                 for (QList<CommEvent *>::Iterator evt = i_list->begin();
                      evt != i_list->end(); ++evt)
                 {
-                    (*evt)->addMetric(p_late, (*evt)->exit - mintime);
+                    (*evt)->metrics->addMetric(p_late, (*evt)->exit - mintime);
                     double evt_time = (*evt)->exit - (*evt)->enter;
                     for (int j = 0; j < counterlist.size(); j++)
                     {
-                        (*evt)->addMetric("Step " + counterlist[j],
-                                         (*evt)->getMetric(counterlist[j]) - valueslist[per_step*j]);
-                        (*evt)->setMetric(counterlist[j],
-                                          (*evt)->getMetric(counterlist[j]) / 1.0 / evt_time);
+                        (*evt)->metrics->addMetric("Step " + counterlist[j],
+                                                   (*evt)->getMetric(counterlist[j]) - valueslist[per_step*j]);
+                        (*evt)->metrics->setMetric(counterlist[j],
+                                                   (*evt)->getMetric(counterlist[j]) / 1.0 / evt_time);
                     }
                 }
             }
@@ -902,8 +904,8 @@ void Trace::calculate_lateness()
             for (QList<CommEvent *>::Iterator evt = i_list->begin();
                  evt != i_list->end(); ++evt)
             {
-                (*evt)->addMetric("G. Lateness", (*evt)->exit - mintime,
-                                  (*evt)->enter - aggmintime);
+                (*evt)->metrics->addMetric("G. Lateness", (*evt)->exit - mintime,
+                                           (*evt)->enter - aggmintime);
             }
         }
         else
@@ -911,7 +913,7 @@ void Trace::calculate_lateness()
             for (QList<CommEvent *>::Iterator evt = i_list->begin();
                  evt != i_list->end(); ++evt)
             {
-                (*evt)->addMetric("G. Lateness", (*evt)->exit - mintime);
+                (*evt)->metrics->addMetric("G. Lateness", (*evt)->exit - mintime);
             }
         }
         delete i_list;

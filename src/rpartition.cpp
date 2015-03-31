@@ -11,6 +11,8 @@
 #include "message.h"
 #include "p2pevent.h"
 #include "function.h"
+#include "metrics.h"
+#include "gnome.h"
 
 Partition::Partition()
     : events(new QMap<int, QList<CommEvent *> *>),
@@ -31,6 +33,7 @@ Partition::Partition()
       group(new QSet<Partition *>()),
       min_atomic(INT_MAX),
       max_atomic(-1),
+      metrics(new Metrics()),
       gvid(""),
       gnome(NULL),
       gnome_type(0),
@@ -59,6 +62,7 @@ Partition::~Partition()
     delete children;
     delete old_parents;
     delete old_children;
+    delete metrics;
     delete gnome;
 
     for (QMap<int, QVector<long long int> *>::Iterator itr = cluster_vectors->begin();

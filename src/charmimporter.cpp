@@ -25,6 +25,7 @@
 #include "event.h"
 #include "otfimportoptions.h"
 #include "primarytaskgroup.h"
+#include "metrics.h"
 
 #include "general_util.h"
 
@@ -550,8 +551,8 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
 
                     e = (*cmsg)->tracemsg->sender;
                     pe_p2ps->at(bgn->pe)->append((*cmsg)->tracemsg->sender);
-                    (*cmsg)->tracemsg->sender->addMetric("Idle", 0, 0);
-                    (*cmsg)->tracemsg->sender->addMetric("Idle Blame", 0, 0);
+                    (*cmsg)->tracemsg->sender->metrics->addMetric("Idle", 0, 0);
+                    (*cmsg)->tracemsg->sender->metrics->addMetric("Idle Blame", 0, 0);
                     (*cmsg)->tracemsg->sender->atomic = atomic;
                     (*cmsg)->tracemsg->sender->matching = bgn->associated_array;
 
@@ -586,8 +587,8 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                     std::cout << "                      Adding" << std::endl;
 
                 e = (*cmsg)->tracemsg->receiver;
-                (*cmsg)->tracemsg->receiver->addMetric("Idle", 0, 0);
-                (*cmsg)->tracemsg->receiver->addMetric("Idle Blame", 0, 0);
+                (*cmsg)->tracemsg->receiver->metrics->addMetric("Idle", 0, 0);
+                (*cmsg)->tracemsg->receiver->metrics->addMetric("Idle Blame", 0, 0);
                 (*cmsg)->tracemsg->receiver->atomic = atomic;
                 (*cmsg)->tracemsg->receiver->matching = bgn->associated_array;
                 pe_p2ps->at(bgn->pe)->append((*cmsg)->tracemsg->receiver);
@@ -695,10 +696,10 @@ void CharmImporter::chargeIdleness()
                 if (idle_diff > 0)
                 {
                     // Let the recv collect that as well in a different metric
-                    comm_evt->setMetric("Idle", idle_diff, 0);
+                    comm_evt->metrics->setMetric("Idle", idle_diff, 0);
 
                     idle_diff += sender->getMetric("Idle Blame");
-                    sender->setMetric("Idle Blame", idle_diff, 0);
+                    sender->metrics->setMetric("Idle Blame", idle_diff, 0);
 
                 }
                 else

@@ -602,7 +602,7 @@ void StepVis::drawNativeGL()
                 else
                     x = ((*evt)->step - startStep) / 2 * barwidth;
 
-                color = options->colormap->color((*(*evt)->metrics)[metric]->event);
+                color = options->colormap->color((*evt)->getMetric(metric));  //(*(*evt)->metrics)[metric]->event);
                 if (selected)
                     myopacity = opacity;
                 else
@@ -631,7 +631,7 @@ void StepVis::drawNativeGL()
                     if (x + barwidth <= 0)
                         continue;
 
-                    color = options->colormap->color((*(*evt)->metrics)[metric]->aggregate);
+                    color = options->colormap->color((*evt)->getMetric(metric, false)); //(*(*evt)->metrics)[metric]->aggregate);
 
                     bars.append(x - xoffset);
                     bars.append(y - yoffset);

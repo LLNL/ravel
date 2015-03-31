@@ -2,6 +2,7 @@
 #include "commbundle.h"
 #include "message.h"
 #include "clusterevent.h"
+#include "metrics.h"
 #include <iostream>
 
 P2PEvent::P2PEvent(unsigned long long _enter, unsigned long long _exit,
@@ -54,18 +55,18 @@ P2PEvent::P2PEvent(QList<P2PEvent *> * _subevents)
 
     // Aggregate existing metrics
     P2PEvent * first = _subevents->first();
-    for (QMap<QString, MetricPair *>::Iterator counter = first->metrics->begin();
-         counter != first->metrics->end(); ++ counter)
+    QList<QString> names = first->metrics->getMetricList();
+    for (QList<QString>::Iterator counter = names.begin();
+         counter != names.end(); ++counter)
     {
-        QString name = counter.key();
         unsigned long long metric = 0, agg = 0;
         for (QList<P2PEvent *>::Iterator evt = subevents->begin();
              evt != subevents->end(); ++evt)
         {
-            metric += (*evt)->getMetric(name);
-            agg += (*evt)->getMetric(name, true);
+            metric += (*evt)->getMetric(*counter);
+            agg += (*evt)->getMetric(*counter, true);
         }
-        addMetric(name, metric, agg);
+        metrics->addMetric(*counter, metric, agg);
     }
 }
 
@@ -172,15 +173,15 @@ void P2PEvent::calculate_differential_metric(QString metric_name,
     }
 
     if (aggregates)
-        addMetric(metric_name,
-                  std::max(0.,
-                           getMetric(base_name)- max_parent),
-                  std::max(0.,
-                           getMetric(base_name, true)- max_agg_parent));
+        metrics->addMetric(metric_name,
+                           std::max(0.,
+                                    getMetric(base_name)- max_parent),
+                           std::max(0.,
+                                    getMetric(base_name, true)- max_agg_parent));
     else
-        addMetric(metric_name,
-                  std::max(0.,
-                           getMetric(base_name)- max_parent));
+        metrics->addMetric(metric_name,
+                           std::max(0.,
+                                    getMetric(base_name)- max_parent));
 }
 
 void P2PEvent::initialize_basic_strides(QSet<CollectiveRecord *> * collectives)

@@ -1,13 +1,14 @@
 #include "commevent.h"
-#include "clusterevent.h"
 #include <otf2/OTF2_AttributeList.h>
 #include <otf2/OTF2_GeneralDefinitions.h>
 #include <iostream>
+#include "metrics.h"
+#include "rpartition.h"
 
 CommEvent::CommEvent(unsigned long long _enter, unsigned long long _exit,
                      int _function, int _task, int _pe, int _phase)
     : Event(_enter, _exit, _function, _task, _pe),
-      metrics(new QMap<QString, MetricPair *>()),
+      metrics(new Metrics()),
       //partition(NULL),
       comm_next(NULL),
       comm_prev(NULL),
@@ -32,11 +33,6 @@ CommEvent::CommEvent(unsigned long long _enter, unsigned long long _exit,
 
 CommEvent::~CommEvent()
 {
-    for (QMap<QString, MetricPair *>::Iterator itr = metrics->begin();
-         itr != metrics->end(); ++itr)
-    {
-        delete itr.value();
-    }
     delete metrics;
 
     if (last_recvs)
@@ -47,53 +43,40 @@ CommEvent::~CommEvent()
         delete stride_parents;
 }
 
-
-
-void CommEvent::addMetric(QString name, double event_value,
-                          double aggregate_value)
-{
-    (*metrics)[name] = new MetricPair(event_value, aggregate_value);
-}
-
-void CommEvent::setMetric(QString name, double event_value,
-                          double aggregate_value)
-{
-    MetricPair * mp = metrics->value(name);
-    mp->event = event_value;
-    mp->aggregate = aggregate_value;
-}
-
 bool CommEvent::hasMetric(QString name)
 {
-    return metrics->contains(name);
+    if (metrics->hasMetric(name))
+        return true;
+    else
+        return partition->metrics->hasMetric(name);
 }
 
 double CommEvent::getMetric(QString name, bool aggregate)
 {
-    if (aggregate)
-        return ((*metrics)[name])->aggregate;
+    if (metrics->hasMetric(name))
+        return metrics->getMetric(name, aggregate);
 
-    return ((*metrics)[name])->event;
+    return partition->metrics->getMetric(name, aggregate);
 }
 
 void CommEvent::calculate_differential_metric(QString metric_name,
                                               QString base_name, bool aggregates)
 {
-    long long max_parent = getMetric(base_name, true);
+    long long max_parent = metrics->getMetric(base_name, true);
     long long max_agg_parent = 0;
     if (aggregates && comm_prev)
-        max_agg_parent = (comm_prev->getMetric(base_name));
+        max_agg_parent = (comm_prev->metrics->getMetric(base_name));
 
     if (aggregates)
-        addMetric(metric_name,
-                  std::max(0.,
-                           getMetric(base_name)- max_parent),
-                  std::max(0.,
-                           getMetric(base_name, true)- max_agg_parent));
+        metrics->addMetric(metric_name,
+                           std::max(0.,
+                                    getMetric(base_name)- max_parent),
+                           std::max(0.,
+                                    getMetric(base_name, true)- max_agg_parent));
     else
-        addMetric(metric_name,
-                  std::max(0.,
-                           getMetric(base_name)- max_parent));
+        metrics->addMetric(metric_name,
+                           std::max(0.,
+                                    getMetric(base_name)- max_parent));
 }
 
 void CommEvent::writeOTF2Leave(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap)
@@ -130,18 +113,18 @@ void CommEvent::writeOTF2Leave(OTF2_EvtWriter * writer, QMap<QString, int> * att
     for (QMap<QString, int>::Iterator attr = attributeMap->begin();
          attr != attributeMap->end(); ++attr)
     {
-        if (!hasMetric(attr.key()))
+        if (!metrics->hasMetric(attr.key()))
             continue;
 
         OTF2_AttributeValue attr_value;
-        attr_value.uint64 = getMetric(attr.key());
+        attr_value.uint64 = metrics->getMetric(attr.key());
         OTF2_AttributeList_AddAttribute(attribute_list,
                                         attributeMap->value(attr.key()),
                                         OTF2_TYPE_UINT64,
                                         attr_value);
 
         OTF2_AttributeValue agg_value;
-        agg_value.uint64 = getMetric(attr.key(), true);
+        agg_value.uint64 = metrics->getMetric(attr.key(), true);
         OTF2_AttributeList_AddAttribute(attribute_list,
                                         attributeMap->value(attr.key() + "_agg"),
                                         OTF2_TYPE_UINT64,

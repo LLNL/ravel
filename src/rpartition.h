@@ -12,6 +12,7 @@ class Event;
 class CommEvent;
 class ClusterTask;
 class Function;
+class Metrics;
 
 class Partition
 {
@@ -95,6 +96,9 @@ public:
     // For charm++ atomics
     int min_atomic;
     int max_atomic;
+
+    // For metrics
+    Metrics * metrics;
 
     // For graph drawing
     QString gvid;

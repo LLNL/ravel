@@ -50,7 +50,8 @@ SOURCES  += main.cpp \
     taskgroup.cpp \
     otf2exporter.cpp \
     otf2exportfunctor.cpp \
-    primarytaskgroup.cpp
+    primarytaskgroup.cpp \
+    metrics.cpp
 
 HEADERS += \
     trace.h \
@@ -99,7 +100,8 @@ HEADERS += \
     taskgroup.h \
     otf2exporter.h \
     otf2exportfunctor.h \
-    primarytaskgroup.h
+    primarytaskgroup.h \
+    metrics.h
 
 FORMS += \
     mainwindow.ui \

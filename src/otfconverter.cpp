@@ -28,6 +28,7 @@
 #include "message.h"
 #include "collectiveevent.h"
 #include "primarytaskgroup.h"
+#include "metrics.h"
 
 
 const QString OTFConverter::collectives_string
@@ -814,9 +815,9 @@ int OTFConverter::advanceCounters(CommEvent * evt, QStack<CounterRecord *> * cou
                            (end->value - begin->value) / 1.0 / evt_time,
                            (begin->value - last->value) / 1.0 / agg_time);
                            */
-            evt->addMetric(rawtrace->counters->value(begin->counter)->name,
-                           end->value - begin->value,
-                           begin->value - last->value);
+            evt->metrics->addMetric(rawtrace->counters->value(begin->counter)->name,
+                                    end->value - begin->value,
+                                    begin->value - last->value);
 
             // Update last counters
             lastcounters->insert(end->counter, end);
@@ -1278,7 +1279,7 @@ void OTFConverter::handleSavedAttributes(CommEvent * evt, EventRecord * er)
     for (QList<QString>::Iterator attr = rawtrace->metric_names->begin();
          attr != rawtrace->metric_names->end(); ++attr)
     {
-        evt->addMetric(*attr, er->metrics->value(*attr),
-                              er->metrics->value(*attr + "_agg"));
+        evt->metrics->addMetric(*attr, er->metrics->value(*attr),
+                                er->metrics->value(*attr + "_agg"));
     }
 }

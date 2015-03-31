@@ -12,6 +12,7 @@ class ClusterEvent;
 class CommBundle;
 class Message;
 class CollectiveRecord;
+class Metrics;
 
 class CommEvent : public Event
 {
@@ -20,10 +21,6 @@ public:
               int _function, int _task, int _pe, int _phase);
     ~CommEvent();
 
-    void addMetric(QString name, double event_value,
-                   double aggregate_value = 0);
-    void setMetric(QString name, double event_value,
-                   double aggregate_value = 0);
     bool hasMetric(QString name);
     double getMetric(QString name, bool aggregate = false);
 
@@ -59,16 +56,7 @@ public:
 
     virtual QSet<Partition *> * mergeForMessagesHelper()=0;
 
-    class MetricPair {
-    public:
-        MetricPair(double _e, double _a)
-            : event(_e), aggregate(_a) {}
-
-        double event; // value at event
-        double aggregate; // value at prev. aggregate event
-    };
-
-    QMap<QString, MetricPair *> * metrics; // Lateness or Counters etc
+    Metrics * metrics; // Lateness or Counters etc
 
     //Partition * partition; debugging
     CommEvent * comm_next;

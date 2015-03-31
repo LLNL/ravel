@@ -468,7 +468,7 @@ void TraditionalVis::drawNativeGL()
                 else
                     w -= (startTime - (*evt)->enter);
 
-                color = options->colormap->color((*(*evt)->metrics)[metric]->event);
+                color = options->colormap->color((*evt)->getMetric(options->metric)); //    (*(*evt)->metrics)[metric]->event);
                 if (options->colorTraditionalByMetric
                         && (*evt)->hasMetric(options->metric))
                     color= options->colormap->color((*evt)->getMetric(options->metric));
