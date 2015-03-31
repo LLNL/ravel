@@ -1234,6 +1234,28 @@ int Partition::set_stride_dag(QList<CommEvent *> * stride_events)
     return max_stride;
 }
 
+void Partition::calculate_imbalance(int num_pes)
+{
+    QList<unsigned long long> durations = QList<unsigned long long>();
+    for (int i = 0; i < num_pes; i++)
+        durations.append(0);
+
+    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+         evtlist != events->end(); ++evtlist)
+    {
+        for (QList<CommEvent *>::Iterator evt = evtlist.value()->begin();
+             evt != evtlist.value()->end(); ++evt)
+        {
+            durations[(*evt)->pe] += (*evt)->getMetric("Duration");
+        }
+    }
+
+    qSort(durations);
+
+    unsigned long long imbalance = durations.last() - durations.first();
+    metrics->addMetric("Imbalance", imbalance, imbalance);
+}
+
 void Partition::makeClusterVectors(QString metric)
 {
     // Clean up old

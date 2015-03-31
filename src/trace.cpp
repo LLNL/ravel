@@ -592,6 +592,17 @@ void Trace::calculate_differential_lateness(QString metric_name,
 
 }
 
+void Trace::calculate_partition_metrics()
+{
+    metrics->append("Imbalance");
+    (*metric_units)["Imbalance"] = getUnits(units);
+    for (QList<Partition *>::Iterator part = partitions->begin();
+         part != partitions->end(); ++part)
+    {
+        (*part)->calculate_imbalance(num_pes);
+    }
+}
+
 // Calculates duration difference per partition rather than global step
 void Trace::calculate_partition_duration()
 {
@@ -1840,7 +1851,10 @@ void Trace::assignSteps()
     calculate_lateness();
     calculate_differential_lateness("D.G. Lateness", "G. Lateness");
     if (options.origin == OTFImportOptions::OF_CHARM)
+    {
         calculate_partition_duration();
+        calculate_partition_metrics();
+    }
 
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "Lateness Calculation: ";
