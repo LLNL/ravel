@@ -75,6 +75,8 @@ public:
     CommEvent * comm_prev;
     CommEvent * true_next;
     CommEvent * true_prev;
+    CommEvent * pe_next;
+    CommEvent * pe_prev;
 
     // Charm atomic
     //int atomic; debugging

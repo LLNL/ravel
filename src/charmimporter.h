@@ -395,6 +395,7 @@ private:
     QMap<int, QMap<int, int> *> * reductions; // ArrayID -> Event -> associated_array;
     QMap<ChareIndex, int> * chare_to_task;
     QStack<CharmEvt *> last;
+    CommEvent * last_evt;
 
     QList<Event *> idles;
 

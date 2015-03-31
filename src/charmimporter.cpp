@@ -66,6 +66,7 @@ CharmImporter::CharmImporter()
       reductions(new QMap<int, QMap<int, int> *>()),
       chare_to_task(new QMap<ChareIndex, int>()),
       last(QStack<CharmEvt *>()),
+      last_evt(NULL),
       idles(QList<Event *>()),
       seen_chares(QSet<QString>()),
       application_chares(QSet<int>())
@@ -335,6 +336,7 @@ void CharmImporter::makeTaskEvents()
          event_list != charm_events->end(); ++event_list)
     {
         stack->clear();
+        last_evt = NULL;
         depth = 0;
         phase = 0;
         counter++;
@@ -553,6 +555,13 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                     (*cmsg)->tracemsg->sender->atomic = atomic;
                     (*cmsg)->tracemsg->sender->matching = bgn->associated_array;
 
+                    if (last_evt)
+                    {
+                        (*cmsg)->tracemsg->sender->pe_prev = last_evt;
+                        last_evt->pe_next = (*cmsg)->tracemsg->sender;
+                    }
+                    last_evt = (*cmsg)->tracemsg->sender;
+
                 }
                 else
                 {
@@ -582,6 +591,13 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                 (*cmsg)->tracemsg->receiver->atomic = atomic;
                 (*cmsg)->tracemsg->receiver->matching = bgn->associated_array;
                 pe_p2ps->at(bgn->pe)->append((*cmsg)->tracemsg->receiver);
+
+                if (last_evt)
+                {
+                    (*cmsg)->tracemsg->receiver->pe_prev = last_evt;
+                    last_evt->pe_next = (*cmsg)->tracemsg->receiver;
+                }
+                last_evt = (*cmsg)->tracemsg->receiver;
             }
         }
         if (!e) // No messages were recorded with this, skip for now and don't include
