@@ -687,24 +687,35 @@ void CharmImporter::chargeIdleness()
                 // this behavior, then we figure the rest of it must be okay
                 // because it was no longer being held up.
                 sender = comm_evt->messages->first()->sender;
-                idle_diff = sender->enter - idle_evt->enter;
-                if (sender->caller)
+
+                // First check if the sender was actually caused by something happening
+                // after the idle. In this case we don't count it at all since it
+                // wasn't contributing to the idle.
+                if (sender->comm_prev && sender->comm_prev->enter > idle_evt->exit)
                 {
-                    idle_diff = sender->caller->exit - idle_evt->enter;
-                }
-
-                if (idle_diff > 0)
-                {
-                    // Let the recv collect that as well in a different metric
-                    comm_evt->metrics->setMetric("Idle", idle_diff, 0);
-
-                    idle_diff += sender->getMetric("Idle Blame");
-                    sender->metrics->setMetric("Idle Blame", idle_diff, 0);
-
+                    flag = false;
                 }
                 else
                 {
-                    flag = false;
+                    idle_diff = sender->enter - idle_evt->enter;
+                    if (sender->caller)
+                    {
+                        idle_diff = sender->caller->exit - idle_evt->enter;
+                    }
+
+                    if (idle_diff > 0)
+                    {
+                        // Let the recv collect that as well in a different metric
+                        comm_evt->metrics->setMetric("Idle", idle_diff, 0);
+
+                        idle_diff += sender->getMetric("Idle Blame");
+                        sender->metrics->setMetric("Idle Blame", idle_diff, 0);
+
+                    }
+                    else
+                    {
+                        flag = false;
+                    }
                 }
             }
             idle_pos++;
