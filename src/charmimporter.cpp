@@ -544,7 +544,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                                                              bgn->pe,
                                                              phase,
                                                              msgs);
-                    (*cmsg)->tracemsg->receiver->is_recv = false;
+                    (*cmsg)->tracemsg->sender->is_recv = false;
                     (*cmsg)->send_evt->trace_evt = (*cmsg)->tracemsg->sender;
                     charm_p2ps->at(bgn->task)->append((*cmsg)->tracemsg->sender);
                     if (verbose)

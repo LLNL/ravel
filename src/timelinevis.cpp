@@ -35,6 +35,7 @@ TimelineVis::TimelineVis(QWidget* parent, VisOptions * _options)
       stepSpan(0),
       entitySpan(0),
       lastStartStep(0),
+      idleFunction(-1),
       proc_to_order(QMap<int, int>()),
       order_to_proc(QMap<int, int>())
 {
@@ -58,6 +59,16 @@ void TimelineVis::processVis()
     for (int i = 0; i < maxEntities; i++) {
         proc_to_order[i] = i;
         order_to_proc[i] = i;
+    }
+
+    for (QMap<int, Function *>::Iterator fxn = trace->functions->begin();
+         fxn != trace->functions->end(); ++fxn)
+    {
+        if ((fxn.value())->name == "Idle")
+        {
+            idleFunction = fxn.key();
+            break;
+        }
     }
 
     // Determine needs for task labels

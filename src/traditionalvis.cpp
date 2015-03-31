@@ -883,6 +883,12 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
                   / timeSpan * rect().width()) + 1 + labelWidth;
         h = barheight;
 
+        if (evt->function == idleFunction)
+        {
+            h = barheight / 2;
+            y += barheight / 4;
+        }
+
 
         // Corrections for partially drawn
         bool complete = true;
@@ -890,7 +896,7 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
             h = barheight - fabs(y);
             y = 0;
             complete = false;
-        } else if (y + barheight > rect().height() - timescaleHeight) {
+        } else if (y + h > rect().height() - timescaleHeight) {
             h = rect().height() - timescaleHeight - y;
             complete = false;
         }
@@ -914,7 +920,9 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
         else
         {
             // Draw event
-            int graycolor = std::max(100, 100 + evt->depth * 20);
+            int graycolor = 0;
+            if (evt->function != idleFunction)
+                graycolor = std::max(100, 100 + evt->depth * 20);
             painter->fillRect(QRectF(x, y, w, h),
                               QBrush(QColor(graycolor, graycolor, graycolor)));
         }

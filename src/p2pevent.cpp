@@ -437,6 +437,9 @@ CommEvent * P2PEvent::compare_to_sender(CommEvent * prev)
         }
     }
 
+    if (!prev)
+        return sender;
+
     if (max_time > prev->exit)
         return sender;
 
