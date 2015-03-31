@@ -49,6 +49,8 @@ public:
     virtual void addToClusterEvent(ClusterEvent * ce, QString metric,
                                    long long divider)=0;
 
+    virtual CommEvent * compare_to_sender(CommEvent * prev) { return prev; }
+
     virtual void addComms(QSet<CommBundle *> * bundleset)=0;
     virtual QList<int> neighborTasks()=0;
     virtual QVector<Message *> * getMessages() { return NULL; }

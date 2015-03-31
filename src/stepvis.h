@@ -27,6 +27,8 @@ public:
     int getHeight() { return rect().height() - colorBarHeight; }
     void drawMessage(QPainter * painter, Message * message);
     void drawCollective(QPainter * painter, CollectiveRecord * cr);
+    void drawDelayTracking(QPainter * painter, CommEvent * c);
+
 
 public slots:
     void setSteps(float start, float stop, bool jump = false);

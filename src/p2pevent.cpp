@@ -3,6 +3,7 @@
 #include "message.h"
 #include "clusterevent.h"
 #include "metrics.h"
+#include "commdrawinterface.h"
 #include <iostream>
 
 P2PEvent::P2PEvent(unsigned long long _enter, unsigned long long _exit,
@@ -405,6 +406,41 @@ void P2PEvent::addToClusterEvent(ClusterEvent * ce, QString metric,
                   commtype, threshhold);
     ce->addMetric(1, agg_metric, ClusterEvent::CE_EVENT_AGG,
                   commtype, aggthreshhold);
+}
+
+void P2PEvent::track_delay(QPainter *painter, CommDrawInterface *vis)
+{
+    vis->drawDelayTracking(painter, this);
+}
+
+// What is the cause of the delay, this sender, or the pe_prev
+// that is the input parameter?
+CommEvent * P2PEvent::compare_to_sender(CommEvent * prev)
+{
+    if (!is_recv)
+        return prev;
+
+    unsigned long long max_time = 0;
+    CommEvent * sender = NULL;
+    for (QVector<Message *>::Iterator msg = messages->begin();
+         msg != messages->end(); ++msg)
+    {
+        if ((*msg)->sender->caller && (*msg)->sender->caller->exit > max_time)
+        {
+            max_time = (*msg)->sender->caller->exit;
+            sender = (*msg)->sender;
+        }
+        else if ((*msg)->sender->exit > max_time)
+        {
+            max_time = (*msg)->sender->exit;
+            sender = (*msg)->sender;
+        }
+    }
+
+    if (max_time > prev->exit)
+        return sender;
+
+    return prev;
 }
 
 void P2PEvent::addComms(QSet<CommBundle *> * bundleset)

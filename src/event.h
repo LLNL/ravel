@@ -9,6 +9,8 @@
 
 class Partition;
 class Function;
+class QPainter;
+class CommDrawInterface;
 
 class Event
 {
@@ -31,6 +33,7 @@ public:
     Event * least_multiple_caller(QMap<Event *, int> * memo = NULL);
     Event * least_multiple_function_caller(QMap<int, Function *> * functions);
     virtual int comm_count(QMap<Event *, int> * memo = NULL);
+    virtual void track_delay(QPainter *painter, CommDrawInterface * vis) { }
     virtual bool isCommEvent() { return false; }
     virtual bool isReceive() const { return false; }
     virtual bool isCollective() { return false; }

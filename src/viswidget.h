@@ -40,6 +40,8 @@ public:
         { Q_UNUSED(painter); Q_UNUSED(msg); }
     virtual void drawCollective(QPainter * painter, CollectiveRecord * cr)
         { Q_UNUSED(painter); Q_UNUSED(cr); }
+    virtual void drawDelayTracking(QPainter * painter, CommEvent * c)
+        { Q_UNUSED(painter); Q_UNUSED(c); }
 
 signals:
     void repaintAll();

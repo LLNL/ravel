@@ -912,6 +912,11 @@ void StepVis::paintEvents(QPainter * painter)
         }
     }
 
+    if (selected_event)
+    {
+        selected_event->track_delay(painter, this);
+    }
+
     if (overdraw_selected)
         overdrawSelected(painter, overdraw_tasks);
 }
@@ -997,6 +1002,56 @@ int StepVis::getX(CommEvent *evt)
 
     return x;
 }
+
+void StepVis::drawDelayTracking(QPainter * painter, CommEvent * c)
+{
+    int penwidth = 1;
+    if (entitySpan <= 32)
+        penwidth = 2;
+
+    CommEvent * current = c;
+    CommEvent * backward = NULL;
+    Qt::GlobalColor pencolor = Qt::green;
+    while (current)
+    {
+        backward = current->compare_to_sender(current->pe_prev);
+
+        if (!backward)
+            break;
+
+        pencolor = Qt::magenta; // queueing in magenta
+        //if (backward != current->pe_prev) // messages in yellow
+        //    pencolor = Qt::darkGreen;
+
+        QPointF p1, p2;
+        int y = getY(current);
+        int x = getX(current);
+        int w = blockwidth;
+        int h = blockheight;
+
+        if (options->showMessages == VisOptions::MSG_TRUE)
+        {
+            p1 = QPointF(x + w/2.0, y + h/2.0);
+            y = getY(backward);
+            x = getX(backward);
+            p2 = QPointF(x + w/2.0, y + h/2.0);
+        }
+        else
+        {
+            p1 = QPointF(x, y + h/2.0);
+            y = getY(backward);
+            p2 = QPointF(x + w, y + h/2.0);
+        }
+        if (backward != current->pe_prev) // messages dashed over black
+            painter->setPen(QPen(pencolor, penwidth, Qt::DotLine));
+        else
+            painter->setPen(QPen(pencolor, penwidth, Qt::SolidLine));
+        drawLine(painter, &p1, &p2);
+
+        current = backward;
+    }
+}
+
 
 void StepVis::drawMessage(QPainter * painter, Message * msg)
 {

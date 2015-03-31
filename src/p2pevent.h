@@ -3,6 +3,9 @@
 
 #include "commevent.h"
 
+class QPainter;
+class CommDrawInterface;
+
 class P2PEvent : public CommEvent
 {
 public:
@@ -27,6 +30,9 @@ public:
                                        QString base_name,
                                        bool aggregates);
     void writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap);
+
+    void track_delay(QPainter *painter, CommDrawInterface * vis);
+    CommEvent * compare_to_sender(CommEvent * prev);
 
     void addComms(QSet<CommBundle *> * bundleset);
     QList<int> neighborTasks();

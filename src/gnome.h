@@ -54,6 +54,8 @@ public:
 
     virtual void drawMessage(QPainter * painter, Message * message) { Q_UNUSED(painter); Q_UNUSED(message); }
     virtual void drawCollective(QPainter * painter, CollectiveRecord * cr) { Q_UNUSED(painter); Q_UNUSED(cr); }
+    virtual void drawDelayTracking(QPainter * painter, CommEvent * c)
+        { Q_UNUSED(painter); Q_UNUSED(c); }
 
     // For clusterings
     struct task_distance {
