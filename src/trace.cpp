@@ -667,21 +667,46 @@ void Trace::calculate_partition_duration()
                 // essentially acts as a divisor for its caller.
                 // Receives are instantaneous because anything that happened
                 // before them may be on another PE or due to another task.
-                if ((*evt)->isReceive())
+                if ((*evt)->isReceive() && (*evt)->comm_next)
+                {
                     minduration = 1;
-                else if (!(*evt)->isReceive() && (*evt)->comm_prev
-                    && (*evt)->enter - (*evt)->comm_prev->exit < minduration)
-                    minduration = (*evt)->enter - (*evt)->comm_prev->exit;
+                }
+                else if ((*evt)->isReceive() && !(*evt)->comm_next && (*evt)->caller)
+                {
+                    if ((*evt)->caller->exit - (*evt)->caller->enter < minduration)
+                        minduration = (*evt)->caller->exit - (*evt)->caller->enter;
+                }
+                else if (!(*evt)->isReceive() && (*evt)->comm_prev)
+                {
+                    if ((*evt)->enter - (*evt)->comm_prev->exit < minduration)
+                    {
+                        minduration = (*evt)->enter - (*evt)->comm_prev->exit;
+                    }
+                }
+                else if (!(*evt)->isReceive() && !(*evt)->comm_prev
+                         && (*evt)->caller)
+                {
+                    if ((*evt)->enter - (*evt)->caller->enter < minduration)
+                    {
+                        minduration = (*evt)->enter - (*evt)->caller->enter;
+                    }
+                }
             }
 
             for (QList<CommEvent *>::Iterator evt = i_list->begin();
                  evt != i_list->end(); ++evt)
             {
-                if ((*evt)->isReceive())
+                if ((*evt)->isReceive() && (*evt)->comm_next)
                     (*evt)->metrics->addMetric(p_duration, 1);
+                else if ((*evt)->isReceive() && !(*evt)->comm_next && (*evt)->caller)
+                    (*evt)->metrics->addMetric(p_duration, ((*evt)->caller->exit - (*evt)->caller->enter)
+                                                           - minduration);
                 else if (!(*evt)->isReceive() && (*evt)->comm_prev)
                     (*evt)->metrics->addMetric(p_duration,
                                                ((*evt)->enter - (*evt)->comm_prev->exit) - minduration);
+                else if (!(*evt)->isReceive() && !(*evt)->comm_prev && (*evt)->caller)
+                    (*evt)->metrics->addMetric(p_duration,
+                                               ((*evt)->enter - (*evt)->caller->enter) - minduration);
                 else
                     (*evt)->metrics->addMetric(p_duration, 1);
             }

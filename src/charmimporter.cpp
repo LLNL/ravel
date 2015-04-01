@@ -551,6 +551,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                         std::cout << "                      Adding" << std::endl;
 
                     e = (*cmsg)->tracemsg->sender;
+                    //std::cout << "Inserting send at " << pe_p2ps->at(bgn->pe)->size() << std::endl;
                     pe_p2ps->at(bgn->pe)->append((*cmsg)->tracemsg->sender);
                     (*cmsg)->tracemsg->sender->metrics->addMetric("Idle", 0, 0);
                     (*cmsg)->tracemsg->sender->metrics->addMetric("Idle Blame", 0, 0);
@@ -592,6 +593,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                 (*cmsg)->tracemsg->receiver->metrics->addMetric("Idle Blame", 0, 0);
                 (*cmsg)->tracemsg->receiver->atomic = atomic;
                 (*cmsg)->tracemsg->receiver->matching = bgn->associated_array;
+                //std::cout << "Inserting recv at " << pe_p2ps->at(bgn->pe)->size() << std::endl;
                 pe_p2ps->at(bgn->pe)->append((*cmsg)->tracemsg->receiver);
 
                 if (last_evt)
@@ -615,6 +617,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
         {
             // Index of the next comm event after this IDLE
             idle_to_next->insert(e, pe_p2ps->at(bgn->pe)->size());
+            //std::cout << "Inserting idle from " << bgn->time << " to " << e->exit << " pointing to " << pe_p2ps->at(bgn->pe)->size() << std::endl;
         }
     }
 
@@ -678,6 +681,8 @@ void CharmImporter::chargeIdleness()
                 break;
             }
             comm_evt = pe_p2ps->at(idle_evt->pe)->at(idle_pos);
+            //comm_evt->metrics->setMetric("Idle", idle_evt->exit - idle_evt->enter, 0);
+            //break;
             if (comm_evt->is_recv) // only makes sense for recvs
             {
                 // Basically if there's required send doesn't take place
@@ -707,7 +712,8 @@ void CharmImporter::chargeIdleness()
                     if (idle_diff > 0)
                     {
                         // Let the recv collect that as well in a different metric
-                        comm_evt->metrics->setMetric("Idle", idle_diff, 0);
+                        //comm_evt->metrics->setMetric("Idle", idle_diff, 0);
+                        comm_evt->metrics->setMetric("Idle", idle_evt->exit - idle_evt->enter, 0);
 
                         idle_diff += sender->getMetric("Idle Blame");
                         sender->metrics->setMetric("Idle Blame", idle_diff, 0);

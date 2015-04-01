@@ -443,7 +443,7 @@ private:
     static const int QD_BOC_MSG = 14;
     static const int QD_BROACAST_BOC_MSG = 15;
 
-    static const bool verbose = false;
+    static const bool verbose = true;
 
 };
 
