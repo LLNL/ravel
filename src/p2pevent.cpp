@@ -299,7 +299,7 @@ void P2PEvent::set_reorder_strides(QMap<int, QList<CommEvent *> *> * stride_map,
                                    int offset, CommEvent *last)
 {
     Q_UNUSED(last);
-    //offset = 0;
+    offset = 1;
     for (QVector<Message *>::Iterator msg = messages->begin();
          msg != messages->end(); ++msg)
     {
