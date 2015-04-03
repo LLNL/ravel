@@ -721,16 +721,20 @@ void Trace::calculate_partition_lateness()
 {
     if (debug)
         std::cout << "Calculating partition lateness..." << std::endl;
+
     QList<QString> counterlist = QList<QString>();
-    for (int i = 0; i < metrics->size(); i++)
-        counterlist.append(metrics->at(i));
+
+    if (options.origin != OTFImportOptions::OF_CHARM)
+    {
+        for (int i = 0; i < metrics->size(); i++)
+            counterlist.append(metrics->at(i));
+    }
 
     QList<double> valueslist = QList<double>();
 
     QString p_late = "Lateness";
     metrics->append(p_late);
     (*metric_units)[p_late] = getUnits(units);
-
 
     for (int i = 0; i < counterlist.size(); i++)
     {
@@ -799,6 +803,7 @@ void Trace::calculate_partition_lateness()
                         mintime = (*evt)->exit;
                     if ((*evt)->enter < aggmintime)
                         aggmintime = (*evt)->enter;
+
                     for (int j = 0; j < counterlist.size(); j++)
                     {
                         if ((*evt)->getMetric(counterlist[j]) < valueslist[per_step*j])
@@ -813,18 +818,22 @@ void Trace::calculate_partition_lateness()
                 {
                     (*evt)->metrics->addMetric(p_late, (*evt)->exit - mintime,
                                                (*evt)->enter - aggmintime);
-                    double evt_time = (*evt)->exit - (*evt)->enter;
-                    double agg_time = (*evt)->enter;
-                    if ((*evt)->comm_prev)
-                        agg_time = (*evt)->enter - (*evt)->comm_prev->exit;
-                    for (int j = 0; j < counterlist.size(); j++)
+
+                    if (options.origin != OTFImportOptions::OF_CHARM)
                     {
-                        (*evt)->metrics->addMetric("Step " + counterlist[j],
-                                                   (*evt)->getMetric(counterlist[j]) - valueslist[per_step*j],
-                                                   (*evt)->getMetric(counterlist[j], true) - valueslist[per_step*j+1]);
-                        (*evt)->metrics->setMetric(counterlist[j],
-                                                   (*evt)->getMetric(counterlist[j]) / 1.0 / evt_time,
-                                                   (*evt)->getMetric(counterlist[j], true) / 1.0 / agg_time);
+                        double evt_time = (*evt)->exit - (*evt)->enter;
+                        double agg_time = (*evt)->enter;
+                        if ((*evt)->comm_prev)
+                            agg_time = (*evt)->enter - (*evt)->comm_prev->exit;
+                        for (int j = 0; j < counterlist.size(); j++)
+                        {
+                            (*evt)->metrics->addMetric("Step " + counterlist[j],
+                                                       (*evt)->getMetric(counterlist[j]) - valueslist[per_step*j],
+                                                       (*evt)->getMetric(counterlist[j], true) - valueslist[per_step*j+1]);
+                            (*evt)->metrics->setMetric(counterlist[j],
+                                                       (*evt)->getMetric(counterlist[j]) / 1.0 / evt_time,
+                                                       (*evt)->getMetric(counterlist[j], true) / 1.0 / agg_time);
+                        }
                     }
                 }
             }
@@ -841,19 +850,24 @@ void Trace::calculate_partition_lateness()
                         if ((*evt)->getMetric(counterlist[j]) < valueslist[per_step*j])
                             valueslist[per_step*j] = (*evt)->getMetric(counterlist[j]);
                     }
+
                 }
 
                 for (QList<CommEvent *>::Iterator evt = i_list->begin();
                      evt != i_list->end(); ++evt)
                 {
                     (*evt)->metrics->addMetric(p_late, (*evt)->exit - mintime);
-                    double evt_time = (*evt)->exit - (*evt)->enter;
-                    for (int j = 0; j < counterlist.size(); j++)
+
+                    if (options.origin != OTFImportOptions::OF_CHARM)
                     {
-                        (*evt)->metrics->addMetric("Step " + counterlist[j],
-                                                   (*evt)->getMetric(counterlist[j]) - valueslist[per_step*j]);
-                        (*evt)->metrics->setMetric(counterlist[j],
-                                                   (*evt)->getMetric(counterlist[j]) / 1.0 / evt_time);
+                        double evt_time = (*evt)->exit - (*evt)->enter;
+                        for (int j = 0; j < counterlist.size(); j++)
+                        {
+                            (*evt)->metrics->addMetric("Step " + counterlist[j],
+                                                       (*evt)->getMetric(counterlist[j]) - valueslist[per_step*j]);
+                            (*evt)->metrics->setMetric(counterlist[j],
+                                                       (*evt)->getMetric(counterlist[j]) / 1.0 / evt_time);
+                        }
                     }
                 }
             }

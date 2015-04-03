@@ -396,6 +396,7 @@ private:
     QMap<ChareIndex, int> * chare_to_task;
     QStack<CharmEvt *> last;
     CommEvent * last_evt;
+    Event * last_entry;
 
     QList<Event *> idles;
 
@@ -442,6 +443,9 @@ private:
     static const int LDB_MSG = 12;
     static const int QD_BOC_MSG = 14;
     static const int QD_BROACAST_BOC_MSG = 15;
+
+    static const QString idle_metric;
+    static const QString runtime_metric;
 
     static const bool verbose = false;
 

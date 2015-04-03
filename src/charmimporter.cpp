@@ -68,11 +68,14 @@ CharmImporter::CharmImporter()
       chare_to_task(new QMap<ChareIndex, int>()),
       last(QStack<CharmEvt *>()),
       last_evt(NULL),
+      last_entry(NULL),
       idles(QList<Event *>()),
       seen_chares(QSet<QString>()),
       application_chares(QSet<int>())
 {
 }
+const QString CharmImporter::idle_metric = "Idle A";
+const QString CharmImporter::runtime_metric = "Unaccounted Runtime";
 
 CharmImporter::~CharmImporter()
 {
@@ -306,6 +309,13 @@ void CharmImporter::makeTaskEvents()
     trace->metrics->append("Idle Blame");
     (*(trace->metric_units))["Idle Blame"] = getUnits(trace->units);
 
+    trace->metrics->append(idle_metric);
+    (*(trace->metric_units))[idle_metric] = getUnits(trace->units);
+    trace->metrics->append(runtime_metric);
+    (*(trace->metric_units))[runtime_metric] = getUnits(trace->units);
+
+
+
     // Now make the task event hierarchy with roots and such
     QStack<CharmEvt *>  * stack = new QStack<CharmEvt *>();
     int depth, phase;
@@ -338,6 +348,7 @@ void CharmImporter::makeTaskEvents()
     {
         stack->clear();
         last_evt = NULL;
+        last_entry = NULL;
         depth = 0;
         phase = 0;
         counter++;
@@ -416,13 +427,13 @@ void CharmImporter::makeTaskEvents()
                     // Check to see if we have a previous entry on the same
                     // task. That may indicate a when clause.
                     P2PEvent * last_p2p = charm_p2ps->at((*evt)->task)->last();
-                    Event * last_evt = trace->pe_events->at((*evt)->pe)->last();
-                    if (last_evt->task == (*evt)->task)
+                    Event * prev_evt = trace->pe_events->at((*evt)->pe)->last();
+                    if (prev_evt->task == (*evt)->task)
                     {
                         // If these didn't have atomics set in them. We have
                         // to go through charm_p2ps because we need P2PEvents
                         int index = charm_p2ps->at((*evt)->task)->size() - 1;
-                        while (last_p2p->caller == last_evt
+                        while (last_p2p->caller == prev_evt
                                && last_p2p->atomic < 0)
                         {
                             last_p2p->atomic = atomic;
@@ -619,6 +630,18 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
             idle_to_next->insert(e, pe_p2ps->at(bgn->pe)->size());
             //std::cout << "Inserting idle from " << bgn->time << " to " << e->exit << " pointing to " << pe_p2ps->at(bgn->pe)->size() << std::endl;
         }
+        else
+        {
+            if (last_entry)
+            {
+                if (last_entry->function == IDLE_FXN)
+                {
+                    e->metrics->addMetric(idle_metric, last_entry->exit - last_entry->enter);
+                }
+                e->metrics->addMetric(runtime_metric, e->enter - last_entry->exit);
+            }
+        }
+        last_entry = e;
     }
 
     if (trace->functions->value(bgn->entry)->group == 2) // IDLE

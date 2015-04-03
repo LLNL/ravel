@@ -58,7 +58,10 @@ double CommEvent::getMetric(QString name, bool aggregate)
     if (caller && caller->metrics->hasMetric(name))
         return caller->metrics->getMetric(name, aggregate);
 
-    return partition->metrics->getMetric(name, aggregate);
+    if (partition->metrics->hasMetric(name))
+        return partition->metrics->getMetric(name, aggregate);
+
+    return 0;
 }
 
 void CommEvent::calculate_differential_metric(QString metric_name,
