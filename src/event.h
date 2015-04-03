@@ -11,6 +11,7 @@ class Partition;
 class Function;
 class QPainter;
 class CommDrawInterface;
+class Metrics;
 
 class Event
 {
@@ -25,6 +26,9 @@ public:
     bool operator<=(const Event &);
     bool operator>=(const Event &);
     bool operator==(const Event &);
+
+    virtual bool hasMetric(QString name);
+    virtual double getMetric(QString name, bool aggregate = false);
 
     Event * findChild(unsigned long long time);
     unsigned long long getVisibleEnd(unsigned long long start);
@@ -51,6 +55,9 @@ public:
     int task;
     int pe;
     int depth;
+
+    Metrics * metrics; // Lateness or Counters etc
+
     Partition * partition; // for debugging
     int atomic; // for debugging
 };

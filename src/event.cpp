@@ -1,5 +1,7 @@
 #include "event.h"
 #include "function.h"
+#include "metrics.h"
+#include "rpartition.h"
 #include <iostream>
 
 Event::Event(unsigned long long _enter, unsigned long long _exit,
@@ -12,6 +14,7 @@ Event::Event(unsigned long long _enter, unsigned long long _exit,
       task(_task),
       pe(_pe),
       depth(-1),
+      metrics(new Metrics()),
       partition(NULL),
       atomic(-1)
 {
@@ -20,6 +23,7 @@ Event::Event(unsigned long long _enter, unsigned long long _exit,
 
 Event::~Event()
 {
+    delete metrics;
     if (callees)
         delete callees;
 }
@@ -61,6 +65,28 @@ bool Event::operator>=(const Event &event)
 bool Event::operator==(const Event &event)
 {
     return enter == event.enter;
+}
+
+bool Event::hasMetric(QString name)
+{
+    if (metrics->hasMetric(name))
+        return true;
+
+    if (partition && partition->metrics->hasMetric(name))
+        return true;
+
+    return false;
+}
+
+double Event::getMetric(QString name, bool aggregate)
+{
+    if (metrics->hasMetric(name))
+        return metrics->getMetric(name, aggregate);
+
+    if (partition)
+        return partition->metrics->getMetric(name, aggregate);
+
+    return 0;
 }
 
 Event * Event::findChild(unsigned long long time)

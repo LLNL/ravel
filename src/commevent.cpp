@@ -8,7 +8,6 @@
 CommEvent::CommEvent(unsigned long long _enter, unsigned long long _exit,
                      int _function, int _task, int _pe, int _phase)
     : Event(_enter, _exit, _function, _task, _pe),
-      metrics(new Metrics()),
       //partition(NULL),
       comm_next(NULL),
       comm_prev(NULL),
@@ -33,8 +32,6 @@ CommEvent::CommEvent(unsigned long long _enter, unsigned long long _exit,
 
 CommEvent::~CommEvent()
 {
-    delete metrics;
-
     if (last_recvs)
         delete last_recvs;
     if (stride_children)
@@ -47,6 +44,8 @@ bool CommEvent::hasMetric(QString name)
 {
     if (metrics->hasMetric(name))
         return true;
+    else if (caller && caller->metrics->hasMetric(name))
+        return true;
     else
         return partition->metrics->hasMetric(name);
 }
@@ -55,6 +54,9 @@ double CommEvent::getMetric(QString name, bool aggregate)
 {
     if (metrics->hasMetric(name))
         return metrics->getMetric(name, aggregate);
+
+    if (caller && caller->metrics->hasMetric(name))
+        return caller->metrics->getMetric(name, aggregate);
 
     return partition->metrics->getMetric(name, aggregate);
 }

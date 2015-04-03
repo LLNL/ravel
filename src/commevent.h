@@ -58,8 +58,6 @@ public:
 
     virtual QSet<Partition *> * mergeForMessagesHelper()=0;
 
-    Metrics * metrics; // Lateness or Counters etc
-
     //Partition * partition; debugging
     CommEvent * comm_next;
     CommEvent * comm_prev;
