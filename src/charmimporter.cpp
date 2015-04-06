@@ -426,9 +426,13 @@ void CharmImporter::makeTaskEvents()
 
                     // Check to see if we have a previous entry on the same
                     // task. That may indicate a when clause.
-                    P2PEvent * last_p2p = charm_p2ps->at((*evt)->task)->last();
-                    Event * prev_evt = trace->pe_events->at((*evt)->pe)->last();
-                    if (prev_evt->task == (*evt)->task)
+                    P2PEvent * last_p2p = NULL;
+                    if (charm_p2ps->at((*evt)->task)->size() > 0)
+                        last_p2p = charm_p2ps->at((*evt)->task)->last();
+                    Event * prev_evt = NULL;
+                    if (trace->pe_events->at((*evt)->pe)->size() > 0)
+                        prev_evt = trace->pe_events->at((*evt)->pe)->last();
+                    if (last_p2p && prev_evt && prev_evt->task == (*evt)->task)
                     {
                         // If these didn't have atomics set in them. We have
                         // to go through charm_p2ps because we need P2PEvents

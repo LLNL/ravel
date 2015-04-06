@@ -676,7 +676,8 @@ void Trace::calculate_partition_duration()
                     if ((*evt)->caller->exit - (*evt)->caller->enter < minduration)
                         minduration = (*evt)->caller->exit - (*evt)->caller->enter;
                 }
-                else if (!(*evt)->isReceive() && (*evt)->comm_prev)
+                else if (!(*evt)->isReceive() && (*evt)->comm_prev
+                         && (*evt)->caller == (*evt)->comm_prev->caller)
                 {
                     if ((*evt)->enter - (*evt)->comm_prev->exit < minduration)
                     {
@@ -701,7 +702,8 @@ void Trace::calculate_partition_duration()
                 else if ((*evt)->isReceive() && !(*evt)->comm_next && (*evt)->caller)
                     (*evt)->metrics->addMetric(p_duration, ((*evt)->caller->exit - (*evt)->caller->enter)
                                                            - minduration);
-                else if (!(*evt)->isReceive() && (*evt)->comm_prev)
+                else if (!(*evt)->isReceive() && (*evt)->comm_prev
+                         && (*evt)->caller == (*evt)->comm_prev->caller)
                     (*evt)->metrics->addMetric(p_duration,
                                                ((*evt)->enter - (*evt)->comm_prev->exit) - minduration);
                 else if (!(*evt)->isReceive() && !(*evt)->comm_prev && (*evt)->caller)
@@ -1310,11 +1312,12 @@ void Trace::mergeForEntryRepair(bool entries)
         delete *partition;
     }
 
-    for (QList<Partition *>::Iterator part = partitions->begin();
-         part != partitions->end(); ++part)
-    {
-        std::cout << "Partition " << (*part)->debug_name << " remains" << std::endl;
-    }
+    if (debug)
+        for (QList<Partition *>::Iterator part = partitions->begin();
+             part != partitions->end(); ++part)
+        {
+            std::cout << "Partition " << (*part)->debug_name << " remains" << std::endl;
+        }
 
     // Need to calculate new dag_entries
     dag_entries->clear();
