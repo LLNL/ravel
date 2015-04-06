@@ -912,7 +912,7 @@ void StepVis::paintEvents(QPainter * painter)
         }
     }
 
-    if (selected_event)
+    if (selected_event && options->traceBack)
     {
         selected_event->track_delay(painter, this);
     }

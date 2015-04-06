@@ -447,7 +447,7 @@ private:
     static const QString idle_metric;
     static const QString runtime_metric;
 
-    static const bool verbose = false;
+    static const bool verbose = true;
 
 };
 
