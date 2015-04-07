@@ -397,6 +397,7 @@ private:
     QStack<CharmEvt *> last;
     CommEvent * last_evt;
     Event * last_entry;
+    int add_order;
 
     QList<Event *> idles;
 
@@ -447,7 +448,7 @@ private:
     static const QString idle_metric;
     static const QString runtime_metric;
 
-    static const bool verbose = true;
+    static const bool verbose = false;
 
 };
 

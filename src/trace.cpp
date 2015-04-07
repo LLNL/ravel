@@ -631,7 +631,7 @@ void Trace::calculate_partition_duration()
             std::cout << " and max step: " << (*part)->max_global_step << std::endl;
             (*part)->output_graph("../debug-output/Partition-duration-"
                                    + QString::number((*part)->debug_name)
-                                   + "-gstep.dot");
+                                   + "-gstep.dot", this);
         }
         count++;
         for (int i = (*part)->min_global_step;
@@ -763,7 +763,7 @@ void Trace::calculate_partition_lateness()
             std::cout << " and max step: " << (*part)->max_global_step << std::endl;
             (*part)->output_graph("../debug-output/Partition-"
                                    + QString::number((*part)->debug_name)
-                                   + "-gstep.dot");
+                                   + "-gstep.dot", this);
         }
         count++;
         for (int i = (*part)->min_global_step;
@@ -1312,12 +1312,13 @@ void Trace::mergeForEntryRepair(bool entries)
         delete *partition;
     }
 
-    if (debug)
+    /*if (debug)
         for (QList<Partition *>::Iterator part = partitions->begin();
              part != partitions->end(); ++part)
         {
             std::cout << "Partition " << (*part)->debug_name << " remains" << std::endl;
         }
+    */
 
     // Need to calculate new dag_entries
     dag_entries->clear();
@@ -1350,7 +1351,7 @@ void Trace::mergeForCharmLeaps()
 {
     std::cout << "Forcing partition dag of unordered sends..." << std::endl;
     verify_partitions();
-    std::cout << "charm leap debug: pre-true" << std::endl;
+    std::cout << "charm leap debug: pre-true on partitions " << partitions->size() << std::endl;
     if (debug)
         output_graph("../debug-output/9a-tracegraph-pretrue.dot");
 
@@ -1823,14 +1824,14 @@ void Trace::assignSteps()
                 std::cout << "Stepping partition " << currentIter << " of " << partitions->size() << std::endl;
                 (*partition)->output_graph("../debug-output/Partition-"
                                           + QString::number(currentIter)
-                                           + "-adv.dot");
+                                           + "-adv.dot", this);
             }
             (*partition)->step();
             if (debug)
             {
                 (*partition)->output_graph("../debug-output/Partition-"
                                            + QString::number(currentIter)
-                                           + "-adv-step.dot");
+                                           + "-adv-step.dot", this);
             }
         }
     } else {
@@ -1850,14 +1851,14 @@ void Trace::assignSteps()
                 std::cout << "Stepping partition " << currentIter << " of " << partitions->size() << std::endl;
                 (*partition)->output_graph("../debug-output/Partition-"
                                            + QString::number(currentIter)
-                                           + "-basic.dot");
+                                           + "-basic.dot", this);
             }
             (*partition)->basic_step();
             if (debug)
             {
                 (*partition)->output_graph("../debug-output/Partition-"
                                            + QString::number(currentIter)
-                                           + "-basic-step.dot");
+                                           + "-basic-step.dot", this);
             }
         }
     }
@@ -3279,8 +3280,8 @@ void Trace::set_dag_steps()
 
             // All parents were handled, so we can set our steps
             (*partition)->dag_leap = accumulated_leap;
-            if (debug)
-                std::cout << "Setting leap to " << accumulated_leap << std::endl;
+            //if (debug)
+            //    std::cout << "Setting leap to " << accumulated_leap << std::endl;
             if (!dag_step_dict->contains((*partition)->dag_leap))
                 (*dag_step_dict)[(*partition)->dag_leap] = new QSet<Partition *>();
             ((*dag_step_dict)[(*partition)->dag_leap])->insert(*partition);
@@ -3416,6 +3417,8 @@ void Trace::output_graph(QString filename, bool byparent)
         graph << ", ne: " << (*partition)->num_events();
         graph << ", leap: " << (*partition)->dag_leap;
         graph << ", name: " << (*partition)->debug_name;
+        if (!(*partition)->verify_members())
+            graph << ", BROKEN";
         graph << (*partition)->get_callers(functions).toStdString().c_str();
         graph << "\"];\n";
         ++id;

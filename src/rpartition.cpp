@@ -14,6 +14,8 @@
 #include "metrics.h"
 #include "gnome.h"
 
+#include "trace.h"
+
 Partition::Partition()
     : events(new QMap<int, QList<CommEvent *> *>),
       max_step(-1),
@@ -554,6 +556,38 @@ Partition * Partition::earlier_partition(Partition * other, QSet<int> overlap_ta
 void Partition::finalizeTaskEventOrder()
 {
     CommEvent * prev;
+    /*int position = -1;
+    QList<int> toSwap = QList<int>();
+    for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
+         event_list != events->end(); ++event_list)
+    {
+        position = 0;
+        prev = NULL;
+        toSwap.clear();
+        for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
+             evt != (event_list.value())->end(); ++evt)
+        {
+            (*evt)->stride = -1;
+            (*evt)->last_stride = NULL;
+            if (prev && prev->exit == (*evt)->exit
+                && (*evt)->happens_before(prev))
+            {
+                toSwap.append(position);
+            }
+            prev = *evt;
+            position++;
+        }
+
+        for (QList<int>::Iterator pos = toSwap.begin();
+             pos != toSwap.end(); ++pos)
+        {
+            prev = event_list.value()->at(*pos - 1);
+            (*event_list.value())[*pos - 1] = (*event_list.value())[*pos];
+            (*event_list.value())[*pos] = prev;
+        }
+    }*/
+
+
     for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
     {
@@ -561,8 +595,6 @@ void Partition::finalizeTaskEventOrder()
         for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
         {
-            (*evt)->stride = -1;
-            (*evt)->last_stride = NULL;
             (*evt)->comm_prev = prev;
             if (prev)
                 prev->comm_next = *evt;
@@ -1433,7 +1465,7 @@ QString Partition::get_callers(QMap<int, Function *> * functions)
 }
 
 // use GraphViz to see partition graph for debugging
-void Partition::output_graph(QString filename)
+void Partition::output_graph(QString filename, Trace * trace)
 {
     std::ofstream graph;
     graph.open(filename.toStdString().c_str());
@@ -1473,6 +1505,9 @@ void Partition::output_graph(QString filename)
             graph << ", p=" << QString::number((*evt)->pe).toStdString().c_str();
             graph << ", s: " << QString::number((*evt)->step).toStdString().c_str();
             graph << ", e: " << QString::number((*evt)->exit).toStdString().c_str();
+            graph << ", a: " << QString::number((*evt)->add_order).toStdString().c_str();
+            if ((*evt)->caller)
+                graph << "\n " << trace->functions->value((*evt)->caller->function)->name.toStdString().c_str();
             graph << "\"];\n";
 
             graph2 << indent.toStdString().c_str() << (*evt)->gvid.toStdString().c_str();
@@ -1481,6 +1516,9 @@ void Partition::output_graph(QString filename)
             graph2 << ", p=" << QString::number((*evt)->pe).toStdString().c_str();
             graph2 << ", s: " << QString::number((*evt)->step).toStdString().c_str();
             graph2 << ", e: " << QString::number((*evt)->exit).toStdString().c_str();
+            graph2 << ", a: " << QString::number((*evt)->add_order).toStdString().c_str();
+            if ((*evt)->caller)
+                graph2 << "\n " << trace->functions->value((*evt)->caller->function)->name.toStdString().c_str();
             graph2 << "\"];\n";
             ++id;
         }

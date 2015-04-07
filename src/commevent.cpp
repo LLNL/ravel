@@ -17,6 +17,7 @@ CommEvent::CommEvent(unsigned long long _enter, unsigned long long _exit,
       pe_prev(NULL),
       //atomic(-1),
       matching(-1),
+      add_order(0),
       last_stride(NULL),
       next_stride(NULL),
       last_recvs(NULL),
@@ -38,6 +39,78 @@ CommEvent::~CommEvent()
         delete stride_children;
     if (stride_parents)
         delete stride_parents;
+}
+
+
+bool CommEvent::operator<(const CommEvent &event)
+{
+    if (enter == event.enter)
+    {
+        if (add_order == event.add_order)
+        {
+            if (isReceive())
+                return true;
+            else
+                return false;
+        }
+        return add_order < event.add_order;
+    }
+    return enter < event.enter;
+}
+
+bool CommEvent::operator>(const CommEvent &event)
+{
+    if (enter == event.enter)
+    {
+        if (add_order == event.add_order)
+        {
+            if (isReceive())
+                return false;
+            else
+                return true;
+        }
+        return add_order > event.add_order;
+    }
+    return enter > event.enter;
+}
+
+bool CommEvent::operator<=(const CommEvent &event)
+{
+    if (enter == event.enter)
+    {
+        if (add_order == event.add_order)
+        {
+            if (isReceive())
+                return true;
+            else
+                return false;
+        }
+        return add_order <= event.add_order;
+    }
+    return enter <= event.enter;
+}
+
+bool CommEvent::operator>=(const CommEvent &event)
+{
+    if (enter == event.enter)
+    {
+        if (add_order == event.add_order)
+        {
+            if (isReceive())
+                return false;
+            else
+                return true;
+        }
+        return add_order >= event.add_order;
+    }
+    return enter >= event.enter;
+}
+
+bool CommEvent::operator==(const CommEvent &event)
+{
+    return enter == event.enter
+            && add_order == event.add_order
+            && isReceive() == event.isReceive();
 }
 
 bool CommEvent::hasMetric(QString name)

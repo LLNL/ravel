@@ -13,6 +13,7 @@ class CommEvent;
 class ClusterTask;
 class Function;
 class Metrics;
+class Trace;
 
 class Partition
 {
@@ -64,7 +65,7 @@ public:
     void calculate_imbalance(int num_pes);
 
     // For debugging
-    void output_graph(QString filename);
+    void output_graph(QString filename, Trace *trace);
     bool verify_members();
     bool verify_runtime(int runtime_id);
     bool verify_parents();

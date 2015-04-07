@@ -14,10 +14,20 @@ public:
              QVector<Message *> * _messages = NULL);
     P2PEvent(QList<P2PEvent *> * _subevents);
     ~P2PEvent();
+
+    // Based on enter time, add_order & receive-ness
+    bool operator<(const P2PEvent &);
+    bool operator>(const P2PEvent &);
+    bool operator<=(const P2PEvent &);
+    bool operator>=(const P2PEvent &);
+    bool operator==(const P2PEvent &);
+
+
     int comm_count(QMap<Event *, int> *memo = NULL) { Q_UNUSED(memo); return 1; }
     bool isP2P() { return true; }
     bool isReceive() const;
     void fixPhases();
+    bool happens_before(CommEvent * prev);
     void initialize_strides(QList<CommEvent *> * stride_events,
                             QList<CommEvent *> * recv_events);
     void update_strides();
@@ -49,6 +59,7 @@ public:
     // Messages involved wiht this event
     QVector<Message *> * messages;
 
+    //int add_order;
     bool is_recv;
 
 private:

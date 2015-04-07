@@ -12,6 +12,7 @@ P2PEvent::P2PEvent(unsigned long long _enter, unsigned long long _exit,
     : CommEvent(_enter, _exit, _function, _task, _pe, _phase),
       subevents(NULL),
       messages(_messages),
+      //add_order(-1),
       is_recv(false)
 {
 }
@@ -85,6 +86,78 @@ P2PEvent::~P2PEvent()
         delete subevents;
 }
 
+bool P2PEvent::operator<(const P2PEvent &event)
+{
+    if (enter == event.enter)
+    {
+        if (add_order == event.add_order)
+        {
+            if (is_recv)
+                return true;
+            else
+                return false;
+        }
+        return add_order < event.add_order;
+    }
+    return enter < event.enter;
+}
+
+bool P2PEvent::operator>(const P2PEvent &event)
+{
+    if (enter == event.enter)
+    {
+        if (add_order == event.add_order)
+        {
+            if (is_recv)
+                return false;
+            else
+                return true;
+        }
+        return add_order > event.add_order;
+    }
+    return enter > event.enter;
+}
+
+bool P2PEvent::operator<=(const P2PEvent &event)
+{
+    if (enter == event.enter)
+    {
+        if (add_order == event.add_order)
+        {
+            if (is_recv)
+                return true;
+            else
+                return false;
+        }
+        return add_order <= event.add_order;
+    }
+    return enter <= event.enter;
+}
+
+bool P2PEvent::operator>=(const P2PEvent &event)
+{
+    if (enter == event.enter)
+    {
+        if (add_order == event.add_order)
+        {
+            if (is_recv)
+                return false;
+            else
+                return true;
+        }
+        return add_order >= event.add_order;
+    }
+    return enter >= event.enter;
+}
+
+bool P2PEvent::operator==(const P2PEvent &event)
+{
+    return enter == event.enter
+            && add_order == event.add_order
+            && is_recv == event.is_recv;
+}
+
+
 bool P2PEvent::isReceive() const
 {
     return is_recv;
@@ -104,6 +177,20 @@ void P2PEvent::fixPhases()
             phase = (*msg)->receiver->phase;
          else if ((*msg)->receiver->phase < phase)
              (*msg)->receiver->phase = phase;
+    }
+}
+
+bool P2PEvent::happens_before(CommEvent * prev)
+{
+    if (is_recv)
+        return false;
+
+    for (QVector<Message *>::Iterator msg
+         = messages->begin();
+         msg != messages->end(); ++msg)
+    {
+         if ((*msg)->receiver == prev)
+             return true;
     }
 }
 

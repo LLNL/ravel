@@ -69,6 +69,7 @@ CharmImporter::CharmImporter()
       last(QStack<CharmEvt *>()),
       last_evt(NULL),
       last_entry(NULL),
+      add_order(0),
       idles(QList<Event *>()),
       seen_chares(QSet<QString>()),
       application_chares(QSet<int>())
@@ -560,6 +561,8 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                                                              phase,
                                                              msgs);
                     (*cmsg)->tracemsg->sender->is_recv = false;
+                    (*cmsg)->tracemsg->sender->add_order = add_order;
+                    add_order++;
                     (*cmsg)->send_evt->trace_evt = (*cmsg)->tracemsg->sender;
                     charm_p2ps->at(bgn->task)->append((*cmsg)->tracemsg->sender);
                     if (verbose)
@@ -599,6 +602,8 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                                                            msgs);
 
                 (*cmsg)->tracemsg->receiver->is_recv = true;
+                (*cmsg)->tracemsg->receiver->add_order = add_order;
+                add_order++;
                 charm_p2ps->at(bgn->task)->append((*cmsg)->tracemsg->receiver);
                 if (verbose)
                     std::cout << "                      Adding" << std::endl;
@@ -1737,6 +1742,7 @@ void CharmImporter::readSts(QString dataFileName)
         QStringList lineList = QString::fromStdString(line).split(" ");
         if (lineList.at(0) == "ENTRY" && lineList.at(1) == "CHARE")
         {
+            // We have to do relative to end because some names may have spaces
             int len = lineList.length();
             QString name = lineList.at(3);
             for (int i = 4; i < len - 2; i++)

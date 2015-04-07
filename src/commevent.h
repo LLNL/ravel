@@ -21,6 +21,13 @@ public:
               int _function, int _task, int _pe, int _phase);
     ~CommEvent();
 
+    bool operator<(const CommEvent &);
+    bool operator>(const CommEvent &);
+    bool operator<=(const CommEvent &);
+    bool operator>=(const CommEvent &);
+    bool operator==(const CommEvent &);
+
+
     bool hasMetric(QString name);
     double getMetric(QString name, bool aggregate = false);
 
@@ -32,6 +39,7 @@ public:
     virtual void writeOTF2Leave(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap);
 
     virtual void fixPhases()=0;
+    virtual bool happens_before(CommEvent * prev) { Q_UNUSED(prev); return false; }
     virtual void calculate_differential_metric(QString metric_name,
                                                QString base_name,
                                                bool aggregates=true);
@@ -65,6 +73,8 @@ public:
     CommEvent * true_prev;
     CommEvent * pe_next;
     CommEvent * pe_prev;
+
+    int add_order;
 
     // Charm atomic
     //int atomic; debugging
