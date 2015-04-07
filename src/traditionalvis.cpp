@@ -547,6 +547,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
         task_spacing = 3;
 
     float x, y, w, h;
+    float cx, cw; // For extended color
     blockheight = floor(canvasHeight / entitySpan);
     float barheight = blockheight - task_spacing;
     entityheight = blockheight;
@@ -630,15 +631,27 @@ void TraditionalVis::paintEvents(QPainter *painter)
 
                 w = ((*evt)->exit - (*evt)->enter) / 1.0
                         / timeSpan * rect().width();
+                cw = ((*evt)->extent_end - (*evt)->extent_begin) / 1.0
+                        / timeSpan * rect().width();
+
                 if ((*evt)->exit == (*evt)->enter)
                 {
                     w = one_tick;
                 }
-                if (w >= 2)
+                if ((*evt)->extent_end == (*evt)->extent_begin)
+                {
+                    cw = one_tick;
+                }
+
+
+                if (w >= 2) // we know cw >= w
                 {
                     x = floor(static_cast<long long>((*evt)->enter - startTime)
                               / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
                     h = barheight;
+
+                    cx = floor(static_cast<long long>((*evt)->extent_begin - startTime)
+                               / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
 
 
                     // Corrections for partially drawn
@@ -660,6 +673,15 @@ void TraditionalVis::paintEvents(QPainter *painter)
                         complete = false;
                     }
 
+                    if (cx < labelWidth) {
+                        cw -= (labelWidth - cx);
+                        cx = labelWidth;
+                        complete = false;
+                    } else if (cx + cw > rect().width()) {
+                        cw = rect().width() - cx;
+                        complete = false;
+                    }
+
 
                     // Change pen color if selected
                     if (*evt == selected_event && !selected_aggregate)
@@ -668,8 +690,16 @@ void TraditionalVis::paintEvents(QPainter *painter)
                     if (options->colorTraditionalByMetric
                         && (*evt)->hasMetric(options->metric))
                     {
-                            painter->fillRect(QRectF(x, y, w, h),
+                        // Background color on the larger image
+                        if (task_spacing > 0)
+                            painter->fillRect(QRectF(cx+1, y+1, cw-2, h-2),
                                               QBrush(options->colormap->color((*evt)->getMetric(options->metric))));
+                        else
+                            painter->fillRect(QRectF(cx, y, cw, h),
+                                              QBrush(options->colormap->color((*evt)->getMetric(options->metric))));
+
+                        painter->fillRect(QRectF(x, y, w, h),
+                                          QBrush(options->colormap->color((*evt)->getMetric(options->metric))));
                     }
                     else
                     {
@@ -718,6 +748,55 @@ void TraditionalVis::paintEvents(QPainter *painter)
                         painter->setPen(QPen(QColor(0, 0, 0)));
                     }
 
+                }
+                else if (cw >= 2) // Still draw the surrounding
+                {
+                    cx = floor(static_cast<long long>((*evt)->extent_begin - startTime)
+                               / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
+                    h = barheight;
+
+                    // Corrections for partially drawn
+                    complete = true;
+                    if (y < 0) {
+                        h = barheight - fabs(y);
+                        y = 0;
+                        complete = false;
+                    } else if (y + barheight > canvasHeight) {
+                        h = canvasHeight - y;
+                        complete = false;
+                    }
+
+                    if (cx < labelWidth) {
+                        cw -= (labelWidth - cx);
+                        cx = labelWidth;
+                        complete = false;
+                    } else if (cx + cw > rect().width()) {
+                        cw = rect().width() - cx;
+                        complete = false;
+                    }
+
+
+                    // Change pen color if selected
+                    if (*evt == selected_event && !selected_aggregate)
+                        painter->setPen(QPen(Qt::yellow));
+
+                    if (options->colorTraditionalByMetric
+                        && (*evt)->hasMetric(options->metric))
+                    {
+                        // Background color on the larger image
+                        if (task_spacing > 0)
+                            painter->fillRect(QRectF(cx+1, y+1, cw-2, h-2),
+                                              QBrush(options->colormap->color((*evt)->getMetric(options->metric))));
+                        else
+                            painter->fillRect(QRectF(cx, y, cw, h),
+                                              QBrush(options->colormap->color((*evt)->getMetric(options->metric))));
+                    }
+
+                    // Revert pen color
+                    if (*evt == selected_event && !selected_aggregate)
+                        painter->setPen(QPen(QColor(0, 0, 0)));
+
+                    drawnEvents[*evt] = QRect(cx, y, cw, h);
                 }
                 (*evt)->addComms(&drawComms);
                 if (*evt == selected_event)

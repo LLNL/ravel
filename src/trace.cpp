@@ -667,29 +667,40 @@ void Trace::calculate_partition_duration()
                 // essentially acts as a divisor for its caller.
                 // Receives are instantaneous because anything that happened
                 // before them may be on another PE or due to another task.
-                if ((*evt)->isReceive() && (*evt)->comm_next)
+                // We set the extents here -- they default to the extents of the
+                // comm message, but we allow them to be longer for charm++
+                if ((*evt)->isReceive() && (*evt)->comm_next
+                    && (*evt)->comm_next->caller == (*evt)->caller)
                 {
-                    minduration = 1;
+                    if ((*evt)->exit - (*evt)->enter < minduration)
+                        minduration = (*evt)->exit - (*evt)->enter;
                 }
-                else if ((*evt)->isReceive() && !(*evt)->comm_next && (*evt)->caller)
+                else if ((*evt)->isReceive() && (*evt)->caller
+                         && (!(*evt)->comm_next || (*evt)->comm_next->caller != (*evt)->caller))
                 {
+                    (*evt)->extent_begin = (*evt)->caller->enter;
+                    (*evt)->extent_end = (*evt)->caller->exit;
                     if ((*evt)->caller->exit - (*evt)->caller->enter < minduration)
                         minduration = (*evt)->caller->exit - (*evt)->caller->enter;
                 }
                 else if (!(*evt)->isReceive() && (*evt)->comm_prev
                          && (*evt)->caller == (*evt)->comm_prev->caller)
                 {
-                    if ((*evt)->enter - (*evt)->comm_prev->exit < minduration)
+                    (*evt)->extent_begin = (*evt)->comm_prev->exit;
+                    (*evt)->extent_end = (*evt)->exit;
+                    if ((*evt)->exit - (*evt)->comm_prev->exit < minduration)
                     {
-                        minduration = (*evt)->enter - (*evt)->comm_prev->exit;
+                        minduration = (*evt)->exit - (*evt)->comm_prev->exit;
                     }
                 }
                 else if (!(*evt)->isReceive() && !(*evt)->comm_prev
                          && (*evt)->caller)
                 {
-                    if ((*evt)->enter - (*evt)->caller->enter < minduration)
+                    (*evt)->extent_begin = (*evt)->caller->enter;
+                    (*evt)->extent_end = (*evt)->exit;
+                    if ((*evt)->exit - (*evt)->caller->enter < minduration)
                     {
-                        minduration = (*evt)->enter - (*evt)->caller->enter;
+                        minduration = (*evt)->exit - (*evt)->caller->enter;
                     }
                 }
             }
@@ -697,20 +708,8 @@ void Trace::calculate_partition_duration()
             for (QList<CommEvent *>::Iterator evt = i_list->begin();
                  evt != i_list->end(); ++evt)
             {
-                if ((*evt)->isReceive() && (*evt)->comm_next)
-                    (*evt)->metrics->addMetric(p_duration, 1);
-                else if ((*evt)->isReceive() && !(*evt)->comm_next && (*evt)->caller)
-                    (*evt)->metrics->addMetric(p_duration, ((*evt)->caller->exit - (*evt)->caller->enter)
-                                                           - minduration);
-                else if (!(*evt)->isReceive() && (*evt)->comm_prev
-                         && (*evt)->caller == (*evt)->comm_prev->caller)
-                    (*evt)->metrics->addMetric(p_duration,
-                                               ((*evt)->enter - (*evt)->comm_prev->exit) - minduration);
-                else if (!(*evt)->isReceive() && !(*evt)->comm_prev && (*evt)->caller)
-                    (*evt)->metrics->addMetric(p_duration,
-                                               ((*evt)->enter - (*evt)->caller->enter) - minduration);
-                else
-                    (*evt)->metrics->addMetric(p_duration, 1);
+                (*evt)->metrics->addMetric(p_duration, ((*evt)->extent_end - (*evt)->extent_begin)
+                                                       - minduration);
             }
             delete i_list;
         }

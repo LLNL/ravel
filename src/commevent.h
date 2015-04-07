@@ -74,7 +74,12 @@ public:
     CommEvent * pe_next;
     CommEvent * pe_prev;
 
+    // For sorting when overlaps
     int add_order;
+
+    // For duration and other issues
+    unsigned long long extent_begin;
+    unsigned long long extent_end;
 
     // Charm atomic
     //int atomic; debugging
