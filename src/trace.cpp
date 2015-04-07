@@ -3417,10 +3417,11 @@ void Trace::output_graph(QString filename, bool byparent)
         graph << ", ne: " << (*partition)->num_events();
         graph << ", leap: " << (*partition)->dag_leap;
         graph << ", name: " << (*partition)->debug_name;
-        if (!(*partition)->verify_members())
-            graph << ", BROKEN";
         graph << (*partition)->get_callers(functions).toStdString().c_str();
-        graph << "\"];\n";
+        graph << "\"";
+        if (!(*partition)->verify_members())
+            graph << " color=red";
+        graph << "];\n";
         ++id;
     }
 
