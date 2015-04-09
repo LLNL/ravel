@@ -1753,16 +1753,57 @@ void Trace::forcePartitionDag()
         delete current_leap;
         current_leap = next_leap;
     } // End Leap While
-    delete current_leap;
+
 
     // Need to calculate new dag_entries
     dag_entries->clear();
+    current_leap->clear();
     for (QList<Partition *>::Iterator partition = partitions->begin();
          partition != partitions->end(); ++partition)
     {
         if ((*partition)->parents->size() <= 0)
+        {
             dag_entries->append(*partition);
+            //current_leap->insert(*partition);
+        }
     }
+
+    /*
+    // Need to finally fix partitions that should parent each other but don't
+    // e.g. those that don't have send-relations  but should have happens before
+    // in order to force this dag
+    leap = 0;
+    int at_search_leap = 0;
+    QSet<Partition *> search_leap = QSet<Partition *>();
+    QSet<int> found_tasks = QSet<int>();
+    while (!current_leap->isEmpty())
+    {
+        QSet<Partition *> * next_leap = new QSet<Partition *>();
+
+        for (QSet<Partition *>::Iterator part = current_leap->begin();
+             part != current_leap->end(); ++part)
+        {
+            // Let's test for tasks! If we're okay, we need not do anything
+            QSet<int> missing = (*part)->check_task_children();
+            if (missing.isEmpty())
+                continue;
+
+            search_leap.clear();
+            found_tasks.clear();
+            at_search_leap = leap;
+            for (QSet<Partition *>::Iterator part = current_leap->begin();
+                 part != current_leap->end(); ++part)
+            {
+                for (QSet<Partition *>::Iterator child = (*part)->children->begin();
+                     child != (*part)->children->end(); ++child)
+            }
+        }
+        leap++;
+
+        delete current_leap;
+        current_leap = next_leap;
+    }*/
+    delete current_leap;
 }
 
 // Iterates through all partitions and sets the steps

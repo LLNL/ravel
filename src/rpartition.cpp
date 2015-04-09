@@ -342,6 +342,24 @@ void Partition::true_children()
                 }
             }
 
+            // And  maybe if it is just the last receive
+            else if ((*evt)->isReceive() && (*evt)->true_next && !(*evt)->true_next->isReceive()
+                     && (*evt)->true_next->partition != this)
+            {
+                Partition * p = (*evt)->true_next->partition;
+                children->insert(p);
+                p->parents->insert(this);
+            }
+
+            // And  maybe if it is just the last receive danger pe
+            else if ((*evt)->isReceive() && (*evt)->pe_next && !(*evt)->pe_next->isReceive()
+                     && (*evt)->pe_next->partition != this && (*evt)->pe_next->comm_prev == NULL)
+            {
+                Partition * p = (*evt)->pe_next->partition;
+                children->insert(p);
+                p->parents->insert(this);
+            }
+
             /*if ((*evt)->comm_next && (*evt)->comm_next->partition != this)
             {
                 Partition * p = (*evt)->comm_next->partition;
@@ -430,6 +448,19 @@ void Partition::stitched_atomics(QSet<Partition *> * stitchees)
             }
         }
     }
+}
+
+QSet<int> Partition::check_task_children()
+{
+    QSet<int> task_children = events->keys().toSet();
+    for (QSet<Partition *>::Iterator child = children->begin();
+         child != children->end(); ++child)
+    {
+        task_children.subtract((*child)->events->keys().toSet());
+        if (task_children.isEmpty())
+            return task_children;
+    }
+    return task_children;
 }
 
 // Find task overlaps between partitions.

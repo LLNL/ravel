@@ -62,6 +62,8 @@ public:
     bool mergable(Partition * other);
     QSet<int> task_overlap(Partition * other);
     Partition * earlier_partition(Partition * other, QSet<int> overlap_tasks);
+    QSet<int> check_task_children();
+
     void calculate_imbalance(int num_pes);
 
     // For debugging
