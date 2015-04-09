@@ -852,6 +852,7 @@ void CharmImporter::buildPartitions()
                              && reductionEntries->contains((*p2p)->caller->function)
                              && reductionEntries->contains(prev->caller->function)
                             )
+                        && (prev->atomic == -1 || (*p2p)->atomic != prev->atomic)
                        )
                     )//|| trace->functions->value((*p2p)->caller->function)->isMain) // 1)
                 {
@@ -860,6 +861,7 @@ void CharmImporter::buildPartitions()
                         std::cout << " --- Making a partition due to caller split";
                         std::cout << " between " << functions->value(prev->caller->function)->name.toStdString().c_str();
                         std::cout << " and " << functions->value((*p2p)->caller->function)->name.toStdString().c_str() << std::endl;
+                        std::cout << " ----- atomics: " << prev->atomic << " , " << (*p2p)->atomic << std::endl;
                         std::cout << " ----- matching terms: " << prev->matching << " , " << (*p2p)->matching << std::endl;
                     }
                     makePartition(events);
@@ -912,6 +914,8 @@ void CharmImporter::buildPartitions()
                     {
                         std::cout << " --- We are " << trace->functions->value(prev->caller->function)->shortname.toStdString().c_str() << std::endl;
                         std::cout << " --- my_app is " << my_app << " and theirs is " << prev_app << std::endl;
+                        std::cout << " ----- atomics: " << prev->atomic << " , " << (*p2p)->atomic << std::endl;
+
                     }
                     // These should be the same or split.
                     if (my_app != prev_app)
@@ -1041,7 +1045,9 @@ void CharmImporter::makePartition(QList<P2PEvent *> * events)
         }
     }
     if (verbose)
-        std::cout << "Making partition of task " << events->first()->task << " of " << (num_application_tasks + 1);
+    {
+        std::cout << "Making " << events->size() << " event partition of task " << events->first()->task << " of " << (num_application_tasks + processes);
+    }
     if (events->first()->task >= num_application_tasks)
     {
         if (verbose)

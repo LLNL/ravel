@@ -418,6 +418,7 @@ void Trace::partition()
             if (debug)
                 output_graph("../debug-output/8-post-atomics-cycle.dot");
 
+
         }
 
         std::cout << "Partitions = " << partitions->size() << std::endl;
@@ -485,6 +486,8 @@ void Trace::set_global_steps()
 
     while (!current_leap->isEmpty())
     {
+        if (debug)
+            std::cout << " ...next leap" << std::endl;
         QSet<Partition *> * next_leap = new QSet<Partition *>();
         for (QSet<Partition *>::Iterator part = current_leap->begin();
              part != current_leap->end(); ++part)
@@ -1021,8 +1024,6 @@ void Trace::finalizeTaskEventOrder()
         for (QList<Partition *>::Iterator part = partitions->begin();
              part != partitions->end(); ++part)
         {
-            if (debug)
-                std::cout << "Partition runtime is " << (*part)->runtime << std::endl;
             if (!(*part)->runtime)
                 (*part)->receive_reorder();
             (*part)->finalizeTaskEventOrder();
@@ -1634,26 +1635,39 @@ void Trace::forcePartitionDag()
 
     while (!current_leap->isEmpty())
     {
-        //if (debug)
-        //    std::cout << " charm debug: leap " << leap << std::endl;
+        if (debug)
+            std::cout << " charm debug: leap " << leap << std::endl;
 
         QSet<Partition *> * next_leap = new QSet<Partition *>();
 
         for (QSet<Partition *>::Iterator part = current_leap->begin();
              part != current_leap->end(); ++part)
         {
+            //if (debug)
+            //    std::cout << "* Examining " << (*part)->debug_name << std::endl;
+
             // We have already dealt with this one and/or moved it forward
             if ((*part)->dag_leap != leap)
                 continue;
 
+            //if (debug)
+            //    std::cout << "  Not skipped" << std::endl;
+
+
             for (QSet<Partition *>::Iterator other = current_leap->begin();
                  other != current_leap->end(); ++other)
             {
+                //if (debug)
+                //    std::cout << "  Versus" << (*other)->debug_name << std::endl;
+
                 // Cases in which we skip this one
                 if (*other == *part)
                     continue;
                 if ((*other)->dag_leap != leap)
                     continue;
+
+                //if (debug)
+                //    std::cout << "     Not skipped" << std::endl;
 
                 QSet<int> overlap_tasks = (*part)->task_overlap(*other);
                 if (!overlap_tasks.isEmpty())
@@ -1672,6 +1686,9 @@ void Trace::forcePartitionDag()
                     {
                         later = *part;
                     }
+
+                    if (debug)
+                        std::cout << "    Overlapped tasks! Earlier is " << earlier->debug_name << " vs " << later->debug_name << std::endl;
 
                     // Find overlapping parents that need to be removed
                     for (QSet<Partition *>::Iterator parent = later->parents->begin();
@@ -1723,7 +1740,11 @@ void Trace::forcePartitionDag()
             {
                 (*child)->calculate_dag_leap();
                 if ((*child)->dag_leap == leap + 1)
+                {
                     next_leap->insert(*child);
+                    if (debug)
+                        std::cout << "Adding " << (*child)->debug_name << " to next leap" << std::endl;
+                }
             }
         }
 
@@ -1774,10 +1795,17 @@ void Trace::assignSteps()
         //verify_partitions(); <-- cannot verify until after dag_entries/dag_steps
 
         std::cout << "Forcing DAG" << std::endl;
+        std::cout << "Partitions: " << partitions->size() << std::endl;
         set_dag_entries();
         set_dag_steps();
+        verify_partitions();
         if (debug)
-            output_graph("../debug-output/10-tracegraph-leap.dot");
+            output_graph("../debug-output/10-tracegraph-charmleap.dot");
+        mergeCycles();
+        std::cout << "After another cycle merge partitions: " << partitions->size() << std::endl;
+        verify_partitions();
+        if (debug)
+            output_graph("../debug-output/10X-tracegraph-cyclepostleap.dot");
         forcePartitionDag(); // overlap due to runtime versus application
         verify_partitions();
 
@@ -3372,6 +3400,7 @@ Event * Trace::findEvent(int task, unsigned long long time)
 
 void Trace::verify_partitions()
 {
+    std::cout << "Verifying " << partitions->size() << " partitions." << std::endl;
     for (QList<Partition *>::Iterator part = partitions->begin();
          part != partitions->end(); ++part)
     {
