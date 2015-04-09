@@ -403,6 +403,7 @@ private:
 
     QSet<QString> seen_chares;
     QSet<int> application_chares;
+    QMap<int, int> application_group_chares;
 
     static const int IDLE_FXN = 999997;
     static const int SEND_FXN = 999998;

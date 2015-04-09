@@ -1769,7 +1769,9 @@ void Trace::assignSteps()
 
         std::cout << "Merging for leaps in charm" << std::endl;
         mergeForCharmLeaps();
-        verify_partitions();
+        if (debug)
+            output_graph("../debug-output/9X-postcharmleap-preverify.dot");
+        //verify_partitions(); <-- cannot verify until after dag_entries/dag_steps
 
         std::cout << "Forcing DAG" << std::endl;
         set_dag_entries();
@@ -3417,9 +3419,16 @@ void Trace::output_graph(QString filename, bool byparent)
         graph << ", leap: " << (*partition)->dag_leap;
         graph << ", name: " << (*partition)->debug_name;
         graph << (*partition)->get_callers(functions).toStdString().c_str();
-        graph << "\"";
         if (!(*partition)->verify_members())
+        {
+            graph << "\n BROKEN";
+            graph << "\"";
             graph << " color=red";
+        }
+        else
+        {
+            graph << "\"";
+        }
         graph << "];\n";
         ++id;
     }

@@ -72,7 +72,8 @@ CharmImporter::CharmImporter()
       add_order(0),
       idles(QList<Event *>()),
       seen_chares(QSet<QString>()),
-      application_chares(QSet<int>())
+      application_chares(QSet<int>()),
+      application_group_chares(QMap<int, int>())
 {
 }
 const QString CharmImporter::idle_metric = "Idle A";
@@ -373,9 +374,14 @@ void CharmImporter::makeTaskEvents()
                 {
                     if (verbose)
                         std::cout << "            ArrayID " << (*evt)->arrayid << " and chare " << (*evt)->index.chare << std::endl;
-                    if (((*evt)->arrayid == 0 && (!application_chares.contains((*evt)->index.chare)
+                    if (application_group_chares.contains((*evt)->index.chare))
+                    {
+                        (*evt)->task = application_group_chares[(*evt)->index.chare]
+                                       + (*evt)->pe;
+                    }
+                    else if (((*evt)->arrayid == 0 && (!application_chares.contains((*evt)->index.chare)
                                                  || ((*evt)->index.chare == main && (*evt)->pe != 0)))
-                         || (*evt)->index.chare == -1)
+                             || (*evt)->index.chare == -1)
                     {
                         (*evt)->task = -1;
                         if (verbose)
@@ -1131,6 +1137,27 @@ int CharmImporter::makeTasks()
         }
     }
 
+    // Add group chares
+    QList<int> group_chares = application_group_chares.keys();
+    for (QList<int>::Iterator group = group_chares.begin();
+         group != group_chares.end(); ++group)
+    {
+        primaries->insert(*group,
+                          new PrimaryTaskGroup(*group,
+                                               chares->value(*group)->name));
+        application_group_chares[*group] = taskid;
+
+        for (int i = 0; i < processes; i++)
+        {
+            Task * task = new Task(taskid,
+                                   chares->value(*group)->name
+                                        + " " + QString::number(i),
+                                   primaries->value(*group));
+            primaries->value(*group)->tasks->append(task);
+            taskid++;
+        }
+    }
+
     num_application_tasks = taskid;
     primaries->insert(chares->size(),
                       new PrimaryTaskGroup(chares->size(),
@@ -1204,7 +1231,8 @@ void CharmImporter::parseLine(QString line, int my_pe)
             original_array = arrayid;
 
             int chare = entries->value(entry)->chare;
-            if (chare == traceChare || chare == forravel)
+            if (chare == traceChare || chare == forravel
+                || application_group_chares.contains(chare))
             {
                 arrayid = 0;
             }
@@ -1398,7 +1426,8 @@ void CharmImporter::parseLine(QString line, int my_pe)
 
             // Special case now that CkReductionMgr has the wrong array id for some reason
             int chare = entries->value(entry)->chare;
-            if (chare == traceChare || chare == forravel)
+            if (chare == traceChare || chare == forravel
+                || application_group_chares.contains(chare))
             {
                 arrayid = 0;
             }
@@ -1427,6 +1456,10 @@ void CharmImporter::parseLine(QString line, int my_pe)
                 id.array = arrayid;
                 id.chare = entries->value(entry)->chare;
                 arrays->value(arrayid)->indices->insert(id);
+            }
+            else if (application_group_chares.contains(chare))
+            {
+                id.chare = entries->value(entry)->chare;
             }
             else
             {
@@ -1767,11 +1800,17 @@ void CharmImporter::readSts(QString dataFileName)
                            new Chare(lineList.at(2)));
 
             if (main < 0 && QString::compare(lineList.at(2), "main", Qt::CaseInsensitive) == 0)
-                 main = lineList.at(1).toInt();
+                main = lineList.at(1).toInt();
             else if (forravel < 0 && QString::compare(lineList.at(2), "ForRavel") == 0)
                 forravel = lineList.at(1).toInt();
             else if (traceChare < 0 && QString::compare(lineList.at(2), "TraceProjectionsBOC") == 0)
-                 traceChare = lineList.at(1).toInt();
+                traceChare = lineList.at(1).toInt();
+            else if (QString::compare(lineList.at(2), "DataManager") == 0)
+                application_group_chares.insert(lineList.at(1).toInt(), -1);
+            else if (QString::compare(lineList.at(2), "CompletionDetector") == 0)
+            {
+                application_group_chares.insert(lineList.at(1).toInt(), -1);
+            }
         }
         else if (lineList.at(0) == "VERSION")
         {
