@@ -1907,6 +1907,8 @@ void Trace::assignSteps()
     if (options.globalMerge)
         mergeGlobalSteps();
 
+    if (debug)
+        output_graph("../debug-output/13-dag-global.dot");
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "Global Stepping: ";
     gu_printTime(traceElapsed);
@@ -3425,6 +3427,7 @@ void Trace::verify_partitions()
 // use GraphViz to see partition graph for debugging
 void Trace::output_graph(QString filename, bool byparent)
 {
+    std::cout << "Writing: " << filename.toStdString().c_str() << std::endl;
     std::ofstream graph;
     graph.open(filename.toStdString().c_str());
 

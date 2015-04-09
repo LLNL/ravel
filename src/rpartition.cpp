@@ -295,7 +295,9 @@ void Partition::true_children()
             // a bunch of receives before something happens
             // We also only want to do this with 'first' sends, thouse
             // without a comm_prev
-            if (!(*evt)->isReceive() && (*evt)->comm_prev == NULL)
+            if (!(*evt)->isReceive() && ((*evt)->comm_prev == NULL
+                                         || (*evt)->comm_prev->partition != this)
+               )
             {
                 CommEvent * tmp = (*evt)->true_next;
                 while (tmp)

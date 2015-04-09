@@ -374,12 +374,13 @@ void CharmImporter::makeTaskEvents()
                 {
                     if (verbose)
                         std::cout << "            ArrayID " << (*evt)->arrayid << " and chare " << (*evt)->index.chare << std::endl;
-                    if (application_group_chares.contains((*evt)->index.chare))
+                    /*if (application_group_chares.contains((*evt)->index.chare))
                     {
                         (*evt)->task = application_group_chares[(*evt)->index.chare]
                                        + (*evt)->pe;
                     }
-                    else if (((*evt)->arrayid == 0 && (!application_chares.contains((*evt)->index.chare)
+                    else*/
+                    if (((*evt)->arrayid == 0 && (!application_chares.contains((*evt)->index.chare)
                                                  || ((*evt)->index.chare == main && (*evt)->pe != 0)))
                              || (*evt)->index.chare == -1)
                     {
@@ -1143,6 +1144,7 @@ int CharmImporter::makeTasks()
         }
     }
 
+    /*
     // Add group chares
     QList<int> group_chares = application_group_chares.keys();
     for (QList<int>::Iterator group = group_chares.begin();
@@ -1163,6 +1165,7 @@ int CharmImporter::makeTasks()
             taskid++;
         }
     }
+    */
 
     num_application_tasks = taskid;
     primaries->insert(chares->size(),
@@ -1463,10 +1466,10 @@ void CharmImporter::parseLine(QString line, int my_pe)
                 id.chare = entries->value(entry)->chare;
                 arrays->value(arrayid)->indices->insert(id);
             }
-            else if (application_group_chares.contains(chare))
+            /*else if (application_group_chares.contains(chare))
             {
                 id.chare = entries->value(entry)->chare;
-            }
+            }*/
             else
             {
                 if (!groups->contains(entries->value(entry)->chare))
