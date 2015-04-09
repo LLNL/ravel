@@ -342,6 +342,7 @@ void Partition::true_children()
                 }
             }
 
+            /*
             // And  maybe if it is just the last receive
             else if ((*evt)->isReceive() && (*evt)->true_next && !(*evt)->true_next->isReceive()
                      && (*evt)->true_next->partition != this)
@@ -359,6 +360,7 @@ void Partition::true_children()
                 children->insert(p);
                 p->parents->insert(this);
             }
+            */
 
             /*if ((*evt)->comm_next && (*evt)->comm_next->partition != this)
             {

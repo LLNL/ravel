@@ -1764,14 +1764,15 @@ void Trace::forcePartitionDag()
         if ((*partition)->parents->size() <= 0)
         {
             dag_entries->append(*partition);
-            //current_leap->insert(*partition);
+            current_leap->insert(*partition);
         }
     }
 
-    /*
+
     // Need to finally fix partitions that should parent each other but don't
     // e.g. those that don't have send-relations  but should have happens before
     // in order to force this dag
+    set_dag_steps();
     leap = 0;
     int at_search_leap = 0;
     QSet<Partition *> search_leap = QSet<Partition *>();
@@ -1788,21 +1789,74 @@ void Trace::forcePartitionDag()
             if (missing.isEmpty())
                 continue;
 
+            std::cout << (*part)->debug_name << " is missing children" << std::endl;
+
             search_leap.clear();
-            found_tasks.clear();
-            at_search_leap = leap;
-            for (QSet<Partition *>::Iterator part = current_leap->begin();
-                 part != current_leap->end(); ++part)
+            at_search_leap = leap + 1;
+            for (QSet<Partition *>::Iterator cpart = current_leap->begin();
+                 cpart != current_leap->end(); ++cpart)
             {
-                for (QSet<Partition *>::Iterator child = (*part)->children->begin();
-                     child != (*part)->children->end(); ++child)
+                for (QSet<Partition *>::Iterator child = (*cpart)->children->begin();
+                     child != (*cpart)->children->end(); ++child)
+                {
+                    if ((*child)->dag_leap == at_search_leap)
+                        search_leap.insert(*child);
+                }
+            }
+            while (!missing.isEmpty() && !search_leap.isEmpty())
+            {
+                QSet<Partition *> next_search_leap = QSet<Partition *>();
+                found_tasks.clear();
+                for (QSet<Partition *>::Iterator spart = search_leap.begin();
+                     spart != search_leap.end(); ++spart)
+                {
+                    if ((missing & (*spart)->events->keys().toSet()).size() != 0)
+                    {
+                        (*part)->children->insert(*spart);
+                        (*spart)->parents->insert(*part);
+                        found_tasks.unite((*spart)->events->keys().toSet());
+                        std::cout << " --- Adding child " << (*spart)->debug_name << std::endl;
+                    }
+                    else
+                    {
+                        std::cout << " ----- No intersect " << (*spart)->debug_name << std::endl;
+                    }
+
+                    for (QSet<Partition *>::Iterator child = (*spart)->children->begin();
+                         child != (*spart)->children->end(); ++child)
+                    {
+                        if ((*child)->dag_leap == at_search_leap + 1)
+                            next_search_leap.insert(*child);
+                    }
+                }
+                missing.subtract(found_tasks);
+                search_leap = next_search_leap;
+                at_search_leap++;
+            }
+        }
+
+        // Set up the next leap
+        for (QSet<Partition *>::Iterator part = current_leap->begin();
+             part != current_leap->end(); ++part)
+        {
+            if ((*part)->dag_leap != leap)
+                continue;
+
+            for (QSet<Partition *>::Iterator child = (*part)->children->begin();
+                 child != (*part)->children->end(); ++child)
+            {
+                (*child)->calculate_dag_leap();
+                if ((*child)->dag_leap == leap + 1)
+                {
+                    next_leap->insert(*child);
+                }
             }
         }
         leap++;
 
         delete current_leap;
         current_leap = next_leap;
-    }*/
+    }
     delete current_leap;
 }
 
