@@ -410,7 +410,7 @@ void P2PEvent::set_reorder_strides(QMap<int, QList<CommEvent *> *> * stride_map,
                 (*msg)->receiver->last_stride = prev;
         }
 
-        // next stride for tie-breaking
+        // next stride for tie-breaking so we know what task it is
         (*msg)->receiver->next_stride = this;
     }
 }

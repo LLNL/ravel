@@ -750,7 +750,7 @@ void Partition::receive_reorder_mpi()
          event_list != events->end(); ++event_list)
     {
         qSort(event_list.value()->begin(), event_list.value()->end(),
-              eventStrideLessThan);
+              eventStrideLessThanMPI);
     }
 
     std::cout << "Deleting..." << std::endl;

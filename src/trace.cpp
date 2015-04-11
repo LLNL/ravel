@@ -888,6 +888,8 @@ void Trace::calculate_lateness()
         std::cout << "Calculting global lateness..." << std::endl;
     metrics->append("G. Lateness");
     (*metric_units)["G. Lateness"] = getUnits(units);
+    metrics->append("Colorless");
+    (*metric_units)["Colorless"] = "";
 
     // Go through dag, starting at the beginning
     QSet<Partition *> * active_partitions = new QSet<Partition *>();
@@ -962,6 +964,7 @@ void Trace::calculate_lateness()
             {
                 (*evt)->metrics->addMetric("G. Lateness", (*evt)->exit - mintime,
                                            (*evt)->enter - aggmintime);
+                (*evt)->metrics->addMetric("Colorless", 1, 1);
             }
         }
         else
@@ -970,6 +973,7 @@ void Trace::calculate_lateness()
                  evt != i_list->end(); ++evt)
             {
                 (*evt)->metrics->addMetric("G. Lateness", (*evt)->exit - mintime);
+                (*evt)->metrics->addMetric("Colorless", 1, 1);
             }
         }
         delete i_list;
@@ -3545,8 +3549,11 @@ void Trace::output_graph(QString filename, bool byparent)
         graph << ", ne: " << (*partition)->num_events();
         graph << ", leap: " << (*partition)->dag_leap;
         graph << ", name: " << (*partition)->debug_name;
-        graph << (*partition)->get_callers(functions).toStdString().c_str();
-        if (!(*partition)->verify_members())
+        if (options.origin == OTFImportOptions::OF_CHARM)
+        {
+            graph << (*partition)->get_callers(functions).toStdString().c_str();
+        }
+        if (options.origin == OTFImportOptions::OF_CHARM && !(*partition)->verify_members())
         {
             graph << "\n BROKEN";
             graph << "\"";
