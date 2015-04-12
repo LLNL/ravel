@@ -672,40 +672,79 @@ void Trace::calculate_partition_duration()
                 // before them may be on another PE or due to another task.
                 // We set the extents here -- they default to the extents of the
                 // comm message, but we allow them to be longer for charm++
-                if ((*evt)->isReceive() && (*evt)->comm_next
-                    && (*evt)->comm_next->caller == (*evt)->caller)
+                if ((*evt)->isReceive())
                 {
-                    if ((*evt)->exit - (*evt)->enter < minduration)
-                        minduration = (*evt)->exit - (*evt)->enter;
-                }
-                else if ((*evt)->isReceive() && (*evt)->caller
-                         && (!(*evt)->comm_next || (*evt)->comm_next->caller != (*evt)->caller))
-                {
-                    (*evt)->extent_begin = (*evt)->caller->enter;
-                    (*evt)->extent_end = (*evt)->caller->exit;
-                    if ((*evt)->caller->exit - (*evt)->caller->enter < minduration)
-                        minduration = (*evt)->caller->exit - (*evt)->caller->enter;
-                }
-                else if (!(*evt)->isReceive() && (*evt)->comm_prev
-                         && (*evt)->caller == (*evt)->comm_prev->caller)
-                {
-                    (*evt)->extent_begin = (*evt)->comm_prev->exit;
-                    (*evt)->extent_end = (*evt)->exit;
-                    if ((*evt)->exit - (*evt)->comm_prev->exit < minduration)
+                    CommEvent * next = *evt;
+                    while (next->true_next && next->true_next->caller == (*evt)->caller)
                     {
-                        minduration = (*evt)->exit - (*evt)->comm_prev->exit;
+                        next = next->true_next;
                     }
-                }
-                else if (!(*evt)->isReceive() && !(*evt)->comm_prev
-                         && (*evt)->caller)
-                {
-                    (*evt)->extent_begin = (*evt)->caller->enter;
-                    (*evt)->extent_end = (*evt)->exit;
-                    if ((*evt)->exit - (*evt)->caller->enter < minduration)
+
+                    // Either start at ourselves or at the end of the last comm
+                    if (next != *evt)
                     {
-                        minduration = (*evt)->exit - (*evt)->caller->enter;
+                        (*evt)->extent_begin = next->exit;
+                        //std::cout << "Receiver next begin";
                     }
+                    else
+                    {
+                        (*evt)->extent_begin = (*evt)->enter;
+                        //std::cout << "Receiver begin";
+                    }
+
+                    (*evt)->extent_end = std::max(next->exit, (*evt)->caller->exit);
+                   // std::cout << " with " << (*evt)->extent_begin << ", " << (*evt)->extent_end;
+
                 }
+                else
+                {
+
+                    if ((*evt)->true_prev && (*evt)->caller == (*evt)->true_prev->caller) // From last comm
+                    {
+                        (*evt)->extent_begin = (*evt)->true_prev->exit;
+                        //std::cout << "Sender prev begin";
+                    }
+                    else
+                    {
+                        (*evt)->extent_begin = (*evt)->caller->enter;
+                        //std::cout << "Sender caller begin";
+                        /*std::cout << "For " << functions->value((*evt)->caller->function)->name.toStdString().c_str();
+                        std::cout << " : SEND to caller enter since";
+                        std::cout << " comm_prev = " << ((*evt)->comm_prev);
+                        if ((*evt)->comm_prev)
+                            std::cout << " caller = " << ((*evt)->comm_prev->caller == (*evt)->caller);
+                        std::cout << std::endl;
+                        */
+                    }
+
+                    // (*evt)->extent_end = (*evt)->exit; <-- set on constructor
+                    // Check if we are last and there is a recv to blame
+                    // If not, go all the way to the end
+                    if (!(*evt)->caller->callees->first()->isReceive()
+                          && (!(*evt)->true_next || (*evt)->true_next->caller != (*evt)->caller))
+                    {
+                        (*evt)->extent_end = (*evt)->caller->exit;
+                        //std::cout << " and caller exit";
+                        /*
+                        std::cout << "For " << functions->value((*evt)->caller->function)->name.toStdString().c_str();
+                        std::cout << " : SEND to caller exit since";
+                        std::cout << " receive = " << ((*evt)->caller->callees->first()->isReceive());
+                        std::cout << " comm_next = " << ((*evt)->comm_next);
+                        if ((*evt)->comm_next)
+                            std::cout << " caller = " << ((*evt)->comm_next->caller == (*evt)->caller);
+                        std::cout << std::endl;
+                        */
+                    }
+                    else
+                    {
+                        //std::cout << " and exit";
+                        (*evt)->extent_end = (*evt)->exit;
+                    }
+
+                }
+                //std::cout << " and extent is " << ((*evt)->extent_end - (*evt)->extent_begin) << std::endl;
+                if ((*evt)->extent_end - (*evt)->extent_begin < minduration)
+                    minduration = (*evt)->extent_end - (*evt)->extent_begin;
             }
 
             for (QList<CommEvent *>::Iterator evt = i_list->begin();
@@ -1028,7 +1067,7 @@ void Trace::finalizeTaskEventOrder()
         for (QList<Partition *>::Iterator part = partitions->begin();
              part != partitions->end(); ++part)
         {
-            if (!(*part)->runtime)
+            //if (!(*part)->runtime)
                 (*part)->receive_reorder();
             (*part)->finalizeTaskEventOrder();
         }
