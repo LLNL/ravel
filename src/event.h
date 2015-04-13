@@ -56,6 +56,8 @@ public:
     int pe;
     int depth;
 
+    int add_order;
+
     Metrics * metrics; // Lateness or Counters etc
 
     Partition * partition; // for debugging

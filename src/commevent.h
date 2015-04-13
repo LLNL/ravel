@@ -75,7 +75,7 @@ public:
     CommEvent * pe_prev;
 
     // For sorting when overlaps
-    int add_order;
+    //int add_order;
 
     // For duration and other issues
     unsigned long long extent_begin;
@@ -115,14 +115,23 @@ static bool eventStrideLessThan(const CommEvent * evt1, const CommEvent * evt2)
         {
             if (evt1->last_stride->next_stride->task == evt2->last_stride->next_stride->task)
             {
-                if (evt1->stride == evt2->stride) // should be impossible
+                // Happens in the case where task X and task Y send to task Z
+                // and both of those Z entries send back to task X and task Y
+                // recv X and recv Y have the same number and were sent by
+                // the same task and have the same stride.
+                if (evt1->stride == evt2->stride)
                 {
+                    // Need to go back to the senders to figure it out
+                    return eventStrideLessThan(evt1->last_stride->next_stride,
+                                               evt2->last_stride->next_stride);
+                    /*
                     if (evt1->isReceive() && !evt2->isReceive())
                         return evt2;
                     else if (!evt1->isReceive() && evt2->isReceive())
                         return evt1;
                     else
                         return evt1->enter < evt2->enter;
+                    */
                 }
                 else
                 {
@@ -136,12 +145,24 @@ static bool eventStrideLessThan(const CommEvent * evt1, const CommEvent * evt2)
         }
         else
         {
-            if (evt1->isReceive() && !evt2->isReceive())
-                return evt2;
-            else if (!evt1->isReceive() && evt2->isReceive())
-                return evt1;
+            if (evt1->stride == evt2->stride)
+            {
+                // Need to go back to the senders to figure it out
+                return eventStrideLessThan(evt1->last_stride->next_stride,
+                                           evt2->last_stride->next_stride);
+                /*
+                if (evt1->isReceive() && !evt2->isReceive())
+                    return evt2;
+                else if (!evt1->isReceive() && evt2->isReceive())
+                    return evt1;
+                else
+                    return evt1->enter < evt2->enter;
+                */
+            }
             else
-                return evt1->enter < evt2->enter;
+            {
+                return evt1->stride < evt2->stride;
+            }
         }
     }
 

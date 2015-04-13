@@ -14,6 +14,7 @@ Event::Event(unsigned long long _enter, unsigned long long _exit,
       task(_task),
       pe(_pe),
       depth(-1),
+      add_order(0),
       metrics(new Metrics()),
       partition(NULL),
       atomic(-1)

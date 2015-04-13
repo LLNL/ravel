@@ -754,8 +754,8 @@ void CharmImporter::chargeIdleness()
                         //comm_evt->metrics->setMetric("Idle", idle_diff, 0);
                         comm_evt->metrics->setMetric("Idle", idle_evt->exit - idle_evt->enter, 0);
 
-                        idle_diff += sender->getMetric("Idle Blame");
-                        sender->metrics->setMetric("Idle Blame", idle_diff, 0);
+                        //idle_diff += sender->getMetric("Idle Blame");
+                        //sender->metrics->setMetric("Idle Blame", idle_diff, 0);
 
                     }
                     else

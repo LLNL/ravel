@@ -788,6 +788,7 @@ void Partition::receive_reorder()
                 (*evt)->stride = 0;
                 (*evt)->last_stride = (*evt);
                 stride_map->value(0)->append(*evt);
+                //std::cout << "Setting stride 0 for task " << (*evt)->task << " with add order " << (*evt)->add_order << std::endl;
             }
         }
     }
@@ -828,6 +829,9 @@ void Partition::receive_reorder()
                     my_stride++;
 
                     local_evt = local_evt->comm_next;
+
+                    //std::cout << "Setting stride " << local_evt->stride << " for task " << local_evt->task << " with add order " << local_evt->add_order << std::endl;
+
                 }
                 else
                 {
