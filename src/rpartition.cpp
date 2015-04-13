@@ -1313,7 +1313,7 @@ void Partition::calculate_imbalance(int num_pes)
         for (QList<CommEvent *>::Iterator evt = evtlist.value()->begin();
              evt != evtlist.value()->end(); ++evt)
         {
-            durations[(*evt)->pe] += (*evt)->getMetric("Duration");
+            durations[(*evt)->pe] += (*evt)->extent_end - (*evt)->extent_begin;
         }
     }
 
