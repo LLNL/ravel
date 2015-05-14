@@ -406,7 +406,7 @@ void Trace::partition()
             if (debug)
                 output_graph("../debug-output/6-post-entryrepair-cycle.dot");
 
-            /*
+
             // Shortcut that is unnecessary with our current codes
             // but makes the final merging much faster.
             std::cout << "Merge for atomics" << std::endl;
@@ -420,7 +420,7 @@ void Trace::partition()
             verify_partitions();
             if (debug)
                 output_graph("../debug-output/8-post-atomics-cycle.dot");
-                */
+
 
 
         }

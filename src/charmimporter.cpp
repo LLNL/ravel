@@ -197,6 +197,13 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
     // Build partitions
     buildPartitions();
 
+
+    // Rename for vis
+    for (int i = 0; i < trace->partitions->size(); ++i)
+    {
+        trace->partitions->at(i)->debug_name = i;
+    }
+
     // Keep a list of what chares have been seen
     if (verbose)
     {
@@ -1395,6 +1402,9 @@ void CharmImporter::parseLine(QString line, int my_pe)
         pe = lineList.at(5).toInt(); // Should be the senders pe
         index = 6;
         msglen = -1;
+        if (entries->value(entry)->name.startsWith("start_compute"))
+            return;
+
         if (version >= 2.0)
         {
             msglen = lineList.at(index).toLong();
