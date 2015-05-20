@@ -350,6 +350,7 @@ void Trace::partition()
         std::cout << std::endl;
         std::cout << "Partitions = " << partitions->size() << std::endl;
 
+        /*
         // Merge by call tree
       if (options.callerMerge)
       {
@@ -363,6 +364,7 @@ void Trace::partition()
           std::cout << std::endl;
 
       }
+      */
 
           // Merge by rank level [ later ]
         if (options.leapMerge)
