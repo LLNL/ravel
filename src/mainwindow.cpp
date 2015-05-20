@@ -388,7 +388,14 @@ void MainWindow::traceFinished(Trace * trace)
     delete progress;
     delete importThread;
 
-    if (trace->partitions->size() < 1)
+    if (!trace)
+    {
+        QMessageBox msgBox;
+        msgBox.setText("Error: Trace processing failed.");
+        msgBox.exec();
+        return;
+    }
+    else if (trace->partitions->size() < 1)
     {
         QMessageBox msgBox;
         msgBox.setText("Error: No communication phases found. Abandoning trace.");
