@@ -58,6 +58,7 @@ MainWindow::MainWindow(QWidget *parent) :
     viswidgets(QVector<VisWidget *>()),
     visactions(QList<QAction *>()),
     splitterMap(QVector<int>()),
+    splitterActions(QVector<QAction *>()),
     activeTrace(-1),
     importWorker(NULL),
     importThread(NULL),
@@ -82,6 +83,7 @@ MainWindow::MainWindow(QWidget *parent) :
             SLOT(pushSteps(float, float, bool)));
     viswidgets.push_back(overview);
     splitterMap.push_back(3);
+    splitterActions.push_back(ui->actionMetric_Overview);
 
     // Logical Timeline
     StepVis* stepvis = new StepVis(ui->stepContainer, visoptions);
@@ -96,6 +98,7 @@ MainWindow::MainWindow(QWidget *parent) :
             SLOT(selectEvent(Event *, bool, bool)));
     viswidgets.push_back(stepvis);
     splitterMap.push_back(0);
+    splitterActions.push_back(ui->actionLogical_Steps);
 
     // Physical Timeline
     TraditionalVis* timevis = new TraditionalVis(ui->traditionalContainer,
@@ -118,6 +121,7 @@ MainWindow::MainWindow(QWidget *parent) :
             SLOT(setText(QString)));
     viswidgets.push_back(timevis);
     splitterMap.push_back(2);
+    splitterActions.push_back(ui->actionPhysical_Time);
 
     // Cluster View
     ClusterTreeVis* clustertreevis = new ClusterTreeVis(ui->stepContainer,
@@ -150,6 +154,7 @@ MainWindow::MainWindow(QWidget *parent) :
     viswidgets.push_back(clustervis);
     viswidgets.push_back(clustertreevis);
     splitterMap.push_back(1);
+    splitterActions.push_back(ui->actionClustered_Logical_Steps);
 
     // Sliders
     connect(ui->verticalSlider, SIGNAL(valueChanged(int)), clustervis,
@@ -412,7 +417,14 @@ void MainWindow::traceFinished(Trace * trace)
     delete progress;
     delete importThread;
 
-    if (trace->partitions->size() < 1)
+    if (!trace)
+    {
+        QMessageBox msgBox;
+        msgBox.setText("Error: Trace processing failed.");
+        msgBox.exec();
+        return;
+    }
+    else if (trace->partitions->size() < 1)
     {
         QMessageBox msgBox;
         msgBox.setText("Error: No communication phases found. Abandoning trace.");
@@ -428,7 +440,7 @@ void MainWindow::traceFinished(Trace * trace)
     trace->name = activetracename;
     QAction * action = ui->menuTraces->addAction(activetracename);
     action->setCheckable(true);
-    activeTraceChanged();
+    activeTraceChanged(!activetraces.size());
 }
 
 void MainWindow::updateProgress(int portion, QString msg)
@@ -440,7 +452,7 @@ void MainWindow::updateProgress(int portion, QString msg)
 
 // In the future we may want to reset splitters to a save state
 // rather than a default... or not reset splitters at all
-void MainWindow::activeTraceChanged()
+void MainWindow::activeTraceChanged(bool first)
 {
     for(int i = 0; i < viswidgets.size(); i++)
     {
@@ -449,21 +461,56 @@ void MainWindow::activeTraceChanged()
         viswidgets[i]->repaint();
     }
     QList<int> splitter_sizes = ui->splitter->sizes();
-    if (otfoptions->cluster)
+
+    // On the first trace, choose these default settings
+    if (first)
     {
-        int traditional_height = splitter_sizes[2];
-        splitter_sizes[0] += traditional_height / 2;
-        splitter_sizes[1] += traditional_height / 2;
-        splitter_sizes[2] = 0;
+        viswidgets[STEPVIS]->setClosed(false);
+        if (otfoptions->cluster)
+        {
+            int traditional_height = splitter_sizes[splitterMap[TIMEVIS]];
+            splitter_sizes[splitterMap[STEPVIS]] += traditional_height / 2;
+            splitter_sizes[splitterMap[CLUSTERVIS]] += traditional_height / 2;
+            viswidgets[CLUSTERVIS]->setClosed(false);
+        }
+        else
+        {
+            splitter_sizes[splitterMap[STEPVIS]] += splitter_sizes[splitterMap[CLUSTERVIS]]
+                                                    + splitter_sizes[splitterMap[TIMEVIS]];
+            splitter_sizes[splitterMap[CLUSTERVIS]] = 0;
+            viswidgets[CLUSTERVIS]->setClosed(true);
+        }
+        splitter_sizes[splitterMap[TIMEVIS]] = 0;
+        viswidgets[TIMEVIS]->setClosed(true);
+
+        ui->splitter->setSizes(splitter_sizes);
+        ui->sideSplitter->setSizes(splitter_sizes);
+        setVisWidgetState();
     }
-    else
+    // If new trace does not have cluster but the cluster is open, close it
+    else if (!otfoptions->cluster && !viswidgets[CLUSTERVIS]->isClosed())
     {
-        splitter_sizes[0] += splitter_sizes[1] + splitter_sizes[2];
-        splitter_sizes[1] = 0;
-        splitter_sizes[2] = 0;
+        splitter_sizes[splitterMap[CLUSTERVIS]] = 0;
+        viswidgets[CLUSTERVIS]->setClosed(true);
+        viswidgets[STEPVIS]->setClosed(false);
+        if (viswidgets[TIMEVIS]->isClosed())
+        {
+            splitter_sizes[splitterMap[STEPVIS]] += splitter_sizes[splitterMap[CLUSTERVIS]]
+                                                    + splitter_sizes[splitterMap[TIMEVIS]];
+            splitter_sizes[splitterMap[TIMEVIS]] = 0;
+            viswidgets[TIMEVIS]->setClosed(true);
+        }
+        else
+        {
+            splitter_sizes[splitterMap[STEPVIS]] += splitter_sizes[splitterMap[CLUSTERVIS]]/2;
+            splitter_sizes[splitterMap[TIMEVIS]] += splitter_sizes[splitterMap[CLUSTERVIS]]/2;
+            viswidgets[TIMEVIS]->setClosed(false);
+        }
+
+        ui->splitter->setSizes(splitter_sizes);
+        ui->sideSplitter->setSizes(splitter_sizes);
+        setVisWidgetState();
     }
-    ui->splitter->setSizes(splitter_sizes);
-    ui->sideSplitter->setSizes(splitter_sizes);
     ui->actionClose->setEnabled(true);
     ui->actionSave->setEnabled(true);
     ui->menuTraces->setEnabled(true);
@@ -568,6 +615,13 @@ void MainWindow::setVisWidgetState()
             viswidgets[i]->setClosed(false);
             visactions[i]->setChecked(true);
         }
+
+        splitterActions[i]->setDisabled(true);
+        if (viswidgets[i]->isClosed())
+            splitterActions[i]->setChecked(false);
+        else
+            splitterActions[i]->setChecked(true);
+        splitterActions[i]->setDisabled(false);
     }
 }
 
@@ -576,13 +630,13 @@ void MainWindow::toggleLogicalSteps()
     QList<int> sizes = ui->splitter->sizes();
     if (ui->actionLogical_Steps->isChecked())
     {
-        sizes[0] = this->height() / 3;
-        viswidgets[1]->setClosed(false);
+        sizes[splitterMap[STEPVIS]] = this->height() / 3;
+        viswidgets[STEPVIS]->setClosed(false);
     }
     else
     {
-        sizes[0] = 0;
-        viswidgets[1]->setClosed(true);
+        sizes[splitterMap[STEPVIS]] = 0;
+        viswidgets[STEPVIS]->setClosed(true);
     }
     ui->splitter->setSizes(sizes);
     linkSideSplitter();
@@ -594,15 +648,15 @@ void MainWindow::toggleClusteredSteps()
     QList<int> sizes = ui->splitter->sizes();
     if (ui->actionClustered_Logical_Steps->isChecked())
     {
-        sizes[1] = this->height() / 3;
-        viswidgets[3]->setClosed(false);
-        viswidgets[4]->setClosed(false);
+        sizes[splitterMap[CLUSTERVIS]] = this->height() / 3;
+        viswidgets[CLUSTERVIS]->setClosed(false);
+        viswidgets[CLUSTERTREEVIS]->setClosed(false);
     }
     else
     {
-        sizes[1] = 0;
-        viswidgets[3]->setClosed(true);
-        viswidgets[4]->setClosed(true);
+        sizes[splitterMap[CLUSTERVIS]] = 0;
+        viswidgets[CLUSTERVIS]->setClosed(true);
+        viswidgets[CLUSTERTREEVIS]->setClosed(true);
     }
     ui->splitter->setSizes(sizes);
     linkSideSplitter();
@@ -614,13 +668,13 @@ void MainWindow::togglePhysicalTime()
     QList<int> sizes = ui->splitter->sizes();
     if (ui->actionPhysical_Time->isChecked())
     {
-        sizes[2] = this->height() / 3;
-        viswidgets[2]->setClosed(false);
+        sizes[splitterMap[TIMEVIS]] = this->height() / 3;
+        viswidgets[TIMEVIS]->setClosed(false);
     }
     else
     {
-        sizes[2] = 0;
-        viswidgets[2]->setClosed(true);
+        sizes[splitterMap[TIMEVIS]] = 0;
+        viswidgets[TIMEVIS]->setClosed(true);
     }
     ui->splitter->setSizes(sizes);
     linkSideSplitter();
@@ -632,13 +686,13 @@ void MainWindow::toggleMetricOverview()
     QList<int> sizes = ui->splitter->sizes();
     if (ui->actionMetric_Overview->isChecked())
     {
-        sizes[3] = 70;
-        viswidgets[0]->setClosed(false);
+        sizes[splitterMap[OVERVIEW]] = 70;
+        viswidgets[OVERVIEW]->setClosed(false);
     }
     else
     {
-        sizes[3] = 0;
-        viswidgets[0]->setClosed(true);
+        sizes[splitterMap[OVERVIEW]] = 0;
+        viswidgets[OVERVIEW]->setClosed(true);
     }
     ui->splitter->setSizes(sizes);
     linkSideSplitter();

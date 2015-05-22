@@ -374,6 +374,7 @@ void Trace::partition()
         std::cout << std::endl;
         std::cout << "Partitions = " << partitions->size() << std::endl;
 
+        /*
         // Merge by call tree
       if (options.callerMerge)
       {
@@ -387,6 +388,7 @@ void Trace::partition()
           std::cout << std::endl;
 
       }
+      */
 
           // Merge by rank level [ later ]
         if (options.leapMerge)
@@ -867,35 +869,38 @@ void Trace::mergeByCommonCaller()
             {
                 Event * part_caller = (*part)->least_common_caller(*taskid, memo);
                 Event * child_caller;
-                for (QSet<Partition *>::Iterator child = near_children.begin();
-                     child != near_children.end(); ++child)
+                if (part_caller)
                 {
-                    if ((*child)->events->contains(*taskid))
+                    for (QSet<Partition *>::Iterator child = near_children.begin();
+                         child != near_children.end(); ++child)
                     {
-                        child_caller = (*child)->least_common_caller(*taskid, memo);
-
-                        // We have a match, put them in the same merge group
-                        if (part_caller->same_subtree(child_caller))
+                        if ((*child)->events->contains(*taskid))
                         {
-                            added.insert((*child));
-                            merging = true; // This one is merging
+                            child_caller = (*child)->least_common_caller(*taskid, memo);
 
-                            // Update group stuff for parent and child
-                            (*part)->group->unite(*((*child)->group));
-                            for (QSet<Partition *>::Iterator group_member
-                                 = (*part)->group->begin();
-                                 group_member != (*part)->group->end();
-                                 ++group_member)
+                            // We have a match, put them in the same merge group
+                            if (child_caller && part_caller->same_subtree(child_caller))
                             {
-                                if (*group_member != *part)
+                                added.insert((*child));
+                                merging = true; // This one is merging
+
+                                // Update group stuff for parent and child
+                                (*part)->group->unite(*((*child)->group));
+                                for (QSet<Partition *>::Iterator group_member
+                                     = (*part)->group->begin();
+                                     group_member != (*part)->group->end();
+                                     ++group_member)
                                 {
-                                    toDelete->insert((*group_member)->group);
-                                    (*group_member)->group = (*part)->group;
-                                }
-                            } // Group stuff
-                        } // Child matches
-                    } // Child has Task ID
-                } // Looking through near children
+                                    if (*group_member != *part)
+                                    {
+                                        toDelete->insert((*group_member)->group);
+                                        (*group_member)->group = (*part)->group;
+                                    }
+                                } // Group stuff
+                            } // Child matches
+                        } // Child has Task ID
+                    } // Looking through near children
+                }
 
                 // Now that we have completed this set of task ids, update near_children
                 // If this comes empty, we are done with this partition

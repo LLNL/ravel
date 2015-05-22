@@ -717,7 +717,13 @@ void OTFConverter::matchEvents()
             && (options->waitallMerge
                 || options->origin == OTFImportOptions::OF_OTF2))
     {
-        mergeForWaitall(waitallgroups);
+        mergeContiguous(waitallgroups);
+    }
+
+    if (!options->partitionByFunction
+            && options->callerMerge)
+    {
+        mergeByMultiCaller();
     }
 
 
@@ -834,16 +840,63 @@ int OTFConverter::advanceCounters(CommEvent * evt, QStack<CounterRecord *> * cou
     return index;
 }
 
+// We have our initial partitions set up and we counted the undercomms along the way
+// Now we use this to figure out which ones should be merged if we want to merge
+// by the ones that have multiple comms under them.
+void OTFConverter::mergeByMultiCaller()
+{
+    QList<QList<Partition *> *> * groups = new QList<QList<Partition *> *>();
+    QList<Partition *> * current_group = new QList<Partition *>();
+    Event * multicaller = NULL;
+
+    // We assume partitions are in order by task
+    for (QList<Partition *>::Iterator part = trace->partitions->begin();
+         part != trace->partitions->end(); ++part)
+    {
+        // There should be only one event_list at this point, have not
+        // merged across tasks
+        for (QMap<int, QList<CommEvent *> *>::Iterator event_list = (*part)->events->begin();
+                 event_list != (*part)->events->end(); ++event_list)
+        {
+            // If our first value equals the previous' last value -- add
+            // Or if this group is empty, add (initial condition)
+            if (current_group->isEmpty()
+                || event_list.value()->first()->least_multiple_function_caller(trace->functions) == multicaller)
+            {
+                current_group->append(*part);
+            }
+            // Otherwise we don't match, close previous group and
+            // start a new group
+            else
+            {
+                groups->append(current_group);
+                current_group = new QList<Partition *>();
+                current_group->append(*part);
+            }
+
+            // We only stitch at the end so look at the last value
+            multicaller = event_list.value()->last()->least_multiple_function_caller(trace->functions);
+        }
+    }
+
+    // Close off
+    if (!current_group->isEmpty())
+        groups->append(current_group);
+
+    mergeContiguous(groups);
+}
+
 // This is a lighter weight merge since we know at this stage everything stays
 // within its own task and the partitions that must be merged are contiguous
 // Therefore we only need to merge the groups and remove the previous ones
 // from the partition list -- so we create the new ones and point the old
 // ones toward it so we can make a single pass to remove those that point to
 // a new partition.
-void OTFConverter::mergeForWaitall(QList<QList<Partition * > *> * groups)
+void OTFConverter::mergeContiguous(QList<QList<Partition * > *> * groups)
 {
     // Create the new partitions and store them in new parts
     QList<Partition *> * newparts = new QList<Partition *>();
+
     for (QList<QList<Partition *> *>::Iterator group = groups->begin();
          group != groups->end(); ++group)
     {
@@ -862,15 +915,18 @@ void OTFConverter::mergeForWaitall(QList<QList<Partition * > *> * groups)
                 {
                     (*evt)->partition = p;
                     p->addEvent(*evt);
-                    p->new_partition = p;
                 }
             }
         }
-        newparts->append(p);
+        p->new_partition = p;
+        //newparts->append(p);
     }
 
-    // Add in the partitions that did not change to new parts, save
-    // others for deletion.
+    // Add in the partitions in order -- those that didn't get changed
+    // just added in normally. Add the first instance of the others so
+    // that order can be maintained and delete the ones that represent
+    // changes.
+    QSet<Partition *> sortSet = QSet<Partition *>();
     QList<Partition *> toDelete = QList<Partition *>();
     for (QList<Partition *>::Iterator part = trace->partitions->begin();
          part != trace->partitions->end(); ++part)
@@ -881,6 +937,11 @@ void OTFConverter::mergeForWaitall(QList<QList<Partition * > *> * groups)
         }
         else
         {
+            if (!sortSet.contains((*part)->new_partition))
+            {
+                newparts->append((*part)->new_partition);
+                sortSet.insert((*part)->new_partition);
+            }
             toDelete.append(*part);
         }
     }
@@ -899,7 +960,7 @@ void OTFConverter::mergeForWaitall(QList<QList<Partition * > *> * groups)
 }
 
 // Determine events as blocks of matching enter and exit,
-// link them into a call tree
+// link them into a call tree - from saved Ravel OTF2 to re-read faster
 void OTFConverter::matchEventsSaved()
 {
     // We can handle each set of events separately

@@ -101,7 +101,7 @@ signals:
 private:
     Ui::MainWindow *ui;
     void importTrace(QString dataFileName);
-    void activeTraceChanged();
+    void activeTraceChanged(bool first = false);
     void linkSideSplitter();
     void linkMainSplitter();
     void setVisWidgetState();
@@ -111,6 +111,7 @@ private:
     QVector<VisWidget *> viswidgets;
     QList<QAction *> visactions;
     QVector<int> splitterMap;
+    QVector<QAction *> splitterActions;
     int activeTrace;
 
     // For progress bar
@@ -131,6 +132,12 @@ private:
     QString activetracename;
 
     QStack<QString> activetraces;
+
+    static const int OVERVIEW = 0;
+    static const int STEPVIS = 1;
+    static const int TIMEVIS = 2;
+    static const int CLUSTERVIS = 3;
+    static const int CLUSTERTREEVIS = 4;
 };
 
 #endif // MAINWINDOW_H

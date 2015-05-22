@@ -23,6 +23,7 @@
 // Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 //////////////////////////////////////////////////////////////////////////////
 #include "event.h"
+#include "function.h"
 #include <iostream>
 
 Event::Event(unsigned long long _enter, unsigned long long _exit,
@@ -173,6 +174,18 @@ Event * Event::least_multiple_caller(QMap<Event *, int> * memo)
     }
     return caller;
 }
+
+Event * Event::least_multiple_function_caller(QMap<int, Function *> * functions)
+{
+    if (functions->value(function)->comms > 1)
+        return this;
+
+    if (!caller)
+        return NULL;
+
+    return caller->least_multiple_function_caller(functions);
+}
+
 
 // Calculate the number of communications that fall under this node
 // in the call tree.

@@ -32,6 +32,7 @@
 
 
 class Partition;
+class Function;
 
 class Event
 {
@@ -52,6 +53,7 @@ public:
     Event * least_common_caller(Event * other);
     bool same_subtree(Event * other);
     Event * least_multiple_caller(QMap<Event *, int> * memo = NULL);
+    Event * least_multiple_function_caller(QMap<int, Function *> * functions);
     virtual int comm_count(QMap<Event *, int> * memo = NULL);
     virtual bool isCommEvent() { return false; }
     virtual bool isReceive() { return false; }

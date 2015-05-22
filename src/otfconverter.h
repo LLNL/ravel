@@ -64,7 +64,8 @@ private:
     void makeSingletonPartition(CommEvent * evt);
     void addToSavedPartition(CommEvent * evt, int partition);
     void handleSavedAttributes(CommEvent * evt, EventRecord *er);
-    void mergeForWaitall(QList<QList<Partition * > *> * groups);
+    void mergeContiguous(QList<QList<Partition * > *> * groups);
+    void mergeByMultiCaller();
     int advanceCounters(CommEvent * evt, QStack<CounterRecord *> * counterstack,
                         QVector<CounterRecord *> * counters, int index,
                         QMap<unsigned int, CounterRecord *> * lastcounters);

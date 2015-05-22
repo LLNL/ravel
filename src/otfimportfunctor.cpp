@@ -51,15 +51,19 @@ void OTFImportFunctor::doImportOTF2(QString dataFileName)
             SLOT(updateMatching(int, QString)));
     Trace* trace = importer->importOTF2(dataFileName, options);
     delete importer;
-    connect(trace, SIGNAL(updatePreprocess(int, QString)), this,
-            SLOT(updatePreprocess(int, QString)));
-    connect(trace, SIGNAL(updateClustering(int)), this,
-            SLOT(updateClustering(int)));
-    connect(trace, SIGNAL(startClustering()), this, SLOT(switchProgress()));
-    if (trace->options.origin == OTFImportOptions::OF_SAVE_OTF2)
-        trace->preprocessFromSaved();
-    else
-        trace->preprocess(options);
+
+    if (trace)
+    {
+        connect(trace, SIGNAL(updatePreprocess(int, QString)), this,
+                SLOT(updatePreprocess(int, QString)));
+        connect(trace, SIGNAL(updateClustering(int)), this,
+                SLOT(updateClustering(int)));
+        connect(trace, SIGNAL(startClustering()), this, SLOT(switchProgress()));
+        if (trace->options.origin == OTFImportOptions::OF_SAVE_OTF2)
+            trace->preprocessFromSaved();
+        else
+            trace->preprocess(options);
+    }
 
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "Total trace: ";
@@ -83,12 +87,16 @@ void OTFImportFunctor::doImportOTF(QString dataFileName)
             SLOT(updateMatching(int, QString)));
     Trace* trace = importer->importOTF(dataFileName, options);
     delete importer;
-    connect(trace, SIGNAL(updatePreprocess(int, QString)), this,
-            SLOT(updatePreprocess(int, QString)));
-    connect(trace, SIGNAL(updateClustering(int)), this,
-            SLOT(updateClustering(int)));
-    connect(trace, SIGNAL(startClustering()), this, SLOT(switchProgress()));
-    trace->preprocess(options);
+
+    if (trace)
+    {
+        connect(trace, SIGNAL(updatePreprocess(int, QString)), this,
+                SLOT(updatePreprocess(int, QString)));
+        connect(trace, SIGNAL(updateClustering(int)), this,
+                SLOT(updateClustering(int)));
+        connect(trace, SIGNAL(startClustering()), this, SLOT(switchProgress()));
+        trace->preprocess(options);
+    }
 
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "Total trace: ";
