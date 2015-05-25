@@ -28,6 +28,8 @@
 
 #include <QLocale>
 #include <QMouseEvent>
+#include <QCursor>
+#include <QBitmap>
 
 #include "trace.h"
 #include "event.h"
@@ -47,6 +49,7 @@ TimelineVis::TimelineVis(QWidget* parent, VisOptions * _options)
       labelWidth(0),
       labelHeight(0),
       labelDescent(0),
+      cursorWidth(0),
       maxStep(0),
       startPartition(0),
       startStep(0),
@@ -58,6 +61,11 @@ TimelineVis::TimelineVis(QWidget* parent, VisOptions * _options)
       order_to_proc(QMap<int, int>())
 {
     setMouseTracking(true);
+    cursorWidth = 16;
+    if (cursor().bitmap())
+    {
+        cursorWidth = cursor().bitmap()->size().width() / 2;
+    }
 }
 
 TimelineVis::~TimelineVis()
@@ -239,10 +247,9 @@ void TimelineVis::drawHover(QPainter * painter)
     QFontMetrics font_metrics = painter->fontMetrics();
 
     QString text = "";
-    if (hover_aggregate)
+    if (hover_aggregate) // Do not draw
     {
         return;
-        text = "Aggregate for now";
     }
     else
     {
@@ -255,16 +262,17 @@ void TimelineVis::drawHover(QPainter * painter)
     QRect textRect = font_metrics.boundingRect(text);
 
     // Draw bounding box
+    painter->setPen(QPen(QColor(200, 200, 0, 150), 1.0, Qt::SolidLine));
+    painter->drawRect(QRectF(mousex + cursorWidth, mousey,
+                             textRect.width() + 4, textRect.height() + 4));
     painter->setPen(QPen(QColor(255, 255, 0, 150), 1.0, Qt::SolidLine));
-    painter->drawRect(QRectF(mousex, mousey,
-                             textRect.width(), textRect.height()));
-    painter->fillRect(QRectF(mousex, mousey,
-                             textRect.width(), textRect.height()),
+    painter->fillRect(QRectF(mousex + cursorWidth, mousey,
+                             textRect.width() + 4, textRect.height() + 4),
                       QBrush(QColor(255, 255, 144, 150)));
 
     // Draw text
     painter->setPen(Qt::black);
-    painter->drawText(mousex + 2, mousey + textRect.height() - 2, text);
+    painter->drawText(mousex + 2 + cursorWidth, mousey + textRect.height() - 2, text);
 }
 
 void TimelineVis::drawTaskLabels(QPainter * painter, int effectiveHeight,

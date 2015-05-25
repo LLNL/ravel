@@ -63,6 +63,7 @@ protected:
     int labelWidth;
     int labelHeight;
     int labelDescent;
+    int cursorWidth;
 
     int maxStep;
     int startPartition;
