@@ -78,6 +78,15 @@ void VisWidget::selectTasks(QList<int> tasks, Gnome *gnome)
 void VisWidget::setTrace(Trace * t)
 {
     trace = t;
+
+    drawnEvents.clear();
+    selected_tasks.clear();
+    selected_gnome = NULL;
+    selected_event = NULL;
+    selected_aggregate = false;
+    overdraw_selected = false;
+    hover_event = NULL;
+    hover_aggregate = false;
 }
 
 void VisWidget::prepaint()
