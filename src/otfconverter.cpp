@@ -861,7 +861,8 @@ void OTFConverter::mergeByMultiCaller()
             // If our first value equals the previous' last value -- add
             // Or if this group is empty, add (initial condition)
             if (current_group->isEmpty()
-                || event_list.value()->first()->least_multiple_function_caller(trace->functions) == multicaller)
+                || (multicaller
+                    && event_list.value()->first()->least_multiple_function_caller(trace->functions) == multicaller))
             {
                 current_group->append(*part);
             }
