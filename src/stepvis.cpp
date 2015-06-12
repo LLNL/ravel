@@ -664,7 +664,6 @@ void StepVis::drawNativeGL()
     glDisableClientState(GL_COLOR_ARRAY);
 }
 
-
 // Qt Event painting
 void StepVis::paintEvents(QPainter * painter)
 {

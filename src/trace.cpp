@@ -407,6 +407,7 @@ void Trace::partition()
                 output_graph("../debug-output/6-post-entryrepair-cycle.dot");
 
 
+            /*
             // Shortcut that is unnecessary with our current codes
             // but makes the final merging much faster.
             std::cout << "Merge for atomics" << std::endl;
@@ -420,6 +421,7 @@ void Trace::partition()
             verify_partitions();
             if (debug)
                 output_graph("../debug-output/8-post-atomics-cycle.dot");
+                */
 
 
 
@@ -1136,7 +1138,7 @@ void Trace::mergeForEntryRepair(bool entries)
 
     while (!current_leap->isEmpty())
     {
-        std::cout << "Starting leap " << leap << " with current_leap at size " << current_leap->size() << std::endl;
+        //std::cout << "Starting leap " << leap << " with current_leap at size " << current_leap->size() << std::endl;
         verify_partitions();
         if (debug && entries)
             output_graph("../debug-output/5-tracegraph-repairnames-" + QString::number(leap) + ".dot");
@@ -1836,7 +1838,7 @@ void Trace::forcePartitionDag()
             if (missing.isEmpty())
                 continue;
 
-            std::cout << (*part)->debug_name << " is missing children" << std::endl;
+            //std::cout << (*part)->debug_name << " is missing children" << std::endl;
 
             search_leap.clear();
             at_search_leap = leap + 1;
@@ -1862,11 +1864,11 @@ void Trace::forcePartitionDag()
                         (*part)->children->insert(*spart);
                         (*spart)->parents->insert(*part);
                         found_tasks.unite((*spart)->events->keys().toSet());
-                        std::cout << " --- Adding child " << (*spart)->debug_name << std::endl;
+                        //std::cout << " --- Adding child " << (*spart)->debug_name << std::endl;
                     }
                     else
                     {
-                        std::cout << " ----- No intersect " << (*spart)->debug_name << std::endl;
+                        //std::cout << " ----- No intersect " << (*spart)->debug_name << std::endl;
                     }
 
                     for (QSet<Partition *>::Iterator child = (*spart)->children->begin();
@@ -3544,6 +3546,7 @@ Event * Trace::findEvent(int task, unsigned long long time)
 
 void Trace::verify_partitions()
 {
+    return;
     std::cout << "Verifying " << partitions->size() << " partitions." << std::endl;
     for (QList<Partition *>::Iterator part = partitions->begin();
          part != partitions->end(); ++part)
