@@ -507,12 +507,15 @@ void CharmImporter::makeTaskEvents()
 
 
     // Sort chare events in time
+    unsigned long long num_events = 0;
     for (QVector<QVector<P2PEvent *> *>::Iterator event_list
          = charm_p2ps->begin(); event_list != charm_p2ps->end();
          ++event_list)
     {
         qSort((*event_list)->begin(), (*event_list)->end(), dereferencedLessThan<P2PEvent>);
+        num_events += (*event_list)->size();
     }
+    std::cout << "Total P2P events: " << num_events << std::endl;
 
     delete stack;
 }

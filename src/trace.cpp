@@ -395,6 +395,7 @@ void Trace::partition()
             // it requires a dag. Then we have to do another
             // merge cycles in case we have once again destroyed the dag
             std::cout << "Merge for entries" << std::endl;
+            traceTimer.start();
             mergeForEntryRepair();
             verify_partitions();
             if (debug)
@@ -405,6 +406,11 @@ void Trace::partition()
             verify_partitions();
             if (debug)
                 output_graph("../debug-output/6-post-entryrepair-cycle.dot");
+            traceElapsed = traceTimer.nsecsElapsed();
+            std::cout << "Repair + Next Cycle Merge: ";
+            gu_printTime(traceElapsed);
+            std::cout << std::endl;
+            std::cout << "Partitions = " << partitions->size() << std::endl;
 
 
             /*
@@ -1933,6 +1939,7 @@ void Trace::assignSteps()
         */
 
         std::cout << "Merging for leaps in charm" << std::endl;
+        traceTimer.start();
         mergeForCharmLeaps();
         if (debug)
             output_graph("../debug-output/9X-postcharmleap-preverify.dot");
@@ -1950,8 +1957,20 @@ void Trace::assignSteps()
         verify_partitions();
         if (debug)
             output_graph("../debug-output/10X-tracegraph-cyclepostleap.dot");
+        traceElapsed = traceTimer.nsecsElapsed();
+        std::cout << "Charm Leap Merge: ";
+        gu_printTime(traceElapsed);
+        std::cout << std::endl;
+        std::cout << "Partitions = " << partitions->size() << std::endl;
+
+
+        traceTimer.start();
         forcePartitionDag(); // overlap due to runtime versus application
         verify_partitions();
+        traceElapsed = traceTimer.nsecsElapsed();
+        std::cout << "Force Partition Dag: ";
+        gu_printTime(traceElapsed);
+        std::cout << std::endl;
 
 
         if (debug)
