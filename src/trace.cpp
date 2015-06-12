@@ -1481,6 +1481,8 @@ void Trace::mergeForCharmLeaps()
 
     QSet<QSet<Partition *> *> * to_remove = new QSet<QSet<Partition *> *>();
 
+    // Problem is here -- instead of comparing all parts to all parts, need
+    // to make use of the group status
     while (!current_leap->isEmpty())
     {
         QSet<Partition *> * next_leap = new QSet<Partition *>();
@@ -1495,6 +1497,9 @@ void Trace::mergeForCharmLeaps()
             for (QSet<Partition *>::Iterator other = current_leap->begin();
                  other != current_leap->end(); ++other)
             {
+                if ((*part)->group->contains(*other))
+                    continue;
+
                 if ((*part)->mergable(*other))
                 {
 
@@ -1540,6 +1545,7 @@ void Trace::mergeForCharmLeaps()
     } // End Leap While
     delete current_leap;
 
+    std::cout << "Doing the actual merger... " << std::endl;
     // Now we go through all our groups and merge them.
     // Now do the merger - we go through the leap and look at each
     // partition's group and mark anything we've already merged.
@@ -3139,6 +3145,11 @@ void Trace::mergeCycles()
 // into a single partition. This updates parent/child relationships so
 // there is no need to reset the dag.
 void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
+    QElapsedTimer traceTimer, subTimer;
+    qint64 traceElapsed, subElapsed;
+
+    traceTimer.start();
+
     // Go through the SCCs and merge them into single partitions
     QList<Partition *> * merged = new QList<Partition *>();
     for (QList<QList<Partition *> *>::Iterator component = components->begin();
@@ -3158,6 +3169,8 @@ void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
         }
 
         // Otherwise, iterate through the SCC and merge into new partition
+        std::cout << "Merging " << (*component)->size() << " partitions..." << std::endl;
+        subTimer.start();
         Partition * p = new Partition();
         bool runtime = false;
         for (QList<Partition *>::Iterator partition = (*component)->begin();
@@ -3206,6 +3219,11 @@ void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
 
         p->runtime = runtime;
         merged->append(p);
+
+        subElapsed = subTimer.nsecsElapsed();
+        std::cout << "Merge was ";
+        gu_printTime(subElapsed);
+        std::cout << std::endl;
     }
 
     // Now that we have all the merged partitions, figure out parents/children
@@ -3296,6 +3314,11 @@ void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
     {
         (*part)->new_partition = NULL;
     }
+
+    traceElapsed = traceTimer.nsecsElapsed();
+    std::cout << "Partition Merge: ";
+    gu_printTime(traceElapsed);
+    std::cout << std::endl;
 }
 
 void Trace::set_dag_entries()
