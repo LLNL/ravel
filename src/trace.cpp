@@ -3169,8 +3169,6 @@ void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
         }
 
         // Otherwise, iterate through the SCC and merge into new partition
-        std::cout << "Merging " << (*component)->size() << " partitions..." << std::endl;
-        subTimer.start();
         Partition * p = new Partition();
         bool runtime = false;
         for (QList<Partition *>::Iterator partition = (*component)->begin();
@@ -3219,11 +3217,6 @@ void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
 
         p->runtime = runtime;
         merged->append(p);
-
-        subElapsed = subTimer.nsecsElapsed();
-        std::cout << "Merge was ";
-        gu_printTime(subElapsed);
-        std::cout << std::endl;
     }
 
     // Now that we have all the merged partitions, figure out parents/children
