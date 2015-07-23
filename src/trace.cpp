@@ -1814,34 +1814,34 @@ void Trace::forcePartitionDag()
         delete current_leap;
         current_leap = next_leap;
     } // End Leap While
-
+    delete current_leap;
 
     // Need to calculate new dag_entries
     dag_entries->clear();
-    current_leap->clear();
     for (QList<Partition *>::Iterator partition = partitions->begin();
          partition != partitions->end(); ++partition)
     {
         if ((*partition)->parents->size() <= 0)
         {
             dag_entries->append(*partition);
-            current_leap->insert(*partition);
         }
     }
 
 
     // Need to finally fix partitions that should parent each other but don't
     // e.g. those that don't have send-relations  but should have happens before
-    // in order to force this dag
+    // in order to force this dag. We start from the back.
     set_dag_steps();
-    leap = 0;
-    int at_search_leap = 0;
-    QSet<Partition *> search_leap = QSet<Partition *>();
-    QSet<int> found_tasks = QSet<int>();
-    while (!current_leap->isEmpty())
-    {
-        QSet<Partition *> * next_leap = new QSet<Partition *>();
+    leap -= 1; // Should be the last leap
+    QMap<int, int> task_to_last_leap = QMap<int, int>();
 
+    int found_leap;
+    QSet<Partition *> * search_leap;
+    QSet<int> found_tasks = QSet<int>();
+    QSet<int> found_leaps = QSet<int>();
+    while (leap >= 0)
+    {
+        current_leap = dag_step_dict->value(leap);
         for (QSet<Partition *>::Iterator part = current_leap->begin();
              part != current_leap->end(); ++part)
         {
@@ -1852,24 +1852,32 @@ void Trace::forcePartitionDag()
 
             //std::cout << (*part)->debug_name << " is missing children" << std::endl;
 
-            search_leap.clear();
-            at_search_leap = leap + 1;
-            for (QSet<Partition *>::Iterator cpart = current_leap->begin();
-                 cpart != current_leap->end(); ++cpart)
+            found_leaps.clear();
+            for (QSet<int>::Iterator element = missing.begin();
+                 element != missing.end(); ++element)
             {
-                for (QSet<Partition *>::Iterator child = (*cpart)->children->begin();
-                     child != (*cpart)->children->end(); ++child)
+                if (task_to_last_leap.contains(*element))
                 {
-                    if ((*child)->dag_leap == at_search_leap)
-                        search_leap.insert(*child);
+                    found_leap = task_to_last_leap[*element];
+                    found_leaps.insert(found_leap);
+                }
+                else
+                {
+                    task_to_last_leap[*element] = leap;
                 }
             }
-            while (!missing.isEmpty() && !search_leap.isEmpty())
+
+
+            QList<int> leap_list = found_leaps.toList();
+            qSort(leap_list.begin(), leap_list.end(), qGreater<int>());
+            for (QList<int>::Iterator next_leap = leap_list.begin();
+                 next_leap != leap_list.end(); ++next_leap)
             {
-                QSet<Partition *> next_search_leap = QSet<Partition *>();
                 found_tasks.clear();
-                for (QSet<Partition *>::Iterator spart = search_leap.begin();
-                     spart != search_leap.end(); ++spart)
+                search_leap = dag_step_dict->value(*next_leap);
+                // Go through the leap setting the links whenever missing tasks are found
+                for (QSet<Partition *>::Iterator spart = search_leap->begin();
+                     spart != search_leap->end(); ++spart)
                 {
                     if ((missing & (*spart)->events->keys().toSet()).size() != 0)
                     {
@@ -1882,43 +1890,19 @@ void Trace::forcePartitionDag()
                     {
                         //std::cout << " ----- No intersect " << (*spart)->debug_name << std::endl;
                     }
+                }
 
-                    for (QSet<Partition *>::Iterator child = (*spart)->children->begin();
-                         child != (*spart)->children->end(); ++child)
-                    {
-                        if ((*child)->dag_leap == at_search_leap + 1)
-                            next_search_leap.insert(*child);
-                    }
+                // Update the last leap of the found task to this one
+                for (QSet<int>::Iterator found_task = found_tasks.begin();
+                     found_task != found_tasks.end(); ++found_task)
+                {
+                    task_to_last_leap[*found_task] = leap;
                 }
                 missing.subtract(found_tasks);
-                search_leap = next_search_leap;
-                at_search_leap++;
             }
         }
-
-        // Set up the next leap
-        for (QSet<Partition *>::Iterator part = current_leap->begin();
-             part != current_leap->end(); ++part)
-        {
-            if ((*part)->dag_leap != leap)
-                continue;
-
-            for (QSet<Partition *>::Iterator child = (*part)->children->begin();
-                 child != (*part)->children->end(); ++child)
-            {
-                (*child)->calculate_dag_leap();
-                if ((*child)->dag_leap == leap + 1)
-                {
-                    next_leap->insert(*child);
-                }
-            }
-        }
-        leap++;
-
-        delete current_leap;
-        current_leap = next_leap;
+        leap--;
     }
-    delete current_leap;
 }
 
 // Iterates through all partitions and sets the steps
