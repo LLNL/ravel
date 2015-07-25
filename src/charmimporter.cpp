@@ -195,7 +195,13 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
     chargeIdleness();
 
     // Build partitions
+    QElapsedTimer partTimer;
+    partTimer.start();
     buildPartitions();
+    trace->totalTime += partTimer.nsecsElapsed();
+    std::cout << "Initial Partitions Time Time: ";
+    gu_printTime(trace->totalTime);
+    std::cout << std::endl;
 
 
     // Rename for vis

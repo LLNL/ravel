@@ -9,6 +9,7 @@
 #include <QQueue>
 #include <QStack>
 #include <QSharedPointer>
+#include <QElapsedTimer>
 
 #include "otfimportoptions.h"
 
@@ -45,6 +46,7 @@ public:
     int num_pes;
     int units;
     bool use_aggregates;
+    qint64 totalTime;
 
     QList<Partition *> * partitions;
     QList<QString> * metrics;
@@ -166,6 +168,8 @@ private:
                                               unsigned long long stop);
 
     bool isProcessed; // Partitions exist
+
+    QElapsedTimer totalTimer;
 
     // TODO: Replace this terrible stuff with QSharedPointer
     //QSet<RecurseInfo *> * riTracker;

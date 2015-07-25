@@ -32,6 +32,7 @@ Trace::Trace(int nt, int np)
       num_pes(np),
       units(-9),
       use_aggregates(true),
+      totalTime(0), // for paper timing
       partitions(new QList<Partition *>()),
       metrics(new QList<QString>()),
       metric_units(new QMap<QString, QString>()),
@@ -51,7 +52,8 @@ Trace::Trace(int nt, int np)
       global_max_step(-1),
       dag_entries(new QList<Partition *>()),
       dag_step_dict(new QMap<int, QSet<Partition *> *>()),
-      isProcessed(false)
+      isProcessed(false),
+      totalTimer(QElapsedTimer())
 {
     for (int i = 0; i < nt; i++) {
         (*events)[i] = new QVector<Event *>();
@@ -182,6 +184,7 @@ void Trace::preprocess(OTFImportOptions * _options)
     if (options.origin == OTFImportOptions::OF_CHARM)
         use_aggregates = false;
 
+    totalTimer.start();
     partition();
     assignSteps();
 
@@ -199,6 +202,10 @@ void Trace::preprocess(OTFImportOptions * _options)
     traceElapsed = traceTimer.nsecsElapsed();
     std::cout << "Structure Extraction: ";
     gu_printTime(traceElapsed);
+    std::cout << std::endl;
+
+    std::cout << "Total Algorith Time: ";
+    gu_printTime(totalTime);
     std::cout << std::endl;
 }
 
@@ -413,7 +420,7 @@ void Trace::partition()
             std::cout << "Partitions = " << partitions->size() << std::endl;
 
 
-            /*
+
             // Shortcut that is unnecessary with our current codes
             // but makes the final merging much faster.
             std::cout << "Merge for atomics" << std::endl;
@@ -427,7 +434,7 @@ void Trace::partition()
             verify_partitions();
             if (debug)
                 output_graph("../debug-output/8-post-atomics-cycle.dot");
-                */
+
 
 
 
@@ -2067,7 +2074,10 @@ void Trace::assignSteps()
     gu_printTime(traceElapsed);
     std::cout << std::endl;
     std::cout << "Num partitions " << partitions->length() << std::endl;
-
+    totalTime += totalTimer.nsecsElapsed();
+    std::cout << "Total Algorith Time: ";
+    gu_printTime(totalTime);
+    std::cout << std::endl;
 
     //output_graph("/home/kate/charmgraph.dot");
 
