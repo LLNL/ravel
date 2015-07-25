@@ -1833,7 +1833,8 @@ void Trace::forcePartitionDag()
             dag_entries->append(*partition);
         }
     }
-
+    std::cout << "Handled app/runtime, now adding links" << std::endl;
+    verify_partitions();
 
     // Need to finally fix partitions that should parent each other but don't
     // e.g. those that don't have send-relations  but should have happens before
@@ -1846,13 +1847,21 @@ void Trace::forcePartitionDag()
     QSet<Partition *> * search_leap;
     QSet<int> found_tasks = QSet<int>();
     QSet<int> found_leaps = QSet<int>();
+    QSet<int> seen_tasks = QSet<int>();
     while (leap >= 0)
     {
         current_leap = dag_step_dict->value(leap);
+        seen_tasks.clear();
         for (QSet<Partition *>::Iterator part = current_leap->begin();
              part != current_leap->end(); ++part)
         {
             // Let's test for tasks! If we're okay, we need not do anything
+            QList<int> mytasks = (*part)->events->keys();
+            for (QList<int>::Iterator t = mytasks.begin(); t != mytasks.end(); ++t)
+            {
+                seen_tasks.insert(*t);
+            }
+
             QSet<int> missing = (*part)->check_task_children();
             if (missing.isEmpty())
                 continue;
@@ -1867,10 +1876,6 @@ void Trace::forcePartitionDag()
                 {
                     found_leap = task_to_last_leap[*element];
                     found_leaps.insert(found_leap);
-                }
-                else
-                {
-                    task_to_last_leap[*element] = leap;
                 }
             }
 
@@ -1898,15 +1903,14 @@ void Trace::forcePartitionDag()
                         //std::cout << " ----- No intersect " << (*spart)->debug_name << std::endl;
                     }
                 }
-
-                // Update the last leap of the found task to this one
-                for (QSet<int>::Iterator found_task = found_tasks.begin();
-                     found_task != found_tasks.end(); ++found_task)
-                {
-                    task_to_last_leap[*found_task] = leap;
-                }
                 missing.subtract(found_tasks);
             }
+        }
+        // Update the last leap of chares at this leap to this one
+        for (QSet<int>::Iterator t = seen_tasks.begin();
+             t != seen_tasks.end(); ++t)
+        {
+            task_to_last_leap[*t] = leap;
         }
         leap--;
     }
@@ -2064,8 +2068,10 @@ void Trace::assignSteps()
 
     set_global_steps();
 
-    if (options.globalMerge)
+    if (options.globalMerge) {
+        std::cout << "Merging global steps..." << std::endl;
         mergeGlobalSteps();
+    }
 
     if (debug)
         output_graph("../debug-output/13-dag-global.dot");
