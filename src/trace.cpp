@@ -1869,7 +1869,7 @@ void Trace::forcePartitionDag()
 
 
             QList<int> leap_list = found_leaps.toList();
-            qSort(leap_list.begin(), leap_list.end(), qGreater<int>());
+            qSort(leap_list);
             for (QList<int>::Iterator next_leap = leap_list.begin();
                  next_leap != leap_list.end(); ++next_leap)
             {
