@@ -113,6 +113,7 @@ private:
     void set_partition_dag();
     void set_dag_steps();
     void set_dag_entries();
+    void clear_dag_step_dict();
 
     // Partitioning process
     void mergeForMessages();

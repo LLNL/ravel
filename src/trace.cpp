@@ -3446,7 +3446,7 @@ void Trace::set_dag_steps()
         (*partition)->dag_leap = -1;
     }
 
-    dag_step_dict->clear();
+    clear_dag_step_dict();
     QSet<Partition *> * current_level = new QSet<Partition *>();
     for (QList<Partition *>::Iterator part = dag_entries->begin();
          part != dag_entries->end(); ++part)
@@ -3577,6 +3577,16 @@ Event * Trace::findEvent(int task, unsigned long long time)
     }
 
     return found;
+}
+
+void Trace::clear_dag_step_dict()
+{
+    for (QMap<int, QSet<Partition *> *>::Iterator set = dag_step_dict->begin();
+         set != dag_step_dict->end(); ++set)
+    {
+        delete set.value();
+    }
+    dag_step_dict->clear();
 }
 
 void Trace::verify_partitions()
