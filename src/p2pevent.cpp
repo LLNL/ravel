@@ -383,7 +383,7 @@ void P2PEvent::update_strides()
 }
 
 void P2PEvent::set_reorder_strides(QMap<int, QList<CommEvent *> *> * stride_map,
-                                   int offset, CommEvent *last)
+                                   int offset, CommEvent *last, int debug)
 {
     Q_UNUSED(last);
     offset = 1;
@@ -398,6 +398,8 @@ void P2PEvent::set_reorder_strides(QMap<int, QList<CommEvent *> *> * stride_map,
             stride_map->insert(stride + offset,
                                new QList<CommEvent *>());
         }
+        Q_ASSERT(stride + offset != stride);
+        Q_ASSERT(stride + offset != debug);
         stride_map->value(stride + offset)->append((*msg)->receiver);
 
         // Last stride to self for ordering

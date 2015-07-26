@@ -732,7 +732,7 @@ void Partition::receive_reorder_mpi()
                 if (max_stride < (*evt)->stride + 1)
                     max_stride = (*evt)->stride + 1;
 
-                (*evt)->set_reorder_strides(stride_map, 1);
+                (*evt)->set_reorder_strides(stride_map, 1, NULL, current_stride);
             }
 
 
@@ -810,6 +810,9 @@ void Partition::receive_reorder()
         {
             local_evt = *evt;
             my_stride = 1;
+            if (local_evt->stride != current_stride)
+                continue;
+            Q_ASSERT(local_evt->stride == current_stride);
 
             // Handle all the events under the common caller
             // (which are those that follow through comm_next in this case without
@@ -820,7 +823,10 @@ void Partition::receive_reorder()
             {
                 if (local_evt->comm_next && local_evt->comm_next->partition == this)
                 {
-                    local_evt->comm_next->stride = local_evt->stride + 1;
+                    if (local_evt->comm_next->stride < local_evt->stride + 1)
+                    {
+                        local_evt->comm_next->stride = local_evt->stride + 1;
+                    }
                     local_evt->comm_next->last_stride = *evt;
 
                     if (max_stride < local_evt->stride + 1)
@@ -849,7 +855,7 @@ void Partition::receive_reorder()
                     if (max_stride < local_evt->stride + my_stride)
                         max_stride = local_evt->stride + my_stride;
 
-                    local_evt->set_reorder_strides(stride_map, my_stride);
+                    local_evt->set_reorder_strides(stride_map, my_stride, NULL, current_stride);
                 } // Handled send
 
                 if (local_evt->comm_next && local_evt->comm_next->partition == this)
