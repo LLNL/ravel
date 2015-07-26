@@ -126,9 +126,10 @@ private:
     public:
         RecurseInfo(Partition * p, Partition * c, QList<Partition *> * cc, int i)
             : part(p), child(c), children(cc), cIndex(i) {}
+
         Partition * part;
         Partition * child;
-        QList<Partition *> * children;
+        QList<Partition *> * children; // Used later
         int cIndex;
     };
 
@@ -170,10 +171,6 @@ private:
     bool isProcessed; // Partitions exist
 
     QElapsedTimer totalTimer;
-
-    // TODO: Replace this terrible stuff with QSharedPointer
-    //QSet<RecurseInfo *> * riTracker;
-    //QSet<QList<Partition *> *> * riChildrenTracker;
 
     static const bool debug = false;
     static const int partition_portion = 25;

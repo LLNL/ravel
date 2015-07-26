@@ -100,6 +100,21 @@ CharmImporter::~CharmImporter()
     {
         delete *itr;
     }
+    delete messages;
+
+    for (QMap<int, ChareArray *>::Iterator itr = arrays->begin();
+         itr != arrays->end(); ++itr)
+    {
+        delete itr.value();
+    }
+    delete arrays;
+
+    for (QMap<int, ChareGroup *>::Iterator itr = groups->begin();
+         itr != groups->end(); ++itr)
+    {
+        delete itr.value();
+    }
+    delete groups;
 
     for (QMap<int, QMap<int, int> *>::Iterator itr = reductions->begin();
          itr != reductions->end(); ++itr)
@@ -112,6 +127,8 @@ CharmImporter::~CharmImporter()
     delete idle_to_next;
     delete addContribution;
     delete recvMsg;
+    delete atomics;
+    delete chare_to_task;
     delete reductionEntries;
 }
 
@@ -265,6 +282,14 @@ void CharmImporter::cleanUp()
         delete *itr;
     }
     delete charm_events;
+
+
+    for (QVector<QVector<P2PEvent *> *>::Iterator itr
+         = charm_p2ps->begin(); itr != charm_p2ps->end(); ++itr)
+    {
+        delete *itr;
+    }
+    delete charm_p2ps;
 
     for (QVector<QVector<CharmEvt *> *>::Iterator itr
          = task_events->begin(); itr != task_events->end(); ++itr)

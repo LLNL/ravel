@@ -32,7 +32,7 @@ Partition::Partition()
       tindex(-1),
       lowlink(-1),
       leapmark(false),
-      group(new QSet<Partition *>()),
+      group(new QSet<Partition *>()), // delete in trace or turn to smart pointer
       min_atomic(INT_MAX),
       max_atomic(-1),
       metrics(new Metrics()),
