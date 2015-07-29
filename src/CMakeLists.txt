@@ -83,6 +83,9 @@ set(Ravel_SOURCES
     taskgroup.cpp
     otf2exporter.cpp
     otf2exportfunctor.cpp
+    charmimporter.cpp
+    primarytaskgroup.cpp
+    metrics.cpp
     ${ADDED_SOURCES}
 )
 
@@ -132,6 +135,9 @@ set(Ravel_HEADERS
     taskgroup.h
     otf2exporter.h
     otf2exportfunctor.h
+    charmimporter.h
+    primarytaskgroup.h
+    metrics.h
     ${ADDED_HEADERS}
 )
 
