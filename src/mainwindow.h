@@ -46,6 +46,7 @@ class OTF2ExportFunctor;
 class QProgressDialog;
 class QThread;
 class QWidget;
+class QCloseEvent;
 
 namespace Ui {
 class MainWindow;
@@ -61,10 +62,11 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+    void closeEvent(QCloseEvent *);
+
 public slots:
     void launchOTFOptions();
     void launchVisOptions();
-
 
     // Signal relays
     void pushSteps(float start, float stop, bool jump = false);
@@ -93,6 +95,9 @@ public slots:
     void saveCurrentTrace();
     void exportFinished();
 
+    // Settings
+    void writeSettings();
+    void readSettings();
 
 signals:
     void operate(const QString &);
@@ -132,6 +137,7 @@ private:
     QString activetracename;
 
     QStack<QString> activetraces;
+    QString dataDirectory;
 
     static const int OVERVIEW = 0;
     static const int STEPVIS = 1;
