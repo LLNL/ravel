@@ -1,9 +1,10 @@
 find_path(OTF_INCLUDE_DIRS otf.h
   PATHS $ENV{HOME}/opt/include $ENV{HOME}/opt/include/otf
-  PATH_SUFFIXES open-trace-format)
+  PATH_SUFFIXES otf open-trace-format)
 
 find_library(
-  OTF_LIBRARIES open-trace-format
+  OTF_LIBRARIES 
+  NAMES otf open-trace-format
   PATHS $ENV{HOME}/opt/lib)
 
 find_package_handle_standard_args(
