@@ -6,7 +6,11 @@
 #include <climits>
 #include <iostream>
 #include "general_util.h"
+
+#ifdef OTF1LIB
 #include "otfimporter.h"
+#endif
+
 #include "otf2importer.h"
 #include "otfimportoptions.h"
 #include "rawtrace.h"
@@ -40,6 +44,7 @@ OTFConverter::~OTFConverter()
 {
 }
 
+#ifdef OTF1LIB
 Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
 {
     // Keep track of options
@@ -57,6 +62,7 @@ Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
     trace->fullpath = filename;
     return trace;
 }
+#endif
 
 Trace * OTFConverter::importOTF2(QString filename, OTFImportOptions *_options)
 {

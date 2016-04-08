@@ -16,7 +16,6 @@ SOURCES  += main.cpp \
     colormap.cpp \
     commrecord.cpp \
     eventrecord.cpp \
-    otfimporter.cpp \
     rawtrace.cpp \
     otfconverter.cpp \
     function.cpp \
@@ -62,7 +61,6 @@ HEADERS += \
     colormap.h \
     commrecord.h \
     eventrecord.h \
-    otfimporter.h \
     rawtrace.h \
     otfconverter.h \
     function.h \
@@ -107,7 +105,15 @@ FORMS += \
 
 HOME = $$system(echo $HOME)
 
-unix:!macx: LIBS += -lotf -lz
+@contains(DEFINES, OTF1LIB) {
+    SOURCES += otfimporter.cpp
+    HEADERS += otfimporter.h
+
+    unix:!macx: LIBS += -lotf -lz
+    macx: INCLUDEPATH += $${HOME}/opt/include/open-trace-format/
+    macx: DEPENDPATH += $${HOME}/opt/include/open-trace-format/
+    macx: LIBS += -L$${HOME}/opt/lib -lopen-trace-format
+}
 
 unix: INCLUDEPATH += $${HOME}/opt/include
 unix: DEPENDPATH += $${HOME}/opt/include
@@ -118,10 +124,7 @@ unix:!macx: DEPENDPATH += /opt/otf2/include
 unix:!macx: LIBS += -L/opt/otf2/lib -lotf2
 
 macx: LIBS += -lz
-macx: LIBS += -L$${HOME}/opt/lib -lopen-trace-format -lotf2
-
-macx: INCLUDEPATH += $${HOME}/opt/include/open-trace-format/
-macx: DEPENDPATH += $${HOME}/opt/include/open-trace-format/
+macx: LIBS += -L$${HOME}/opt/lib -lotf2
 
 macx: INCLUDEPATH += $${HOME}/opt/include/otf2/
 macx: DEPENDPATH += $${HOME}/opt/include/otf2/

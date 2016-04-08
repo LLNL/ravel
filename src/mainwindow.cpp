@@ -46,10 +46,14 @@ MainWindow::MainWindow(QWidget *parent) :
     visdialog(NULL),
     activetracename(""),
     activetraces(QStack<QString>()),
-    dataDirectory("")
+    dataDirectory(""),
+    otf1Support(false)
 {
     readSettings();
     ui->setupUi(this);
+    #ifdef OTF1LIB
+        otf1Support = true;
+    #endif
 
     // Overview
     OverviewVis* overview = new OverviewVis(ui->overviewContainer, visoptions);
@@ -332,11 +336,14 @@ void MainWindow::importOTFbyGUI()
 {
     // Now get the OTF File
     QString dataFileName = "";
-
+    QString fileTypes = "Trace Files (*.otf2)";
+#ifdef OTF1LIB
+    fileTypes = "Trace Files (*.otf2 *.otf)";
+#endif
     dataFileName = QFileDialog::getOpenFileName(this,
                                                 tr("Import Trace Data"),
                                                 dataDirectory,
-                                                tr("Trace Files (*.otf *.otf2 *.sts)"));
+                                                tr(fileTypes.toStdString().c_str()));
     qApp->processEvents();
 
     // Guard against Cancel
