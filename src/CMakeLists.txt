@@ -6,7 +6,7 @@ find_package(Qt5 REQUIRED Core Widgets OpenGL Concurrent)
 # Dependencies over Qt5
 find_package(OpenGL)
 find_package(Muster REQUIRED)
-find_package(OTF REQUIRED)
+find_package(OTF)
 find_package(OTF2 REQUIRED)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS}")
@@ -16,9 +16,18 @@ set(CMAKE_AUTOMOC ON)
 # Includes, Definitions, Flags
 include_directories(${Qt5Widgets_INCLUDE_DIRS}
                     ${Muster_INCLUDE_DIRS}
-                    ${OTF_INCLUDE_DIRS}
                     ${OTF2_INCLUDE_DIRS}
-                    )
+                   )
+
+SET(ADDED_SOURCES "")
+SET(ADDED_HEADERS "")
+
+if (OTF_FOUND)
+    include_directories(${OTF_INCLUDE_DIRS})
+    add_definitions(-DOTF1LIB)
+    list(APPEND ADDED_HEADERS otfimporter.h)
+    list(APPEND ADDED_SOURCE otfimporter.cpp)
+endif()
 
 add_definitions(${Qt5Widgets_DEFINITIONS})
 
@@ -41,7 +50,6 @@ set(Ravel_SOURCES
     colormap.cpp
     commrecord.cpp
     eventrecord.cpp
-    otfimporter.cpp
     rawtrace.cpp
     otfconverter.cpp
     function.cpp
@@ -75,6 +83,7 @@ set(Ravel_SOURCES
     taskgroup.cpp
     otf2exporter.cpp
     otf2exportfunctor.cpp
+    ${ADDED_SOURCES}
 )
 
 set(Ravel_HEADERS
@@ -88,7 +97,6 @@ set(Ravel_HEADERS
     colormap.h
     commrecord.h
     eventrecord.h
-    otfimporter.h
     rawtrace.h
     otfconverter.h
     function.h
@@ -124,6 +132,7 @@ set(Ravel_HEADERS
     taskgroup.h
     otf2exporter.h
     otf2exportfunctor.h
+    ${ADDED_HEADERS}
 )
 
 set(Ravel_UIC
@@ -144,8 +153,12 @@ target_link_libraries(Ravel
                       Qt5::Concurrent
                       ${OPENGL_LIBRARIES}
                       ${Muster_LIBRARIES}
-                      ${OTF_LIBRARIES}
                       ${OTF2_LIBRARIES}
                      )
+
+if (OTF_FOUND)
+target_link_libraries(${OTF_LIBRARIES}
+                     )
+endif()
 
 install(TARGETS Ravel DESTINATION bin)
