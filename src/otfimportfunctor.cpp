@@ -73,6 +73,7 @@ void OTFImportFunctor::doImportOTF2(QString dataFileName)
     emit(done(trace));
 }
 
+#ifdef OTF1LIB
 void OTFImportFunctor::doImportOTF(QString dataFileName)
 {
     std::cout << "Processing " << dataFileName.toStdString().c_str() << std::endl;
@@ -105,6 +106,7 @@ void OTFImportFunctor::doImportOTF(QString dataFileName)
 
     emit(done(trace));
 }
+#endif
 
 void OTFImportFunctor::finishInitialRead()
 {

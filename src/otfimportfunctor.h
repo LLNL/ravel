@@ -40,7 +40,9 @@ public:
     Trace * getTrace() { return trace; }
 
 public slots:
+#ifdef OTF1LIB
     void doImportOTF(QString dataFileName);
+#endif
     void doImportOTF2(QString dataFileName);
     void finishInitialRead();
     void updateMatching(int portion, QString msg);

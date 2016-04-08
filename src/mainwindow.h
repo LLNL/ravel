@@ -138,6 +138,7 @@ private:
 
     QStack<QString> activetraces;
     QString dataDirectory;
+    bool otf1Support;
 
     static const int OVERVIEW = 0;
     static const int STEPVIS = 1;
