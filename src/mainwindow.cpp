@@ -26,6 +26,7 @@
 #include <QElapsedTimer>
 #include <QThread>
 #include <QProgressDialog>
+#include <QSettings>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -44,8 +45,10 @@ MainWindow::MainWindow(QWidget *parent) :
     visoptions(new VisOptions()),
     visdialog(NULL),
     activetracename(""),
-    activetraces(QStack<QString>())
+    activetraces(QStack<QString>()),
+    dataDirectory("")
 {
+    readSettings();
     ui->setupUi(this);
 
     // Overview
@@ -210,6 +213,29 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    Q_UNUSED(event);
+    writeSettings();
+}
+
+void MainWindow::writeSettings()
+{
+    QSettings settings("LLNL", "Ravel");
+    settings.beginGroup("Data");
+    settings.setValue("directory", dataDirectory);
+    settings.endGroup();
+}
+
+void MainWindow::readSettings()
+{
+    QSettings settings("LLNL", "Ravel");
+
+    settings.beginGroup("Data");
+    dataDirectory = settings.value("directory", "").toString();
+    settings.endGroup();
+}
+
 // The following functions relay a signal from one vis (hooked up in the
 // constructor) to all of the rest
 void MainWindow::pushSteps(float start, float stop, bool jump)
@@ -306,31 +332,17 @@ void MainWindow::importOTFbyGUI()
 {
     // Now get the OTF File
     QString dataFileName = "";
-    if (traces.size() > 0)
-    {
-        QFileInfo traceInfo = QFileInfo(traces[activeTrace]->fullpath);
-        QDir openDir = traceInfo.absoluteDir();
-        if (!openDir.cdUp())
-        {
-            openDir = traceInfo.absoluteDir();
-        }
-        dataFileName = QFileDialog::getOpenFileName(this,
-                                                    tr("Import Trace Data"),
-                                                    openDir.absolutePath(),
-                                                    tr("Trace Files(*.otf2 *.otf *.sts)"));
-    } else {
-        dataFileName = QFileDialog::getOpenFileName(this,
-                                                    tr("Import Trace Data"),
-                                                    "",
-                                                    tr("Trace Files (*.otf *.otf2 *.sts)"));
-    }
+
+    dataFileName = QFileDialog::getOpenFileName(this,
+                                                tr("Import Trace Data"),
+                                                dataDirectory,
+                                                tr("Trace Files (*.otf *.otf2 *.sts)"));
     qApp->processEvents();
 
     // Guard against Cancel
     if (dataFileName == NULL || dataFileName.length() == 0)
         return;
 
-    repaint();
     importTrace(dataFileName);
 
     QStringList fileinfo = dataFileName.split('\/');
@@ -415,6 +427,14 @@ void MainWindow::traceFinished(Trace * trace)
     if (activeTrace >= 0)
         ui->menuTraces->actions().at(activeTrace)->setChecked(false);
     activeTrace = traces.size() - 1;
+
+    QFileInfo traceInfo = QFileInfo(traces[activeTrace]->fullpath);
+    QDir traceDir = traceInfo.absoluteDir();
+    if (!traceDir.cdUp())
+    {
+        traceDir = traceInfo.absoluteDir();
+    }
+    dataDirectory = traceDir.absolutePath();
 
     trace->name = activetracename;
     QAction * action = ui->menuTraces->addAction(activetracename);
