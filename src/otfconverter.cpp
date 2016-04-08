@@ -44,9 +44,10 @@ OTFConverter::~OTFConverter()
 {
 }
 
-#ifdef OTF1LIB
+
 Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
 {
+    #ifdef OTF1LIB
     // Keep track of options
     options = _options;
 
@@ -60,9 +61,10 @@ Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
 
     delete importer;
     trace->fullpath = filename;
+    #endif
     return trace;
 }
-#endif
+
 
 Trace * OTFConverter::importOTF2(QString filename, OTFImportOptions *_options)
 {

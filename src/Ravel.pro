@@ -105,7 +105,7 @@ FORMS += \
 
 HOME = $$system(echo $HOME)
 
-@contains(DEFINES, OTF1LIB) {
+contains(DEFINES, OTF1LIB) {
     SOURCES += otfimporter.cpp
     HEADERS += otfimporter.h
 

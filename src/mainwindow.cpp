@@ -53,6 +53,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     #ifdef OTF1LIB
         otf1Support = true;
+        std::cout << "OTF1 SUPPORT" << std::endl;
     #endif
 
     // Overview
