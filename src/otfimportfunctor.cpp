@@ -73,9 +73,10 @@ void OTFImportFunctor::doImportOTF2(QString dataFileName)
     emit(done(trace));
 }
 
-#ifdef OTF1LIB
+
 void OTFImportFunctor::doImportOTF(QString dataFileName)
 {
+    #ifdef OTF1LIB
     std::cout << "Processing " << dataFileName.toStdString().c_str() << std::endl;
     QElapsedTimer traceTimer;
     qint64 traceElapsed;
@@ -105,8 +106,8 @@ void OTFImportFunctor::doImportOTF(QString dataFileName)
     std::cout << std::endl;
 
     emit(done(trace));
+    #endif
 }
-#endif
 
 void OTFImportFunctor::finishInitialRead()
 {

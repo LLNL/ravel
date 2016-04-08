@@ -50,9 +50,8 @@ class OTFConverter : public QObject
 public:
     OTFConverter();
     ~OTFConverter();
-#ifdef OTF1LIB
+
     Trace * importOTF(QString filename, OTFImportOptions * _options);
-#endif
     Trace * importOTF2(QString filename, OTFImportOptions * _options);
 
 signals:
