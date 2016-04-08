@@ -309,11 +309,14 @@ void MainWindow::importOTFbyGUI()
     if (traces.size() > 0)
     {
         QFileInfo traceInfo = QFileInfo(traces[activeTrace]->fullpath);
+        QDir openDir = traceInfo.absoluteDir();
+        if (!openDir.cdUp())
+        {
+            openDir = traceInfo.absoluteDir();
+        }
         dataFileName = QFileDialog::getOpenFileName(this,
                                                     tr("Import Trace Data"),
-                                                    QFileInfo(traceInfo.absoluteDir(),
-                                                              traceInfo.baseName()
-                                                              + ".save").absoluteFilePath(),
+                                                    openDir.absolutePath(),
                                                     tr("Trace Files(*.otf2 *.otf *.sts)"));
     } else {
         dataFileName = QFileDialog::getOpenFileName(this,
