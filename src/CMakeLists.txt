@@ -26,7 +26,7 @@ if (OTF_FOUND)
     include_directories(${OTF_INCLUDE_DIRS})
     add_definitions(-DOTF1LIB)
     list(APPEND ADDED_HEADERS otfimporter.h)
-    list(APPEND ADDED_SOURCE otfimporter.cpp)
+    list(APPEND ADDED_SOURCES otfimporter.cpp)
 endif()
 
 add_definitions(${Qt5Widgets_DEFINITIONS})
@@ -157,8 +157,9 @@ target_link_libraries(Ravel
                      )
 
 if (OTF_FOUND)
-target_link_libraries(${OTF_LIBRARIES}
-                     )
+    target_link_libraries(Ravel
+                          ${OTF_LIBRARIES}
+                         )
 endif()
 
 install(TARGETS Ravel DESTINATION bin)
