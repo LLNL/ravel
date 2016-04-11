@@ -4,7 +4,7 @@ CharmImporter::CharmImporter()
 {
 }
 
-void CharmImporter::importCharmLog()
+void CharmImporter::importCharmLog(QString filename, OTFImportOptions *_options)
 {
 
 }
