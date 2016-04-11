@@ -33,6 +33,7 @@ void OTFImportFunctor::doImportCharm(QString dataFileName)
     //        SLOT(updateMatching(int, QString)));
     Trace* trace = importer->getTrace();
     delete importer;
+    trace->fullpath = dataFileName;
     //delete converter;
     connect(trace, SIGNAL(updatePreprocess(int, QString)), this,
             SLOT(updatePreprocess(int, QString)));
