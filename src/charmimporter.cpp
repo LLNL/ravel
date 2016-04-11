@@ -812,6 +812,7 @@ void CharmImporter::buildPartitions()
                     {
                         std::cout << " --- We are " << trace->functions->value(prev->caller->function)->shortname.toStdString().c_str() << std::endl;
                         std::cout << " --- my_app is " << my_app << " and theirs is " << prev_app << std::endl;
+                    }
                     // These should be the same or split.
                     if (my_app != prev_app)
                     {
