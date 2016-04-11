@@ -113,7 +113,6 @@ MainWindow::MainWindow(QWidget *parent) :
                                                  visoptions);
     timevis->setClosed(true);
     ui->traditionalContainer->layout()->addWidget(timevis);
-    ui->traditionalLabelWidget->setLayout(new QVBoxLayout());
     ui->traditionalLabelWidget->layout()->addWidget(new VerticalLabel("Physical",
                                                                       ui->traditionalLabelWidget));
     QLabel * timescaleLabel = new QLabel(ui->traditionalLabelWidget);
