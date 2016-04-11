@@ -1079,7 +1079,7 @@ void OTFConverter::matchEventsSaved()
                 if (cr)
                 {
                     cr->events->append(new CollectiveEvent(bgn->time, (*evt)->time,
-                                            bgn->value, bgn->task,
+                                            bgn->value, bgn->task, bgn->task,
                                             phase, cr));
                     cr->events->last()->comm_prev = prev;
                     if (prev)
@@ -1119,7 +1119,7 @@ void OTFConverter::matchEventsSaved()
                     msgs->append(crec->message);
                     crec->message->sender = new P2PEvent(bgn->time, (*evt)->time,
                                                          bgn->value,
-                                                         bgn->task, phase,
+                                                         bgn->task, bgn->task, phase,
                                                          msgs);
 
                     crec->message->sender->comm_prev = prev;
@@ -1162,7 +1162,7 @@ void OTFConverter::matchEventsSaved()
                     }
                     msgs->at(0)->receiver = new P2PEvent(bgn->time, (*evt)->time,
                                                          bgn->value,
-                                                         bgn->task, phase,
+                                                         bgn->task, bgn->task, phase,
                                                          msgs);
                     for (int i = 1; i < msgs->size(); i++)
                     {
@@ -1184,7 +1184,7 @@ void OTFConverter::matchEventsSaved()
                 else // Non-com event
                 {
                     e = new Event(bgn->time, (*evt)->time, bgn->value,
-                                  bgn->task);
+                                  bgn->task, bgn->task);
                 }
 
                 depth--;
@@ -1231,7 +1231,7 @@ void OTFConverter::matchEventsSaved()
             EventRecord * bgn = stack->pop();
             endtime = std::max(endtime, bgn->time);
             Event * e = new Event(bgn->time, endtime, bgn->value,
-                          bgn->task);
+                          bgn->task, bgn->task);
             if (!stack->isEmpty())
             {
                 stack->top()->children.append(e);
