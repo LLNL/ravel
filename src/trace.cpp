@@ -21,6 +21,7 @@
 #include "taskgroup.h"
 #include "otfcollective.h"
 #include "general_util.h"
+#include "primarytaskgroup.h"
 
 Trace::Trace(int nt, int np)
     : name(""),
@@ -141,11 +142,11 @@ Trace::~Trace()
     delete dag_step_dict;
 
 
-    for (QVector<PrimaryTaskGroup *>::Iterator primary = primaries->begin();
+    for (QMap<int, PrimaryTaskGroup *>::Iterator primary = primaries->begin();
          primary != primaries->end(); ++primary)
     {
-        for (QList<Task *>::Iterator task = (*primary)->tasks->begin();
-             task != (*primary)->tasks->end(); ++task)
+        for (QList<Task *>::Iterator task = primary.value()->tasks->begin();
+             task != primary.value()->tasks->end(); ++task)
         {
             delete *task;
             *task = NULL;

@@ -16,7 +16,6 @@
 
 RawTrace::RawTrace(int nt, int np)
     : options(new OTFImportOptions()),
-      tasks(NULL),
       primaries(NULL),
       functionGroups(NULL),
       functions(NULL),

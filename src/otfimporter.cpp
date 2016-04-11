@@ -98,7 +98,8 @@ RawTrace * OTFImporter::importOTF(const char* otf_file, bool _enforceMessageSize
 
     setHandlers();
 
-    primaries = new QVector<PrimaryTaskGroup *>();
+    primaries = new QMap<int, PrimaryTaskGroup *>();
+    primaries->insert(0, new PrimaryTaskGroup(0, "MPI_COMM_WORLD"));
     functionGroups = new QMap<int, QString>();
     functions = new QMap<int, Function *>();
     taskgroups = new QMap<int, TaskGroup *>();
