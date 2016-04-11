@@ -1,4 +1,6 @@
 #include "charmimporter.h"
+#include "eventrecord.h"
+#include "commrecord.h"
 #include <iostream>
 #include <QStringList>
 #include <QDir>
@@ -35,7 +37,6 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
     rawtrace->second_magnitude = 9;
     rawtrace->functions = new QMap<int, Function *>();
     rawtrace->functionGroups = new QMap<int, QString>();
-    rawtrace->communicators = new QMap<int, Communicator *>();
     rawtrace->collective_definitions = new QMap<int, OTFCollective *>();
     rawtrace->collectives = new QMap<unsigned long long, CollectiveRecord *>();
     rawtrace->counters = new QMap<unsigned int, Counter *>();
