@@ -19,10 +19,6 @@ public:
     // This order is important for communicator rank ID
     QList<unsigned int> * tasks;
     QMap<unsigned int, int> * taskorder;
-
-    // In the future - some sort of hierarchy links between communicators?
-
-
 };
 
 #endif // TASKGROUP_H

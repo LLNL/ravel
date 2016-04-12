@@ -36,7 +36,6 @@ public:
 
     OTFImportOptions * options;
     QMap<int, PrimaryTaskGroup *> * primaries;
-    //QMap<int, Task *> * tasks;
     QMap<int, QString> * functionGroups;
     QMap<int, Function *> * functions;
     QVector<QVector<EventRecord *> *> * events;

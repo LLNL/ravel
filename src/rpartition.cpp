@@ -176,10 +176,6 @@ void Partition::fromSaved()
     for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
     {
-        /*if (event_list.value()->first()->comm_prev)
-            parents->insert(event_list.value()->first()->comm_prev->partition);
-        if (event_list.value()->last()->comm_next)
-            children->insert(event_list.value()->first()->comm_next->partition);*/
         if (event_list.value()->first()->step < min_global_step || min_global_step < 0)
             min_global_step = event_list.value()->first()->step;
         if (event_list.value()->last()->step > max_global_step)
@@ -341,33 +337,6 @@ void Partition::true_children()
                     std::cout << " on " << (*evt)->task << std::endl;
                 }
             }
-
-            /*
-            // And  maybe if it is just the last receive
-            else if ((*evt)->isReceive() && (*evt)->true_next && !(*evt)->true_next->isReceive()
-                     && (*evt)->true_next->partition != this)
-            {
-                Partition * p = (*evt)->true_next->partition;
-                children->insert(p);
-                p->parents->insert(this);
-            }
-
-            // And  maybe if it is just the last receive danger pe
-            else if ((*evt)->isReceive() && (*evt)->pe_next && !(*evt)->pe_next->isReceive()
-                     && (*evt)->pe_next->partition != this && (*evt)->pe_next->comm_prev == NULL)
-            {
-                Partition * p = (*evt)->pe_next->partition;
-                children->insert(p);
-                p->parents->insert(this);
-            }
-            */
-
-            /*if ((*evt)->comm_next && (*evt)->comm_next->partition != this)
-            {
-                Partition * p = (*evt)->comm_next->partition;
-                children->insert(p);
-                p->parents->insert(this);
-            }*/
         }
     }
 }
@@ -591,37 +560,6 @@ Partition * Partition::earlier_partition(Partition * other, QSet<int> overlap_ta
 void Partition::finalizeTaskEventOrder()
 {
     CommEvent * prev;
-    /*int position = -1;
-    QList<int> toSwap = QList<int>();
-    for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
-         event_list != events->end(); ++event_list)
-    {
-        position = 0;
-        prev = NULL;
-        toSwap.clear();
-        for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
-             evt != (event_list.value())->end(); ++evt)
-        {
-            (*evt)->stride = -1;
-            (*evt)->last_stride = NULL;
-            if (prev && prev->exit == (*evt)->exit
-                && (*evt)->happens_before(prev))
-            {
-                toSwap.append(position);
-            }
-            prev = *evt;
-            position++;
-        }
-
-        for (QList<int>::Iterator pos = toSwap.begin();
-             pos != toSwap.end(); ++pos)
-        {
-            prev = event_list.value()->at(*pos - 1);
-            (*event_list.value())[*pos - 1] = (*event_list.value())[*pos];
-            (*event_list.value())[*pos] = prev;
-        }
-    }*/
-
 
     for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
@@ -788,7 +726,6 @@ void Partition::receive_reorder()
                 (*evt)->stride = 0;
                 (*evt)->last_stride = (*evt);
                 stride_map->value(0)->append(*evt);
-                //std::cout << "Setting stride 0 for task " << (*evt)->task << " with add order " << (*evt)->add_order << std::endl;
             }
         }
     }
@@ -835,9 +772,6 @@ void Partition::receive_reorder()
                     my_stride++;
 
                     local_evt = local_evt->comm_next;
-
-                    //std::cout << "Setting stride " << local_evt->stride << " for task " << local_evt->task << " with add order " << local_evt->add_order << std::endl;
-
                 }
                 else
                 {
@@ -1118,12 +1052,10 @@ void Partition::step()
         }
     }
 
-    //std::cout << "   Build stride graph" << std::endl;
     // Set strides
     int max_stride = set_stride_dag(stride_events);
     delete stride_events;
 
-    //std::cout << "   Update stride boundaries" << std::endl;
     //. Find recv stride boundaries based on dependencies
     for (QList<CommEvent *>::Iterator recv = recv_events->begin();
          recv != recv_events->end(); ++recv)
@@ -1136,7 +1068,6 @@ void Partition::step()
     // dependencies are built into the stride graph).
     // This may be somewhat similar to restep/finalize... but slightly
     // different so look into that.
-    //std::cout << "   Inflate receives" << std::endl;
     max_step = -1;
     int task;
     CommEvent * evt;

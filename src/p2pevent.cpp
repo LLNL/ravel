@@ -28,8 +28,6 @@ P2PEvent::P2PEvent(QList<P2PEvent *> * _subevents)
     this->depth = subevents->first()->depth;
 
     // Take over submessages & caller/callee relationships
-    //caller = subevents->first()->caller;
-    //int evt_index;
     for (QList<P2PEvent *>::Iterator evt = subevents->begin();
          evt != subevents->end(); ++evt)
     {
@@ -44,16 +42,9 @@ P2PEvent::P2PEvent(QList<P2PEvent *> * _subevents)
         }
 
         callees->append(*evt);
-        /*if (caller)
-        {
-            evt_index = caller->callees->indexOf(*evt);
-            if (evt_index > 0)
-                caller->callees->remove(evt_index);
-        }*/
+
         (*evt)->caller = this;
     }
-    //if (caller)
-    //    caller->callees->insert(evt_index, this);
 
     // Aggregate existing metrics
     P2PEvent * first = _subevents->first();

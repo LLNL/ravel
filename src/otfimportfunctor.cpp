@@ -24,13 +24,7 @@ void OTFImportFunctor::doImportCharm(QString dataFileName)
 
     CharmImporter * importer = new CharmImporter();
     importer->importCharmLog(dataFileName, options);
-    //RawTrace * rt = importer->getRawTrace();
 
-    //OTFConverter * converter = new OTFConverter();
-
-    //connect(importer, SIGNAL(finishRead()), this, SLOT(finishInitialRead()));
-    //connect(importer, SIGNAL(matchingUpdate(int, QString)), this,
-    //        SLOT(updateMatching(int, QString)));
     Trace* trace = importer->getTrace();
     delete importer;
     trace->fullpath = dataFileName;

@@ -190,8 +190,6 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
     trace->primaries = primaries;
     trace->collective_definitions = new QMap<int, OTFCollective *>();
     trace->collectives = new QMap<unsigned long long, CollectiveRecord *>();
-    //trace->counters = new QMap<unsigned int, Counter *>();
-    //trace->counter_records = new QVector<QVector<CounterRecord *> *>(num_tasks);
     trace->collectiveMap = new QVector<QMap<unsigned long long, CollectiveRecord *> *>(num_tasks);
     task_events = new QVector<QVector<CharmEvt *> *>(num_tasks);
     charm_p2ps = new QVector<QVector<P2PEvent *> *>(num_tasks);
@@ -202,8 +200,6 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
         (*(charm_p2ps))[i] = new QVector<P2PEvent *>();
     }
     trace->pe_events = pe_events;
-    //delete trace->roots;
-    //trace->roots = roots;
 
     // Change per-PE stuff to per-chare stuff
     makeTaskEvents();    
@@ -412,12 +408,6 @@ void CharmImporter::makeTaskEvents()
                 {
                     if (verbose)
                         std::cout << "            ArrayID " << (*evt)->arrayid << " and chare " << (*evt)->index.chare << std::endl;
-                    /*if (application_group_chares.contains((*evt)->index.chare))
-                    {
-                        (*evt)->task = application_group_chares[(*evt)->index.chare]
-                                       + (*evt)->pe;
-                    }
-                    else*/
                     if (((*evt)->arrayid == 0 && (!application_chares.contains((*evt)->index.chare)
                                                  || ((*evt)->index.chare == main && (*evt)->pe != 0)))
                              || (*evt)->index.chare == -1)
@@ -617,7 +607,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                         std::cout << "                      Adding" << std::endl;
 
                     e = (*cmsg)->tracemsg->sender;
-                    //std::cout << "Inserting send at " << pe_p2ps->at(bgn->pe)->size() << std::endl;
+
                     pe_p2ps->at(bgn->pe)->append((*cmsg)->tracemsg->sender);
                     (*cmsg)->tracemsg->sender->metrics->addMetric("Idle", 0, 0);
                     (*cmsg)->tracemsg->sender->metrics->addMetric("Idle Blame", 0, 0);
@@ -661,7 +651,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                 (*cmsg)->tracemsg->receiver->metrics->addMetric("Idle Blame", 0, 0);
                 (*cmsg)->tracemsg->receiver->atomic = atomic;
                 (*cmsg)->tracemsg->receiver->matching = bgn->associated_array;
-                //std::cout << "Inserting recv at " << pe_p2ps->at(bgn->pe)->size() << std::endl;
+
                 pe_p2ps->at(bgn->pe)->append((*cmsg)->tracemsg->receiver);
 
                 if (last_evt)
@@ -685,7 +675,6 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
         {
             // Index of the next comm event after this IDLE
             idle_to_next->insert(e, pe_p2ps->at(bgn->pe)->size());
-            //std::cout << "Inserting idle from " << bgn->time << " to " << e->exit << " pointing to " << pe_p2ps->at(bgn->pe)->size() << std::endl;
         }
         else
         {
@@ -761,8 +750,6 @@ void CharmImporter::chargeIdleness()
                 break;
             }
             comm_evt = pe_p2ps->at(idle_evt->pe)->at(idle_pos);
-            //comm_evt->metrics->setMetric("Idle", idle_evt->exit - idle_evt->enter, 0);
-            //break;
             if (comm_evt->is_recv) // only makes sense for recvs
             {
                 // Basically if there's required send doesn't take place
@@ -794,10 +781,6 @@ void CharmImporter::chargeIdleness()
                         // Let the recv collect that as well in a different metric
                         //comm_evt->metrics->setMetric("Idle", idle_diff, 0);
                         comm_evt->metrics->setMetric("Idle", idle_evt->exit - idle_evt->enter, 0);
-
-                        //idle_diff += sender->getMetric("Idle Blame");
-                        //sender->metrics->setMetric("Idle Blame", idle_diff, 0);
-
                     }
                     else
                     {
@@ -1030,16 +1013,6 @@ void CharmImporter::buildPartitions()
             }
             prev = *p2p;
 
-            // The ordering of
-            /*if (!(*p2p)->is_recv && (*p2p)->comm_prev == NULL)
-            {
-                (*p2p)->true_prev = true_prev;
-                if (true_prev)
-                {
-                    true_prev->true_next = *p2p;
-                }
-                true_prev = *p2p;
-            }*/
             (*p2p)->true_prev = true_prev;
             if (true_prev)
             {
@@ -1144,8 +1117,6 @@ int CharmImporter::makeTasks()
                  index != indices_list.end(); ++index)
             {
                 Task * task = new Task(taskid,
-                                       //chares->value(array.value()->chare)->name
-                                       //+ "_" +
                                        (*index).toString(),
                                        primaries->value(array.key()));
                 primaries->value(array.key())->tasks->append(task);
@@ -1173,7 +1144,6 @@ int CharmImporter::makeTasks()
                 {
                     Task * task = new Task(taskid,
                                            (*index).toString(),
-                                           //chare.value()->name + "_" + (*index).toString(),
                                            primaries->value(chare.key()));
                     primaries->value(chare.key())->tasks->append(task);
                     chare_to_task->insert(*index, taskid);
@@ -1184,29 +1154,6 @@ int CharmImporter::makeTasks()
             }
         }
     }
-
-    /*
-    // Add group chares
-    QList<int> group_chares = application_group_chares.keys();
-    for (QList<int>::Iterator group = group_chares.begin();
-         group != group_chares.end(); ++group)
-    {
-        primaries->insert(*group,
-                          new PrimaryTaskGroup(*group,
-                                               chares->value(*group)->name));
-        application_group_chares[*group] = taskid;
-
-        for (int i = 0; i < processes; i++)
-        {
-            Task * task = new Task(taskid,
-                                   chares->value(*group)->name
-                                        + " " + QString::number(i),
-                                   primaries->value(*group));
-            primaries->value(*group)->tasks->append(task);
-            taskid++;
-        }
-    }
-    */
 
     num_application_tasks = taskid;
     primaries->insert(chares->size(),
@@ -1264,14 +1211,6 @@ void CharmImporter::parseLine(QString line, int my_pe)
             if (rectype == CREATION_MULTICAST)
             {
                 index += numpes;
-                // Let's not do anything with the destination yet.
-                /*
-                for (int j = 0; j < numpes; j++)
-                {
-                    lineList.at(index).toInt();
-                    index++;
-                }
-                */
             }
         }
         if (version >= 7.0 && lineList.size() > index)
@@ -1330,10 +1269,6 @@ void CharmImporter::parseLine(QString line, int my_pe)
 
         charm_events->at(my_pe)->append(evt);
 
-        /*seen_chares.insert(chares->value(entries->value(entry)->chare)->name
-                            + "::" + entries->value(entry)->name);
-
-                            */
         CharmEvt * send_end = new CharmEvt(SEND_FXN, time+1, my_pe,
                                            entries->value(entry)->chare, arrayid,
                                            false);
@@ -1385,7 +1320,6 @@ void CharmImporter::parseLine(QString line, int my_pe)
                     sends->at(my_pe)->insert(event, new QList<CharmMsg *>());
                 }
                 sends->at(my_pe)->value(event)->append(msg);
-                //messages->append(msg); <-- only append from recv side
                 msg->sendtime = time;
                 msg->send_evt = evt;
             }
@@ -1402,7 +1336,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
                     std::cout << std::endl;
             }
         }
-        else // True CREATION_BCAST / CREATION_MULTICAST
+        else // True CREATION_BCAST / CREATION_MULTICAST -- Not yet seen, therefore unhandled
         {
             if (verbose)
             {
@@ -1414,13 +1348,6 @@ void CharmImporter::parseLine(QString line, int my_pe)
                     std::cout << " with index " << last.top()->index.toVerboseString().toStdString().c_str();
                 std::cout << " at " << time << std::endl;
             }
-            /*for (int i = 0; i < numpes; i++)
-            {
-                CharmMsg * msg = new CharmMsg(mtype, msglen, pe, entry, event, my_pe);
-                msg->sendtime = time;
-                sends->append(msg);
-                unmatched_sends->at(pe)->append(msg);
-            }*/
         }
 
         if (time > traceEnd)
@@ -1510,10 +1437,6 @@ void CharmImporter::parseLine(QString line, int my_pe)
                 id.chare = entries->value(entry)->chare;
                 arrays->value(arrayid)->indices->insert(id);
             }
-            /*else if (application_group_chares.contains(chare))
-            {
-                id.chare = entries->value(entry)->chare;
-            }*/
             else
             {
                 if (!groups->contains(entries->value(entry)->chare))

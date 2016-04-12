@@ -84,7 +84,6 @@ Trace::~Trace()
     for (QList<Partition *>::Iterator itr = partitions->begin();
          itr != partitions->end(); ++itr)
     {
-        //(*itr)->deleteEvents(); // This conflicts with the next deletion
         delete *itr;
         *itr = NULL;
     }
@@ -227,9 +226,6 @@ void Trace::preprocessFromSaved()
     }
 
     set_partition_dag();
-    //std::cout << "Setting the dag steps.." << std::endl;
-    //set_dag_steps();
-
 
     emit(startClustering());
     std::cout << "Gnomifying..." << std::endl;
@@ -479,11 +475,9 @@ void Trace::partition()
 
     // Partition - given
     // Form partitions given in some way -- need to write options for this [ later ]
-    // Now handled in converter
     else
     {
-        // std::cout << "Partitioning by phase..." << std::endl;
-        //partitionByPhase();
+        // Most of this was done in otfconverter and thus we only need to setup the dag
         set_partition_dag();
     }
 }
@@ -1151,7 +1145,6 @@ void Trace::mergeForEntryRepair(bool entries)
 
     while (!current_leap->isEmpty())
     {
-        //std::cout << "Starting leap " << leap << " with current_leap at size " << current_leap->size() << std::endl;
         verify_partitions();
         if (debug && entries)
             output_graph("../debug-output/5-tracegraph-repairnames-" + QString::number(leap) + ".dot");
@@ -1373,14 +1366,6 @@ void Trace::mergeForEntryRepair(bool entries)
         partitions->removeOne(*partition);
         delete *partition;
     }
-
-    /*if (debug)
-        for (QList<Partition *>::Iterator part = partitions->begin();
-             part != partitions->end(); ++part)
-        {
-            std::cout << "Partition " << (*part)->debug_name << " remains" << std::endl;
-        }
-    */
 
     // Need to calculate new dag_entries
     dag_entries->clear();
@@ -1711,31 +1696,18 @@ void Trace::forcePartitionDag()
         for (QSet<Partition *>::Iterator part = current_leap->begin();
              part != current_leap->end(); ++part)
         {
-            //if (debug)
-            //    std::cout << "* Examining " << (*part)->debug_name << std::endl;
-
             // We have already dealt with this one and/or moved it forward
             if ((*part)->dag_leap != leap)
                 continue;
 
-            //if (debug)
-            //    std::cout << "  Not skipped" << std::endl;
-
-
             for (QSet<Partition *>::Iterator other = current_leap->begin();
                  other != current_leap->end(); ++other)
             {
-                //if (debug)
-                //    std::cout << "  Versus" << (*other)->debug_name << std::endl;
-
                 // Cases in which we skip this one
                 if (*other == *part)
                     continue;
                 if ((*other)->dag_leap != leap)
                     continue;
-
-                //if (debug)
-                //    std::cout << "     Not skipped" << std::endl;
 
                 QSet<int> overlap_tasks = (*part)->task_overlap(*other);
                 if (!overlap_tasks.isEmpty())
@@ -1866,8 +1838,6 @@ void Trace::forcePartitionDag()
             if (missing.isEmpty())
                 continue;
 
-            //std::cout << (*part)->debug_name << " is missing children" << std::endl;
-
             found_leaps.clear();
             for (QSet<int>::Iterator element = missing.begin();
                  element != missing.end(); ++element)
@@ -1896,11 +1866,6 @@ void Trace::forcePartitionDag()
                         (*part)->children->insert(*spart);
                         (*spart)->parents->insert(*part);
                         found_tasks.unite((*spart)->events->keys().toSet());
-                        //std::cout << " --- Adding child " << (*spart)->debug_name << std::endl;
-                    }
-                    else
-                    {
-                        //std::cout << " ----- No intersect " << (*spart)->debug_name << std::endl;
                     }
                 }
                 missing.subtract(found_tasks);
@@ -1933,18 +1898,11 @@ void Trace::assignSteps()
         if (debug)
             output_graph("../debug-output/9-tracegraph-before.dot");
 
-        /*mergeForEntryRepair();
-
-        //if (debug)
-            output_graph("../debug-output/tracegraph-repair.dot");
-        */
-
         std::cout << "Merging for leaps in charm" << std::endl;
         traceTimer.start();
         mergeForCharmLeaps();
         if (debug)
             output_graph("../debug-output/9X-postcharmleap-preverify.dot");
-        //verify_partitions(); <-- cannot verify until after dag_entries/dag_steps
 
         std::cout << "Forcing DAG" << std::endl;
         std::cout << "Partitions: " << partitions->size() << std::endl;
@@ -1984,10 +1942,8 @@ void Trace::assignSteps()
         for (QList<Partition *>::Iterator part = partitions->begin();
              part != partitions->end(); ++part)
         {
-            //std::cout << "                STARTING PARTITION " << (*part)->debug_name << " of " << partitions->size() << std::endl;
             (*part)->receive_reorder_mpi();
             (*part)->finalizeTaskEventOrder();
-            //std::cout << "                FINISHED PARTITION " << (*part)->debug_name << " of " << partitions->size() << std::endl;
 
         }
     }
@@ -2084,8 +2040,6 @@ void Trace::assignSteps()
     std::cout << "Total Algorith Time: ";
     gu_printTime(totalTime);
     std::cout << std::endl;
-
-    //output_graph("/home/kate/charmgraph.dot");
 
     // Calculate Step metrics
     std::cout << "Calculating lateness..." << std::endl;
@@ -3477,8 +3431,6 @@ void Trace::set_dag_steps()
                 {
                     next_level->insert(*parent);
                     allParentsFlag = false;
-                    //std::cout << "Cannot do partition " << (*partition)->debug_name;
-                    //std::cout << " due to parent " << (*parent)->debug_name << std::endl;
                 }
                 accumulated_leap = std::max(accumulated_leap,
                                             (*parent)->dag_leap + 1);
@@ -3490,8 +3442,6 @@ void Trace::set_dag_steps()
 
             // All parents were handled, so we can set our steps
             (*partition)->dag_leap = accumulated_leap;
-            //if (debug)
-            //    std::cout << "Setting leap to " << accumulated_leap << std::endl;
             if (!dag_step_dict->contains((*partition)->dag_leap))
                 (*dag_step_dict)[(*partition)->dag_leap] = new QSet<Partition *>();
             ((*dag_step_dict)[(*partition)->dag_leap])->insert(*partition);

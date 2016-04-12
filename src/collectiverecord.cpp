@@ -13,9 +13,7 @@ CollectiveRecord::CollectiveRecord(unsigned long long _matching,
       collective(_collective),
       taskgroup(_taskgroup),
       mark(false),
-      events(new QList<CollectiveEvent *>())/*,
-      times(new QMap<int,
-            std::pair<unsigned long long int, unsigned long long int> >())*/
+      events(new QList<CollectiveEvent *>())
 
 {
 }

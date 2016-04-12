@@ -303,7 +303,7 @@ void OverviewVis::processVis()
 
     visProcessed = true;
 
-    /* Pre-VIS does this bye time rather than by step and does not do aggregate
+    /* Pre-VIS does this by time rather than by step and does not do aggregate
     int width = size().width() - 2 * border;
     heights = QVector<float>(width, 0);
     unsigned long long int timespan = maxTime - minTime;

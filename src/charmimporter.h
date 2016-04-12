@@ -27,7 +27,6 @@ public:
     CharmImporter();
     ~CharmImporter();
     void importCharmLog(QString filename, OTFImportOptions *_options);
-    // RawTrace * getRawTrace() { return rawtrace; }
     Trace * getTrace() { return trace; }
 
     class ChareIndex {

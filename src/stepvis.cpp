@@ -1019,8 +1019,6 @@ void StepVis::drawDelayTracking(QPainter * painter, CommEvent * c)
             break;
 
         pencolor = Qt::magenta; // queueing in magenta
-        //if (backward != current->pe_prev) // messages in yellow
-        //    pencolor = Qt::darkGreen;
 
         QPointF p1, p2;
         int y = getY(current);
@@ -1104,7 +1102,6 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
     // Rooted
     if (coll_type == 2 || coll_type == 3)
     {
-        //root = (*(trace->communicators))[(*cr)->communicator]->tasks->at((*cr)->root);
         rooted = true;
         root = cr->root;
         root_offset = ell_w;

@@ -319,10 +319,6 @@ void MainWindow::saveCurrentTrace()
 
     exportThread->start();
     emit(exportTrace(traces[activeTrace], saveFile.path(), saveFile.fileName()));
-    /*
-    OTF2Exporter exporter = OTF2Exporter(traces[activeTrace]);
-    exporter.exportTrace(saveFile.path(), saveFile.fileName());
-    */
 }
 
 void MainWindow::exportFinished()
@@ -457,14 +453,10 @@ void MainWindow::traceFinished(Trace * trace)
         ui->menuTraces->actions().at(activeTrace)->setChecked(false);
     activeTrace = traces.size() - 1;
 
-    std::cout << "1" << std::endl;
     QFileInfo traceInfo = QFileInfo(traces[activeTrace]->fullpath);
-    std::cout << "2" << std::endl;
     QDir traceDir = traceInfo.absoluteDir();
-    std::cout << "3" << std::endl;
     if (!traceDir.cdUp())
     {
-        std::cout << "4" << std::endl;
         traceDir = traceInfo.absoluteDir();
     }
     dataDirectory = traceDir.absolutePath();
