@@ -101,33 +101,6 @@ unsigned long long Event::getVisibleEnd(unsigned long long start)
     return end;
 }
 
-Event * Event::least_common_caller(Event * second)
-{
-    // Search while we still can until they are equal or there
-    // is nothing left we can do
-    Event * first = this;
-    while ((first != second) && (first->caller || second->caller))
-    {
-        if (first->depth > second->depth && first->caller)
-        {
-            first = first->caller;
-        }
-        else if (first->depth < second->depth && second->caller)
-        {
-            second = second->caller;
-        }
-        else if (first->depth == second->depth && first->caller && second->caller)
-        {
-            first = first->caller;
-            second = second->caller;
-        }
-    }
-
-    if (first == second)
-        return first;
-    return NULL;
-}
-
 // Check if this Event and the argument Event share the same subtree:
 // If they're not the same event, then either this event is in the
 // subtree of the second or vice versa.

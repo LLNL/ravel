@@ -31,7 +31,6 @@ public:
 
     Event * findChild(unsigned long long time);
     unsigned long long getVisibleEnd(unsigned long long start);
-    Event * least_common_caller(Event * other);
     bool same_subtree(Event * other);
     Event * least_multiple_caller(QMap<Event *, int> * memo = NULL);
     Event * least_multiple_function_caller(QMap<int, Function *> * functions);

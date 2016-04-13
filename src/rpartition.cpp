@@ -196,28 +196,6 @@ void Partition::calculate_dag_leap()
 
 }
 
-Event * Partition::least_common_caller(int entityid, QMap<Event *, int> * memo)
-{
-    QList<CommEvent *> * evts = events->value(entityid);
-    if (evts->size() > 1)
-    {
-        Event * evt1, * evt2;
-        evt1 = evts->first();
-        for (int i = 1; i < evts->size(); i++)
-        {
-            evt2 = evts->at(i);
-            evt1 = evt1->least_common_caller(evt2);
-            if (!evt1)
-               break;
-        }
-        return evt1;
-    }
-    else
-    {
-        return evts->first()->least_multiple_caller(memo);
-    }
-}
-
 void Partition::set_atomics()
 {
 
@@ -580,7 +558,6 @@ void Partition::receive_reorder_mpi()
 
         // Go through all the events at this stride.
         QList<CommEvent *> * stride_events = stride_map->value(current_stride);
-        std::cout << "Starting event list of " << stride_events->size() << std::endl;
         for (QList<CommEvent *>::Iterator evt = stride_events->begin();
              evt != stride_events->end(); ++evt)
         {
@@ -606,7 +583,7 @@ void Partition::receive_reorder_mpi()
                             if (local_evt->stride >= 0)
                                 stride_map->value(local_evt->stride)->removeOne(local_evt);
                             else if (local_evt->stride == current_stride)
-                                std::cout << "This is a problem..." << std::endl;
+                                std::cout << "Error: Incorrect stride" << std::endl;
 
                             local_evt->stride = (*evt)->stride + my_stride;
                             local_evt->last_stride = *evt;
@@ -648,7 +625,6 @@ void Partition::receive_reorder_mpi()
         current_stride++;
     } // End stride increasing
 
-    std::cout << "Sorting..." << std::endl;
     // Now that we have strides, sort them by stride
     for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
@@ -657,7 +633,6 @@ void Partition::receive_reorder_mpi()
               CommEvent::eventStrideLessThanMPI);
     }
 
-    std::cout << "Deleting..." << std::endl;
     // Finally clean up stride_map
     for (QMap<int, QList<CommEvent *> *>::Iterator lst = stride_map->begin();
          lst != stride_map->end(); ++lst)
@@ -1005,7 +980,6 @@ void Partition::step()
     // We set up by looking for children only and having the parents set
     // the children links
 
-    //std::cout << "   Init strides" << std::endl;
     QList<CommEvent *> * stride_events = new QList<CommEvent *>();
     QList<CommEvent *> * recv_events = new QList<CommEvent *>();
     for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();

@@ -41,9 +41,6 @@ public:
     // Time gap between partitions
     unsigned long long int distance(Partition * other);
 
-    // For common caller merge
-    Event * least_common_caller(int entityid, QMap<Event *, int> * memo = NULL);
-
     // For leap merge - which children can we merge to
     void calculate_dag_leap();
     QString generate_process_string(); // For debugging
