@@ -29,6 +29,11 @@ public:
     void importCharmLog(QString filename, OTFImportOptions *_options);
     Trace * getTrace() { return trace; }
 
+    // A specific chare is indexed in the chare array it belongs to.
+    // We keep track of the array by the chare type and the array id.
+    // Indices reported in Charm++ logs are composed of four ints.
+    // Very often three of these will be related to a 3D domain decomposition,
+    // but they could potentially be used for more complex structures.
     class ChareIndex {
     public:
         ChareIndex(int c, int i0, int i1, int i2, int i3, int a = 0)
@@ -40,9 +45,9 @@ public:
             index[3] = i3;
         }
 
-        int index[4];
-        int chare;
-        int array;
+        int index[4]; // four int indx
+        int chare; // chare type
+        int array; // disambiguate arrays
 
         ChareIndex& operator=(const ChareIndex & other)
         {
@@ -212,6 +217,7 @@ private:
 
     void cleanUp();
 
+    // Struct for a specific entry type
     class Entry {
     public:
         Entry(int _chare, QString _name, int _msg)
@@ -222,6 +228,7 @@ private:
         int msgid;
     };
 
+    // Struct for a specific chare type
     class Chare {
     public:
         Chare(QString _name)
@@ -232,6 +239,7 @@ private:
         QSet<ChareIndex> * indices;
     };
 
+    // Struct for a specific chare array
     class ChareArray {
     public:
         ChareArray(int _id, int _chare)
@@ -243,6 +251,7 @@ private:
         QSet<ChareIndex> * indices;
     };
 
+    // Struct for a specific group chare (one chare per PE for a set of PEs)
     class ChareGroup {
     public:
         ChareGroup(int _chare)
@@ -255,6 +264,7 @@ private:
         QSet<int> pes;
     };
 
+    // Struct for a charm message
     class CharmMsg {
     public:
         CharmMsg(int _mtype, long _mlen, int _pe, int _entry, int _event, int _mype)
@@ -281,6 +291,7 @@ private:
     };
 
 
+    // A single event in a charm log
     class CharmEvt {
     public:
         CharmEvt(int _entry, unsigned long long _time, int _pe, int _chare,
@@ -300,8 +311,8 @@ private:
             delete children;
         }
 
-        // If the time is the same, use the entry... send/recv are very high
-        // and thus will sort afterwards.
+        // If the time is the same, use the entry... send/recv have high IDs
+        // and thus will sort last in this scheme
         bool operator<(const CharmEvt & event)
         {
             if (time == event.time)
@@ -404,6 +415,12 @@ private:
     QSet<int> application_chares;
     QMap<int, int> application_group_chares;
 
+    // We create these explicit send, recv, and idle values to abstract
+    // the events of the Charm++ log into the send-recv we use for logical
+    // structure and the explicit idle we use for messages. The values
+    // are set high so as not to conflict with later additions ot
+    // Projections logs and so when sorting events, these will come after
+    // any parent events.
     static const int IDLE_FXN = 999997;
     static const int SEND_FXN = 999998;
     static const int RECV_FXN = 999999;
