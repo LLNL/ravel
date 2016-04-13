@@ -124,6 +124,7 @@ void ImportOptionsDialog::onAdvancedStep(bool advanced)
 void ImportOptionsDialog::onRecvReorder(bool reorder)
 {
     options->reorderReceives = reorder;
+    setUIState();
 }
 
 void ImportOptionsDialog::onFunctionEdit(const QString& text)
@@ -188,6 +189,10 @@ void ImportOptionsDialog::setUIState()
         ui->seedEdit->setText("");
     }
     ui->seedEdit->setEnabled(options->cluster);
+
+
+    ui->recvReorderCheckbox->setEnabled(!options->cluster);
+    ui->clusterCheckbox->setEnabled(!options->reorderReceives);
 
     // Enable or Disable heuristic v. given partition
     if (options->partitionByFunction)
