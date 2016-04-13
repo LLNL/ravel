@@ -242,14 +242,6 @@ void Partition::semantic_children()
                 Partition * p = (*evt)->comm_next->partition;
                 children->insert(p);
                 p->parents->insert(this);
-                if (debug)
-                {
-                    std::cout << " --- link comm_next/comm_prev: " << debug_name << " -> " << (*evt)->comm_next->partition->debug_name << " : ";
-                    std::cout << debug_functions->value((*evt)->caller->function)->name.toStdString().c_str();
-                    std::cout << " to ";
-                    std::cout << debug_functions->value((*evt)->comm_next->caller->function)->name.toStdString().c_str();
-                    std::cout << " on " << (*evt)->entity << std::endl;
-                }
             }
 
             // atomic - check if true_next is an atomic difference
@@ -261,14 +253,6 @@ void Partition::semantic_children()
                     Partition * p = (*evt)->true_next->partition;
                     children->insert(p);
                     p->parents->insert(this);
-                    if (debug)
-                    {
-                        std::cout << " --- link atomic difference: " << debug_name << " -> " << (*evt)->true_next->partition->debug_name << " : ";
-                        std::cout << debug_functions->value((*evt)->caller->function)->name.toStdString().c_str();
-                        std::cout << " to ";
-                        std::cout << debug_functions->value((*evt)->true_next->caller->function)->name.toStdString().c_str();
-                        std::cout << " on " << (*evt)->entity << std::endl;
-                    }
                 }
             }
         }
@@ -305,14 +289,6 @@ void Partition::true_children()
                             Partition * p = tmp->partition;
                             children->insert(p);
                             p->parents->insert(this);
-                            if (debug)
-                            {
-                                std::cout << " --- link true difference: " << debug_name << " -> " << tmp->partition->debug_name << " : ";
-                                std::cout << debug_functions->value((*evt)->caller->function)->name.toStdString().c_str();
-                                std::cout << " to ";
-                                std::cout << debug_functions->value(tmp->caller->function)->name.toStdString().c_str();
-                                std::cout << " on " << (*evt)->entity << std::endl;
-                            }
                         }
                         break;
                     }
@@ -328,14 +304,6 @@ void Partition::true_children()
                 Partition * p = (*evt)->true_next->partition;
                 children->insert(p);
                 p->parents->insert(this);
-                if (debug)
-                {
-                    std::cout << " --- link true recv difference: " << debug_name << " -> " << (*evt)->true_next->partition->debug_name << " : ";
-                    std::cout << debug_functions->value((*evt)->caller->function)->name.toStdString().c_str();
-                    std::cout << " to ";
-                    std::cout << debug_functions->value((*evt)->true_next->caller->function)->name.toStdString().c_str();
-                    std::cout << " on " << (*evt)->entity << std::endl;
-                }
             }
         }
     }
@@ -1240,6 +1208,8 @@ int Partition::set_stride_dag(QList<CommEvent *> * stride_events)
     return max_stride;
 }
 
+// Calculate both imbalance-based metrics
+// These measure the difference in time taken on the PEs for the partition
 void Partition::calculate_imbalance(int num_pes)
 {
     QList<unsigned long long> durations = QList<unsigned long long>();
@@ -1338,6 +1308,7 @@ void Partition::makeClusterVectors(QString metric)
     }
 }
 
+// String giving process IDs involved in this partition
 QString Partition::generate_process_string()
 {
     QString ps = "";

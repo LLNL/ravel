@@ -12,7 +12,6 @@ P2PEvent::P2PEvent(unsigned long long _enter, unsigned long long _exit,
     : CommEvent(_enter, _exit, _function, _entity, _pe, _phase),
       subevents(NULL),
       messages(_messages),
-      //add_order(-1),
       is_recv(false)
 {
 }

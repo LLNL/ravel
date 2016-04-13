@@ -58,7 +58,6 @@ public:
     // Messages involved wiht this event
     QVector<Message *> * messages;
 
-    //int add_order;
     bool is_recv;
 
 private:

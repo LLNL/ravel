@@ -120,7 +120,6 @@ public:
         return evt1->stride < evt2->stride;
     }
 
-
     bool hasMetric(QString name);
     double getMetric(QString name, bool aggregate = false);
 
@@ -158,7 +157,7 @@ public:
 
     virtual QSet<Partition *> * mergeForMessagesHelper()=0;
 
-    //Partition * partition; debugging
+    Partition * partition;
     CommEvent * comm_next;
     CommEvent * comm_prev;
     CommEvent * true_next;
@@ -167,14 +166,14 @@ public:
     CommEvent * pe_prev;
 
     // For sorting when overlaps
-    //int add_order;
+    int add_order;
 
     // For duration and other issues
     unsigned long long extent_begin;
     unsigned long long extent_end;
 
     // Charm atomic
-    //int atomic; debugging
+    int atomic;
     long matching;
 
     // Used in stepping procedure

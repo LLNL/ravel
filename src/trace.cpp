@@ -454,8 +454,6 @@ void Trace::set_global_steps()
 
     while (!current_leap->isEmpty())
     {
-        if (debug)
-            std::cout << " ...next leap" << std::endl;
         QSet<Partition *> * next_leap = new QSet<Partition *>();
         for (QSet<Partition *>::Iterator part = current_leap->begin();
              part != current_leap->end(); ++part)
@@ -491,11 +489,6 @@ void Trace::set_global_steps()
                                        + accumulated_step;
             (*part)->min_global_step = accumulated_step;
             (*part)->mark = false; // Using this to debug again
-            if (debug)
-            {
-                std::cout << "Global stepping partition " << (*part)->debug_name << " with ";
-                std::cout << (*part)->min_global_step << " to " << (*part)->max_global_step << std::endl;
-            }
 
             // Set steps for partition events
             for (QMap<int, QList<CommEvent *> *>::Iterator event_list
@@ -535,17 +528,12 @@ void Trace::set_global_steps()
 void Trace::calculate_differential_lateness(QString metric_name,
                                             QString base_name)
 {
-    if (debug)
-        std::cout << "Calculating " << metric_name.toStdString().c_str() << "..." << std::endl;
     metrics->append(metric_name);
     (*metric_units)[metric_name] = metric_units->value(base_name);
 
     for (QList<Partition *>::Iterator part = partitions->begin();
          part != partitions->end(); ++part)
     {
-        if (debug)
-            std::cout << "...at partition " << (*part)->debug_name << std::endl;
-
         for (QMap<int, QList<CommEvent *> *>::Iterator event_list
              = (*part)->events->begin();
              event_list != (*part)->events->end(); ++event_list)
@@ -579,9 +567,6 @@ void Trace::calculate_partition_metrics()
 // Calculates duration difference per partition rather than global step
 void Trace::calculate_partition_duration()
 {
-    if (debug)
-        std::cout << "Calculating duration difference..." << std::endl;
-
     QString p_duration = "Duration";
     metrics->append(p_duration);
     (*metric_units)[p_duration] = RavelUtils::getUnits(units);
@@ -595,15 +580,6 @@ void Trace::calculate_partition_duration()
     for (QList<Partition *>::Iterator part = partitions->begin();
          part != partitions->end(); ++part)
     {
-        if (debug)
-        {
-            std::cout << "...at partition " << (*part)->debug_name;
-            std::cout << " with min step " << (*part)->min_global_step;
-            std::cout << " and max step: " << (*part)->max_global_step << std::endl;
-            (*part)->output_graph("../debug-output/Partition-duration-"
-                                   + QString::number((*part)->debug_name)
-                                   + "-gstep.dot", this);
-        }
         count++;
         for (int i = (*part)->min_global_step;
              i <= (*part)->max_global_step; i += per_step)
@@ -701,9 +677,6 @@ void Trace::calculate_partition_duration()
 // Calculates lateness per partition rather than global step
 void Trace::calculate_partition_lateness()
 {
-    if (debug)
-        std::cout << "Calculating partition lateness..." << std::endl;
-
     QList<QString> counterlist = QList<QString>();
 
     if (options.origin != OTFImportOptions::OF_CHARM)
@@ -736,23 +709,10 @@ void Trace::calculate_partition_lateness()
     for (QList<Partition *>::Iterator part = partitions->begin();
          part != partitions->end(); ++part)
     {
-        if (debug)
-        {
-            std::cout << "...at partition " << (*part)->debug_name;
-            std::cout << " with min step " << (*part)->min_global_step;
-            std::cout << " and max step: " << (*part)->max_global_step << std::endl;
-            (*part)->output_graph("../debug-output/Partition-"
-                                   + QString::number((*part)->debug_name)
-                                   + "-gstep.dot", this);
-        }
         count++;
         for (int i = (*part)->min_global_step;
              i <= (*part)->max_global_step; i += per_step)
         {
-            if (debug)
-            {
-                std::cout << "        on step " << i << std::endl;
-            }
             QList<CommEvent *> * i_list = new QList<CommEvent *>();
 
             for (QMap<int, QList<CommEvent *> *>::Iterator event_list
@@ -862,8 +822,6 @@ void Trace::calculate_partition_lateness()
 // Calculates lateness per global step
 void Trace::calculate_lateness()
 {
-    if (debug)
-        std::cout << "Calculting global lateness..." << std::endl;
     metrics->append("G. Lateness");
     (*metric_units)["G. Lateness"] = RavelUtils::getUnits(units);
     metrics->append("Colorless");
@@ -902,8 +860,6 @@ void Trace::calculate_lateness()
         }
         ++currentIter;
 
-        if (debug)
-            std::cout << "...at step " << i << std::endl;
         QList<CommEvent *> * i_list = new QList<CommEvent *>();
         for (QSet<Partition *>::Iterator part = active_partitions->begin();
              part != active_partitions->end(); ++part)
@@ -1074,9 +1030,6 @@ void Trace::mergeForEntryRepair(bool entries)
         for (QSet<Partition *>::Iterator partition = current_leap->begin();
              partition != current_leap->end(); ++partition)
         {
-            if (debug)
-                std::cout << (*partition)->get_callers(functions).toStdString().c_str() << std::endl;
-
             // If we have a broken entry, that means we must have switched
             // between runtime and app. That means we can definitely merge
             // all children because they should be all runtime or all app.
@@ -1817,21 +1770,8 @@ void Trace::assignSteps()
                                       "Assigning steps..."));
             }
             ++currentIter;
-            if (debug)
-            {
-                (*partition)->debug_name = currentIter;
-                std::cout << "Stepping partition " << currentIter << " of " << partitions->size() << std::endl;
-                (*partition)->output_graph("../debug-output/Partition-"
-                                          + QString::number(currentIter)
-                                           + "-adv.dot", this);
-            }
+            (*partition)->debug_name = currentIter;
             (*partition)->step();
-            if (debug)
-            {
-                (*partition)->output_graph("../debug-output/Partition-"
-                                           + QString::number(currentIter)
-                                           + "-adv-step.dot", this);
-            }
         }
     } else {
         for (QList<Partition *>::Iterator partition = partitions->begin();
@@ -1844,21 +1784,8 @@ void Trace::assignSteps()
                                       "Assigning steps..."));
             }
             ++currentIter;
-            if (debug)
-            {
-                (*partition)->debug_name = currentIter;
-                std::cout << "Stepping partition " << currentIter << " of " << partitions->size() << std::endl;
-                (*partition)->output_graph("../debug-output/Partition-"
-                                           + QString::number(currentIter)
-                                           + "-basic.dot", this);
-            }
+            (*partition)->debug_name = currentIter;
             (*partition)->basic_step();
-            if (debug)
-            {
-                (*partition)->output_graph("../debug-output/Partition-"
-                                           + QString::number(currentIter)
-                                           + "-basic-step.dot", this);
-            }
         }
     }
     traceElapsed = traceTimer.nsecsElapsed();

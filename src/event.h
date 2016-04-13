@@ -6,8 +6,6 @@
 #include <QString>
 #include <otf2/otf2.h>
 
-
-class Partition;
 class Function;
 class QPainter;
 class CommDrawInterface;
@@ -30,9 +28,6 @@ public:
     {
         return evt1->entity < evt2->entity;
     }
-
-    virtual bool hasMetric(QString name);
-    virtual double getMetric(QString name, bool aggregate = false);
 
     Event * findChild(unsigned long long time);
     unsigned long long getVisibleEnd(unsigned long long start);
@@ -61,12 +56,7 @@ public:
     int pe;
     int depth;
 
-    int add_order;
-
     Metrics * metrics; // Lateness or Counters etc
-
-    Partition * partition; // for debugging
-    int atomic; // for debugging
 };
 
 #endif // EVENT_H

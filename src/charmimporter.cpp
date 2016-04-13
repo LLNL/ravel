@@ -391,28 +391,15 @@ void CharmImporter::makeEntityEvents()
         {
             if ((*evt)->enter)
             {
-                if (verbose)
-                {
-                    std::cout << "    Push stack " << " on pe " << (*evt)->pe << " my array " << (*evt)->arrayid;
-                    std::cout << " for " << chares->value(entries->value((*evt)->entry)->chare)->name.toStdString().c_str();
-                    std::cout << "::" << entries->value((*evt)->entry)->name.toStdString().c_str();
-                    std::cout << " with index " << (*evt)->index.toVerboseString().toStdString().c_str();
-                    std::cout << " at " << (*evt)->time << std::endl;
-                }
-
                 // Enter is the only place with the true array id so we must
                 // get the entity id here.
                 if (have_arrays)
-                {
-                    if (verbose)
-                        std::cout << "            ArrayID " << (*evt)->arrayid << " and chare " << (*evt)->index.chare << std::endl;
+                {      
                     if (((*evt)->arrayid == 0 && (!application_chares.contains((*evt)->index.chare)
                                                  || ((*evt)->index.chare == main && (*evt)->pe != 0)))
                              || (*evt)->index.chare == -1)
                     {
                         (*evt)->entity = -1;
-                        if (verbose)
-                            std::cout << "            setting to -1" << std::endl;
                     }
                     else if (!stack->isEmpty()
                              && (*evt)->index.chare == main
@@ -423,20 +410,14 @@ void CharmImporter::makeEntityEvents()
                         // a send records its send destination chare rather than its called
                         // chare.
                         (*evt)->entity = num_application_entities + (*evt)->pe;
-                        if (verbose)
-                            std::cout << "            setting to runtime" << std::endl;
                     }
                     else // Should get main if nothing else works
                     {
                         (*evt)->entity = chare_to_entity->value((*evt)->index);
-                        if (verbose)
-                            std::cout << "            setting from chare_to_entity" << std::endl;
                     }
                 }
                 else
                 {
-                    if (verbose)
-                        std::cout << "            setting from no arrays" << std::endl;
                     if (chares->value((*evt)->index.chare)->indices->size() <= 1
                         && !application_chares.contains((*evt)->index.chare))
                         (*evt)->entity = -1;
@@ -447,12 +428,7 @@ void CharmImporter::makeEntityEvents()
                 if ((*evt)->entity == -1) // runtime chare
                 {
                     (*evt)->entity = num_application_entities + (*evt)->pe;
-                    if (verbose)
-                        std::cout << "            setting to runtime from -1" << std::endl;
                 }
-                if (verbose)
-                    std::cout << "            Setting Entity to " << (*evt)->entity << std::endl;
-
 
                 if (atomics->contains((*evt)->entry))
                 {
@@ -547,16 +523,6 @@ int CharmImporter::makeEntityEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bg
 {
     Event * e = NULL;
 
-    if (verbose)
-    {
-        std::cout << "    Pop stack " << " on pe " << bgn->pe << " my array " << bgn->arrayid;
-        std::cout << " for " << chares->value(entries->value(bgn->entry)->chare)->name.toStdString().c_str();
-        std::cout << "::" << entries->value(bgn->entry)->name.toStdString().c_str();
-        std::cout << " with index " << bgn->index.toVerboseString().toStdString().c_str();
-        std::cout << " indicating entity " << bgn->entity;
-        std::cout << " at " << endtime << std::endl;
-    }
-
     if (trace->functions->value(bgn->entry)->group == 0) // Send or Recv
     {
         // We need to go and wire up all the mesages appropriately
@@ -604,8 +570,6 @@ int CharmImporter::makeEntityEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bg
                     add_order++;
                     (*cmsg)->send_evt->trace_evt = (*cmsg)->tracemsg->sender;
                     charm_p2ps->at(bgn->entity)->append((*cmsg)->tracemsg->sender);
-                    if (verbose)
-                        std::cout << "                      Adding" << std::endl;
 
                     e = (*cmsg)->tracemsg->sender;
 
@@ -644,8 +608,6 @@ int CharmImporter::makeEntityEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bg
                 (*cmsg)->tracemsg->receiver->add_order = add_order;
                 add_order++;
                 charm_p2ps->at(bgn->entity)->append((*cmsg)->tracemsg->receiver);
-                if (verbose)
-                    std::cout << "                      Adding" << std::endl;
 
                 e = (*cmsg)->tracemsg->receiver;
                 (*cmsg)->tracemsg->receiver->metrics->addMetric("Idle", 0, 0);
@@ -696,12 +658,9 @@ int CharmImporter::makeEntityEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bg
 
     depth--;
     e->depth = depth;
-    e->atomic = atomic; // debugging
     if (depth == 0)
     {
         (*(trace->roots))[bgn->pe]->append(e);
-        if (verbose)
-            std::cout << "                    Adding as root event between " << e->enter << " and " << e->exit << std::endl;
     }
 
     if (e->exit > endtime)
@@ -825,12 +784,6 @@ void CharmImporter::buildPartitions()
                 && p2p->caller == prev->caller)
             {
                 toswap.append(i-2);
-                if (verbose)
-                {
-                    std::cout << "Swapping list " << count;
-                    std::cout << " for " << trace->functions->value(true_prev->caller->function)->name.toStdString().c_str();
-                    std::cout << " at " << p2p->enter << std::endl;
-                }
             }
             prev = true_prev;
             true_prev = p2p;
@@ -846,12 +799,6 @@ void CharmImporter::buildPartitions()
         prev = NULL;
         true_prev = NULL;
 
-        if (verbose)
-        {
-            std::cout << "PARTITIONING ON " << count << std::endl;
-            count++;
-        }
-
         // Now break these timelines into partitions -- week accumulate along the
         // timeline into a partition until one of the four stopping mechanisms
         // below is seen.
@@ -863,22 +810,9 @@ void CharmImporter::buildPartitions()
             // 2) We are changing from app->runtime or runtime->app
             // 3) This is one of the breakable functions
             // 4) We are starting a a multicast? (probably a sign?)
-
-            if (verbose)
-            {
-                std::cout << "NEXT EVENT I am " << functions->value((*p2p)->caller->function)->name.toStdString().c_str();
-                std::cout << " we have prev: " << prev << " and entityid " << entityid << std::endl;
-            }
             if (!events->isEmpty())
             {
                 // 1)
-                if (verbose)
-                {
-                    std::cout << " --- Checking ";
-                    std::cout << " between " << functions->value(prev->caller->function)->name.toStdString().c_str();
-                    std::cout << " and " << functions->value((*p2p)->caller->function)->name.toStdString().c_str() << std::endl;
-                    std::cout << " ----- matching terms: " << prev->matching << " , " << (*p2p)->matching << std::endl;
-                }
                 if ((*p2p)->caller == NULL
                     || ((prev && (*p2p)->caller != prev->caller)
                         // If they are from addContribution and recvMsg of the same chare
@@ -892,14 +826,6 @@ void CharmImporter::buildPartitions()
                        )
                     )//|| trace->functions->value((*p2p)->caller->function)->isMain) // 1)
                 {
-                    if (verbose)
-                    {
-                        std::cout << " --- Making a partition due to caller split";
-                        std::cout << " between " << functions->value(prev->caller->function)->name.toStdString().c_str();
-                        std::cout << " and " << functions->value((*p2p)->caller->function)->name.toStdString().c_str() << std::endl;
-                        std::cout << " ----- atomics: " << prev->atomic << " , " << (*p2p)->atomic << std::endl;
-                        std::cout << " ----- matching terms: " << prev->matching << " , " << (*p2p)->matching << std::endl;
-                    }
                     makePartition(events);
                     events->clear();
                 }
@@ -911,8 +837,6 @@ void CharmImporter::buildPartitions()
                     bool prev_app = true, my_app = true;
                     if (prev->is_recv)
                     {
-                        if (verbose)
-                            std::cout << " * Prev sender entity is " << prev->messages->first()->sender->entity << std::endl;
                         if (prev->messages->first()->sender->entity >= num_application_entities)
                         {
                             prev_app = false;
@@ -920,8 +844,6 @@ void CharmImporter::buildPartitions()
                     }
                     else
                     {
-                        if (verbose)
-                            std::cout << " * Prev receiver entity is " << prev->messages->first()->receiver->entity << std::endl;
                         if (prev->messages->first()->receiver->entity >= num_application_entities)
                         {
                             prev_app = false;
@@ -931,8 +853,6 @@ void CharmImporter::buildPartitions()
                     // Check if we are application only
                     if ((*p2p)->is_recv)
                     {
-                        if (verbose)
-                            std::cout << " * My sender entity is " << (*p2p)->messages->first()->sender->entity << std::endl;
                         if ((*p2p)->messages->first()->sender->entity >= num_application_entities)
                         {
                             my_app = false;
@@ -940,48 +860,18 @@ void CharmImporter::buildPartitions()
                     }
                     else
                     {
-                        if (verbose)
-                            std::cout << " * My receiver entity is " << (*p2p)->messages->first()->receiver->entity << std::endl;
                         if ((*p2p)->messages->first()->receiver->entity >= num_application_entities)
                         {
                             my_app = false;
                         }
                     }
 
-                    if (verbose)
-                    {
-                        std::cout << " --- We are " << trace->functions->value(prev->caller->function)->shortname.toStdString().c_str() << std::endl;
-                        std::cout << " --- my_app is " << my_app << " and theirs is " << prev_app << std::endl;
-                        std::cout << " ----- atomics: " << prev->atomic << " , " << (*p2p)->atomic << std::endl;
-
-                    }
                     // These should be the same or split.
                     if (my_app != prev_app)
                     {
-                        if (verbose)
-                        {
-                            std::cout << " --- Making a partition due to runtime split in function ";
-                            std::cout << functions->value(prev->caller->function)->name.toStdString().c_str();
-                            std::cout << " with prev app " << prev_app << " and my app " << my_app << std::endl;
-
-                        }
                         makePartition(events);
                         events->clear();
                     }
-                    else
-                    {
-                        if (verbose)
-                        {
-                            std::cout << " --- No runtime split in function ";
-                            std::cout << functions->value(prev->caller->function)->name.toStdString().c_str();
-                            std::cout << " with prev app " << prev_app << " and my app " << my_app << std::endl;
-
-                        }
-                    }
-                }
-                else if (verbose)
-                {
-                    std::cout << " --- Split conditions not met" << std::endl;
                 }
 
                 // 3)
@@ -993,18 +883,12 @@ void CharmImporter::buildPartitions()
                     {
                         if (caller.startsWith(*fxn, Qt::CaseInsensitive))
                         {
-                            if (verbose)
-                                std::cout << " --- Making a partition due to given split" << std::endl;
                             makePartition(events);
                             events->clear();
                             break;
                         }
                     }
                 }
-            }
-            else if (verbose)
-            {
-                std::cout << " --- Nothing to split" << std::endl;
             }
 
             // comm_next / comm_prev only set within the same caller
@@ -1073,20 +957,11 @@ void CharmImporter::makePartition(QList<P2PEvent *> * events)
             }
         }
     }
-    if (verbose)
-    {
-        std::cout << "Making " << events->size() << " event partition of entity "
-            << events->first()->entity << " of " << (num_application_entities + processes);
-    }
+
     if (events->first()->entity >= num_application_entities)
     {
-        if (verbose)
-            std::cout << " RUNTIME" << std::endl;
         p->runtime = true;
     }
-    if (verbose)
-        std::cout << std::endl;
-
     p->new_partition = p;
     trace->partitions->append(p);
 }
@@ -1341,31 +1216,16 @@ void CharmImporter::parseLine(QString line, int my_pe)
                 msg->sendtime = time;
                 msg->send_evt = evt;
             }
-
-            if (verbose)
-            {
-                std::cout << "CREATE!" << " on pe " << my_pe << " to " << pe << " at " << time;
-                std::cout << " with event " << event << " my array " << arrayid << " (" << original_array << ") and send_end index array " << send_end->index.array;
-                std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
-                std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
-                if (!last.isEmpty())
-                    std::cout << " with index " << last.top()->index.toVerboseString().toStdString().c_str() << std::endl;
-                else
-                    std::cout << std::endl;
-            }
         }
-        else // True CREATION_BCAST / CREATION_MULTICAST -- Not yet seen, therefore unhandled
+        else if (verbose) // True CREATION_BCAST / CREATION_MULTICAST -- Not yet seen, therefore unhandled
         {
-            if (verbose)
-            {
-                std::cout << "BCAST/MULTICAST!" << " on pe " << pe;
-                std::cout << " with event " << event;
-                std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
-                std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
-                if (!last.isEmpty())
-                    std::cout << " with index " << last.top()->index.toVerboseString().toStdString().c_str();
-                std::cout << " at " << time << std::endl;
-            }
+            std::cout << "BCAST/MULTICAST!" << " on pe " << pe;
+            std::cout << " with event " << event;
+            std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
+            std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
+            if (!last.isEmpty())
+                std::cout << " with index " << last.top()->index.toVerboseString().toStdString().c_str();
+            std::cout << " at " << time << std::endl;
         }
 
         if (time > traceEnd)
@@ -1493,15 +1353,6 @@ void CharmImporter::parseLine(QString line, int my_pe)
 
         charm_stack->push(evt);
 
-        if (verbose)
-        {
-            std::cout << "BEGIN!" << " on pe " << my_pe << " at " << time;
-            std::cout << " with event " << event << " my array " << arrayid <<" (" << original_array << ")";
-            std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
-            std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
-            std::cout << " with index " << id.toVerboseString().toStdString().c_str() << std::endl;
-        }
-
         CharmMsg * msg = NULL;
         if (pe > my_pe) // We get send later
         {
@@ -1560,26 +1411,14 @@ void CharmImporter::parseLine(QString line, int my_pe)
             msg->recvtime = time;
             msg->recv_evt = evt;
             evt->charmmsgs->append(msg);
-
-            if (verbose)
-            {
-                std::cout << "RECV!" << " on pe " << my_pe << " from " << pe;
-                std::cout << " with event " << event << " my array " << arrayid;
-                std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
-                std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
-                std::cout << " with index " << id.toVerboseString().toStdString().c_str() << std::endl;
-            }
         }
-        else
+        else if (verbose)
         {
-            if (verbose)
-            {
-                std::cout << "NO MSG FOR RECV!!!" << " on pe " << my_pe << " was expecting message from ";
-                std::cout << pe << " with event " << event;
-                std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
-                std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
-                std::cout << " with index " << id.toVerboseString().toStdString().c_str() << std::endl;
-            }
+            std::cout << "NO MSG FOR RECV!!!" << " on pe " << my_pe << " was expecting message from ";
+            std::cout << pe << " with event " << event;
+            std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
+            std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
+            std::cout << " with index " << id.toVerboseString().toStdString().c_str() << std::endl;
         }
 
         if (time > traceEnd)
@@ -1633,15 +1472,6 @@ void CharmImporter::parseLine(QString line, int my_pe)
         evt->index.chare = entries->value(entry)->chare;
         charm_events->at(my_pe)->append(evt);
 
-        if (verbose)
-        {
-            std::cout << "END!" << " on pe " << my_pe;
-            std::cout << " with event " << event << " my array " << arrayid;
-            std::cout << " for " << chares->value(entries->value(entry)->chare)->name.toStdString().c_str();
-            std::cout << "::" << entries->value(entry)->name.toStdString().c_str();
-            std::cout << " with index " << evt->index.toVerboseString().toStdString().c_str() << std::endl;
-        }
-
         if (!last.isEmpty())
             last.pop();
         if (!charm_stack->isEmpty())
@@ -1661,12 +1491,6 @@ void CharmImporter::parseLine(QString line, int my_pe)
 
         charm_events->at(pe)->append(evt);
 
-        if (verbose)
-        {
-            std::cout << "BEGIN IDLE" << " on pe " << my_pe << " at "
-                << time << std::endl;
-        }
-
         if (!last.isEmpty())
             last.pop();
 
@@ -1683,12 +1507,6 @@ void CharmImporter::parseLine(QString line, int my_pe)
                                       0, 0, false);
 
         charm_events->at(pe)->append(evt);
-
-        if (verbose)
-        {
-            std::cout << "END IDLE" << " on pe " << my_pe << " at "
-                << time << std::endl;
-        }
 
         if (!last.isEmpty())
             last.pop();
