@@ -20,12 +20,10 @@ SOURCES  += main.cpp \
     otfconverter.cpp \
     function.cpp \
     importoptionsdialog.cpp \
-    otfimportoptions.cpp \
     timelinevis.cpp \
     traditionalvis.cpp \
     visoptionsdialog.cpp \
     visoptions.cpp \
-    otfimportfunctor.cpp \
     gnome.cpp \
     exchangegnome.cpp \
     collectiverecord.cpp \
@@ -51,7 +49,9 @@ SOURCES  += main.cpp \
     entity.cpp \
     primaryentitygroup.cpp \
     entitygroup.cpp \
-    clusterentity.cpp
+    clusterentity.cpp \
+    importoptions.cpp \
+    importfunctor.cpp
 
 HEADERS += \
     trace.h \
@@ -68,12 +68,10 @@ HEADERS += \
     otfconverter.h \
     function.h \
     importoptionsdialog.h \
-    otfimportoptions.h \
     timelinevis.h \
     traditionalvis.h \
     visoptionsdialog.h \
     visoptions.h \
-    otfimportfunctor.h \
     gnome.h \
     exchangegnome.h \
     collectiverecord.h \
@@ -101,7 +99,9 @@ HEADERS += \
     primaryentitygroup.h \
     entitygroup.h \
     clusterentity.h \
-    ravelutils.h
+    ravelutils.h \
+    importoptions.h \
+    importfunctor.h
 
 FORMS += \
     mainwindow.ui \

@@ -11,10 +11,10 @@
 #include "verticallabel.h"
 #include "viswidget.h"
 #include "trace.h"
-#include "otfimportoptions.h"
+#include "importoptions.h"
 #include "visoptions.h"
 #include "visoptionsdialog.h"
-#include "otfimportfunctor.h"
+#include "importfunctor.h"
 #include "otf2exportfunctor.h"
 
 #include <QFileDialog>
@@ -40,7 +40,7 @@ MainWindow::MainWindow(QWidget *parent) :
     importWorker(NULL),
     importThread(NULL),
     progress(NULL),
-    otfoptions(new OTFImportOptions()),
+    otfoptions(new ImportOptions()),
     otfdialog(NULL),
     visoptions(new VisOptions()),
     visdialog(NULL),
@@ -362,19 +362,19 @@ void MainWindow::importTrace(QString dataFileName){
     progress->show();
 
     importThread = new QThread();
-    importWorker = new OTFImportFunctor(otfoptions);
+    importWorker = new ImportFunctor(otfoptions);
     importWorker->moveToThread(importThread);
 
     if (dataFileName.endsWith("otf", Qt::CaseInsensitive))
     {
-        otfoptions->origin = OTFImportOptions::OF_OTF;
+        otfoptions->origin = ImportOptions::OF_OTF;
         visoptions->metric = "Lateness";
         connect(this, SIGNAL(operate(QString)), importWorker,
                 SLOT(doImportOTF(QString)));
     }
     else if (dataFileName.endsWith("otf2", Qt::CaseInsensitive))
     {
-        otfoptions->origin = OTFImportOptions::OF_OTF2;
+        otfoptions->origin = ImportOptions::OF_OTF2;
         otfoptions->waitallMerge = false; // Not applicable
         visoptions->metric = "Lateness";
         connect(this, SIGNAL(operate(QString)), importWorker,
@@ -382,7 +382,7 @@ void MainWindow::importTrace(QString dataFileName){
     }
     else if (dataFileName.endsWith("sts", Qt::CaseInsensitive))
     {
-        otfoptions->origin = OTFImportOptions::OF_CHARM;
+        otfoptions->origin = ImportOptions::OF_CHARM;
         otfoptions->waitallMerge = false; // Not applicable
         otfoptions->leapMerge = false; // Not applicable across all chare arrays -- perhaps per chare array
         otfoptions->isendCoalescing = false; // Not applicable

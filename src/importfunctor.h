@@ -1,18 +1,18 @@
-#ifndef OTFIMPORTFUNCTOR_H
-#define OTFIMPORTFUNCTOR_H
+#ifndef IMPORTFUNCTOR_H
+#define IMPORTFUNCTOR_H
 
 #include <QObject>
 #include <QString>
 
 class Trace;
-class OTFImportOptions;
+class ImportOptions;
 
 // Handle signaling for progress bar
-class OTFImportFunctor : public QObject
+class ImportFunctor : public QObject
 {
     Q_OBJECT
 public:
-    OTFImportFunctor(OTFImportOptions * _options);
+    ImportFunctor(ImportOptions * _options);
     Trace * getTrace() { return trace; }
 
 public slots:
@@ -32,8 +32,8 @@ signals:
     void reportClusterProgress(int, QString);
 
 private:
-    OTFImportOptions * options;
+    ImportOptions * options;
     Trace * trace;
 };
 
-#endif // OTFIMPORTFUNCTOR_H
+#endif // IMPORTFUNCTOR_H

@@ -54,12 +54,12 @@ set(Ravel_SOURCES
     otfconverter.cpp
     function.cpp
     importoptionsdialog.cpp
-    otfimportoptions.cpp
+    importoptions.cpp
     timelinevis.cpp
     traditionalvis.cpp
     visoptionsdialog.cpp
     visoptions.cpp
-    otfimportfunctor.cpp
+    importfunctor.cpp
     gnome.cpp
     exchangegnome.cpp
     collectiverecord.cpp
@@ -105,12 +105,12 @@ set(Ravel_HEADERS
     function.h
     ravelutils.h
     importoptionsdialog.h
-    otfimportoptions.h
+    importoptions.h
     timelinevis.h
     traditionalvis.h
     visoptionsdialog.h
     visoptions.h
-    otfimportfunctor.h
+    importfunctor.h
     gnome.h
     exchangegnome.h
     collectiverecord.h

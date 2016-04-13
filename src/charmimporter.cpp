@@ -23,7 +23,7 @@
 #include "p2pevent.h"
 #include "commevent.h"
 #include "event.h"
-#include "otfimportoptions.h"
+#include "importoptions.h"
 #include "primaryentitygroup.h"
 #include "metrics.h"
 
@@ -132,7 +132,7 @@ CharmImporter::~CharmImporter()
     delete reductionEntries;
 }
 
-void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _options)
+void CharmImporter::importCharmLog(QString dataFileName, ImportOptions * _options)
 {
     std::cout << "Reading " << dataFileName.toStdString().c_str() << std::endl;
     options = _options;

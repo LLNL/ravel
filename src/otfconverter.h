@@ -9,7 +9,7 @@
 class RawTrace;
 class OTFImporter;
 class OTF2Importer;
-class OTFImportOptions;
+class ImportOptions;
 class Trace;
 class Partition;
 class CommEvent;
@@ -27,9 +27,9 @@ public:
     OTFConverter();
     ~OTFConverter();
 
-    Trace * importOTF(QString filename, OTFImportOptions * _options);
-    Trace * importOTF2(QString filename, OTFImportOptions * _options);
-    Trace * importCharm(RawTrace *, OTFImportOptions * _options);
+    Trace * importOTF(QString filename, ImportOptions * _options);
+    Trace * importOTF2(QString filename, ImportOptions * _options);
+    Trace * importCharm(RawTrace *, ImportOptions * _options);
 
 signals:
     void finishRead();
@@ -50,7 +50,7 @@ private:
 
     RawTrace * rawtrace;
     Trace * trace;
-    OTFImportOptions * options;
+    ImportOptions * options;
     int phaseFunction;
 
     static const int event_match_portion = 24;

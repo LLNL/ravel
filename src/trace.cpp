@@ -15,7 +15,7 @@
 #include "collectiveevent.h"
 #include "function.h"
 #include "rpartition.h"
-#include "otfimportoptions.h"
+#include "importoptions.h"
 #include "gnome.h"
 #include "exchangegnome.h"
 #include "entitygroup.h"
@@ -172,7 +172,7 @@ Trace::~Trace()
     delete primaries;
 }
 
-void Trace::preprocess(OTFImportOptions * _options)
+void Trace::preprocess(ImportOptions * _options)
 {
     QElapsedTimer traceTimer;
     qint64 traceElapsed;
@@ -180,7 +180,7 @@ void Trace::preprocess(OTFImportOptions * _options)
     traceTimer.start();
 
     options = *_options;
-    if (options.origin == OTFImportOptions::OF_CHARM)
+    if (options.origin == ImportOptions::OF_CHARM)
         use_aggregates = false;
 
     totalTimer.start();
@@ -254,7 +254,7 @@ void Trace::gnomify()
     }
     std::cout << "Clustering seed: " << options.clusterSeed << std::endl;
 
-    if (options.origin != OTFImportOptions::OF_SAVE_OTF2)
+    if (options.origin != ImportOptions::OF_SAVE_OTF2)
     {
         metrics->append("Gnome");
         (*metric_units)["Gnome"] = "";
@@ -278,7 +278,7 @@ void Trace::gnomify()
                 (*part)->gnome->set_seed(options.clusterSeed);
                 (*part)->gnome->setPartition(*part);
                 (*part)->gnome->setFunctions(functions);
-                if (options.origin != OTFImportOptions::OF_SAVE_OTF2)
+                if (options.origin != ImportOptions::OF_SAVE_OTF2)
                     setGnomeMetric(*part, i);
                 (*part)->gnome->preprocess();
                 break;
@@ -291,7 +291,7 @@ void Trace::gnomify()
             (*part)->gnome->set_seed(options.clusterSeed);
             (*part)->gnome->setPartition(*part);
             (*part)->gnome->setFunctions(functions);
-            if (options.origin != OTFImportOptions::OF_SAVE_OTF2)
+            if (options.origin != ImportOptions::OF_SAVE_OTF2)
                 setGnomeMetric(*part, -1);
             (*part)->gnome->preprocess();
         }
@@ -370,7 +370,7 @@ void Trace::partition()
         print_partition_info("", "4-mergecycle-after", true, true);
 
 
-        if (options.origin == OTFImportOptions::OF_CHARM)
+        if (options.origin == ImportOptions::OF_CHARM)
         {
             // We can do entry repair until merge cycles because
             // it requires a dag. Then we have to do another
@@ -405,7 +405,7 @@ void Trace::partition()
             print_partition_info("Merging of complete leaps...");
             traceTimer.start();
             set_dag_steps();
-            if (options.origin == OTFImportOptions::OF_CHARM)
+            if (options.origin == ImportOptions::OF_CHARM)
             {
                 //mergePrimaryByLeap();
             }
@@ -669,7 +669,7 @@ void Trace::calculate_partition_lateness()
 {
     QList<QString> counterlist = QList<QString>();
 
-    if (options.origin != OTFImportOptions::OF_CHARM)
+    if (options.origin != ImportOptions::OF_CHARM)
     {
         for (int i = 0; i < metrics->size(); i++)
             counterlist.append(metrics->at(i));
@@ -751,7 +751,7 @@ void Trace::calculate_partition_lateness()
                     (*evt)->metrics->addMetric(p_late, (*evt)->exit - mintime,
                                                (*evt)->enter - aggmintime);
 
-                    if (options.origin != OTFImportOptions::OF_CHARM)
+                    if (options.origin != ImportOptions::OF_CHARM)
                     {
                         double evt_time = (*evt)->exit - (*evt)->enter;
                         double agg_time = (*evt)->enter;
@@ -790,7 +790,7 @@ void Trace::calculate_partition_lateness()
                 {
                     (*evt)->metrics->addMetric(p_late, (*evt)->exit - mintime);
 
-                    if (options.origin != OTFImportOptions::OF_CHARM)
+                    if (options.origin != ImportOptions::OF_CHARM)
                     {
                         double evt_time = (*evt)->exit - (*evt)->enter;
                         for (int j = 0; j < counterlist.size(); j++)
@@ -1704,7 +1704,7 @@ void Trace::assignSteps()
     set_dag_steps();
     print_partition_info("", "", true);
 
-    if (options.origin == OTFImportOptions::OF_CHARM)
+    if (options.origin == ImportOptions::OF_CHARM)
     {
 
         print_partition_info("Merging for Charm leaps", "9-tracegraph-before");
@@ -1799,7 +1799,7 @@ void Trace::assignSteps()
     // Calculate Step metrics
     traceTimer.start();
 
-    if (options.origin == OTFImportOptions::OF_CHARM)
+    if (options.origin == ImportOptions::OF_CHARM)
     {
         calculate_partition_duration();
         calculate_partition_metrics();
@@ -2784,7 +2784,7 @@ void Trace::set_partition_dag()
 {
     dag_entries->clear();
     bool parent_flag;
-    if (options.origin == OTFImportOptions::OF_CHARM)
+    if (options.origin == ImportOptions::OF_CHARM)
     {
         for (QList<Partition *>::Iterator partition = partitions->begin();
              partition != partitions->end(); ++partition)
@@ -3081,11 +3081,11 @@ void Trace::output_graph(QString filename, bool byparent)
         graph << ", ne: " << (*partition)->num_events();
         graph << ", leap: " << (*partition)->dag_leap;
         graph << ", name: " << (*partition)->debug_name;
-        if (options.origin == OTFImportOptions::OF_CHARM)
+        if (options.origin == ImportOptions::OF_CHARM)
         {
             graph << (*partition)->get_callers(functions).toStdString().c_str();
         }
-        if (options.origin == OTFImportOptions::OF_CHARM && !(*partition)->verify_members())
+        if (options.origin == ImportOptions::OF_CHARM && !(*partition)->verify_members())
         {
             graph << "\n BROKEN";
             graph << "\"";

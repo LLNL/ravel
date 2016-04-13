@@ -11,7 +11,7 @@
 #include <QSharedPointer>
 #include <QElapsedTimer>
 
-#include "otfimportoptions.h"
+#include "importoptions.h"
 
 class Partition;
 class Gnome;
@@ -30,7 +30,7 @@ public:
     Trace(int nt, int np);
     ~Trace();
 
-    void preprocess(OTFImportOptions * _options);
+    void preprocess(ImportOptions * _options);
     void preprocessFromSaved();
     void partition();
     void assignSteps();
@@ -53,7 +53,7 @@ public:
     QList<Gnome *> * gnomes;
 
     // Processing options
-    OTFImportOptions options;
+    ImportOptions options;
 
     // Below set by OTFConverter
     QMap<int, QString> * functionGroups;

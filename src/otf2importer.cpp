@@ -12,7 +12,7 @@
 #include "otfcollective.h"
 #include "function.h"
 #include "entity.h"
-#include "otfimportoptions.h"
+#include "importoptions.h"
 #include "primaryentitygroup.h"
 
 OTF2Importer::OTF2Importer()
@@ -27,7 +27,7 @@ OTF2Importer::OTF2Importer()
       sendcount(0),
       recvcount(0),
       enforceMessageSize(false),
-      options(new OTFImportOptions()),
+      options(new ImportOptions()),
       otfReader(NULL),
       global_def_callbacks(NULL),
       global_evt_callbacks(NULL),
@@ -506,7 +506,7 @@ void OTF2Importer::processDefinitions()
         if (name == "Ravel")
         {
             from_saved_version = stringMap->value(attribute->description);
-            options->origin = OTFImportOptions::OF_SAVE_OTF2;
+            options->origin = ImportOptions::OF_SAVE_OTF2;
         }
         else if (name == "step")
         {

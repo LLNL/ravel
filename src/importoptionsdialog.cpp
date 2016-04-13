@@ -1,13 +1,13 @@
 #include "importoptionsdialog.h"
 #include "ui_importoptionsdialog.h"
-#include "otfimportoptions.h"
+#include "importoptions.h"
 
 ImportOptionsDialog::ImportOptionsDialog(QWidget *parent,
-                                         OTFImportOptions * _options)
+                                         ImportOptions * _options)
     : QDialog(parent),
     ui(new Ui::ImportOptionsDialog),
     options(_options),
-    saved(OTFImportOptions(*_options))
+    saved(ImportOptions(*_options))
 {
     ui->setupUi(this);
     connect(ui->buttonBox, SIGNAL(accepted()), this, SLOT(onOK()));

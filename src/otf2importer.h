@@ -14,7 +14,7 @@ class EntityGroup;
 class OTFCollective;
 class Counter;
 class CollectiveRecord;
-class OTFImportOptions;
+class ImportOptions;
 class PrimaryEntityGroup;
 
 class OTF2Importer
@@ -308,7 +308,7 @@ private:
 
     bool enforceMessageSize;
 
-    OTFImportOptions * options;
+    ImportOptions * options;
     OTF2_Reader * otfReader;
     OTF2_GlobalDefReaderCallbacks * global_def_callbacks;
     OTF2_GlobalEvtReaderCallbacks * global_evt_callbacks;

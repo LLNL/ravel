@@ -10,14 +10,14 @@
 class Gnome;
 class Event;
 class Trace;
-class OTFImportOptions;
+class ImportOptions;
 class ImportOptionsDialog;
 class VisWidget;
 class VisOptions;
 class VisOptionsDialog;
 
 class QAction;
-class OTFImportFunctor;
+class ImportFunctor;
 class OTF2ExportFunctor;
 class QProgressDialog;
 class QThread;
@@ -96,14 +96,14 @@ private:
     int activeTrace;
 
     // For progress bar
-    OTFImportFunctor * importWorker;
+    ImportFunctor * importWorker;
     QThread * importThread;
     QProgressDialog * progress;
     OTF2ExportFunctor * exportWorker;
     QThread * exportThread;
 
     // Import Trace options
-    OTFImportOptions * otfoptions;
+    ImportOptions * otfoptions;
     ImportOptionsDialog * otfdialog;
 
     // Color stuff & other vis options

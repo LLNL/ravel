@@ -1,20 +1,20 @@
-#include "otfimportfunctor.h"
+#include "importfunctor.h"
 #include "charmimporter.h"
 #include "ravelutils.h"
 #include <QElapsedTimer>
 
 #include "trace.h"
 #include "otfconverter.h"
-#include "otfimportoptions.h"
+#include "importoptions.h"
 #include "otf2importer.h"
 
-OTFImportFunctor::OTFImportFunctor(OTFImportOptions * _options)
+ImportFunctor::ImportFunctor(ImportOptions * _options)
     : options(_options),
       trace(NULL)
 {
 }
 
-void OTFImportFunctor::doImportCharm(QString dataFileName)
+void ImportFunctor::doImportCharm(QString dataFileName)
 {
     std::cout << "Processing " << dataFileName.toStdString().c_str() << std::endl;
     QElapsedTimer traceTimer;
@@ -42,7 +42,7 @@ void OTFImportFunctor::doImportCharm(QString dataFileName)
     emit(done(trace));
 }
 
-void OTFImportFunctor::doImportOTF2(QString dataFileName)
+void ImportFunctor::doImportOTF2(QString dataFileName)
 {
     std::cout << "Processing " << dataFileName.toStdString().c_str() << std::endl;
     QElapsedTimer traceTimer;
@@ -64,7 +64,7 @@ void OTFImportFunctor::doImportOTF2(QString dataFileName)
         connect(trace, SIGNAL(updateClustering(int)), this,
                 SLOT(updateClustering(int)));
         connect(trace, SIGNAL(startClustering()), this, SLOT(switchProgress()));
-        if (trace->options.origin == OTFImportOptions::OF_SAVE_OTF2)
+        if (trace->options.origin == ImportOptions::OF_SAVE_OTF2)
             trace->preprocessFromSaved();
         else
             trace->preprocess(options);
@@ -77,7 +77,7 @@ void OTFImportFunctor::doImportOTF2(QString dataFileName)
 }
 
 
-void OTFImportFunctor::doImportOTF(QString dataFileName)
+void ImportFunctor::doImportOTF(QString dataFileName)
 {
     #ifdef OTF1LIB
     std::cout << "Processing " << dataFileName.toStdString().c_str() << std::endl;
@@ -110,27 +110,27 @@ void OTFImportFunctor::doImportOTF(QString dataFileName)
     #endif
 }
 
-void OTFImportFunctor::finishInitialRead()
+void ImportFunctor::finishInitialRead()
 {
     emit(reportProgress(25, "Constructing events..."));
 }
 
-void OTFImportFunctor::updateMatching(int portion, QString msg)
+void ImportFunctor::updateMatching(int portion, QString msg)
 {
     emit(reportProgress(25 + portion, msg));
 }
 
-void OTFImportFunctor::updatePreprocess(int portion, QString msg)
+void ImportFunctor::updatePreprocess(int portion, QString msg)
 {
     emit(reportProgress(50 + portion / 2.0, msg));
 }
 
-void OTFImportFunctor::updateClustering(int portion)
+void ImportFunctor::updateClustering(int portion)
 {
     emit(reportClusterProgress(portion, "Clustering..."));
 }
 
-void OTFImportFunctor::switchProgress()
+void ImportFunctor::switchProgress()
 {
     emit(switching());
 }

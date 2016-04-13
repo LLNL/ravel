@@ -12,7 +12,7 @@ class Trace;
 class Entity;
 class EntityGroup;
 class Function;
-class OTFImportOptions;
+class ImportOptions;
 class Message;
 class Event;
 class P2PEvent;
@@ -26,7 +26,7 @@ class CharmImporter
 public:
     CharmImporter();
     ~CharmImporter();
-    void importCharmLog(QString filename, OTFImportOptions *_options);
+    void importCharmLog(QString filename, ImportOptions *_options);
     Trace * getTrace() { return trace; }
 
     // A specific chare is indexed in the chare array it belongs to.
@@ -367,7 +367,7 @@ private:
     QMap<int, Chare *> * chares;
     QMap<int, Entry *> * entries;
 
-    OTFImportOptions * options;
+    ImportOptions * options;
 
     float version;
     int processes;

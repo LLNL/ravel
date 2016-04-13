@@ -109,7 +109,7 @@ void StepVis::processVis()
     painter->setPen(Qt::black);
     painter->setFont(QFont("Helvetica", 10));
     QFontMetrics font_metrics = painter->fontMetrics();
-    if (trace->options.origin == OTFImportOptions::OF_CHARM)
+    if (trace->options.origin == ImportOptions::OF_CHARM)
     {
         int primary, entity;
         for (QMap<int, PrimaryEntityGroup *>::Iterator tg = trace->primaries->begin();
@@ -1430,7 +1430,7 @@ void StepVis::drawPrimaryLabels(QPainter * painter, int effectiveHeight,
 
     int current = start;
     int offset = 0;
-    if (trace->options.origin == OTFImportOptions::OF_CHARM)
+    if (trace->options.origin == ImportOptions::OF_CHARM)
     {
         for (QMap<int, PrimaryEntityGroup *>::Iterator tg = trace->primaries->begin();
              tg != trace->primaries->end(); ++tg)

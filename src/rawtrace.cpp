@@ -10,12 +10,12 @@
 #include "function.h"
 #include "counter.h"
 #include "counterrecord.h"
-#include "otfimportoptions.h"
+#include "importoptions.h"
 #include <stdint.h>
 
 
 RawTrace::RawTrace(int nt, int np)
-    : options(new OTFImportOptions()),
+    : options(new ImportOptions()),
       primaries(NULL),
       functionGroups(NULL),
       functions(NULL),

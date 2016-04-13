@@ -1,7 +1,7 @@
-#include "otfimportoptions.h"
+#include "importoptions.h"
 
-OTFImportOptions::OTFImportOptions(bool _waitall, bool _leap, bool _skip,
-                                   bool _partition, QString _fxn)
+ImportOptions::ImportOptions(bool _waitall, bool _leap, bool _skip,
+                             bool _partition, QString _fxn)
     : waitallMerge(_waitall),
       callerMerge(true),
       leapMerge(_leap),
@@ -21,7 +21,7 @@ OTFImportOptions::OTFImportOptions(bool _waitall, bool _leap, bool _skip,
 {
 }
 
-QList<QString> OTFImportOptions::getOptionNames()
+QList<QString> ImportOptions::getOptionNames()
 {
     QList<QString> names = QList<QString>();
     names.append("option_waitallMerge");
@@ -42,7 +42,7 @@ QList<QString> OTFImportOptions::getOptionNames()
     return names;
 }
 
-QString OTFImportOptions::getOptionValue(QString option)
+QString ImportOptions::getOptionValue(QString option)
 {
     if (option == "option_waitallMerge")
         return waitallMerge ? "true" : "";
@@ -78,7 +78,7 @@ QString OTFImportOptions::getOptionValue(QString option)
         return "";
 }
 
-void OTFImportOptions::setOption(QString option, QString value)
+void ImportOptions::setOption(QString option, QString value)
 {
     if (option == "option_waitallMerge")
         waitallMerge = value.size();

@@ -12,7 +12,7 @@
 #endif
 
 #include "otf2importer.h"
-#include "otfimportoptions.h"
+#include "importoptions.h"
 #include "rawtrace.h"
 #include "trace.h"
 #include "counter.h"
@@ -47,7 +47,7 @@ OTFConverter::~OTFConverter()
 }
 
 
-Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
+Trace * OTFConverter::importOTF(QString filename, ImportOptions *_options)
 {
     #ifdef OTF1LIB
     // Keep track of options
@@ -69,7 +69,7 @@ Trace * OTFConverter::importOTF(QString filename, OTFImportOptions *_options)
 }
 
 
-Trace * OTFConverter::importOTF2(QString filename, OTFImportOptions *_options)
+Trace * OTFConverter::importOTF2(QString filename, ImportOptions *_options)
 {
     // Keep track of options
     options = _options;
@@ -88,7 +88,7 @@ Trace * OTFConverter::importOTF2(QString filename, OTFImportOptions *_options)
     return trace;
 }
 
-Trace * OTFConverter::importCharm(RawTrace * rt, OTFImportOptions *_options)
+Trace * OTFConverter::importCharm(RawTrace * rt, ImportOptions *_options)
 {
     options = _options;
 
@@ -132,7 +132,7 @@ void OTFConverter::convert()
     }
 
 
-    if (rawtrace->options->origin == OTFImportOptions::OF_SAVE_OTF2)
+    if (rawtrace->options->origin == ImportOptions::OF_SAVE_OTF2)
     {
         trace->options = *(rawtrace->options);
         options = rawtrace->options;
@@ -711,7 +711,7 @@ void OTFConverter::matchEvents()
 
     if (!options->partitionByFunction
             && (options->waitallMerge
-                || options->origin == OTFImportOptions::OF_OTF2))
+                || options->origin == ImportOptions::OF_OTF2))
     {
         mergeContiguous(waitallgroups);
     }

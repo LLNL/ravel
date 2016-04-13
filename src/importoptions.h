@@ -1,14 +1,14 @@
-#ifndef OTFIMPORTOPTIONS_H
-#define OTFIMPORTOPTIONS_H
+#ifndef IMPORTOPTIONS_H
+#define IMPORTOPTIONS_H
 
 #include <QString>
 #include <QList>
 
 // Container for all the structure extraction options
-class OTFImportOptions
+class ImportOptions
 {
 public:
-    OTFImportOptions(bool _waitall = true,
+    ImportOptions(bool _waitall = true,
                      bool _leap = false, bool _skip = false,
                      bool _partition = false, QString _fxn = "");
 
