@@ -283,89 +283,23 @@ void OverviewVis::processVis()
             }
         }
     }
-    float minLateness = FLT_MAX;
-    float maxLateness = 0;
+    float minMetric = FLT_MAX;
+    float maxMetric = 0;
     for (int i = 0; i < width; i++) {
-        if (heights[i] > maxLateness)
-            maxLateness = heights[i];
-        if (heights[i] < minLateness)
-            minLateness = heights[i];
+        if (heights[i] > maxMetric)
+            maxMetric = heights[i];
+        if (heights[i] < minMetric)
+            minMetric = heights[i];
     }
 
 
     int maxHeight = height - border;
     for (int i = 0; i < width; i++) {
-        heights[i] = maxHeight * (heights[i] - minLateness) / maxLateness;
+        heights[i] = maxHeight * (heights[i] - minMetric) / maxMetric;
     }
 
     startCursor = (startStep) / 1.0 / (maxStep) * width;
     stopCursor = (stopStep) / 1.0 / (maxStep) * width;
-
-    visProcessed = true;
-
-    /* Pre-VIS does this by time rather than by step and does not do aggregate
-    int width = size().width() - 2 * border;
-    heights = QVector<float>(width, 0);
-    unsigned long long int timespan = maxTime - minTime;
-    int start_int, stop_int;
-    QString lateness("Lateness");
-    stepPositions = QVector<std::pair<int, int> >(maxStep+1, std::pair<int, int>(width + 1, -1));
-    for (QList<Partition *>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
-    {
-        for (QMap<int, QList<Event *> *>::Iterator event_list = (*part)->events->begin(); event_list != (*part)->events->end(); ++event_list) {
-            for (QList<Event *>::Iterator evt = (event_list.value())->begin(); evt != (event_list.value())->end(); ++evt) {
-                // Accumulate lateness on the overview. We assume overview is real time
-                // Note we're not counting aggregate lateness here. That would require that our vector is
-                // in order and keeping track of the last for each process. We don't want to do that right now.
-
-                // start and stop are the cursor positions
-                float start = (width - 1) * (((*evt)->enter - minTime) / 1.0 / timespan);
-                float stop = (width - 1) * (((*evt)->exit - minTime) / 1.0 / timespan);
-                start_int = static_cast<int>(start);
-                stop_int = static_cast<int>(stop);
-                //std::cout << start_int << " from " << start << " from enter " << (*evt)->enter;
-                //std::cout << " and mintime " << minTime <<  " over " << width << " and timespan " << timespan << std::endl;
-                //Q_ASSERT((*evt)->metrics->contains(lateness));
-                if ((*evt)->hasMetric(lateness) && (*evt)->getMetric(lateness)> 0) {
-                    heights[start_int] += (*evt)->getMetric(lateness) * (start - start_int);
-                    if (stop_int != start_int) {
-                        heights[stop_int] += (*evt)->getMetric(lateness) * (stop - stop_int);
-                    }
-                    for (int i = start_int + 1; i < stop_int; i++) {
-                        heights[i] += (*evt)->getMetric(lateness);
-                    }
-
-                }
-
-                // Figure out where the steps fall in width for later
-                // stepPositions maps steps to position in the cursor
-                if ((*evt)->step >= 0) {
-                    if (stepPositions[(*evt)->step].second < stop_int)
-                        stepPositions[(*evt)->step].second = stop_int;
-                    if (stepPositions[(*evt)->step].first > start_int)
-                        stepPositions[(*evt)->step].first = start_int;
-                }
-            }
-
-        }
-    }
-    float minLateness = FLT_MAX;
-    float maxLateness = 0;
-    for (int i = 0; i < width; i++) {
-        if (heights[i] > maxLateness)
-            maxLateness = heights[i];
-        if (heights[i] < minLateness)
-            minLateness = heights[i];
-    }
-
-    int maxHeight = height - border;
-    for (int i = 0; i < width; i++) {
-        heights[i] = maxHeight * (heights[i] - minLateness) / maxLateness;
-    }
-
-    startCursor = (startTime - minTime) / 1.0 / (maxTime - minTime) * width;
-    stopCursor = (stopTime - minTime) / 1.0 / (maxTime - minTime) * width;
-    */
 
     visProcessed = true;
 }
@@ -386,8 +320,6 @@ void OverviewVis::qtPaint(QPainter *painter)
     QRectF plotBBox(border, 5,
                       rect().width()-2*border,
                       rect().height() - 10);
-                      //rect().height()-timescaleHeight);
-
 
     // Draw axes
     //drawTimescale(painter, minTime, maxTime - minTime, border);

@@ -1799,14 +1799,17 @@ void Trace::assignSteps()
     // Calculate Step metrics
     traceTimer.start();
 
-    calculate_partition_lateness();
-    calculate_differential_lateness("D. Lateness", "Lateness");
-    calculate_lateness();
-    calculate_differential_lateness("D.G. Lateness", "G. Lateness");
     if (options.origin == OTFImportOptions::OF_CHARM)
     {
         calculate_partition_duration();
         calculate_partition_metrics();
+    }
+    else
+    {
+        calculate_partition_lateness();
+        calculate_differential_lateness("D. Lateness", "Lateness");
+        calculate_lateness();
+        calculate_differential_lateness("D.G. Lateness", "G. Lateness");
     }
 
     traceElapsed = traceTimer.nsecsElapsed();

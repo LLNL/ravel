@@ -387,6 +387,7 @@ void MainWindow::importTrace(QString dataFileName){
         otfoptions->callerMerge = false; // Done differently in charm importer
         otfoptions->advancedStepping = false; // Not for this
         visoptions->showAggregateSteps = false;
+        visoptions->metric = "Duration";
         connect(this, SIGNAL(operate(QString)), importWorker,
                 SLOT(doImportCharm(QString)));
     }
