@@ -36,6 +36,7 @@ void OTFImportFunctor::doImportCharm(QString dataFileName)
     connect(trace, SIGNAL(startClustering()), this, SLOT(switchProgress()));
     trace->preprocess(options);
 
+    traceElapsed = traceTimer.nsecsElapsed();
     RavelUtils::gu_printTime(traceElapsed, "Total trace: ");
 
     emit(done(trace));

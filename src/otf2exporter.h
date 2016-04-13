@@ -24,6 +24,11 @@ public:
                void*            callerData,
                bool             final )
     {
+        Q_UNUSED(userData);
+        Q_UNUSED(fileType);
+        Q_UNUSED(location);
+        Q_UNUSED(callerData);
+        Q_UNUSED(final);
         return OTF2_FLUSH;
     }
 
@@ -32,6 +37,9 @@ public:
                 OTF2_FileType    fileType,
                 OTF2_LocationRef location )
     {
+        Q_UNUSED(userData);
+        Q_UNUSED(fileType);
+        Q_UNUSED(location);
         return 0;
     }
 

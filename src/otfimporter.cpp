@@ -599,6 +599,9 @@ int OTFImporter::handleEndCollectiveOperation(void * userData, uint64_t time,
                                               OTF_KeyValueList * list)
 {
     Q_UNUSED(userData);
+    Q_UNUSED(time);
+    Q_UNUSED(process);
+    Q_UNUSED(matchingId);
     Q_UNUSED(list);
 
     return 0;

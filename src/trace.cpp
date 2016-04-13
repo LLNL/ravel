@@ -3079,9 +3079,8 @@ void Trace::mergeCycles()
 // into a single partition. This updates parent/child relationships so
 // there is no need to reset the dag.
 void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
-    QElapsedTimer traceTimer, subTimer;
-    qint64 traceElapsed, subElapsed;
-
+    QElapsedTimer traceTimer;
+    qint64 traceElapsed;
     traceTimer.start();
 
     // Go through the SCCs and merge them into single partitions

@@ -36,8 +36,8 @@ OTF2Importer::OTF2Importer()
       locationMap(new QMap<OTF2_LocationRef, OTF2Location *>()),
       locationGroupMap(new QMap<OTF2_LocationGroupRef, OTF2LocationGroup *>()),
       regionMap(new QMap<OTF2_RegionRef, OTF2Region *>()),
-      groupMap(new QMap<OTF2_GroupRef, OTF2Group *>()),
       commMap(new QMap<OTF2_CommRef, OTF2Comm *>()),
+      groupMap(new QMap<OTF2_GroupRef, OTF2Group *>()),
       commIndexMap(new QMap<OTF2_CommRef, int>()),
       regionIndexMap(new QMap<OTF2_RegionRef, int>()),
       locationIndexMap(new QMap<OTF2_LocationRef, int>()),
@@ -310,6 +310,7 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file, bool _enforceMessageSi
                 OTF2_Reader_CloseDefReader( otfReader, def_reader );
             }
         }
+        // Required line, though unused
         OTF2_EvtReader * unused = OTF2_Reader_GetEvtReader(otfReader, loc.key());
     }
     if (def_files_success)

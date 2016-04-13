@@ -30,11 +30,11 @@ Gnome::Gnome()
       alternation(true),
       neighbors(-1),
       selected_pc(NULL),
-      is_selected(false),
       saved_messages(QSet<Message *>()),
       drawnPCs(QMap<PartitionCluster *, QRect>()),
       drawnNodes(QMap<PartitionCluster *, QRect>()),
       drawnEvents(QMap<Event *, QRect>()),
+      is_selected(false),
       hover_event(NULL),
       hover_aggregate(false),
       stepwidth(0)

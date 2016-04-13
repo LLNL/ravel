@@ -214,7 +214,7 @@ Event * Partition::least_common_caller(int entityid, QMap<Event *, int> * memo)
     }
     else
     {
-        evts->first()->least_multiple_caller(memo);
+        return evts->first()->least_multiple_caller(memo);
     }
 }
 
