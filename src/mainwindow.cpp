@@ -368,6 +368,7 @@ void MainWindow::importTrace(QString dataFileName){
     if (dataFileName.endsWith("otf", Qt::CaseInsensitive))
     {
         otfoptions->origin = OTFImportOptions::OF_OTF;
+        visoptions->metric = "Lateness";
         connect(this, SIGNAL(operate(QString)), importWorker,
                 SLOT(doImportOTF(QString)));
     }
@@ -375,6 +376,7 @@ void MainWindow::importTrace(QString dataFileName){
     {
         otfoptions->origin = OTFImportOptions::OF_OTF2;
         otfoptions->waitallMerge = false; // Not applicable
+        visoptions->metric = "Lateness";
         connect(this, SIGNAL(operate(QString)), importWorker,
                 SLOT(doImportOTF2(QString)));
     }
