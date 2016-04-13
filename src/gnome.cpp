@@ -11,7 +11,7 @@
 #include "clusterevent.h"
 #include "message.h"
 #include "colormap.h"
-#include "general_util.h"
+#include "ravelutils.h"
 
 using namespace cluster;
 
@@ -149,9 +149,7 @@ void Gnome::findMusters()
         }
     }
     traceElapsed = traceTimer.nsecsElapsed();
-    std::cout << "Musterizing: ";
-    gu_printTime(traceElapsed);
-    std::cout << std::endl;
+    RavelUtils::gu_printTime(traceElapsed, "Musterizing: ");
 }
 
 // Once clusters have been determined by muster, do the remaining as hierarchy
@@ -195,9 +193,7 @@ void Gnome::hierarchicalMusters()
     cluster_root = cluster_leaves->value(lastp)->get_root();
 
     traceElapsed = traceTimer.nsecsElapsed();
-    std::cout << "Hierarchical mustering: ";
-    gu_printTime(traceElapsed);
-    std::cout << std::endl;
+    RavelUtils::gu_printTime(traceElapsed, "Hierarchical mustering: ");
 
     // From here we could now compress the ClusterEvent metrics (doing the four
     // divides ahead of time)but I'm going to retain the information for now

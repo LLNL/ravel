@@ -20,7 +20,7 @@
 #include "exchangegnome.h"
 #include "entitygroup.h"
 #include "otfcollective.h"
-#include "general_util.h"
+#include "ravelutils.h"
 #include "primaryentitygroup.h"
 #include "metrics.h"
 
@@ -199,13 +199,8 @@ void Trace::preprocess(OTFImportOptions * _options)
     isProcessed = true;
 
     traceElapsed = traceTimer.nsecsElapsed();
-    std::cout << "Structure Extraction: ";
-    gu_printTime(traceElapsed);
-    std::cout << std::endl;
-
-    std::cout << "Total Algorith Time: ";
-    gu_printTime(totalTime);
-    std::cout << std::endl;
+    RavelUtils::gu_printTime(traceElapsed, "Structure Extraction: ");
+    RavelUtils::gu_printTime(totalTime, "Total Algorithm Time: ");
 }
 
 void Trace::preprocessFromSaved()
@@ -238,9 +233,7 @@ void Trace::preprocessFromSaved()
     isProcessed = true;
 
     traceElapsed = traceTimer.nsecsElapsed();
-    std::cout << "Gnome/Cluster Etc: ";
-    gu_printTime(traceElapsed);
-    std::cout << std::endl;
+    RavelUtils::gu_printTime(traceElapsed, "Gnome/Cluster Etc: ");
 }
 
 // Check every gnome in our set for matching and set which gnome as a metric
@@ -307,9 +300,7 @@ void Trace::gnomify()
     }
 
     traceElapsed = traceTimer.nsecsElapsed();
-    std::cout << "Gnomification/Clustering: ";
-    gu_printTime(traceElapsed);
-    std::cout << std::endl;
+    RavelUtils::gu_printTime(traceElapsed, "Gnomification/Clustering: ");
 }
 
 void Trace::setGnomeMetric(Partition * part, int gnome_index)
@@ -369,28 +360,29 @@ void Trace::partition()
             output_graph("../debug-output/1-pre-message.dot");
         mergeForMessages();
         traceElapsed = traceTimer.nsecsElapsed();
-        std::cout << "Message Merge: ";
-        gu_printTime(traceElapsed);
-        std::cout << std::endl;
-        std::cout << "Partitions = " << partitions->size() << std::endl;
-        verify_partitions();
+        RavelUtils::gu_printTime(traceElapsed, "Message Merge: ");
         if (debug)
+        {
+            verify_partitions();
             output_graph("../debug-output/2-post-message.dot");
+            std::cout << "Partitions = " << partitions->size() << std::endl;
+        }
 
           // Tarjan
         if (debug)
             output_graph("../debug-output/3-mergecycle-before.dot");
+
         std::cout << "Merging cycles..." << std::endl;
         traceTimer.start();
         mergeCycles();
-        verify_partitions();
-        traceElapsed = traceTimer.nsecsElapsed();
-        std::cout << "Cycle Merge: ";
-        gu_printTime(traceElapsed);
-        std::cout << std::endl;
-        std::cout << "Partitions = " << partitions->size() << std::endl;
         if (debug)
+        {
+            verify_partitions();
             output_graph("../debug-output/4-mergecycle-after.dot");
+            std::cout << "Partitions = " << partitions->size() << std::endl;
+        }
+        traceElapsed = traceTimer.nsecsElapsed();
+        RavelUtils::gu_printTime(traceElapsed, "Cycle Merge: ");
 
         if (options.origin == OTFImportOptions::OF_CHARM)
         {
@@ -400,20 +392,23 @@ void Trace::partition()
             std::cout << "Merge for entries" << std::endl;
             traceTimer.start();
             mergeForEntryRepair();
-            verify_partitions();
             if (debug)
+            {
+                verify_partitions();
                 output_graph("../debug-output/5-post-entryrepair.dot");
+                std::cout << "Partitions = " << partitions->size() << std::endl;
+            }
 
             std::cout << "Second merge cycles..." << std::endl;
             mergeCycles();
-            verify_partitions();
             if (debug)
+            {
+                verify_partitions();
                 output_graph("../debug-output/6-post-entryrepair-cycle.dot");
+                std::cout << "Partitions = " << partitions->size() << std::endl;
+            }
             traceElapsed = traceTimer.nsecsElapsed();
-            std::cout << "Repair + Next Cycle Merge: ";
-            gu_printTime(traceElapsed);
-            std::cout << std::endl;
-            std::cout << "Partitions = " << partitions->size() << std::endl;
+            RavelUtils::gu_printTime(traceElapsed, "Repair + Next Cycle Merge: ");
 
 
 
@@ -421,22 +416,23 @@ void Trace::partition()
             // but makes the final merging much faster.
             std::cout << "Merge for atomics" << std::endl;
             mergeForEntryRepair(false);
-            verify_partitions();
             if (debug)
+            {
+                verify_partitions();
                 output_graph("../debug-output/7-post-atomics.dot");
+            }
 
             std::cout << "Third merge cycles..." << std::endl;
             mergeCycles();
-            verify_partitions();
             if (debug)
+            {
+                verify_partitions();
                 output_graph("../debug-output/8-post-atomics-cycle.dot");
-
-
-
+            }
 
         }
-
-        std::cout << "Partitions = " << partitions->size() << std::endl;
+        if (debug)
+            std::cout << "Partitions = " << partitions->size() << std::endl;
 
         // Merge by call tree
         if (options.callerMerge)
@@ -446,10 +442,7 @@ void Trace::partition()
             set_dag_steps();
             mergeByCommonCaller();
             traceElapsed = traceTimer.nsecsElapsed();
-            std::cout << "Caller Merge: ";
-            gu_printTime(traceElapsed);
-            std::cout << std::endl;
-
+            RavelUtils::gu_printTime(traceElapsed, "Caller Merge: ");
         }
           // Merge by rank level [ later ]
         if (options.leapMerge)
@@ -466,10 +459,7 @@ void Trace::partition()
                 mergeByLeap();
             }
             traceElapsed = traceTimer.nsecsElapsed();
-            std::cout << "Leap Merge: ";
-            gu_printTime(traceElapsed);
-            std::cout << std::endl;
-
+            RavelUtils::gu_printTime(traceElapsed, "Leap Merge: ");
         }
     }
 
@@ -611,9 +601,9 @@ void Trace::calculate_differential_lateness(QString metric_name,
 void Trace::calculate_partition_metrics()
 {
     metrics->append("Imbalance");
-    (*metric_units)["Imbalance"] = getUnits(units);
+    (*metric_units)["Imbalance"] = RavelUtils::getUnits(units);
     metrics->append("PE Imbalance");
-    (*metric_units)["PE Imbalance"] = getUnits(units);
+    (*metric_units)["PE Imbalance"] = RavelUtils::getUnits(units);
     for (QList<Partition *>::Iterator part = partitions->begin();
          part != partitions->end(); ++part)
     {
@@ -629,7 +619,7 @@ void Trace::calculate_partition_duration()
 
     QString p_duration = "Duration";
     metrics->append(p_duration);
-    (*metric_units)[p_duration] = getUnits(units);
+    (*metric_units)[p_duration] = RavelUtils::getUnits(units);
 
     unsigned long long int minduration;
     int per_step = 2;
@@ -790,7 +780,7 @@ void Trace::calculate_partition_lateness()
 
     QString p_late = "Lateness";
     metrics->append(p_late);
-    (*metric_units)[p_late] = getUnits(units);
+    (*metric_units)[p_late] = RavelUtils::getUnits(units);
 
     for (int i = 0; i < counterlist.size(); i++)
     {
@@ -939,7 +929,7 @@ void Trace::calculate_lateness()
     if (debug)
         std::cout << "Calculting global lateness..." << std::endl;
     metrics->append("G. Lateness");
-    (*metric_units)["G. Lateness"] = getUnits(units);
+    (*metric_units)["G. Lateness"] = RavelUtils::getUnits(units);
     metrics->append("Colorless");
     (*metric_units)["Colorless"] = "";
 
@@ -1913,23 +1903,21 @@ void Trace::assignSteps()
             output_graph("../debug-output/10-tracegraph-charmleap.dot");
         mergeCycles();
         std::cout << "After another cycle merge partitions: " << partitions->size() << std::endl;
-        verify_partitions();
         if (debug)
+        {
+            verify_partitions();
             output_graph("../debug-output/10X-tracegraph-cyclepostleap.dot");
+            std::cout << "Partitions = " << partitions->size() << std::endl;
+        }
         traceElapsed = traceTimer.nsecsElapsed();
-        std::cout << "Charm Leap Merge: ";
-        gu_printTime(traceElapsed);
-        std::cout << std::endl;
-        std::cout << "Partitions = " << partitions->size() << std::endl;
-
+        RavelUtils::gu_printTime(traceElapsed, "Charm Leap Merge: ");
 
         traceTimer.start();
         forcePartitionDag(); // overlap due to runtime versus application
-        verify_partitions();
+        if (debug)
+            verify_partitions();
         traceElapsed = traceTimer.nsecsElapsed();
-        std::cout << "Force Partition Dag: ";
-        gu_printTime(traceElapsed);
-        std::cout << std::endl;
+        RavelUtils::gu_printTime(traceElapsed, "Force Partition Dag: ");
 
 
         if (debug)
@@ -2015,9 +2003,7 @@ void Trace::assignSteps()
         output_graph("../debug-output/12-tracegraph-named.dot");
 
     traceElapsed = traceTimer.nsecsElapsed();
-    std::cout << "Local Stepping: ";
-    gu_printTime(traceElapsed);
-    std::cout << std::endl;
+    RavelUtils::gu_printTime(traceElapsed, "Local Stepping: ");
 
     std::cout << "Setting global steps..." << std::endl;
     traceTimer.start();
@@ -2032,14 +2018,10 @@ void Trace::assignSteps()
     if (debug)
         output_graph("../debug-output/13-dag-global.dot");
     traceElapsed = traceTimer.nsecsElapsed();
-    std::cout << "Global Stepping: ";
-    gu_printTime(traceElapsed);
-    std::cout << std::endl;
+    RavelUtils::gu_printTime(traceElapsed, "Global Stepping: ");
     std::cout << "Num partitions " << partitions->length() << std::endl;
     totalTime += totalTimer.nsecsElapsed();
-    std::cout << "Total Algorith Time: ";
-    gu_printTime(totalTime);
-    std::cout << std::endl;
+    RavelUtils::gu_printTime(totalTime, "Total Algorithm Time: ");
 
     // Calculate Step metrics
     std::cout << "Calculating lateness..." << std::endl;
@@ -2056,9 +2038,7 @@ void Trace::assignSteps()
     }
 
     traceElapsed = traceTimer.nsecsElapsed();
-    std::cout << "Lateness Calculation: ";
-    gu_printTime(traceElapsed);
-    std::cout << std::endl;
+    RavelUtils::gu_printTime(traceElapsed, "Lateness Calculation: ");
 }
 
 // Adjacent (parent/child off by one dag leap) partitions are merged if along
@@ -3263,9 +3243,7 @@ void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
     }
 
     traceElapsed = traceTimer.nsecsElapsed();
-    std::cout << "Partition Merge: ";
-    gu_printTime(traceElapsed);
-    std::cout << std::endl;
+    RavelUtils::gu_printTime(traceElapsed, "Partition Merge: ");
 }
 
 void Trace::set_dag_entries()

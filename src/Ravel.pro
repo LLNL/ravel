@@ -67,7 +67,6 @@ HEADERS += \
     rawtrace.h \
     otfconverter.h \
     function.h \
-    general_util.h \
     importoptionsdialog.h \
     otfimportoptions.h \
     timelinevis.h \
@@ -101,7 +100,8 @@ HEADERS += \
     entity.h \
     primaryentitygroup.h \
     entitygroup.h \
-    clusterentity.h
+    clusterentity.h \
+    ravelutils.h
 
 FORMS += \
     mainwindow.ui \

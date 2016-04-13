@@ -3,7 +3,7 @@
 #include <QElapsedTimer>
 #include <iostream>
 #include <cmath>
-#include "general_util.h"
+#include "ravelutils.h"
 #include "entity.h"
 #include "rawtrace.h"
 #include "commrecord.h"
@@ -186,9 +186,7 @@ RawTrace * OTFImporter::importOTF(const char* otf_file, bool _enforceMessageSize
 
 
     traceElapsed = traceTimer.nsecsElapsed();
-    std::cout << "OTF Reading: ";
-    gu_printTime(traceElapsed);
-    std::cout << std::endl;
+    RavelUtils::gu_printTime(traceElapsed, "OTF Reading: ");
 
     return rawtrace;
 }

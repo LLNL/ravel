@@ -103,7 +103,7 @@ set(Ravel_HEADERS
     rawtrace.h
     otfconverter.h
     function.h
-    general_util.h
+    ravelutils.h
     importoptionsdialog.h
     otfimportoptions.h
     timelinevis.h

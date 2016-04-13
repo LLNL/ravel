@@ -10,7 +10,7 @@
 #include <QLocale>
 
 #include "trace.h"
-#include "general_util.h"
+#include "ravelutils.h"
 
 
 VisWidget::VisWidget(QWidget *parent, VisOptions * _options) :
@@ -256,7 +256,7 @@ QString VisWidget::drawTimescale(QPainter * painter, unsigned long long start,
     unsigned long long tick = (tick_span - start % tick_span) + start;
 
     // TODO: MAKE THIS PART OPTIONAL
-    QString seconds = getUnits(trace->units);
+    QString seconds = RavelUtils::RavelUtils::getUnits(trace->units);
     int tick_divisor = 1;
     unsigned long long tick_base = 0;
     if (!options->absoluteTime)
@@ -270,7 +270,7 @@ QString VisWidget::drawTimescale(QPainter * painter, unsigned long long start,
                                         / pow((double) trace->units, 10),
                                         'f', trace->units - span_unit)
                                         + "s + "
-                                        + getUnits(trace->units
+                                        + RavelUtils::RavelUtils::getUnits(trace->units
                                                    - 3 * floor(span_unit / 3))
                                         + ":";
     }

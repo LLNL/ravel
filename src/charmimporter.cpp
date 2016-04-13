@@ -27,7 +27,7 @@
 #include "primaryentitygroup.h"
 #include "metrics.h"
 
-#include "general_util.h"
+#include "ravelutils.h"
 
 CharmImporter::CharmImporter()
     : chares(new QMap<int, Chare*>()),
@@ -212,18 +212,15 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
     partTimer.start();
     buildPartitions();
     trace->totalTime += partTimer.nsecsElapsed();
-    std::cout << "Initial Partitions Time Time: ";
-    gu_printTime(trace->totalTime);
-    std::cout << std::endl;
+    RavelUtils::gu_printTime(trace->totalTime, "Initial Partitions Time:");
 
-
-    // Rename for vis
+    // Rename for vis/debugging
     for (int i = 0; i < trace->partitions->size(); ++i)
     {
         trace->partitions->at(i)->debug_name = i;
     }
 
-    // Keep a list of what chares have been seen
+    // Output a list of what chares have been seen
     if (verbose)
     {
         QList<QString> tmp = seen_chares.toList();
@@ -341,14 +338,14 @@ void CharmImporter::makeEntityEvents()
 
     // Setup idle metrics.
     trace->metrics->append("Idle");
-    (*(trace->metric_units))["Idle"] = getUnits(trace->units);
+    (*(trace->metric_units))["Idle"] = RavelUtils::getUnits(trace->units);
     trace->metrics->append("Idle Blame");
-    (*(trace->metric_units))["Idle Blame"] = getUnits(trace->units);
+    (*(trace->metric_units))["Idle Blame"] = RavelUtils::getUnits(trace->units);
 
     trace->metrics->append(idle_metric);
-    (*(trace->metric_units))[idle_metric] = getUnits(trace->units);
+    (*(trace->metric_units))[idle_metric] = RavelUtils::getUnits(trace->units);
     trace->metrics->append(runtime_metric);
-    (*(trace->metric_units))[runtime_metric] = getUnits(trace->units);
+    (*(trace->metric_units))[runtime_metric] = RavelUtils::getUnits(trace->units);
 
 
 

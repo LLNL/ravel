@@ -7,7 +7,7 @@
 #include "clustertreevis.h"
 #include "otfconverter.h"
 #include "importoptionsdialog.h"
-#include "general_util.h"
+#include "ravelutils.h"
 #include "verticallabel.h"
 #include "viswidget.h"
 #include "trace.h"

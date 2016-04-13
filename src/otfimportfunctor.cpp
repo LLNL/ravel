@@ -1,6 +1,6 @@
 #include "otfimportfunctor.h"
 #include "charmimporter.h"
-#include "general_util.h"
+#include "ravelutils.h"
 #include <QElapsedTimer>
 
 #include "trace.h"
@@ -36,11 +36,7 @@ void OTFImportFunctor::doImportCharm(QString dataFileName)
     connect(trace, SIGNAL(startClustering()), this, SLOT(switchProgress()));
     trace->preprocess(options);
 
-
-    traceElapsed = traceTimer.nsecsElapsed();
-    std::cout << "Total trace: ";
-    gu_printTime(traceElapsed);
-    std::cout << std::endl;
+    RavelUtils::gu_printTime(traceElapsed, "Total trace: ");
 
     emit(done(trace));
 }
@@ -74,9 +70,7 @@ void OTFImportFunctor::doImportOTF2(QString dataFileName)
     }
 
     traceElapsed = traceTimer.nsecsElapsed();
-    std::cout << "Total trace: ";
-    gu_printTime(traceElapsed);
-    std::cout << std::endl;
+    RavelUtils::gu_printTime(traceElapsed, "Total trace: ");
 
     emit(done(trace));
 }
@@ -109,9 +103,7 @@ void OTFImportFunctor::doImportOTF(QString dataFileName)
     }
 
     traceElapsed = traceTimer.nsecsElapsed();
-    std::cout << "Total trace: ";
-    gu_printTime(traceElapsed);
-    std::cout << std::endl;
+    RavelUtils::gu_printTime(traceElapsed, "Total trace: ");
 
     emit(done(trace));
     #endif

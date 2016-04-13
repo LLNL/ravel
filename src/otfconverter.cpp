@@ -5,7 +5,7 @@
 #include <cmath>
 #include <climits>
 #include <iostream>
-#include "general_util.h"
+#include "ravelutils.h"
 
 #ifdef OTF1LIB
 #include "otfimporter.h"
@@ -191,10 +191,7 @@ void OTFConverter::convert()
     }
 
     traceElapsed = traceTimer.nsecsElapsed();
-    std::cout << "Event/Message Matching: ";
-    gu_printTime(traceElapsed);
-    std::cout << std::endl;
-
+    RavelUtils::gu_printTime(traceElapsed, "Event/Message Matching: ");
 
     delete rawtrace;
 }
