@@ -109,19 +109,31 @@ void StepVis::processVis()
     painter->setPen(Qt::black);
     painter->setFont(QFont("Helvetica", 10));
     QFontMetrics font_metrics = painter->fontMetrics();
-    int primary;
-    for (QMap<int, PrimaryEntityGroup *>::Iterator tg = trace->primaries->begin();
-         tg != trace->primaries->end(); ++tg)
+    if (trace->options.origin == OTFImportOptions::OF_CHARM)
     {
-        primary = font_metrics.width((*tg)->name);
-        if (primary > labelWidth)
-            labelWidth = primary;
-        for (QList<Entity *>::Iterator t = (*tg)->entities->begin();
-             t != (*tg)->entities->end(); ++t)
+        int primary, entity;
+        for (QMap<int, PrimaryEntityGroup *>::Iterator tg = trace->primaries->begin();
+             tg != trace->primaries->end(); ++tg)
         {
-            primary = font_metrics.width((*t)->name);
+            primary = font_metrics.width((*tg)->name);
             if (primary > labelWidth)
                 labelWidth = primary;
+            for (QList<Entity *>::Iterator t = (*tg)->entities->begin();
+                 t != (*tg)->entities->end(); ++t)
+            {
+                entity = font_metrics.width((*t)->name);
+                if (entity > labelWidth)
+                    labelWidth = entity;
+            }
+        }
+    } else {
+        int idWidth;
+        for (QMap<int, PrimaryEntityGroup *>::Iterator tg = trace->primaries->begin();
+             tg != trace->primaries->end(); ++tg)
+        {
+            idWidth = font_metrics.width((*tg)->entities->length());
+            if (idWidth  > labelWidth)
+                labelWidth = idWidth ;
         }
     }
     painter->end();
@@ -1418,26 +1430,49 @@ void StepVis::drawPrimaryLabels(QPainter * painter, int effectiveHeight,
 
     int current = start;
     int offset = 0;
-    for (QMap<int, PrimaryEntityGroup *>::Iterator tg = trace->primaries->begin();
-         tg != trace->primaries->end(); ++tg)
+    if (trace->options.origin == OTFImportOptions::OF_CHARM)
     {
-        while (current < offset + (*tg)->entities->size() && current <= end)
+        for (QMap<int, PrimaryEntityGroup *>::Iterator tg = trace->primaries->begin();
+             tg != trace->primaries->end(); ++tg)
         {
-            y = floor((current - startEntity) * barHeight) + 1
-                + barHeight / 2 + labelDescent;
-            if (y < effectiveHeight)
+            while (current < offset + (*tg)->entities->size() && current <= end)
             {
-                if (current == offset)
-                    painter->drawText(1, y, (*tg)->name);
-                else
-                    painter->drawText(1, y,
-                                      (*tg)->entities->at(current - offset)->name);
+                y = floor((current - startEntity) * barHeight) + 1
+                        + barHeight / 2 + labelDescent;
+                if (y < effectiveHeight)
+                {
+                    if (current == offset)
+                        painter->drawText(1, y, (*tg)->name);
+                    else
+                        painter->drawText(1, y,
+                                          (*tg)->entities->at(current - offset)->name);
+                }
+                current += skip;
             }
-            current += skip;
-        }
-        if (current > end)
-            break;
+            if (current > end)
+                break;
 
-        offset += (*tg)->entities->size();
+            offset += (*tg)->entities->size();
+        }
+    } else {
+        for (QMap<int, PrimaryEntityGroup *>::Iterator tg = trace->primaries->begin();
+             tg != trace->primaries->end(); ++tg)
+        {
+            while (current < offset + (*tg)->entities->size() && current <= end)
+            {
+                y = floor((current - startEntity) * barHeight) + 1
+                        + barHeight / 2 + labelDescent;
+                if (y < effectiveHeight)
+                {
+                    painter->drawText(1, y,
+                                          QString::number((*tg)->entities->at(current - offset)->id));
+                }
+                current += skip;
+            }
+            if (current > end)
+                break;
+
+            offset += (*tg)->entities->size();
+        }
     }
 }
