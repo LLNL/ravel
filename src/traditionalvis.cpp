@@ -863,7 +863,7 @@ void TraditionalVis::drawMessage(QPainter * painter, Message * msg)
 
 void TraditionalVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
 {
-    int root, x, y, prev_x, prev_y, root_x, root_y;
+    int root, x, y, prev_x, prev_y;
     CollectiveEvent * coll_event;
     QPointF p1, p2;
 
@@ -890,8 +890,6 @@ void TraditionalVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
     if (rooted && coll_event->entity == root)
     {
         painter->setBrush(QBrush());
-        root_x = prev_x;
-        root_y = prev_y;
     }
     painter->drawEllipse(prev_x - ell_w/2,
                          prev_y + h/2 - ell_h/2,

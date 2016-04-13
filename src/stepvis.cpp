@@ -864,10 +864,12 @@ void StepVis::paintEvents(QPainter * painter)
                     if (*evt == selected_event && selected_aggregate)
                         painter->setPen(QPen(Qt::yellow));
                     if (step_spacing > 0 && entity_spacing > 0)
+                    {
                         if (aggcomplete)
                             painter->drawRect(QRectF(xa, y, wa, h));
                         else
                             incompleteBox(painter, xa, y, wa, h, &extents);
+                    }
                     if (*evt == selected_event && selected_aggregate)
                         painter->setPen(QPen(QColor(0, 0, 0)));
 
@@ -951,7 +953,7 @@ void StepVis::overdrawSelected(QPainter * painter, QList<int> entities)
         // We leave the selected where it is and draw the rest as floating
 
         // Prepare for comms
-        QSet<CommBundle *> drawBundles = QSet<CommBundle *>();
+        // QSet<CommBundle *> drawBundles = QSet<CommBundle *>();
 
         // First we draw the background as white rectangles
         // Above
@@ -975,7 +977,7 @@ void StepVis::overdrawSelected(QPainter * painter, QList<int> entities)
         // We may want to make this relative to how much screen space we have
         // but I'm not sure we want to use all of it because then we'll lose
         // context
-        int overdraw_height = 12;
+        // int overdraw_height = 12;
     }
 
 

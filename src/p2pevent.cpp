@@ -171,20 +171,6 @@ void P2PEvent::fixPhases()
     }
 }
 
-bool P2PEvent::happens_before(CommEvent * prev)
-{
-    if (is_recv)
-        return false;
-
-    for (QVector<Message *>::Iterator msg
-         = messages->begin();
-         msg != messages->end(); ++msg)
-    {
-         if ((*msg)->receiver == prev)
-             return true;
-    }
-}
-
 bool P2PEvent::calculate_local_step()
 {
     int temp_step = -1;

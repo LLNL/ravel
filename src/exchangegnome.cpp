@@ -584,10 +584,12 @@ void ExchangeGnome::drawGnomeQtClusterSRSR(QPainter * painter, QRect startxy,
             else
                 painter->drawRect(QRectF(x+2,y+2,w-4,h-4));
             if (options->showAggregateSteps)
+            {
                 if (blockwidth != w)
                     painter->drawRect(QRectF(xa, y, wa, h));
                 else
                     painter->drawRect(QRectF(xa+2, y+2, wa-4, h-4));
+            }
             painter->setPen(QPen(Qt::black, 2.0, Qt::SolidLine));
         }
     }

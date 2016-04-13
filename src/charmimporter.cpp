@@ -303,6 +303,7 @@ void CharmImporter::cleanUp()
     delete pe_p2ps;
 }
 
+// Process each log file (per PE)
 void CharmImporter::readLog(QString logFileName, bool gzipped, int pe)
 {
     last.clear();
@@ -538,6 +539,9 @@ void CharmImporter::makeEntityEvents()
     delete stack;
 }
 
+
+// When we pop an event from the event stack, we are closing some sort of function.
+// We keep track of extra information, such as message relations, when we do tihs.
 int CharmImporter::makeEntityEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                                      long endtime, int phase, int depth, int atomic)
 {
@@ -790,6 +794,7 @@ void CharmImporter::chargeIdleness()
     }
 }
 
+// Partitions the Charm++ events
 void CharmImporter::buildPartitions()
 {
     QList<P2PEvent *> * events = new QList<P2PEvent *>();
@@ -797,6 +802,7 @@ void CharmImporter::buildPartitions()
     P2PEvent * prev = NULL;
     P2PEvent * true_prev = NULL;
 
+    // List of functions/entries we will break partitions on
     QList<QString> breakables = QList<QString>();
     if (!options->partitionByFunction && options->breakFunctions.length() > 0)
         breakables = options->breakFunctions.split(",");
@@ -806,8 +812,8 @@ void CharmImporter::buildPartitions()
     for (QVector<QVector<P2PEvent *> *>::Iterator p2plist = charm_p2ps->begin();
          p2plist != charm_p2ps->end(); ++p2plist)
     {
-
         // first make sure everything is in the absolutely right order.
+        // Using the simple sorting, we could be interleaving things unnecessarily.
         QList<int> toswap = QList<int>();
         prev = NULL;
         true_prev = NULL;
@@ -819,9 +825,12 @@ void CharmImporter::buildPartitions()
                 && p2p->caller == prev->caller)
             {
                 toswap.append(i-2);
-                std::cout << "Swapping list " << count;
-                std::cout << " for " << trace->functions->value(true_prev->caller->function)->name.toStdString().c_str();
-                std::cout << " at " << p2p->enter << std::endl;
+                if (verbose)
+                {
+                    std::cout << "Swapping list " << count;
+                    std::cout << " for " << trace->functions->value(true_prev->caller->function)->name.toStdString().c_str();
+                    std::cout << " at " << p2p->enter << std::endl;
+                }
             }
             prev = true_prev;
             true_prev = p2p;
@@ -838,9 +847,14 @@ void CharmImporter::buildPartitions()
         true_prev = NULL;
 
         if (verbose)
+        {
             std::cout << "PARTITIONING ON " << count << std::endl;
+            count++;
+        }
 
-        count++;
+        // Now break these timelines into partitions -- week accumulate along the
+        // timeline into a partition until one of the four stopping mechanisms
+        // below is seen.
         for (QVector<P2PEvent *>::Iterator p2p = (*p2plist)->begin();
              p2p != (*p2plist)->end(); ++p2p)
         {
@@ -889,7 +903,9 @@ void CharmImporter::buildPartitions()
                     makePartition(events);
                     events->clear();
                 }
-                else if (prev && entityid < num_application_entities) // 2)
+
+                // 2)
+                else if (prev && entityid < num_application_entities)
                 {
                     // First figure out if the previous comm event was app only or not.
                     bool prev_app = true, my_app = true;
@@ -968,7 +984,8 @@ void CharmImporter::buildPartitions()
                     std::cout << " --- Split conditions not met" << std::endl;
                 }
 
-                if (!events->isEmpty() && !options->partitionByFunction)// 3)
+                // 3)
+                if (!events->isEmpty() && !options->partitionByFunction)
                 {
                     QString caller = trace->functions->value((*p2p)->caller->function)->shortname;
                     for (QList<QString>::Iterator fxn = breakables.begin();
@@ -991,9 +1008,9 @@ void CharmImporter::buildPartitions()
             }
 
             // comm_next / comm_prev only set within the same caller
-            // as that's what we know is a true ordering
+            // as that's what we know is a true ordering constraint
             // This is true for charm++, may not be true for
-            // general entity-based models
+            // general task-based runtimes
             if (prev && prev->caller != NULL
                 && ((prev->caller == (*p2p)->caller)
                     || ((*p2p)->matching == prev->matching
@@ -1058,7 +1075,8 @@ void CharmImporter::makePartition(QList<P2PEvent *> * events)
     }
     if (verbose)
     {
-        std::cout << "Making " << events->size() << " event partition of entity " << events->first()->entity << " of " << (num_application_entities + processes);
+        std::cout << "Making " << events->size() << " event partition of entity "
+            << events->first()->entity << " of " << (num_application_entities + processes);
     }
     if (events->first()->entity >= num_application_entities)
     {
@@ -1074,6 +1092,8 @@ void CharmImporter::makePartition(QList<P2PEvent *> * events)
 }
 
 
+// Turn the chares we have seen into Ravel entities.
+// Each specific chare is grouped by its specific chare array
 int CharmImporter::makeEntities()
 {
     // Setup main entity
@@ -1168,6 +1188,7 @@ int CharmImporter::makeEntities()
 }
 
 
+// Read/store record from a line of a PE's log file
 void CharmImporter::parseLine(QString line, int my_pe)
 {
     int index, mtype, entry, event, pe, assoc = -1;
@@ -1642,7 +1663,8 @@ void CharmImporter::parseLine(QString line, int my_pe)
 
         if (verbose)
         {
-            std::cout << "BEGIN IDLE" << " on pe " << my_pe << " at " << time << std::endl;
+            std::cout << "BEGIN IDLE" << " on pe " << my_pe << " at "
+                << time << std::endl;
         }
 
         if (!last.isEmpty())
@@ -1664,7 +1686,8 @@ void CharmImporter::parseLine(QString line, int my_pe)
 
         if (verbose)
         {
-            std::cout << "END IDLE" << " on pe " << my_pe << " at " << time << std::endl;
+            std::cout << "END IDLE" << " on pe " << my_pe << " at "
+                << time << std::endl;
         }
 
         if (!last.isEmpty())
@@ -1692,7 +1715,7 @@ void CharmImporter::parseLine(QString line, int my_pe)
 
 }
 
-
+// Check if send and recv belong to the same message
 bool CharmImporter::matchingMessages(CharmMsg * send, CharmMsg * recv)
 {
     // Event is the unique ID of each message
@@ -1708,6 +1731,7 @@ const int CharmImporter::RECV_FXN;
 const int CharmImporter::IDLE_FXN;
 
 
+// Populate list of functions from the Charm++ entries
 void CharmImporter::processDefinitions()
 {
     functiongroups->insert(0, "MPI");
@@ -1728,8 +1752,6 @@ void CharmImporter::processDefinitions()
                                            e->name));
         if (entries->value(id)->chare == main)
             functions->value(id)->isMain = true;
-        //if (e->name.startsWith("contribute_wrap"))
-        //    contribute = id;
     }
     entries->insert(SEND_FXN, new Entry(0, "Send", 0));
     entries->insert(RECV_FXN, new Entry(0, "Recv", 0));
@@ -1737,7 +1759,8 @@ void CharmImporter::processDefinitions()
 }
 
 
-// STS is never gzipped
+// Read/store meta information from the STS file
+// STS is never gzipped.
 void CharmImporter::readSts(QString dataFileName)
 {
     std::ifstream stsfile(dataFileName.toStdString().c_str());

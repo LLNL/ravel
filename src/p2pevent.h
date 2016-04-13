@@ -27,7 +27,6 @@ public:
     bool isP2P() { return true; }
     bool isReceive() const;
     void fixPhases();
-    bool happens_before(CommEvent * prev);
     void initialize_strides(QList<CommEvent *> * stride_events,
                             QList<CommEvent *> * recv_events);
     void update_strides();

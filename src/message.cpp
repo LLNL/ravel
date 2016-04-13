@@ -4,8 +4,8 @@
 #include "viswidget.h"
 
 Message::Message(unsigned long long send, unsigned long long recv, int group)
-    : CommBundle(), sendtime(send), recvtime(recv),
-      sender(NULL), receiver(NULL), entitygroup(group), tag(0)
+    : CommBundle(), sender(NULL), receiver(NULL),
+      sendtime(send), recvtime(recv), entitygroup(group), tag(0)
 {
 }
 

@@ -39,6 +39,7 @@ double ClusterEntity::calculateMetricDistance(const ClusterEntity& other) const
     double total_difference = 0;
     int offset = 0;
     if (metric_events->size() && other.metric_events->size())
+    {
         if (startStep < other.startStep)
         {
             num_matches = other.metric_events->size();
@@ -58,6 +59,7 @@ double ClusterEntity::calculateMetricDistance(const ClusterEntity& other) const
                                     * (other.metric_events->at(offset + i)
                                     - metric_events->at(i));
         }
+    }
     if (num_matches <= 0)
         return DBL_MAX;
     return total_difference / num_matches;

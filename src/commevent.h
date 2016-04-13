@@ -132,7 +132,6 @@ public:
     virtual void writeOTF2Leave(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap);
 
     virtual void fixPhases()=0;
-    virtual bool happens_before(CommEvent * prev) { Q_UNUSED(prev); return false; }
     virtual void calculate_differential_metric(QString metric_name,
                                                QString base_name,
                                                bool aggregates=true);
