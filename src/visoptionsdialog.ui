@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>340</width>
-    <height>290</height>
+    <width>357</width>
+    <height>292</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,6 +16,9 @@
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="QCheckBox" name="showAggregateCheckBox">
+     <property name="toolTip">
+      <string>Show steps in between messaging events. MPI only.</string>
+     </property>
      <property name="text">
       <string>show aggregate event steps</string>
      </property>
@@ -23,6 +26,9 @@
    </item>
    <item>
     <widget class="QCheckBox" name="traceBackCheckBox">
+     <property name="toolTip">
+      <string>Experimental.</string>
+     </property>
      <property name="text">
       <string>trace back idle time</string>
      </property>
@@ -30,6 +36,9 @@
    </item>
    <item>
     <widget class="QCheckBox" name="inactiveCheckBox">
+     <property name="toolTip">
+      <string>Cluster glyphs have transparent area to show inactive timelines at that step.</string>
+     </property>
      <property name="text">
       <string>show inactive proportion in cluster steps</string>
      </property>
@@ -37,15 +46,21 @@
    </item>
    <item>
     <widget class="QCheckBox" name="metricColorTraditionalCheckBox">
+     <property name="toolTip">
+      <string>Physical timeline events also colored using metric.</string>
+     </property>
      <property name="text">
-      <string>color traditional view with structure metric</string>
+      <string>color physical time view with structure metric</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QCheckBox" name="absoluteTimeCheckBox">
+     <property name="toolTip">
+      <string>Physical time axis shows absolute time rather than offset time.</string>
+     </property>
      <property name="text">
-      <string>absolute time in physical view</string>
+      <string>absolute time in physical time view</string>
      </property>
     </widget>
    </item>
@@ -59,6 +74,9 @@
      </property>
      <item>
       <widget class="QLabel" name="label_3">
+       <property name="toolTip">
+        <string>Message lines can be drawn from sender to receiver, within the sender event, or not at all.</string>
+       </property>
        <property name="text">
         <string>message style:</string>
        </property>
