@@ -5,7 +5,7 @@
 
 Message::Message(unsigned long long send, unsigned long long recv, int group)
     : CommBundle(), sendtime(send), recvtime(recv),
-      sender(NULL), receiver(NULL), taskgroup(group), tag(0)
+      sender(NULL), receiver(NULL), entitygroup(group), tag(0)
 {
 }
 

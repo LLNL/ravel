@@ -8,7 +8,7 @@ class CollectiveEvent : public CommEvent
 {
 public:
     CollectiveEvent(unsigned long long _enter, unsigned long long _exit,
-                    int _function, int _task, int _pe, int _phase,
+                    int _function, int _entity, int _pe, int _phase,
                     CollectiveRecord * _collective);
     ~CollectiveEvent();
 
@@ -29,7 +29,7 @@ public:
     void writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap);
 
     void addComms(QSet<CommBundle *> * bundleset) { bundleset->insert(collective); }
-    QList<int> neighborTasks();
+    QList<int> neighborEntities();
     CollectiveRecord * getCollective() { return collective; }
     QSet<Partition *> * mergeForMessagesHelper();
 

@@ -6,8 +6,8 @@
 #include "rpartition.h"
 
 CommEvent::CommEvent(unsigned long long _enter, unsigned long long _exit,
-                     int _function, int _task, int _pe, int _phase)
-    : Event(_enter, _exit, _function, _task, _pe),
+                     int _function, int _entity, int _pe, int _phase)
+    : Event(_enter, _exit, _function, _entity, _pe),
       //partition(NULL),
       comm_next(NULL),
       comm_prev(NULL),

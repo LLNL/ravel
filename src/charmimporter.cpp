@@ -6,7 +6,7 @@
 #include "message.h"
 #include "p2pevent.h"
 #include "event.h"
-#include "taskgroup.h"
+#include "entitygroup.h"
 #include <iostream>
 #include <QStringList>
 #include <QDir>
@@ -16,15 +16,15 @@
 #include <sstream>
 #include <fstream>
 #include "trace.h"
-#include "task.h"
-#include "taskgroup.h"
+#include "entity.h"
+#include "entitygroup.h"
 #include "function.h"
 #include "message.h"
 #include "p2pevent.h"
 #include "commevent.h"
 #include "event.h"
 #include "otfimportoptions.h"
-#include "primarytaskgroup.h"
+#include "primaryentitygroup.h"
 #include "metrics.h"
 
 #include "general_util.h"
@@ -44,28 +44,28 @@ CharmImporter::CharmImporter()
       recvMsg(new QSet<int>()),
       reductionEntries(new QSet<int>()),
       traceEnd(0),
-      num_application_tasks(0),
+      num_application_entities(0),
       reduction_count(0),
       trace(NULL),
       unmatched_recvs(NULL),
       sends(NULL),
       charm_stack(new QStack<CharmEvt *>()),
       charm_events(NULL),
-      task_events(NULL),
+      entity_events(NULL),
       pe_events(NULL),
       charm_p2ps(NULL),
       pe_p2ps(NULL),
       idle_to_next(new QMap<Event *, int>()),
       messages(new QVector<CharmMsg *>()),
-      primaries(new QMap<int, PrimaryTaskGroup *>()),
-      taskgroups(new QMap<int, TaskGroup *>()),
+      primaries(new QMap<int, PrimaryEntityGroup *>()),
+      entitygroups(new QMap<int, EntityGroup *>()),
       functiongroups(new QMap<int, QString>()),
       functions(new QMap<int, Function *>()),
       arrays(new QMap<int, ChareArray *>()),
       groups(new QMap<int, ChareGroup *>()),
       atomics(new QMap<int, int>()),
       reductions(new QMap<int, QMap<int, int> *>()),
-      chare_to_task(new QMap<ChareIndex, int>()),
+      chare_to_entity(new QMap<ChareIndex, int>()),
       last(QStack<CharmEvt *>()),
       last_evt(NULL),
       last_entry(NULL),
@@ -128,7 +128,7 @@ CharmImporter::~CharmImporter()
     delete addContribution;
     delete recvMsg;
     delete atomics;
-    delete chare_to_task;
+    delete chare_to_entity;
     delete reductionEntries;
 }
 
@@ -177,32 +177,32 @@ void CharmImporter::importCharmLog(QString dataFileName, OTFImportOptions * _opt
     // At this point, I have a list of events per PE
     // Now I have to check to see what chares are actually arrays
     // and then convert these by-PE events into by-chare
-    // events based on these arrays. I should also make taskgroups and stuff
-    int num_tasks = makeTasks();
+    // events based on these arrays. I should also make entitygroups and stuff
+    int num_entities = makeEntities();
 
-    // Now that we have num_tasks, create the rawtrace to hold the conversion
-    trace = new Trace(num_tasks, processes);
-    trace->num_application_tasks = num_application_tasks;
+    // Now that we have num_entities, create the rawtrace to hold the conversion
+    trace = new Trace(num_entities, processes);
+    trace->num_application_entities = num_application_entities;
     trace->units = 9;
     trace->functions = functions;
     trace->functionGroups = functiongroups;
-    trace->taskgroups = taskgroups;
+    trace->entitygroups = entitygroups;
     trace->primaries = primaries;
     trace->collective_definitions = new QMap<int, OTFCollective *>();
     trace->collectives = new QMap<unsigned long long, CollectiveRecord *>();
-    trace->collectiveMap = new QVector<QMap<unsigned long long, CollectiveRecord *> *>(num_tasks);
-    task_events = new QVector<QVector<CharmEvt *> *>(num_tasks);
-    charm_p2ps = new QVector<QVector<P2PEvent *> *>(num_tasks);
-    for (int i = 0; i < num_tasks; i++) {
+    trace->collectiveMap = new QVector<QMap<unsigned long long, CollectiveRecord *> *>(num_entities);
+    entity_events = new QVector<QVector<CharmEvt *> *>(num_entities);
+    charm_p2ps = new QVector<QVector<P2PEvent *> *>(num_entities);
+    for (int i = 0; i < num_entities; i++) {
         (*(trace->collectiveMap))[i] = new QMap<unsigned long long, CollectiveRecord *>();
         (*(trace->events))[i] = new QVector<Event *>();
-        (*(task_events))[i] = new QVector<CharmEvt *>();
+        (*(entity_events))[i] = new QVector<CharmEvt *>();
         (*(charm_p2ps))[i] = new QVector<P2PEvent *>();
     }
     trace->pe_events = pe_events;
 
     // Change per-PE stuff to per-chare stuff
-    makeTaskEvents();    
+    makeEntityEvents();
 
     // Idle calcs
     chargeIdleness();
@@ -288,12 +288,12 @@ void CharmImporter::cleanUp()
     delete charm_p2ps;
 
     for (QVector<QVector<CharmEvt *> *>::Iterator itr
-         = task_events->begin(); itr != task_events->end(); ++itr)
+         = entity_events->begin(); itr != entity_events->end(); ++itr)
     {
         // Evts deleted in charm_events
         delete *itr;
     }
-    delete task_events;
+    delete entity_events;
 
 
     for (int i = 0; i < processes; i++)
@@ -336,7 +336,7 @@ void CharmImporter::readLog(QString logFileName, bool gzipped, int pe)
 // Will fill the trace->pe_events and the trace->roots
 // After this is done we will take the trace events and
 // turn them into partitions.
-void CharmImporter::makeTaskEvents()
+void CharmImporter::makeEntityEvents()
 {
 
     // Setup idle metrics.
@@ -352,7 +352,7 @@ void CharmImporter::makeTaskEvents()
 
 
 
-    // Now make the task event hierarchy with roots and such
+    // Now make the entity event hierarchy with roots and such
     QStack<CharmEvt *>  * stack = new QStack<CharmEvt *>();
     int depth, phase;
     CharmEvt * bgn = NULL;
@@ -365,8 +365,8 @@ void CharmImporter::makeTaskEvents()
 
     if (verbose)
     {
-        for (QMap<ChareIndex, int>::Iterator map = chare_to_task->begin();
-             map != chare_to_task->end(); ++map)
+        for (QMap<ChareIndex, int>::Iterator map = chare_to_entity->begin();
+             map != chare_to_entity->end(); ++map)
         {
             std::cout << map.key().toVerboseString().toStdString().c_str() << " <---> " << map.value() << std::endl;
         }
@@ -378,7 +378,7 @@ void CharmImporter::makeTaskEvents()
     }
 
     // Go through each PE separately, creating events and if necessary
-    // putting them into charm_p2ps and setting their tasks appropriately
+    // putting them into charm_p2ps and setting their entities appropriately
     for (QVector<QVector<CharmEvt *> *>::Iterator event_list = charm_events->begin();
          event_list != charm_events->end(); ++event_list)
     {
@@ -403,7 +403,7 @@ void CharmImporter::makeTaskEvents()
                 }
 
                 // Enter is the only place with the true array id so we must
-                // get the task id here.
+                // get the entity id here.
                 if (have_arrays)
                 {
                     if (verbose)
@@ -412,7 +412,7 @@ void CharmImporter::makeTaskEvents()
                                                  || ((*evt)->index.chare == main && (*evt)->pe != 0)))
                              || (*evt)->index.chare == -1)
                     {
-                        (*evt)->task = -1;
+                        (*evt)->entity = -1;
                         if (verbose)
                             std::cout << "            setting to -1" << std::endl;
                     }
@@ -424,15 +424,15 @@ void CharmImporter::makeTaskEvents()
                         // This is the case where we attributed to main incorrectly since
                         // a send records its send destination chare rather than its called
                         // chare.
-                        (*evt)->task = num_application_tasks + (*evt)->pe;
+                        (*evt)->entity = num_application_entities + (*evt)->pe;
                         if (verbose)
                             std::cout << "            setting to runtime" << std::endl;
                     }
                     else // Should get main if nothing else works
                     {
-                        (*evt)->task = chare_to_task->value((*evt)->index);
+                        (*evt)->entity = chare_to_entity->value((*evt)->index);
                         if (verbose)
-                            std::cout << "            setting from chare_to_task" << std::endl;
+                            std::cout << "            setting from chare_to_entity" << std::endl;
                     }
                 }
                 else
@@ -441,19 +441,19 @@ void CharmImporter::makeTaskEvents()
                         std::cout << "            setting from no arrays" << std::endl;
                     if (chares->value((*evt)->index.chare)->indices->size() <= 1
                         && !application_chares.contains((*evt)->index.chare))
-                        (*evt)->task = -1;
+                        (*evt)->entity = -1;
                     else
-                        (*evt)->task = chare_to_task->value((*evt)->index);
+                        (*evt)->entity = chare_to_entity->value((*evt)->index);
                 }
 
-                if ((*evt)->task == -1) // runtime chare
+                if ((*evt)->entity == -1) // runtime chare
                 {
-                    (*evt)->task = num_application_tasks + (*evt)->pe;
+                    (*evt)->entity = num_application_entities + (*evt)->pe;
                     if (verbose)
                         std::cout << "            setting to runtime from -1" << std::endl;
                 }
                 if (verbose)
-                    std::cout << "            Setting Task to " << (*evt)->task << std::endl;
+                    std::cout << "            Setting Entity to " << (*evt)->entity << std::endl;
 
 
                 if (atomics->contains((*evt)->entry))
@@ -461,18 +461,18 @@ void CharmImporter::makeTaskEvents()
                     atomic = atomics->value((*evt)->entry);
 
                     // Check to see if we have a previous entry on the same
-                    // task. That may indicate a when clause.
+                    // entity. That may indicate a when clause.
                     P2PEvent * last_p2p = NULL;
-                    if (charm_p2ps->at((*evt)->task)->size() > 0)
-                        last_p2p = charm_p2ps->at((*evt)->task)->last();
+                    if (charm_p2ps->at((*evt)->entity)->size() > 0)
+                        last_p2p = charm_p2ps->at((*evt)->entity)->last();
                     Event * prev_evt = NULL;
                     if (trace->pe_events->at((*evt)->pe)->size() > 0)
                         prev_evt = trace->pe_events->at((*evt)->pe)->last();
-                    if (last_p2p && prev_evt && prev_evt->task == (*evt)->task)
+                    if (last_p2p && prev_evt && prev_evt->entity == (*evt)->entity)
                     {
                         // If these didn't have atomics set in them. We have
                         // to go through charm_p2ps because we need P2PEvents
-                        int index = charm_p2ps->at((*evt)->task)->size() - 1;
+                        int index = charm_p2ps->at((*evt)->entity)->size() - 1;
                         while (last_p2p->caller == prev_evt
                                && last_p2p->atomic < 0)
                         {
@@ -480,7 +480,7 @@ void CharmImporter::makeTaskEvents()
                             index--;
                             if (index < 0)
                                 break;
-                            last_p2p = charm_p2ps->at((*evt)->task)->at(index);
+                            last_p2p = charm_p2ps->at((*evt)->entity)->at(index);
                         }
                     }
 
@@ -511,7 +511,7 @@ void CharmImporter::makeTaskEvents()
                 } */
 
                 if (bgn)
-                    depth = makeTaskEventsPop(stack, bgn, (*evt)->time, phase, depth, atomic);
+                    depth = makeEntityEventsPop(stack, bgn, (*evt)->time, phase, depth, atomic);
 
                 // Unset atomic
                 if (atomics->contains(bgn->entry))
@@ -523,7 +523,7 @@ void CharmImporter::makeTaskEvents()
 
         // Unfinished begins
         while (!stack->isEmpty())
-            depth = makeTaskEventsPop(stack, stack->pop(), traceEnd, phase, depth, atomic);
+            depth = makeEntityEventsPop(stack, stack->pop(), traceEnd, phase, depth, atomic);
     } // Loop Event Lists
 
 
@@ -541,7 +541,7 @@ void CharmImporter::makeTaskEvents()
     delete stack;
 }
 
-int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
+int CharmImporter::makeEntityEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                                      long endtime, int phase, int depth, int atomic)
 {
     Event * e = NULL;
@@ -552,7 +552,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
         std::cout << " for " << chares->value(entries->value(bgn->entry)->chare)->name.toStdString().c_str();
         std::cout << "::" << entries->value(bgn->entry)->name.toStdString().c_str();
         std::cout << " with index " << bgn->index.toVerboseString().toStdString().c_str();
-        std::cout << " indicating task " << bgn->task;
+        std::cout << " indicating entity " << bgn->entity;
         std::cout << " at " << endtime << std::endl;
     }
 
@@ -562,7 +562,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
         // Then we need to make sure these get sorted in the right
         // place for charm messages so we can make partitions out of them appropriately.
         // Note this has to happen after the fact so we can sort appropriately
-        if (bgn->task < 0)
+        if (bgn->entity < 0)
         {
             return --depth;
         }
@@ -594,7 +594,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                     (*cmsg)->tracemsg->sender = new P2PEvent(bgn->time,
                                                              endtime,
                                                              bgn->entry,
-                                                             bgn->task,
+                                                             bgn->entity,
                                                              bgn->pe,
                                                              phase,
                                                              msgs);
@@ -602,7 +602,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                     (*cmsg)->tracemsg->sender->add_order = add_order;
                     add_order++;
                     (*cmsg)->send_evt->trace_evt = (*cmsg)->tracemsg->sender;
-                    charm_p2ps->at(bgn->task)->append((*cmsg)->tracemsg->sender);
+                    charm_p2ps->at(bgn->entity)->append((*cmsg)->tracemsg->sender);
                     if (verbose)
                         std::cout << "                      Adding" << std::endl;
 
@@ -634,7 +634,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                 (*cmsg)->tracemsg->receiver = new P2PEvent(bgn->time,
                                                            endtime,
                                                            bgn->entry,
-                                                           bgn->task,
+                                                           bgn->entity,
                                                            bgn->pe,
                                                            phase,
                                                            msgs);
@@ -642,7 +642,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                 (*cmsg)->tracemsg->receiver->is_recv = true;
                 (*cmsg)->tracemsg->receiver->add_order = add_order;
                 add_order++;
-                charm_p2ps->at(bgn->task)->append((*cmsg)->tracemsg->receiver);
+                charm_p2ps->at(bgn->entity)->append((*cmsg)->tracemsg->receiver);
                 if (verbose)
                     std::cout << "                      Adding" << std::endl;
 
@@ -670,7 +670,7 @@ int CharmImporter::makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
     else // Non-comm event
     {
         e = new Event(bgn->time, endtime, bgn->entry,
-                      bgn->task, bgn->pe);
+                      bgn->entity, bgn->pe);
         if (bgn->entry == IDLE_FXN)
         {
             // Index of the next comm event after this IDLE
@@ -805,7 +805,7 @@ void CharmImporter::buildPartitions()
         breakables = options->breakFunctions.split(",");
 
     int count = 0;
-    int taskid = 0;
+    int entityid = 0;
     for (QVector<QVector<P2PEvent *> *>::Iterator p2plist = charm_p2ps->begin();
          p2plist != charm_p2ps->end(); ++p2plist)
     {
@@ -856,7 +856,7 @@ void CharmImporter::buildPartitions()
             if (verbose)
             {
                 std::cout << "NEXT EVENT I am " << functions->value((*p2p)->caller->function)->name.toStdString().c_str();
-                std::cout << " we have prev: " << prev << " and taskid " << taskid << std::endl;
+                std::cout << " we have prev: " << prev << " and entityid " << entityid << std::endl;
             }
             if (!events->isEmpty())
             {
@@ -892,15 +892,15 @@ void CharmImporter::buildPartitions()
                     makePartition(events);
                     events->clear();
                 }
-                else if (prev && taskid < num_application_tasks) // 2)
+                else if (prev && entityid < num_application_entities) // 2)
                 {
                     // First figure out if the previous comm event was app only or not.
                     bool prev_app = true, my_app = true;
                     if (prev->is_recv)
                     {
                         if (verbose)
-                            std::cout << " * Prev sender task is " << prev->messages->first()->sender->task << std::endl;
-                        if (prev->messages->first()->sender->task >= num_application_tasks)
+                            std::cout << " * Prev sender entity is " << prev->messages->first()->sender->entity << std::endl;
+                        if (prev->messages->first()->sender->entity >= num_application_entities)
                         {
                             prev_app = false;
                         }
@@ -908,8 +908,8 @@ void CharmImporter::buildPartitions()
                     else
                     {
                         if (verbose)
-                            std::cout << " * Prev receiver task is " << prev->messages->first()->receiver->task << std::endl;
-                        if (prev->messages->first()->receiver->task >= num_application_tasks)
+                            std::cout << " * Prev receiver entity is " << prev->messages->first()->receiver->entity << std::endl;
+                        if (prev->messages->first()->receiver->entity >= num_application_entities)
                         {
                             prev_app = false;
                         }
@@ -919,8 +919,8 @@ void CharmImporter::buildPartitions()
                     if ((*p2p)->is_recv)
                     {
                         if (verbose)
-                            std::cout << " * My sender task is " << (*p2p)->messages->first()->sender->task << std::endl;
-                        if ((*p2p)->messages->first()->sender->task >= num_application_tasks)
+                            std::cout << " * My sender entity is " << (*p2p)->messages->first()->sender->entity << std::endl;
+                        if ((*p2p)->messages->first()->sender->entity >= num_application_entities)
                         {
                             my_app = false;
                         }
@@ -928,8 +928,8 @@ void CharmImporter::buildPartitions()
                     else
                     {
                         if (verbose)
-                            std::cout << " * My receiver task is " << (*p2p)->messages->first()->receiver->task << std::endl;
-                        if ((*p2p)->messages->first()->receiver->task >= num_application_tasks)
+                            std::cout << " * My receiver entity is " << (*p2p)->messages->first()->receiver->entity << std::endl;
+                        if ((*p2p)->messages->first()->receiver->entity >= num_application_entities)
                         {
                             my_app = false;
                         }
@@ -996,7 +996,7 @@ void CharmImporter::buildPartitions()
             // comm_next / comm_prev only set within the same caller
             // as that's what we know is a true ordering
             // This is true for charm++, may not be true for
-            // general task-based models
+            // general entity-based models
             if (prev && prev->caller != NULL
                 && ((prev->caller == (*p2p)->caller)
                     || ((*p2p)->matching == prev->matching
@@ -1021,7 +1021,7 @@ void CharmImporter::buildPartitions()
             true_prev = *p2p;
 
             events->append(*p2p);
-            trace->events->at((*p2p)->task)->append(*p2p);
+            trace->events->at((*p2p)->entity)->append(*p2p);
         }
 
         // Clear remaining in events;
@@ -1031,7 +1031,7 @@ void CharmImporter::buildPartitions()
             events->clear();
         }
 
-        taskid++;
+        entityid++;
     }
 
     delete events;
@@ -1061,9 +1061,9 @@ void CharmImporter::makePartition(QList<P2PEvent *> * events)
     }
     if (verbose)
     {
-        std::cout << "Making " << events->size() << " event partition of task " << events->first()->task << " of " << (num_application_tasks + processes);
+        std::cout << "Making " << events->size() << " event partition of entity " << events->first()->entity << " of " << (num_application_entities + processes);
     }
-    if (events->first()->task >= num_application_tasks)
+    if (events->first()->entity >= num_application_entities)
     {
         if (verbose)
             std::cout << " RUNTIME" << std::endl;
@@ -1077,16 +1077,16 @@ void CharmImporter::makePartition(QList<P2PEvent *> * events)
 }
 
 
-int CharmImporter::makeTasks()
+int CharmImporter::makeEntities()
 {
-    // Setup main task
-    primaries->insert(0, new PrimaryTaskGroup(0, "main"));
-    Task * mainTask = new Task(0, "main", primaries->value(0));
-    primaries->value(0)->tasks->append(mainTask);
-    chare_to_task->insert(ChareIndex(main, 0, 0, 0, 0), 0);
+    // Setup main entity
+    primaries->insert(0, new PrimaryEntityGroup(0, "main"));
+    Entity * mainEntity = new Entity(0, "main", primaries->value(0));
+    primaries->value(0)->entities->append(mainEntity);
+    chare_to_entity->insert(ChareIndex(main, 0, 0, 0, 0), 0);
     application_chares.insert(main);
 
-    int taskid = 1;
+    int entityid = 1;
     if (arrays->size() > 0)
     {
         QMap<int, int> chare_count = QMap<int, int>();
@@ -1108,7 +1108,7 @@ int CharmImporter::makeTasks()
             if (chare_count.value(array.value()->chare) > 1)
                 ptg_name += "_" + QString::number(array.key());
             primaries->insert(array.key(),
-                              new PrimaryTaskGroup(array.key(),
+                              new PrimaryEntityGroup(array.key(),
                                                    ptg_name));
             QList<ChareIndex> indices_list = array.value()->indices->toList();
             qSort(indices_list.begin(), indices_list.end());
@@ -1116,12 +1116,12 @@ int CharmImporter::makeTasks()
             for (QList<ChareIndex>::Iterator index = indices_list.begin();
                  index != indices_list.end(); ++index)
             {
-                Task * task = new Task(taskid,
+                Entity * entity = new Entity(entityid,
                                        (*index).toString(),
                                        primaries->value(array.key()));
-                primaries->value(array.key())->tasks->append(task);
-                chare_to_task->insert(*index, taskid);
-                taskid++;
+                primaries->value(array.key())->entities->append(entity);
+                chare_to_entity->insert(*index, entityid);
+                entityid++;
             }
 
             application_chares.insert(array.value()->chare);
@@ -1135,19 +1135,19 @@ int CharmImporter::makeTasks()
             if (chare.value()->indices->size() > 1)
             {
                 primaries->insert(chare.key(),
-                                  new PrimaryTaskGroup(chare.key(),
+                                  new PrimaryEntityGroup(chare.key(),
                                                        chare.value()->name));
                 QList<ChareIndex> indices_list = chare.value()->indices->toList();
                 qSort(indices_list.begin(), indices_list.end());
                 for (QList<ChareIndex>::Iterator index = indices_list.begin();
                      index != indices_list.end(); ++index)
                 {
-                    Task * task = new Task(taskid,
+                    Entity * entity = new Entity(entityid,
                                            (*index).toString(),
                                            primaries->value(chare.key()));
-                    primaries->value(chare.key())->tasks->append(task);
-                    chare_to_task->insert(*index, taskid);
-                    taskid++;
+                    primaries->value(chare.key())->entities->append(entity);
+                    chare_to_entity->insert(*index, entityid);
+                    entityid++;
                 }
 
                 application_chares.insert(chare.key());
@@ -1155,19 +1155,19 @@ int CharmImporter::makeTasks()
         }
     }
 
-    num_application_tasks = taskid;
+    num_application_entities = entityid;
     primaries->insert(chares->size(),
-                      new PrimaryTaskGroup(chares->size(),
+                      new PrimaryEntityGroup(chares->size(),
                                            "pe 0"));
     for (int i = 0; i < processes; i++)
     {
-        Task * task = new Task(taskid,
+        Entity * entity = new Entity(entityid,
                                "pe " + QString::number(i),
                                primaries->value(chares->size()));
-        primaries->value(chares->size())->tasks->append(task);
-        taskid++;
+        primaries->value(chares->size())->entities->append(entity);
+        entityid++;
     }
-    return taskid;
+    return entityid;
 }
 
 

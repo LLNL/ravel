@@ -8,7 +8,7 @@
 #include <climits>
 #include <cfloat>
 
-#include "task.h"
+#include "entity.h"
 #include "event.h"
 #include "commevent.h"
 #include "p2pevent.h"
@@ -18,17 +18,17 @@
 #include "otfimportoptions.h"
 #include "gnome.h"
 #include "exchangegnome.h"
-#include "taskgroup.h"
+#include "entitygroup.h"
 #include "otfcollective.h"
 #include "general_util.h"
-#include "primarytaskgroup.h"
+#include "primaryentitygroup.h"
 #include "metrics.h"
 
 Trace::Trace(int nt, int np)
     : name(""),
       fullpath(""),
-      num_tasks(nt),
-      num_application_tasks(nt), // for debug
+      num_entities(nt),
+      num_application_entities(nt), // for debug
       num_pes(np),
       units(-9),
       use_aggregates(true),
@@ -41,7 +41,7 @@ Trace::Trace(int nt, int np)
       functionGroups(new QMap<int, QString>()),
       functions(new QMap<int, Function *>()),
       primaries(NULL),
-      taskgroups(NULL),
+      entitygroups(NULL),
       collective_definitions(NULL),
       collectives(NULL),
       collectiveMap(NULL),
@@ -128,13 +128,13 @@ Trace::~Trace()
     }
     delete gnomes;
 
-    for (QMap<int, TaskGroup *>::Iterator comm = taskgroups->begin();
-         comm != taskgroups->end(); ++comm)
+    for (QMap<int, EntityGroup *>::Iterator comm = entitygroups->begin();
+         comm != entitygroups->end(); ++comm)
     {
         delete *comm;
         *comm = NULL;
     }
-    delete taskgroups;
+    delete entitygroups;
 
     for (QMap<int, OTFCollective *>::Iterator cdef = collective_definitions->begin();
          cdef != collective_definitions->end(); ++cdef)
@@ -158,14 +158,14 @@ Trace::~Trace()
     delete dag_step_dict;
 
 
-    for (QMap<int, PrimaryTaskGroup *>::Iterator primary = primaries->begin();
+    for (QMap<int, PrimaryEntityGroup *>::Iterator primary = primaries->begin();
          primary != primaries->end(); ++primary)
     {
-        for (QList<Task *>::Iterator task = primary.value()->tasks->begin();
-             task != primary.value()->tasks->end(); ++task)
+        for (QList<Entity *>::Iterator entity = primary.value()->entities->begin();
+             entity != primary.value()->entities->end(); ++entity)
         {
-            delete *task;
-            *task = NULL;
+            delete *entity;
+            *entity = NULL;
         }
         delete primary.value();
     }
@@ -682,7 +682,7 @@ void Trace::calculate_partition_duration()
                 // of time between it and the last thing that happend, so it
                 // essentially acts as a divisor for its caller.
                 // Receives are instantaneous because anything that happened
-                // before them may be on another PE or due to another task.
+                // before them may be on another PE or due to another entity.
                 // We set the extents here -- they default to the extents of the
                 // comm message, but we allow them to be longer for charm++
                 if ((*evt)->isReceive())
@@ -1072,7 +1072,7 @@ void Trace::calculate_lateness()
 }
 
 // What was left ambiguous is now set in stone
-void Trace::finalizeTaskEventOrder()
+void Trace::finalizeEntityEventOrder()
 {
     std::cout << "Forcing event order per partition (charm)..." << std::endl;
     if (options.reorderReceives)
@@ -1082,7 +1082,7 @@ void Trace::finalizeTaskEventOrder()
         {
             //if (!(*part)->runtime)
                 (*part)->receive_reorder();
-            (*part)->finalizeTaskEventOrder();
+            (*part)->finalizeEntityEventOrder();
         }
     }
     else
@@ -1090,7 +1090,7 @@ void Trace::finalizeTaskEventOrder()
         for (QList<Partition *>::Iterator part = partitions->begin();
              part != partitions->end(); ++part)
         {
-            (*part)->finalizeTaskEventOrder();
+            (*part)->finalizeEntityEventOrder();
         }
     }
 }
@@ -1480,9 +1480,9 @@ void Trace::mergeForCharmLeaps()
         QSet<Partition *> * next_leap = new QSet<Partition *>();
 
         // For each leap, we want to merge all groups that belong together
-        // due to overlapping tasks. However, we treat partitions that have
-        // application tasks (and possibly runtime ones) different from
-        // those that have only runtime tasks.
+        // due to overlapping entities. However, we treat partitions that have
+        // application entities (and possibly runtime ones) different from
+        // those that have only runtime entities.
         for (QSet<Partition *>::Iterator part = current_leap->begin();
              part != current_leap->end(); ++part)
         {
@@ -1671,7 +1671,7 @@ void Trace::mergeForCharmLeaps()
 
 
 
-//Sweep through by leap ordering partitions that have task overlaps
+//Sweep through by leap ordering partitions that have entity overlaps
 void Trace::forcePartitionDag()
 {
     std::cout << "Forcing partition dag..." << std::endl;
@@ -1709,8 +1709,8 @@ void Trace::forcePartitionDag()
                 if ((*other)->dag_leap != leap)
                     continue;
 
-                QSet<int> overlap_tasks = (*part)->task_overlap(*other);
-                if (!overlap_tasks.isEmpty())
+                QSet<int> overlap_entities = (*part)->entity_overlap(*other);
+                if (!overlap_entities.isEmpty())
                 {
                     // Now we have to figure out which one comes before the other
                     // We then create a parent/child relationship
@@ -1720,7 +1720,7 @@ void Trace::forcePartitionDag()
                     // - We set the dag_leap as a mark so we know to move on
                     // - We set the dag_leap again later when we are doing
                     // parent/child lookups in order to set the next_leap
-                    earlier = (*part)->earlier_partition(*other, overlap_tasks);
+                    earlier = (*part)->earlier_partition(*other, overlap_entities);
                     later = *other;
                     if (earlier == *other)
                     {
@@ -1728,7 +1728,7 @@ void Trace::forcePartitionDag()
                     }
 
                     if (debug)
-                        std::cout << "    Overlapped tasks! Earlier is " << earlier->debug_name << " vs " << later->debug_name << std::endl;
+                        std::cout << "    Overlapped entities! Earlier is " << earlier->debug_name << " vs " << later->debug_name << std::endl;
 
                     // Find overlapping parents that need to be removed
                     for (QSet<Partition *>::Iterator parent = later->parents->begin();
@@ -1738,13 +1738,13 @@ void Trace::forcePartitionDag()
                         if (!earlier->parents->contains(*parent))
                             continue;
 
-                        // Now test if parent has a task overlap, if so stage it
+                        // Now test if parent has a entity overlap, if so stage it
                         // for removal
-                        for (QMap<int, QList<CommEvent *> *>::Iterator tasklist
+                        for (QMap<int, QList<CommEvent *> *>::Iterator entitylist
                              = (*parent)->events->begin();
-                             tasklist != (*parent)->events->end(); ++tasklist)
+                             entitylist != (*parent)->events->end(); ++entitylist)
                         {
-                            if (overlap_tasks.contains(tasklist.key()))
+                            if (overlap_entities.contains(entitylist.key()))
                             {
                                 to_remove.insert(*parent);
                                 continue;
@@ -1813,28 +1813,28 @@ void Trace::forcePartitionDag()
     // in order to force this dag. We start from the back.
     set_dag_steps();
     leap -= 1; // Should be the last leap
-    QMap<int, int> task_to_last_leap = QMap<int, int>();
+    QMap<int, int> entity_to_last_leap = QMap<int, int>();
 
     int found_leap;
     QSet<Partition *> * search_leap;
-    QSet<int> found_tasks = QSet<int>();
+    QSet<int> found_entities = QSet<int>();
     QSet<int> found_leaps = QSet<int>();
-    QSet<int> seen_tasks = QSet<int>();
+    QSet<int> seen_entities = QSet<int>();
     while (leap >= 0)
     {
         current_leap = dag_step_dict->value(leap);
-        seen_tasks.clear();
+        seen_entities.clear();
         for (QSet<Partition *>::Iterator part = current_leap->begin();
              part != current_leap->end(); ++part)
         {
-            // Let's test for tasks! If we're okay, we need not do anything
-            QList<int> mytasks = (*part)->events->keys();
-            for (QList<int>::Iterator t = mytasks.begin(); t != mytasks.end(); ++t)
+            // Let's test for entities! If we're okay, we need not do anything
+            QList<int> myentities = (*part)->events->keys();
+            for (QList<int>::Iterator t = myentities.begin(); t != myentities.end(); ++t)
             {
-                seen_tasks.insert(*t);
+                seen_entities.insert(*t);
             }
 
-            QSet<int> missing = (*part)->check_task_children();
+            QSet<int> missing = (*part)->check_entity_children();
             if (missing.isEmpty())
                 continue;
 
@@ -1842,9 +1842,9 @@ void Trace::forcePartitionDag()
             for (QSet<int>::Iterator element = missing.begin();
                  element != missing.end(); ++element)
             {
-                if (task_to_last_leap.contains(*element))
+                if (entity_to_last_leap.contains(*element))
                 {
-                    found_leap = task_to_last_leap[*element];
+                    found_leap = entity_to_last_leap[*element];
                     found_leaps.insert(found_leap);
                 }
             }
@@ -1855,9 +1855,9 @@ void Trace::forcePartitionDag()
             for (QList<int>::Iterator next_leap = leap_list.begin();
                  next_leap != leap_list.end(); ++next_leap)
             {
-                found_tasks.clear();
+                found_entities.clear();
                 search_leap = dag_step_dict->value(*next_leap);
-                // Go through the leap setting the links whenever missing tasks are found
+                // Go through the leap setting the links whenever missing entities are found
                 for (QSet<Partition *>::Iterator spart = search_leap->begin();
                      spart != search_leap->end(); ++spart)
                 {
@@ -1865,17 +1865,17 @@ void Trace::forcePartitionDag()
                     {
                         (*part)->children->insert(*spart);
                         (*spart)->parents->insert(*part);
-                        found_tasks.unite((*spart)->events->keys().toSet());
+                        found_entities.unite((*spart)->events->keys().toSet());
                     }
                 }
-                missing.subtract(found_tasks);
+                missing.subtract(found_entities);
             }
         }
         // Update the last leap of chares at this leap to this one
-        for (QSet<int>::Iterator t = seen_tasks.begin();
-             t != seen_tasks.end(); ++t)
+        for (QSet<int>::Iterator t = seen_entities.begin();
+             t != seen_entities.end(); ++t)
         {
-            task_to_last_leap[*t] = leap;
+            entity_to_last_leap[*t] = leap;
         }
         leap--;
     }
@@ -1934,7 +1934,7 @@ void Trace::assignSteps()
 
         if (debug)
             output_graph("../debug-output/11-tracegraph-after.dot");
-        finalizeTaskEventOrder();
+        finalizeEntityEventOrder();
     }
     else if (options.reorderReceives)
     {
@@ -1943,7 +1943,7 @@ void Trace::assignSteps()
              part != partitions->end(); ++part)
         {
             (*part)->receive_reorder_mpi();
-            (*part)->finalizeTaskEventOrder();
+            (*part)->finalizeEntityEventOrder();
 
         }
     }
@@ -2062,7 +2062,7 @@ void Trace::assignSteps()
 }
 
 // Adjacent (parent/child off by one dag leap) partitions are merged if along
-// any task, they either share a least common caller or one's least common
+// any entity, they either share a least common caller or one's least common
 // call is a child of the other's.
 void Trace::mergeByCommonCaller()
 {
@@ -2107,26 +2107,26 @@ void Trace::mergeByCommonCaller()
             }
 
             bool merging = false;
-            QList<int> task_ids = (*part)->events->keys();
+            QList<int> entity_ids = (*part)->events->keys();
             QSet<Partition *> added = QSet<Partition *>();
 
-            // Go through tasks and see which children should be merged
-            // If the child has the same task as the partition, we see
+            // Go through entities and see which children should be merged
+            // If the child has the same entity as the partition, we see
             // what the least common caller of those events in each partition are
             // If they are related by subtree, we merge them.
-            for (QList<int>::Iterator taskid = task_ids.begin();
-                 taskid != task_ids.end(); ++taskid)
+            for (QList<int>::Iterator entityid = entity_ids.begin();
+                 entityid != entity_ids.end(); ++entityid)
             {
-                Event * part_caller = (*part)->least_common_caller(*taskid, memo);
+                Event * part_caller = (*part)->least_common_caller(*entityid, memo);
                 Event * child_caller;
                 if (part_caller)
                 {
                     for (QSet<Partition *>::Iterator child = near_children.begin();
                          child != near_children.end(); ++child)
                     {
-                        if ((*child)->events->contains(*taskid))
+                        if ((*child)->events->contains(*entityid))
                         {
-                            child_caller = (*child)->least_common_caller(*taskid, memo);
+                            child_caller = (*child)->least_common_caller(*entityid, memo);
 
                             // We have a match, put them in the same merge group
                             if (child_caller && part_caller->same_subtree(child_caller))
@@ -2148,20 +2148,20 @@ void Trace::mergeByCommonCaller()
                                     }
                                 } // Group stuff
                             } // Child matches
-                        } // Child has Task ID
+                        } // Child has Entity ID
                     } // Looking through near children
                 }
 
-                // Now that we have completed this set of task ids, update near_children
+                // Now that we have completed this set of entity ids, update near_children
                 // If this comes empty, we are done with this partition
                 near_children.subtract(added);
                 added.clear();
                 if (near_children.empty())
                     break;
 
-            } // Task ID
+            } // Entity ID
 
-            // We looked at all tasks and did not merge, so we're done with this one.
+            // We looked at all entities and did not merge, so we're done with this one.
             // In the next round, we'll want to look at its children instead
             if (!merging)
                 advance_set.insert(*part);
@@ -2344,20 +2344,20 @@ void Trace::mergeByLeap()
     }
     while (!current_leap->isEmpty())
     {
-        QSet<int> tasks = QSet<int>();
+        QSet<int> entities = QSet<int>();
         QSet<Partition *> * next_leap = new QSet<Partition *>();
         for (QSet<Partition *>::Iterator partition = current_leap->begin();
              partition != current_leap->end(); ++partition)
         {
-            tasks += QSet<int>::fromList((*partition)->events->keys());
+            entities += QSet<int>::fromList((*partition)->events->keys());
         }
 
 
-        // If this leap doesn't have all the tasks we have to do something
-        if (tasks.size() < num_tasks)
+        // If this leap doesn't have all the entities we have to do something
+        if (entities.size() < num_entities)
         {
             QSet<Partition *> * new_leap_parts = new QSet<Partition *>();
-            QSet<int> added_tasks = QSet<int>();
+            QSet<int> added_entities = QSet<int>();
             bool back_merge = false;
             for (QSet<Partition *>::Iterator partition = current_leap->begin();
                  partition != current_leap->end(); ++partition)
@@ -2423,10 +2423,10 @@ void Trace::mergeByLeap()
                     {
                         if ((*child)->dag_leap == (*partition)->dag_leap + 1
                              && ((QSet<int>::fromList((*child)->events->keys())
-                                  - tasks)).size() > 0)
+                                  - entities)).size() > 0)
                         {
-                            added_tasks += (QSet<int>::fromList((*child)->events->keys())
-                                                                     - tasks);
+                            added_entities += (QSet<int>::fromList((*child)->events->keys())
+                                                                     - entities);
                             (*partition)->group->unite(*((*child)->group));
                             for (QSet<Partition *>::Iterator group_member
                                  = (*partition)->group->begin();
@@ -2445,7 +2445,7 @@ void Trace::mergeByLeap()
                 // Groups created now
             }
 
-            if (!back_merge && added_tasks.size() <= 0)
+            if (!back_merge && added_entities.size() <= 0)
             {
                 // Skip leap if we didn't add anything
                 if (options.leapSkip)
@@ -2637,7 +2637,7 @@ void Trace::mergeByLeap()
             current_leap = next_leap;
 
             delete new_leap_parts;
-        } // End If Tasks Incomplete
+        } // End If Entities Incomplete
         else
         {
             for (QSet<Partition *>::Iterator partition
@@ -3294,7 +3294,7 @@ void Trace::set_dag_entries()
 
 
 // Set all the parents/children in the partition by checking where first and
-// last events in each task pointer.
+// last events in each entity pointer.
 void Trace::set_partition_dag()
 {
     dag_entries->clear();
@@ -3468,7 +3468,7 @@ QList<Trace::FunctionPair> Trace::getAggregateFunctions(CommEvent * evt)
     if (evt->comm_prev)
         starttime = evt->comm_prev->exit;
 
-    QVector<Event *> * proots = roots->at(evt->task);
+    QVector<Event *> * proots = roots->at(evt->entity);
     QMap<int, FunctionPair> * fpMap = new QMap<int, FunctionPair>();
 
     for (QVector<Event *>::Iterator root = proots->begin();
@@ -3515,11 +3515,11 @@ long long int Trace::getAggregateFunctionRecurse(Event * evt,
     return overlap;
 }
 
-Event * Trace::findEvent(int task, unsigned long long time)
+Event * Trace::findEvent(int entity, unsigned long long time)
 {
     Event * found = NULL;
-    for (QVector<Event *>::Iterator root = roots->at(task)->begin();
-         root != roots->at(task)->end(); ++root)
+    for (QVector<Event *>::Iterator root = roots->at(entity)->begin();
+         root != roots->at(entity)->end(); ++root)
     {
         found = (*root)->findChild(time);
         if (found)
@@ -3551,7 +3551,7 @@ void Trace::verify_partitions()
             std::cout << "BROKEN PARTITION" << std::endl;
             return;
         }
-        if (!(*part)->verify_runtime(num_application_tasks))
+        if (!(*part)->verify_runtime(num_application_entities))
         {
             std::cout << "RUNTIME MISMATCH" << std::endl;
             return;

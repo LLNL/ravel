@@ -20,7 +20,7 @@ public:
 
 public slots:
     virtual void selectEvent(Event * event, bool aggregate, bool overdraw);
-    void selectTasks(QList<int> tasks, Gnome *gnome);
+    void selectEntities(QList<int> entities, Gnome *gnome);
 
 protected:
     void drawHover(QPainter *painter);

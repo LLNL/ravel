@@ -1,10 +1,10 @@
 #include "rawtrace.h"
 
-#include "primarytaskgroup.h"
-#include "task.h"
+#include "primaryentitygroup.h"
+#include "entity.h"
 #include "eventrecord.h"
 #include "commrecord.h"
-#include "taskgroup.h"
+#include "entitygroup.h"
 #include "otfcollective.h"
 #include "collectiverecord.h"
 #include "function.h"
@@ -22,14 +22,14 @@ RawTrace::RawTrace(int nt, int np)
       events(NULL),
       messages(NULL),
       messages_r(NULL),
-      taskgroups(NULL),
+      entitygroups(NULL),
       collective_definitions(NULL),
       counters(NULL),
       counter_records(NULL),
       collectives(NULL),
       collectiveMap(NULL),
       collectiveBits(NULL),
-      num_tasks(nt),
+      num_entities(nt),
       num_pes(np),
       second_magnitude(1),
       from_saved_version(""),

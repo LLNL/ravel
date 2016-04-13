@@ -1,9 +1,9 @@
 #include "eventrecord.h"
 #include "event.h"
 
-EventRecord::EventRecord(unsigned int _task, unsigned long long int _t,
+EventRecord::EventRecord(unsigned int _entity, unsigned long long int _t,
                          unsigned int _v, bool _e)
-    : task(_task),
+    : entity(_entity),
       time(_t),
       value(_v),
       enter(_e),

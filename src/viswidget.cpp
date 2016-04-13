@@ -24,7 +24,7 @@ VisWidget::VisWidget(QWidget *parent, VisOptions * _options) :
     changeSource(false),
     border(20),
     drawnEvents(QMap<Event *, QRect>()),
-    selected_tasks(QList<int>()),
+    selected_entities(QList<int>()),
     selected_gnome(NULL),
     selected_event(NULL),
     selected_aggregate(false),
@@ -68,9 +68,9 @@ void VisWidget::selectEvent(Event * evt, bool aggregate, bool overdraw)
     Q_UNUSED(overdraw);
 }
 
-void VisWidget::selectTasks(QList<int> tasks, Gnome *gnome)
+void VisWidget::selectEntities(QList<int> entities, Gnome *gnome)
 {
-    Q_UNUSED(tasks);
+    Q_UNUSED(entities);
     Q_UNUSED(gnome);
 }
 
@@ -80,7 +80,7 @@ void VisWidget::setTrace(Trace * t)
     trace = t;
 
     drawnEvents.clear();
-    selected_tasks.clear();
+    selected_entities.clear();
     selected_gnome = NULL;
     selected_event = NULL;
     selected_aggregate = false;

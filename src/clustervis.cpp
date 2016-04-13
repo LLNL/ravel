@@ -29,8 +29,8 @@ void ClusterVis::setTrace(Trace * t)
         startStep = 0;
     stepSpan = initStepSpan;
     startEntity = 0;
-    entitySpan = trace->num_tasks;
-    maxEntities = trace->num_tasks;
+    entitySpan = trace->num_entities;
+    maxEntities = trace->num_entities;
     startPartition = 0;
 
     maxStep = trace->global_max_step;
@@ -204,12 +204,12 @@ void ClusterVis::mouseDoubleClickEvent(QMouseEvent * event)
                 {
                     changeSource = false;
                     g->setSelected(true);
-                    emit(tasksSelected(*(pc->members), g));
+                    emit(entitiesSelected(*(pc->members), g));
 
                 }
                 else
                 {
-                    emit(tasksSelected(QList<int>(), NULL));
+                    emit(entitiesSelected(QList<int>(), NULL));
                 }
             }
             return;
@@ -429,7 +429,7 @@ void ClusterVis::paintEvents(QPainter * painter)
             QRect gnomeRect = QRect(labelWidth + blockwidth * drawStart, 0,
                                     blockwidth * (drawSpan),
                                     part->events->size() / 1.0
-                                    / trace->num_tasks * effectiveHeight);
+                                    / trace->num_entities * effectiveHeight);
             part->gnome->drawGnomeQt(painter, gnomeRect, options, blockwidth);
             drawnGnomes[part->gnome] = gnomeRect;
             if (!leftmost)

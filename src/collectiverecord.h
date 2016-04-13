@@ -11,12 +11,12 @@ class CollectiveRecord : public CommBundle
 {
 public:
     CollectiveRecord(unsigned long long int _matching, unsigned int _root,
-                     unsigned int _collective, unsigned int _taskgroup);
+                     unsigned int _collective, unsigned int _entitygroup);
 
     unsigned long long int matchingId;
     unsigned int root;
     unsigned int collective;
-    unsigned int taskgroup;
+    unsigned int entitygroup;
     bool mark;
 
     QList<CollectiveEvent *> * events;

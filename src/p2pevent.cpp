@@ -7,9 +7,9 @@
 #include <iostream>
 
 P2PEvent::P2PEvent(unsigned long long _enter, unsigned long long _exit,
-                   int _function, int _task, int _pe, int _phase,
+                   int _function, int _entity, int _pe, int _phase,
                    QVector<Message *> *_messages)
-    : CommEvent(_enter, _exit, _function, _task, _pe, _phase),
+    : CommEvent(_enter, _exit, _function, _entity, _pe, _phase),
       subevents(NULL),
       messages(_messages),
       //add_order(-1),
@@ -19,7 +19,7 @@ P2PEvent::P2PEvent(unsigned long long _enter, unsigned long long _exit,
 
 P2PEvent::P2PEvent(QList<P2PEvent *> * _subevents)
     : CommEvent(_subevents->first()->enter, _subevents->last()->exit,
-                _subevents->first()->function, _subevents->first()->task,
+                _subevents->first()->function, _subevents->first()->entity,
                 _subevents->first()->pe, _subevents->first()->phase),
       subevents(_subevents),
       messages(new QVector<Message *>()),
@@ -276,7 +276,7 @@ void P2PEvent::update_basic_strides()
     if (comm_prev && comm_prev->partition == partition)
         last_stride = comm_prev;
 
-    // Set last_stride based on task
+    // Set last_stride based on entity
     while (last_stride && last_stride->stride < 0)
     {
         last_stride = last_stride->comm_prev;
@@ -285,7 +285,7 @@ void P2PEvent::update_basic_strides()
         last_stride = NULL;
 
     next_stride = comm_next;
-    // Set next_stride based on task
+    // Set next_stride based on entity
     while (next_stride && next_stride->stride < 0)
     {
         next_stride = next_stride->comm_next;
@@ -301,11 +301,11 @@ void P2PEvent::initialize_strides(QList<CommEvent *> * stride_events,
     {
         stride_events->append(this);
 
-        // The next one in the task is a stride child
+        // The next one in the entity is a stride child
         set_stride_relationships(this);
 
         // Follow messages to their receives and then along
-        // the new task to find more stride children
+        // the new entity to find more stride children
         for (QVector<Message *>::Iterator msg = messages->begin();
              msg != messages->end(); ++msg)
         {
@@ -317,7 +317,7 @@ void P2PEvent::initialize_strides(QList<CommEvent *> * stride_events,
         recv_events->append(this);
         if (comm_prev && comm_prev->partition == partition)
             last_stride = comm_prev;
-        // Set last_stride based on task
+        // Set last_stride based on entity
         while (last_stride && last_stride->isReceive())
         {
             last_stride = last_stride->comm_prev;
@@ -326,7 +326,7 @@ void P2PEvent::initialize_strides(QList<CommEvent *> * stride_events,
             last_stride = NULL;
 
         next_stride = comm_next;
-        // Set next_stride based on task
+        // Set next_stride based on entity
         while (next_stride && next_stride->isReceive())
         {
             next_stride = next_stride->comm_next;
@@ -339,18 +339,18 @@ void P2PEvent::initialize_strides(QList<CommEvent *> * stride_events,
 
 void P2PEvent::set_stride_relationships(CommEvent * base)
 {
-    CommEvent * task_next = base->comm_next;
+    CommEvent * entity_next = base->comm_next;
 
     // while we have receives
-    while (task_next && task_next->isReceive())
+    while (entity_next && entity_next->isReceive())
     {
-        task_next = task_next->comm_next;
+        entity_next = entity_next->comm_next;
     }
 
-    if (task_next && task_next->partition == partition)
+    if (entity_next && entity_next->partition == partition)
     {
-        stride_children->insert(task_next);
-        task_next->stride_parents->insert(this);
+        stride_children->insert(entity_next);
+        entity_next->stride_parents->insert(this);
     }
 }
 
@@ -382,7 +382,7 @@ void P2PEvent::set_reorder_strides(QMap<int, QList<CommEvent *> *> * stride_map,
          msg != messages->end(); ++msg)
     {
         (*msg)->receiver->stride = stride + offset;
-        //std::cout << "Setting stride " << (*msg)->receiver->stride << " for task " << (*msg)->receiver->task << " with add order " << (*msg)->receiver->add_order << std::endl;
+        //std::cout << "Setting stride " << (*msg)->receiver->stride << " for entity " << (*msg)->receiver->entity << " with add order " << (*msg)->receiver->add_order << std::endl;
 
         if (!stride_map->contains(stride + offset))
         {
@@ -405,7 +405,7 @@ void P2PEvent::set_reorder_strides(QMap<int, QList<CommEvent *> *> * stride_map,
                 (*msg)->receiver->last_stride = prev;
         }*/
 
-        // next stride for tie-breaking so we know what task it is
+        // next stride for tie-breaking so we know what entity it is
         (*msg)->receiver->next_stride = this;
     }
 }
@@ -537,16 +537,16 @@ void P2PEvent::addComms(QSet<CommBundle *> * bundleset)
         bundleset->insert(*msg);
 }
 
-QList<int> P2PEvent::neighborTasks()
+QList<int> P2PEvent::neighborEntities()
 {
     QSet<int> neighbors = QSet<int>();
     for (QVector<Message *>::Iterator msg = messages->begin();
          msg != messages->end(); ++msg)
     {
-        neighbors.insert((*msg)->receiver->task);
-        neighbors.insert((*msg)->sender->task);
+        neighbors.insert((*msg)->receiver->entity);
+        neighbors.insert((*msg)->sender->entity);
     }
-    neighbors.remove(task);
+    neighbors.remove(entity);
     return neighbors.toList();
 }
 
@@ -578,8 +578,8 @@ void P2PEvent::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attribu
              OTF2_EvtWriter_MpiRecv(writer,
                                     NULL,
                                     (*msg)->recvtime,
-                                    (*msg)->sender->task,
-                                    (*msg)->taskgroup,
+                                    (*msg)->sender->entity,
+                                    (*msg)->entitygroup,
                                     (*msg)->tag,
                                     (*msg)->size);
          }
@@ -588,8 +588,8 @@ void P2PEvent::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attribu
             OTF2_EvtWriter_MpiSend(writer,
                                    NULL,
                                    (*msg)->sendtime,
-                                   (*msg)->receiver->task,
-                                   (*msg)->taskgroup,
+                                   (*msg)->receiver->entity,
+                                   (*msg)->entitygroup,
                                    (*msg)->tag,
                                    (*msg)->size);
          }

@@ -10,7 +10,7 @@
 class Gnome;
 class Event;
 class CommEvent;
-class ClusterTask;
+class ClusterEntity;
 class Function;
 class Metrics;
 class Trace;
@@ -25,7 +25,7 @@ public:
     void sortEvents();
     void receive_reorder();
     void receive_reorder_mpi();
-    void finalizeTaskEventOrder();
+    void finalizeEntityEventOrder();
     void step();
     void basic_step();
 
@@ -42,7 +42,7 @@ public:
     unsigned long long int distance(Partition * other);
 
     // For common caller merge
-    Event * least_common_caller(int taskid, QMap<Event *, int> * memo = NULL);
+    Event * least_common_caller(int entityid, QMap<Event *, int> * memo = NULL);
 
     // For leap merge - which children can we merge to
     void calculate_dag_leap();
@@ -60,9 +60,9 @@ public:
     void true_children();
     void set_atomics();
     bool mergable(Partition * other);
-    QSet<int> task_overlap(Partition * other);
-    Partition * earlier_partition(Partition * other, QSet<int> overlap_tasks);
-    QSet<int> check_task_children();
+    QSet<int> entity_overlap(Partition * other);
+    Partition * earlier_partition(Partition * other, QSet<int> overlap_entities);
+    QSet<int> check_entity_children();
 
     void calculate_imbalance(int num_pes);
 
@@ -112,7 +112,7 @@ public:
     // between processes but don't aid performance so may be wasteful
     Gnome * gnome;
     int gnome_type;
-    QVector<ClusterTask *> * cluster_tasks;
+    QVector<ClusterEntity *> * cluster_entities;
     void makeClusterVectors(QString metric);
     QMap<int, QVector<long long int> *> * cluster_vectors;
     QMap<int, int> * cluster_step_starts;

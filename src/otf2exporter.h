@@ -7,7 +7,7 @@
 #include <QList>
 
 class Trace;
-class Task;
+class Entity;
 
 class OTF2Exporter
 {
@@ -39,7 +39,7 @@ public:
 
 private:
     Trace * trace;
-    QList<Task *> * tasks;
+    QList<Entity *> * entities;
     int ravel_string;
     int ravel_version_string;
 
@@ -51,10 +51,10 @@ private:
     int addString(QString str, int counter);
     void exportAttributes();
     void exportFunctions();
-    void exportTasks();
-    void exportTaskGroups();
+    void exportEntities();
+    void exportEntityGroups();
     void exportEvents();
-    void exportTaskEvents(int taskid);
+    void exportEntityEvents(int entityid);
 
     QMap<QString, int> inverseStringMap;
     QMap<QString, int> * attributeMap;

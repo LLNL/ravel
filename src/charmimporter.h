@@ -9,15 +9,15 @@
 #include <QStack>
 
 class Trace;
-class Task;
-class TaskGroup;
+class Entity;
+class EntityGroup;
 class Function;
 class OTFImportOptions;
 class Message;
 class Event;
 class P2PEvent;
 class CommEvent;
-class PrimaryTaskGroup;
+class PrimaryEntityGroup;
 
 class Message;
 
@@ -200,9 +200,9 @@ private:
     void readLog(QString logFileName, bool gzipped, int pe);
     void parseLine(QString line, int my_pe);
     void processDefinitions();
-    int makeTasks();
-    void makeTaskEvents();
-    int makeTaskEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
+    int makeEntities();
+    void makeEntityEvents();
+    int makeEntityEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
                           long endtime, int phase, int depth, int atomic);
 
     void chargeIdleness();
@@ -247,11 +247,11 @@ private:
     public:
         ChareGroup(int _chare)
             : chare(_chare),
-              first_task(-1),
+              first_entity(-1),
               pes(QSet<int>()) {}
 
         int chare;
-        int first_task;
+        int first_entity;
         QSet<int> pes;
     };
 
@@ -260,7 +260,7 @@ private:
         CharmMsg(int _mtype, long _mlen, int _pe, int _entry, int _event, int _mype)
             : sendtime(0), recvtime(0), msg_type(_mtype), msg_len(_mlen),
               send_pe(_pe), entry(_entry), event(_event), arrayid(0), recv_pe(_mype),
-              send_task(-1), recv_task(-1), send_evt(NULL), recv_evt(NULL),
+              send_entity(-1), recv_entity(-1), send_evt(NULL), recv_evt(NULL),
               tracemsg(NULL) {}
 
         unsigned long long sendtime;
@@ -272,8 +272,8 @@ private:
         int event;
         int arrayid;
         int recv_pe; // recv pe
-        int send_task;
-        int recv_task;
+        int send_entity;
+        int recv_entity;
 
         CharmEvt * send_evt;
         CharmEvt * recv_evt;
@@ -285,7 +285,7 @@ private:
     public:
         CharmEvt(int _entry, unsigned long long _time, int _pe, int _chare,
                  int _array, bool _enter = true)
-            : time(_time), pe(_pe), task(-1), enter(_enter),
+            : time(_time), pe(_pe), entity(-1), enter(_enter),
               chare(_chare), index(ChareIndex(-1, 0,0,0,0)),
               arrayid(_array), entry(_entry),
               charmmsgs(new QList<CharmMsg *>()), children(new QList<Event *>()),
@@ -333,7 +333,7 @@ private:
 
         unsigned long long time;
         int pe;
-        int task;
+        int entity;
         bool enter;
 
         int chare;
@@ -369,7 +369,7 @@ private:
     QSet<int> * recvMsg;
     QSet<int> * reductionEntries;
     long traceEnd;
-    int num_application_tasks;
+    int num_application_entities;
     int reduction_count;
 
     Trace * trace;
@@ -378,21 +378,21 @@ private:
     QVector<QMap<int, QList<CharmMsg *> *> *> * sends;
     QStack<CharmEvt *> * charm_stack;
     QVector<QVector<CharmEvt *> *> * charm_events;
-    QVector<QVector<CharmEvt *> *> * task_events;
+    QVector<QVector<CharmEvt *> *> * entity_events;
     QVector<QVector<Event *> *> * pe_events;
     QVector<QVector<P2PEvent *> *> * charm_p2ps;
     QVector<QVector<P2PEvent *> *> * pe_p2ps;
     QMap<Event *, int> * idle_to_next;
     QVector<CharmMsg *> * messages;
-    QMap<int, PrimaryTaskGroup *> * primaries;
-    QMap<int, TaskGroup *> * taskgroups;
+    QMap<int, PrimaryEntityGroup *> * primaries;
+    QMap<int, EntityGroup *> * entitygroups;
     QMap<int, QString> * functiongroups;
     QMap<int, Function *> * functions;
     QMap<int, ChareArray *> * arrays;
     QMap<int, ChareGroup *> * groups;
     QMap<int, int> * atomics; // Map EntryID to Atomic Number
     QMap<int, QMap<int, int> *> * reductions; // ArrayID -> Event -> associated_array;
-    QMap<ChareIndex, int> * chare_to_task;
+    QMap<ChareIndex, int> * chare_to_entity;
     QStack<CharmEvt *> last;
     CommEvent * last_evt;
     Event * last_entry;

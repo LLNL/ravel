@@ -4,7 +4,7 @@
 #include <iostream>
 #include <cmath>
 #include "general_util.h"
-#include "task.h"
+#include "entity.h"
 #include "rawtrace.h"
 #include "commrecord.h"
 #include "eventrecord.h"
@@ -12,9 +12,9 @@
 #include "function.h"
 #include "counter.h"
 #include "counterrecord.h"
-#include "taskgroup.h"
+#include "entitygroup.h"
 #include "otfcollective.h"
-#include "primarytaskgroup.h"
+#include "primaryentitygroup.h"
 #include "otf.h"
 
 OTFImporter::OTFImporter()
@@ -36,7 +36,7 @@ OTFImporter::OTFImporter()
       primaries(NULL),
       functionGroups(NULL),
       functions(NULL),
-      taskgroups(NULL),
+      entitygroups(NULL),
       collective_definitions(NULL),
       counters(NULL),
       collectives(NULL),
@@ -98,11 +98,11 @@ RawTrace * OTFImporter::importOTF(const char* otf_file, bool _enforceMessageSize
 
     setHandlers();
 
-    primaries = new QMap<int, PrimaryTaskGroup *>();
-    primaries->insert(0, new PrimaryTaskGroup(0, "MPI_COMM_WORLD"));
+    primaries = new QMap<int, PrimaryEntityGroup *>();
+    primaries->insert(0, new PrimaryEntityGroup(0, "MPI_COMM_WORLD"));
     functionGroups = new QMap<int, QString>();
     functions = new QMap<int, Function *>();
-    taskgroups = new QMap<int, TaskGroup *>();
+    entitygroups = new QMap<int, EntityGroup *>();
     collective_definitions = new QMap<int, OTFCollective *>();
     collectives = new QMap<unsigned long long, CollectiveRecord *>();
     counters = new QMap<unsigned int, Counter *>();
@@ -115,7 +115,7 @@ RawTrace * OTFImporter::importOTF(const char* otf_file, bool _enforceMessageSize
     rawtrace->second_magnitude = second_magnitude;
     rawtrace->functions = functions;
     rawtrace->functionGroups = functionGroups;
-    rawtrace->taskgroups = taskgroups;
+    rawtrace->entitygroups = entitygroups;
     rawtrace->collective_definitions = collective_definitions;
     rawtrace->collectives = collectives;
     rawtrace->counters = counters;
@@ -345,9 +345,9 @@ int OTFImporter::handleDefProcess(void * userData, uint32_t stream,
     Q_UNUSED(stream);
     Q_UNUSED(parent);
 
-    PrimaryTaskGroup * MPI = ((OTFImporter *) userData)->primaries->value(0);
-    MPI->tasks->insert(process - 1,
-                       new Task(process - 1, QString(name),
+    PrimaryEntityGroup * MPI = ((OTFImporter *) userData)->primaries->value(0);
+    MPI->entities->insert(process - 1,
+                       new Entity(process - 1, QString(name),
                        MPI));
     ((OTFImporter *) userData)->num_processes++;
     return 0;
@@ -516,13 +516,13 @@ int OTFImporter::handleDefProcessGroup(void * userData, uint32_t stream,
     if (qname.contains("MPI_COMM_SELF")) // Probably won't use this
         return 0;
 
-    TaskGroup * t = new TaskGroup(procGroup, qname);
+    EntityGroup * t = new EntityGroup(procGroup, qname);
     for (int i = 0; i < numberOfProcs; i++)
     {
-        t->tasks->append(procs[i] - 1);
-        t->taskorder->insert(procs[i] - 1, i);
+        t->entities->append(procs[i] - 1);
+        t->entityorder->insert(procs[i] - 1, i);
     }
-    (*(((OTFImporter*) userData)->taskgroups))[procGroup] = t;
+    (*(((OTFImporter*) userData)->entitygroups))[procGroup] = t;
 
     return 0;
 }

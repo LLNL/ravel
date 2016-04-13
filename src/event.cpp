@@ -5,13 +5,13 @@
 #include <iostream>
 
 Event::Event(unsigned long long _enter, unsigned long long _exit,
-             int _function, int _task, int _pe)
+             int _function, int _entity, int _pe)
     : caller(NULL),
       callees(new QVector<Event *>()),
       enter(_enter),
       exit(_exit),
       function(_function),
-      task(_task),
+      entity(_entity),
       pe(_pe),
       depth(-1),
       add_order(0),

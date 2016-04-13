@@ -6,9 +6,8 @@
 #include <QVector>
 #include <stdint.h>
 
-class PrimaryTaskGroup;
-class TaskGroup;
-class Task;
+class PrimaryEntityGroup;
+class EntityGroup;
 class CommRecord;
 class OTFCollective;
 class CollectiveRecord;
@@ -35,13 +34,13 @@ public:
     };
 
     OTFImportOptions * options;
-    QMap<int, PrimaryTaskGroup *> * primaries;
+    QMap<int, PrimaryEntityGroup *> * primaries;
     QMap<int, QString> * functionGroups;
     QMap<int, Function *> * functions;
     QVector<QVector<EventRecord *> *> * events;
     QVector<QVector<CommRecord *> *> * messages;
     QVector<QVector<CommRecord *> *> * messages_r; // by receiver instead of sender
-    QMap<int, TaskGroup *> * taskgroups;
+    QMap<int, EntityGroup *> * entitygroups;
     QMap<int, OTFCollective *> * collective_definitions;
     QMap<unsigned int, Counter *> * counters;
     QVector<QVector<CounterRecord * > *> * counter_records;
@@ -49,7 +48,7 @@ public:
     QMap<unsigned long long, CollectiveRecord *> * collectives;
     QVector<QMap<unsigned long long, CollectiveRecord *> *> * collectiveMap;
     QVector<QVector<CollectiveBit *> *> * collectiveBits;
-    int num_tasks;
+    int num_entities;
     int num_pes;
     int second_magnitude; // seconds are 10^this over the smallest smaple unit
     QString from_saved_version;

@@ -78,13 +78,13 @@ set(Ravel_SOURCES
     counter.cpp
     counterrecord.cpp
     otf2importer.cpp
-    task.cpp
-    clustertask.cpp
-    taskgroup.cpp
+    entity.cpp
+    clusterentity.cpp
+    entitygroup.cpp
     otf2exporter.cpp
     otf2exportfunctor.cpp
     charmimporter.cpp
-    primarytaskgroup.cpp
+    primaryentitygroup.cpp
     metrics.cpp
     ${ADDED_SOURCES}
 )
@@ -130,13 +130,13 @@ set(Ravel_HEADERS
     counter.h
     counterrecord.h
     otf2importer.h
-    task.h
-    clustertask.h
-    taskgroup.h
+    entity.h
+    clusterentity.h
+    entitygroup.h
     otf2exporter.h
     otf2exportfunctor.h
     charmimporter.h
-    primarytaskgroup.h
+    primaryentitygroup.h
     metrics.h
     ${ADDED_HEADERS}
 )

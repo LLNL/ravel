@@ -6,7 +6,7 @@
 #include "event.h"
 #include "commevent.h"
 #include "collectiverecord.h"
-#include "clustertask.h"
+#include "clusterentity.h"
 #include "general_util.h"
 #include "message.h"
 #include "p2pevent.h"
@@ -39,7 +39,7 @@ Partition::Partition()
       gvid(""),
       gnome(NULL),
       gnome_type(0),
-      cluster_tasks(new QVector<ClusterTask *>()),
+      cluster_entities(new QVector<ClusterEntity *>()),
       cluster_vectors(new QMap<int, QVector<long long int> *>()),
       cluster_step_starts(new QMap<int, int>()),
       debug_mark(false),
@@ -121,14 +121,14 @@ bool Partition::operator==(const Partition &partition)
 // Does not order, just places them at the end
 void Partition::addEvent(CommEvent * e)
 {
-    if (events->contains(e->task))
+    if (events->contains(e->entity))
     {
-        ((*events)[e->task])->append(e);
+        ((*events)[e->entity])->append(e);
     }
     else
     {
-        (*events)[e->task] = new QList<CommEvent *>();
-        ((*events)[e->task])->append(e);
+        (*events)[e->entity] = new QList<CommEvent *>();
+        ((*events)[e->entity])->append(e);
     }
 }
 
@@ -142,8 +142,8 @@ void Partition::sortEvents(){
 }
 
 
-// The minimum over all tasks of the time difference between the last event
-// in one partition and the first event in another, per task
+// The minimum over all entities of the time difference between the last event
+// in one partition and the first event in another, per entity
 unsigned long long int Partition::distance(Partition * other)
 {
     unsigned long long int dist = ULLONG_MAX;
@@ -196,9 +196,9 @@ void Partition::calculate_dag_leap()
 
 }
 
-Event * Partition::least_common_caller(int taskid, QMap<Event *, int> * memo)
+Event * Partition::least_common_caller(int entityid, QMap<Event *, int> * memo)
 {
-    QList<CommEvent *> * evts = events->value(taskid);
+    QList<CommEvent *> * evts = events->value(entityid);
     if (evts->size() > 1)
     {
         Event * evt1, * evt2;
@@ -226,8 +226,8 @@ void Partition::set_atomics()
 // Set children based on semantic heuristics like comm_next/comm_prev (though
 // that should have been done already) and atomic order.
 // For atomic order, we just need to know the number since we know by our
-// events list are by task so we know all atomic numbers belong to the
-// same task.
+// events list are by entity so we know all atomic numbers belong to the
+// same entity.
 void Partition::semantic_children()
 {
     for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
@@ -248,7 +248,7 @@ void Partition::semantic_children()
                     std::cout << debug_functions->value((*evt)->caller->function)->name.toStdString().c_str();
                     std::cout << " to ";
                     std::cout << debug_functions->value((*evt)->comm_next->caller->function)->name.toStdString().c_str();
-                    std::cout << " on " << (*evt)->task << std::endl;
+                    std::cout << " on " << (*evt)->entity << std::endl;
                 }
             }
 
@@ -267,7 +267,7 @@ void Partition::semantic_children()
                         std::cout << debug_functions->value((*evt)->caller->function)->name.toStdString().c_str();
                         std::cout << " to ";
                         std::cout << debug_functions->value((*evt)->true_next->caller->function)->name.toStdString().c_str();
-                        std::cout << " on " << (*evt)->task << std::endl;
+                        std::cout << " on " << (*evt)->entity << std::endl;
                     }
                 }
             }
@@ -311,7 +311,7 @@ void Partition::true_children()
                                 std::cout << debug_functions->value((*evt)->caller->function)->name.toStdString().c_str();
                                 std::cout << " to ";
                                 std::cout << debug_functions->value(tmp->caller->function)->name.toStdString().c_str();
-                                std::cout << " on " << (*evt)->task << std::endl;
+                                std::cout << " on " << (*evt)->entity << std::endl;
                             }
                         }
                         break;
@@ -334,7 +334,7 @@ void Partition::true_children()
                     std::cout << debug_functions->value((*evt)->caller->function)->name.toStdString().c_str();
                     std::cout << " to ";
                     std::cout << debug_functions->value((*evt)->true_next->caller->function)->name.toStdString().c_str();
-                    std::cout << " on " << (*evt)->task << std::endl;
+                    std::cout << " on " << (*evt)->entity << std::endl;
                 }
             }
         }
@@ -342,17 +342,17 @@ void Partition::true_children()
 }
 
 // Check if these are mergable in that they are the same from a runtime
-// inclusion standpoint and they have task overlap.
+// inclusion standpoint and they have entity overlap.
 bool Partition::mergable(Partition * other)
 {
     if (runtime != other->runtime)
         return false;
 
     bool overlap = false;
-    for (QMap<int, QList<CommEvent *> *>::Iterator tasklist = events->begin();
-         tasklist != events->end(); ++tasklist)
+    for (QMap<int, QList<CommEvent *> *>::Iterator entitylist = events->begin();
+         entitylist != events->end(); ++entitylist)
     {
-        if (other->events->contains(tasklist.key()))
+        if (other->events->contains(entitylist.key()))
             overlap = true;
     }
     return overlap;
@@ -421,39 +421,39 @@ void Partition::stitched_atomics(QSet<Partition *> * stitchees)
     }
 }
 
-QSet<int> Partition::check_task_children()
+QSet<int> Partition::check_entity_children()
 {
-    QSet<int> task_children = events->keys().toSet();
+    QSet<int> entity_children = events->keys().toSet();
     for (QSet<Partition *>::Iterator child = children->begin();
          child != children->end(); ++child)
     {
-        task_children.subtract((*child)->events->keys().toSet());
-        if (task_children.isEmpty())
-            return task_children;
+        entity_children.subtract((*child)->events->keys().toSet());
+        if (entity_children.isEmpty())
+            return entity_children;
     }
-    return task_children;
+    return entity_children;
 }
 
-// Find task overlaps between partitions.
-QSet<int> Partition::task_overlap(Partition * other)
+// Find entity overlaps between partitions.
+QSet<int> Partition::entity_overlap(Partition * other)
 {
     QSet<int> overlap = QSet<int>();
-    for (QMap<int, QList<CommEvent *> *>::Iterator tasklist = events->begin();
-         tasklist != events->end(); ++tasklist)
+    for (QMap<int, QList<CommEvent *> *>::Iterator entitylist = events->begin();
+         entitylist != events->end(); ++entitylist)
     {
         // We can't compare
-        if (other->events->contains(tasklist.key()))
-            overlap.insert(tasklist.key());
+        if (other->events->contains(entitylist.key()))
+            overlap.insert(entitylist.key());
     }
 
     return overlap;
 }
 
 // Figure out which partition comes before the other. This
-// assumes that there is at least one task of overlap.
+// assumes that there is at least one entity of overlap.
 // If we can find a caller (comm_next/comm_prev) ordering,
 // we will use that. Otherwise, we will take a vote of
-// which has the earliest earlier events per task.
+// which has the earliest earlier events per entity.
 // Presumable we won't have the latter happening since that
 // would be set up in order by earlier stuff and hopefully
 // any cycles would have been found their earlier as well.
@@ -463,8 +463,8 @@ QSet<int> Partition::task_overlap(Partition * other)
 // e.g. things that are sends where the comm_prev is non-existent or
 // is in a different partition.
 // We also want to take PE into account since some will share a PE.
-// Then we can probably compare them even if they're different tasks.
-Partition * Partition::earlier_partition(Partition * other, QSet<int> overlap_tasks)
+// Then we can probably compare them even if they're different entities.
+Partition * Partition::earlier_partition(Partition * other, QSet<int> overlap_entities)
 {
     // Counts for which one has the earlier earliest event
     int me = 0, them = 0, me_both = 0, them_both = 0;
@@ -472,13 +472,13 @@ Partition * Partition::earlier_partition(Partition * other, QSet<int> overlap_ta
 
     QMap<int, QList<CommEvent *> *> by_pe = QMap<int, QList<CommEvent *> *>();
 
-    for (QSet<int>::Iterator task = overlap_tasks.begin();
-         task != overlap_tasks.end(); ++task)
+    for (QSet<int>::Iterator entity = overlap_entities.begin();
+         entity != overlap_entities.end(); ++entity)
     {
         // Now let's just do the voting and avoid the comm/prev/next
         // thing for now because we believe it already taken care of
-        CommEvent * mine = events->value(*task)->first();
-        CommEvent * theirs = other->events->value(*task)->first();
+        CommEvent * mine = events->value(*entity)->first();
+        CommEvent * theirs = other->events->value(*entity)->first();
         if (!by_pe.contains(mine->pe))
             by_pe.insert(mine->pe, new QList<CommEvent *>());
         if (!by_pe.contains(theirs->pe))
@@ -516,7 +516,7 @@ Partition * Partition::earlier_partition(Partition * other, QSet<int> overlap_ta
 
     }
 
-    // Well we can't do this by task, so let's do this by pe
+    // Well we can't do this by entity, so let's do this by pe
     int me_pe = 0, them_pe = 0;
     if (me_both == them_both)
     {
@@ -557,7 +557,7 @@ Partition * Partition::earlier_partition(Partition * other, QSet<int> overlap_ta
 // In the future, we may change this order around based on other things.
 // Note this will break the comm_next/comm_prev relationships between
 // partitions, but by the time this is used it shouldn't matter.
-void Partition::finalizeTaskEventOrder()
+void Partition::finalizeEntityEventOrder()
 {
     CommEvent * prev;
 
@@ -678,8 +678,6 @@ void Partition::receive_reorder_mpi()
 
         // Update this
         current_stride++;
-        std::cout << "Current stride is thus..." << current_stride << " of " << max_stride << std::endl;
-
     } // End stride increasing
 
     std::cout << "Sorting..." << std::endl;
@@ -879,17 +877,17 @@ void Partition::basic_step()
 
     // Inflate P2P Events between collectives
     max_step = -1;
-    int task;
+    int entity;
     CommEvent * evt;
-    QList<int> tasks = events->keys();
+    QList<int> entities = events->keys();
     QMap<int, CommEvent*> next_step = QMap<int, CommEvent*>();
-    for (int i = 0; i < tasks.size(); i++)
+    for (int i = 0; i < entities.size(); i++)
     {
-        if ((*events)[tasks[i]]->size() > 0) {
-            next_step[tasks[i]] = (*events)[tasks[i]]->at(0);
+        if ((*events)[entities[i]]->size() > 0) {
+            next_step[entities[i]] = (*events)[entities[i]]->at(0);
         }
         else
-            next_step[tasks[i]] = NULL;
+            next_step[entities[i]] = NULL;
     }
 
     // Start from one since that's where our strides start
@@ -902,10 +900,10 @@ void Partition::basic_step()
         while (!at_stride)
         {
             at_stride = true;
-            for (int i = 0; i < tasks.size(); i++)
+            for (int i = 0; i < entities.size(); i++)
             {
-                task = tasks[i];
-                evt = next_step[task];
+                entity = entities[i];
+                evt = next_step[entity];
 
                 // We are not at_stride
                 if (!(evt && evt->stride == stride))
@@ -945,7 +943,7 @@ void Partition::basic_step()
                 }
 
                 // Save where we are
-                next_step[task] = evt;
+                next_step[entity] = evt;
                 if (evt && evt->stride < 0)
                 {
                     at_stride = false;
@@ -956,18 +954,18 @@ void Partition::basic_step()
         // Now we know that the stride should be at max_step + 1
         // So set all of those
         bool increaseMax = false;
-        for (int i = 0; i < tasks.size(); i++)
+        for (int i = 0; i < entities.size(); i++)
         {
-            task = tasks[i];
-            evt = next_step[task];
+            entity = entities[i];
+            evt = next_step[entity];
 
             if (evt && evt->stride == stride)
             {
                 evt->step = max_step + 1;
                 if (evt->comm_next && evt->comm_next->partition == this)
-                    next_step[task] = evt->comm_next;
+                    next_step[entity] = evt->comm_next;
                 else
-                    next_step[task] = NULL;
+                    next_step[entity] = NULL;
 
                 increaseMax = true;
             }
@@ -983,10 +981,10 @@ void Partition::basic_step()
     while (not_done)
     {
         not_done = false;
-        for (int i = 0; i < tasks.size(); i++)
+        for (int i = 0; i < entities.size(); i++)
         {
-            task = tasks[i];
-            evt = next_step[task];
+            entity = entities[i];
+            evt = next_step[entity];
 
             move_forward = true;
             // and have all their parents taken care of
@@ -1019,7 +1017,7 @@ void Partition::basic_step()
                 }
             }
             // Save where we are
-            next_step[task] = evt;
+            next_step[entity] = evt;
             // We still need to keep going through this
             if (evt && evt->partition == this)
                 not_done = true;
@@ -1027,7 +1025,7 @@ void Partition::basic_step()
     }
 
     // Now that we have finished, we should also have a correct max_step
-    // for this task.
+    // for this entity.
 }
 
 void Partition::step()
@@ -1069,26 +1067,26 @@ void Partition::step()
     // This may be somewhat similar to restep/finalize... but slightly
     // different so look into that.
     max_step = -1;
-    int task;
+    int entity;
     CommEvent * evt;
-    QList<int> tasks = events->keys();
+    QList<int> entities = events->keys();
     QMap<int, CommEvent*> next_step = QMap<int, CommEvent*>();
-    for (int i = 0; i < tasks.size(); i++)
+    for (int i = 0; i < entities.size(); i++)
     {
-        if ((*events)[tasks[i]]->size() > 0) {
-            next_step[tasks[i]] = (*events)[tasks[i]]->at(0);
+        if ((*events)[entities[i]]->size() > 0) {
+            next_step[entities[i]] = (*events)[entities[i]]->at(0);
         }
         else
-            next_step[tasks[i]] = NULL;
+            next_step[entities[i]] = NULL;
     }
 
     for (int stride = 0; stride <= max_stride; stride++)
     {
         // Step the sends that come before this stride
-        for (int i = 0; i < tasks.size(); i++)
+        for (int i = 0; i < entities.size(); i++)
         {
-            task = tasks[i];
-            evt = next_step[task];
+            entity = entities[i];
+            evt = next_step[entity];
 
             // We want recvs that can be set at this stride and are blocking
             // the current send strides from being sent. That means the
@@ -1104,7 +1102,7 @@ void Partition::step()
                     // It has to go after its previous event but it also
                     // has to go after any of its sends. The maximum
                     // step of any of its sends will be in last_stride.
-                    // (If last_stride is its task-previous, then
+                    // (If last_stride is its entity-previous, then
                     // it will be covered by comm_prev).
                     evt->step = 1 + std::max(evt->comm_prev->step,
                                               evt->last_stride->step);
@@ -1121,24 +1119,24 @@ void Partition::step()
             }
 
             // Save where we are
-            next_step[task] = evt;
+            next_step[entity] = evt;
         }
 
         // Now we know that the stride should be at max_step + 1
         // So set all of those
         bool increaseMax = false;
-        for (int i = 0; i < tasks.size(); i++)
+        for (int i = 0; i < entities.size(); i++)
         {
-            task = tasks[i];
-            evt = next_step[task];
+            entity = entities[i];
+            evt = next_step[entity];
 
             if (evt && evt->stride == stride)
             {
                 evt->step = max_step + 1;
                 if (evt->comm_next && evt->comm_next->partition == this)
-                    next_step[task] = evt->comm_next;
+                    next_step[entity] = evt->comm_next;
                 else
-                    next_step[task] = NULL;
+                    next_step[entity] = NULL;
 
                 increaseMax = true;
             }
@@ -1148,10 +1146,10 @@ void Partition::step()
     }
 
     // Now handle all of the left over recvs
-    for (int i = 0; i < tasks.size(); i++)
+    for (int i = 0; i < entities.size(); i++)
     {
-        task = tasks[i];
-        evt = next_step[task];
+        entity = entities[i];
+        evt = next_step[entity];
 
         // We only want things in the current partition
         while (evt && evt->partition == this)
@@ -1169,7 +1167,7 @@ void Partition::step()
     }
 
     // Now that we have finished, we should also have a correct max_step
-    // for this task.
+    // for this entity.
 }
 
 int Partition::set_stride_dag(QList<CommEvent *> * stride_events)
@@ -1291,17 +1289,17 @@ void Partition::makeClusterVectors(QString metric)
     {
         delete itr.value();
     }
-    for (QVector<ClusterTask *>::Iterator itr
-         = cluster_tasks->begin(); itr != cluster_tasks->end(); ++itr)
+    for (QVector<ClusterEntity *>::Iterator itr
+         = cluster_entities->begin(); itr != cluster_entities->end(); ++itr)
     {
         delete *itr;
     }
-    cluster_tasks->clear();
+    cluster_entities->clear();
     cluster_vectors->clear();
     cluster_step_starts->clear();
 
 
-    // Create a ClusterTask for each task and in each set metric_events
+    // Create a ClusterEntity for each entity and in each set metric_events
     // so it fills in the missing steps with the previous metric value.
     for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
@@ -1311,8 +1309,8 @@ void Partition::makeClusterVectors(QString metric)
         long long int last_value = 0;
         int last_step = (event_list.value())->at(0)->step;
         (*cluster_step_starts)[event_list.key()] = last_step;
-        ClusterTask * cp = new ClusterTask(event_list.key(), last_step);
-        cluster_tasks->append(cp);
+        ClusterEntity * cp = new ClusterEntity(event_list.key(), last_step);
+        cluster_entities->append(cp);
         for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
              evt != (event_list.value())->end(); ++evt)
         {
@@ -1459,14 +1457,14 @@ void Partition::output_graph(QString filename, Trace * trace)
     graph2 << indent.toStdString().c_str() << "graph [bgcolor=transparent];\n";
     graph2 << indent.toStdString().c_str() << "node [label=\"\\N\"];\n";
 
-    QMap<int, QString> tasks = QMap<int, QString>();
+    QMap<int, QString> entities = QMap<int, QString>();
 
     int id = 0;
     for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
          evtlist != events->end(); ++evtlist)
     {
-        tasks.insert(evtlist.key(), QString::number(id));
-        graph2 << indent.toStdString().c_str() << tasks.value(evtlist.key()).toStdString().c_str();
+        entities.insert(evtlist.key(), QString::number(id));
+        graph2 << indent.toStdString().c_str() << entities.value(evtlist.key()).toStdString().c_str();
         graph2 << " [label=\"";
         graph2 << "t=" << QString::number(evtlist.key()).toStdString().c_str();\
         graph2 << "\"];\n";
@@ -1477,7 +1475,7 @@ void Partition::output_graph(QString filename, Trace * trace)
             (*evt)->gvid = QString::number(id);
             graph << indent.toStdString().c_str() << (*evt)->gvid.toStdString().c_str();
             graph << " [label=\"";
-            graph << "t=" << QString::number((*evt)->task).toStdString().c_str();\
+            graph << "t=" << QString::number((*evt)->entity).toStdString().c_str();\
             graph << ", p=" << QString::number((*evt)->pe).toStdString().c_str();
             graph << ", s: " << QString::number((*evt)->step).toStdString().c_str();
             graph << ", e: " << QString::number((*evt)->exit).toStdString().c_str();
@@ -1488,7 +1486,7 @@ void Partition::output_graph(QString filename, Trace * trace)
 
             graph2 << indent.toStdString().c_str() << (*evt)->gvid.toStdString().c_str();
             graph2 << " [label=\"";
-            graph2 << "t=" << QString::number((*evt)->task).toStdString().c_str();\
+            graph2 << "t=" << QString::number((*evt)->entity).toStdString().c_str();\
             graph2 << ", p=" << QString::number((*evt)->pe).toStdString().c_str();
             graph2 << ", s: " << QString::number((*evt)->step).toStdString().c_str();
             graph2 << ", e: " << QString::number((*evt)->exit).toStdString().c_str();
@@ -1516,7 +1514,7 @@ void Partition::output_graph(QString filename, Trace * trace)
             }
             else
             {
-                graph2 << indent.toStdString().c_str() << tasks.value(evtlist.key()).toStdString().c_str();
+                graph2 << indent.toStdString().c_str() << entities.value(evtlist.key()).toStdString().c_str();
                 graph2 << " -> " << (*evt)->gvid.toStdString().c_str() << ";\n";
             }
             if ((*evt)->comm_next && (*evt)->comm_next->partition == this)

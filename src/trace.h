@@ -18,9 +18,8 @@ class Gnome;
 class Event;
 class CommEvent;
 class Function;
-class Task;
-class TaskGroup;
-class PrimaryTaskGroup;
+class EntityGroup;
+class PrimaryEntityGroup;
 class OTFCollective;
 class CollectiveRecord;
 
@@ -37,12 +36,12 @@ public:
     void assignSteps();
     void gnomify();
     void mergePartitions(QList<QList<Partition *> *> * components);
-    Event * findEvent(int task, unsigned long long time);
+    Event * findEvent(int entity, unsigned long long time);
 
     QString name;
     QString fullpath;
-    int num_tasks;
-    int num_application_tasks; // debug
+    int num_entities;
+    int num_application_entities; // debug
     int num_pes;
     int units;
     bool use_aggregates;
@@ -60,14 +59,14 @@ public:
     QMap<int, QString> * functionGroups;
     QMap<int, Function *> * functions;
 
-    QMap<int, PrimaryTaskGroup *> * primaries;
-    QMap<int, TaskGroup *> * taskgroups;
+    QMap<int, PrimaryEntityGroup *> * primaries;
+    QMap<int, EntityGroup *> * entitygroups;
     QMap<int, OTFCollective *> * collective_definitions;
 
     QMap<unsigned long long, CollectiveRecord *> * collectives;
     QVector<QMap<unsigned long long, CollectiveRecord *> *> * collectiveMap;
 
-    QVector<QVector<Event *> *> * events; // This is going to be by tasks
+    QVector<QVector<Event *> *> * events; // This is going to be by entities
     QVector<QVector<Event *> *> * pe_events; // This is by pes
     QVector<QVector<Event *> *> * roots; // Roots of call trees per pe
 
@@ -147,7 +146,7 @@ private:
     void mergeForEntryRepair(bool entries = true);
     void mergeForCharmLeaps();
     void forcePartitionDag();
-    void finalizeTaskEventOrder();
+    void finalizeEntityEventOrder();
     void set_global_steps();
     void calculate_lateness();
     void calculate_differential_lateness(QString metric_name, QString base_name);

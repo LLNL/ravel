@@ -7,7 +7,7 @@
 #include <QList>
 
 class CommEvent;
-class ClusterTask;
+class ClusterEntity;
 class PartitionCluster;
 class ClusterEvent;
 
@@ -21,7 +21,7 @@ public:
     PartitionCluster(long long int distance, PartitionCluster * c1,
                      PartitionCluster * c2);
     ~PartitionCluster();
-    long long int addMember(ClusterTask * cp, QList<CommEvent *> *elist,
+    long long int addMember(ClusterEntity * cp, QList<CommEvent *> *elist,
                             QString metric);
     long long int distance(PartitionCluster * other);
     void makeClusterVectors();
@@ -45,7 +45,7 @@ public:
 
 
     int startStep;
-    int max_task;
+    int max_entity;
     bool open; // Whether children are drawn
     bool drawnOut;
     long long int max_distance; // max within cluster distance
@@ -53,7 +53,7 @@ public:
     long long int divider; // For threshholding (currently unused)
     PartitionCluster * parent;
     QList<PartitionCluster *> * children;
-    QList<int> * members; // Tasks in the cluster
+    QList<int> * members; // Entities in the cluster
     QList<ClusterEvent *> * events; // Represented events
     QRect extents; // Where it was drawn
 

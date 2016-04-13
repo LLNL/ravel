@@ -17,7 +17,7 @@ class Event
 {
 public:
     Event(unsigned long long _enter, unsigned long long _exit, int _function,
-          int _task, int _pe);
+          int _entity, int _pe);
     ~Event();
 
     // Based on enter time
@@ -52,7 +52,7 @@ public:
     unsigned long long enter;
     unsigned long long exit;
     int function;
-    int task;
+    int entity;
     int pe;
     int depth;
 
@@ -64,9 +64,9 @@ public:
     int atomic; // for debugging
 };
 
-static bool eventTaskLessThan(const Event * evt1, const Event * evt2)
+static bool eventEntityLessThan(const Event * evt1, const Event * evt2)
 {
-    return evt1->task < evt2->task;
+    return evt1->entity < evt2->entity;
 }
 
 #endif // EVENT_H

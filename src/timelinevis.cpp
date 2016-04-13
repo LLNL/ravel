@@ -71,15 +71,15 @@ void TimelineVis::processVis()
         }
     }
 
-    // Determine needs for task labels
-    int max_task = pow(10,ceil(log10(maxEntities)) + 1) - 1;
+    // Determine needs for entity labels
+    int max_entity = pow(10,ceil(log10(maxEntities)) + 1) - 1;
     QPainter * painter = new QPainter();
     painter->begin(this);
     painter->setPen(Qt::black);
     painter->setFont(QFont("Helvetica", 10));
     QLocale systemlocale = QLocale::system();
     QFontMetrics font_metrics = painter->fontMetrics();
-    QString testString = systemlocale.toString(max_task);
+    QString testString = systemlocale.toString(max_entity);
     labelWidth = font_metrics.width(testString);
     labelHeight = font_metrics.height();
     labelDescent = font_metrics.descent();
@@ -198,10 +198,10 @@ void TimelineVis::leaveEvent(QEvent *event)
 }
 
 // We can either select a single event exclusive-or select a
-// number of tasks in a gnome right now.
+// number of entities in a gnome right now.
 void TimelineVis::selectEvent(Event * event, bool aggregate, bool overdraw)
 {
-    selected_tasks.clear();
+    selected_entities.clear();
     selected_gnome = NULL;
     selected_event = event;
     selected_aggregate = aggregate;
@@ -214,9 +214,9 @@ void TimelineVis::selectEvent(Event * event, bool aggregate, bool overdraw)
         repaint();
 }
 
-void TimelineVis::selectTasks(QList<int> tasks, Gnome * gnome)
+void TimelineVis::selectEntities(QList<int> entities, Gnome * gnome)
 {
-    selected_tasks = tasks;
+    selected_entities = entities;
     selected_gnome = gnome;
     selected_event = NULL;
     if (changeSource) {
@@ -249,7 +249,7 @@ void TimelineVis::drawHover(QPainter * painter)
             text += " : ";
         }
         text += trace->functions->value(hover_event->function)->name;
-        text += ", task: " + QString::number(hover_event->task);
+        text += ", entity: " + QString::number(hover_event->entity);
         if (hover_event->partition)
         {
             text += ((hover_event->partition->runtime) ? ", runtime" : ", application");

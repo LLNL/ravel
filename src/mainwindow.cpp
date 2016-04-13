@@ -51,10 +51,6 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     readSettings();
     ui->setupUi(this);
-    #ifdef OTF1LIB
-        otf1Support = true;
-        std::cout << "OTF1 SUPPORT" << std::endl;
-    #endif
 
     // Overview
     OverviewVis* overview = new OverviewVis(ui->overviewContainer, visoptions);
@@ -122,8 +118,8 @@ MainWindow::MainWindow(QWidget *parent) :
             SLOT(pushSteps(float, float, bool)));
     connect((clustervis), SIGNAL(eventClicked(Event *, bool, bool)), this,
             SLOT(selectEvent(Event *, bool, bool)));
-    connect((clustervis), SIGNAL(tasksSelected(QList<int>, Gnome*)), this,
-            SLOT(selectTasks(QList<int>, Gnome*)));
+    connect((clustervis), SIGNAL(entitiesSelected(QList<int>, Gnome*)), this,
+            SLOT(selectEntities(QList<int>, Gnome*)));
 
     connect((clustervis), SIGNAL(focusGnome()), clustertreevis,
             SLOT(repaint()));
@@ -258,11 +254,11 @@ void MainWindow::selectEvent(Event * event, bool aggregate, bool overdraw)
     }
 }
 
-void MainWindow::selectTasks(QList<int> tasks, Gnome * gnome)
+void MainWindow::selectEntities(QList<int> entities, Gnome * gnome)
 {
     for(int i = 0; i < viswidgets.size(); i++)
     {
-        viswidgets[i]->selectTasks(tasks, gnome);
+        viswidgets[i]->selectEntities(entities, gnome);
     }
 }
 

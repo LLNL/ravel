@@ -10,13 +10,12 @@
 class CommRecord;
 class RawTrace;
 class Function;
-class Task;
-class TaskGroup;
+class EntityGroup;
 class OTFCollective;
 class Counter;
 class CollectiveRecord;
 class OTFImportOptions;
-class PrimaryTaskGroup;
+class PrimaryEntityGroup;
 
 class OTF2Importer
 {
@@ -333,10 +332,10 @@ private:
 
     RawTrace * rawtrace;
 
-    QMap<int, PrimaryTaskGroup *> * primaries;
+    QMap<int, PrimaryEntityGroup *> * primaries;
     QMap<int, QString> * functionGroups;
     QMap<int, Function *> * functions;
-    QMap<int, TaskGroup *> * taskgroups;
+    QMap<int, EntityGroup *> * entitygroups;
     QMap<int, OTFCollective *> * collective_definitions;
     QMap<unsigned int, Counter *> * counters;
 

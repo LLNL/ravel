@@ -18,7 +18,7 @@ class CommEvent : public Event
 {
 public:
     CommEvent(unsigned long long _enter, unsigned long long _exit,
-              int _function, int _task, int _pe, int _phase);
+              int _function, int _entity, int _pe, int _phase);
     ~CommEvent();
 
     bool operator<(const CommEvent &);
@@ -60,7 +60,7 @@ public:
     virtual CommEvent * compare_to_sender(CommEvent * prev) { return prev; }
 
     virtual void addComms(QSet<CommBundle *> * bundleset)=0;
-    virtual QList<int> neighborTasks()=0;
+    virtual QList<int> neighborEntities()=0;
     virtual QVector<Message *> * getMessages() { return NULL; }
     virtual CollectiveRecord * getCollective() { return NULL; }
 
@@ -103,7 +103,7 @@ public:
 };
 
 // Compare based on strides... if there is a tie, take the one
-// that comes from a less task id. If the task ids are the same
+// that comes from a less entity id. If the entity ids are the same
 // we prioriize the send as that is probably connected to a preceding
 // recv. Otherwise, we just go by time
 static bool eventStrideLessThan(const CommEvent * evt1, const CommEvent * evt2)
@@ -113,12 +113,12 @@ static bool eventStrideLessThan(const CommEvent * evt1, const CommEvent * evt2)
         // This should only happen on receives, but just in case
         if (evt1->last_stride->next_stride && evt2->last_stride->next_stride)
         {
-            if (evt1->last_stride->next_stride->task == evt2->last_stride->next_stride->task)
+            if (evt1->last_stride->next_stride->entity == evt2->last_stride->next_stride->entity)
             {
-                // Happens in the case where task X and task Y send to task Z
-                // and both of those Z entries send back to task X and task Y
+                // Happens in the case where entity X and entity Y send to entity Z
+                // and both of those Z entries send back to entity X and entity Y
                 // recv X and recv Y have the same number and were sent by
-                // the same task and have the same stride.
+                // the same entity and have the same stride.
                 if (evt1->stride == evt2->stride)
                 {
                     // Need to go back to the senders to figure it out
@@ -143,7 +143,7 @@ static bool eventStrideLessThan(const CommEvent * evt1, const CommEvent * evt2)
             }
             else
             {
-                return evt1->last_stride->next_stride->task < evt2->last_stride->next_stride->task;
+                return evt1->last_stride->next_stride->entity < evt2->last_stride->next_stride->entity;
             }
         }
         else
@@ -180,7 +180,7 @@ static bool eventStrideLessThanMPI(const CommEvent * evt1, const CommEvent * evt
     {
         if (evt1->next_stride && evt2->next_stride)
         {
-            return evt1->next_stride->task < evt2->next_stride->task;
+            return evt1->next_stride->entity < evt2->next_stride->entity;
         }
         else
         {

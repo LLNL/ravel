@@ -24,7 +24,7 @@ protected:
                                PartitionCluster * pc,
                                int barwidth, int barheight, int blockwidth,
                                int blockheight, int startStep);
-    void generateTopTasks();
+    void generateTopEntities();
 
 private:
     // send-receive, sends-receives, sends-waitall

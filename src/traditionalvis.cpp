@@ -417,7 +417,7 @@ void TraditionalVis::drawNativeGL()
 
     // Process events for values
     float x, y, w; // true position
-    float position; // placement of task
+    float position; // placement of entity
     Partition * part = NULL;
     int oldStart = startStep;
     int oldStop = stepSpan + startStep;
@@ -425,7 +425,7 @@ void TraditionalVis::drawNativeGL()
     int upperStep = startStep + stepSpan + 2;
     startStep = maxStep;
     QColor color;
-    float maxTask = entitySpan + startEntity;
+    float maxEntity = entitySpan + startEntity;
     for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
         part = trace->partitions->at(i);
@@ -442,11 +442,11 @@ void TraditionalVis::drawNativeGL()
             {
 
                 position = proc_to_order[(*evt)->pe];
-                 // Out of task span test
+                 // Out of entity span test
                 if (position < floor(startEntity)
                         || position > ceil(startEntity + entitySpan))
                     continue;
-                y = (maxTask - position) * barheight - 1;
+                y = (maxEntity - position) * barheight - 1;
                 // Out of time span test
                 if ((*evt)->exit < startTime || (*evt)->enter > stopTime)
                     continue;
@@ -542,14 +542,14 @@ void TraditionalVis::paintEvents(QPainter *painter)
 {
     int canvasHeight = rect().height() - timescaleHeight;
 
-    int task_spacing = 0;
+    int entity_spacing = 0;
     if (canvasHeight / entitySpan > 12)
-        task_spacing = 3;
+        entity_spacing = 3;
 
     float x, y, w, h;
     float cx, cw; // For extended color
     blockheight = floor(canvasHeight / entitySpan);
-    float barheight = blockheight - task_spacing;
+    float barheight = blockheight - entity_spacing;
     entityheight = blockheight;
     int oldStart = startStep;
     int oldStop = stepSpan + startStep;
@@ -580,7 +580,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
         for (QVector<Event *>::Iterator root = roots->begin();
              root != roots->end(); ++root)
         {
-            paintNotStepEvents(painter, *root, position, task_spacing,
+            paintNotStepEvents(painter, *root, position, entity_spacing,
                                barheight, blockheight, &extents);
         }
     }
@@ -602,13 +602,13 @@ void TraditionalVis::paintEvents(QPainter *painter)
             {
                 bool selected = false;
                 if (part->gnome == selected_gnome
-                    && selected_tasks.contains(proc_to_order[(*evt)->pe]))
+                    && selected_entities.contains(proc_to_order[(*evt)->pe]))
                 {
                     selected = true;
                 }
 
                 position = proc_to_order[(*evt)->pe];
-                // Out of task span test
+                // Out of entity span test
                if (position < floor(startEntity)
                        || position > ceil(startEntity + entitySpan))
                    continue;
@@ -691,7 +691,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
                         && (*evt)->hasMetric(options->metric))
                     {
                         // Background color on the larger image
-                        if (task_spacing > 0)
+                        if (entity_spacing > 0)
                             painter->fillRect(QRectF(cx+1, y+1, cw-2, h-2),
                                               QBrush(options->colormap->color((*evt)->getMetric(options->metric))));
                         else
@@ -713,7 +713,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
                     }
 
                     // Draw border
-                    if (task_spacing > 0)
+                    if (entity_spacing > 0)
                     {
                         if (complete)
                             painter->drawRect(QRectF(x,y,w,h));
@@ -784,7 +784,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
                         && (*evt)->hasMetric(options->metric))
                     {
                         // Background color on the larger image
-                        if (task_spacing > 0)
+                        if (entity_spacing > 0)
                             painter->fillRect(QRectF(cx+1, y+1, cw-2, h-2),
                                               QBrush(options->colormap->color((*evt)->getMetric(options->metric))));
                         else
@@ -887,7 +887,7 @@ void TraditionalVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
     prev_y = getY(coll_event);
     prev_x = getX(coll_event) + w;
 
-    if (rooted && coll_event->task == root)
+    if (rooted && coll_event->entity == root)
     {
         painter->setBrush(QBrush());
         root_x = prev_x;
@@ -903,7 +903,7 @@ void TraditionalVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
         painter->setBrush(QBrush(Qt::darkGray));
         coll_event = cr->events->at(i);
 
-        if (rooted && coll_event->task == root)
+        if (rooted && coll_event->entity == root)
         {
             painter->setBrush(QBrush());
         }
@@ -1000,7 +1000,7 @@ void TraditionalVis::drawDelayTracking(QPainter * painter, CommEvent * c)
 // To make sure events have correct overlapping, this draws from the root down
 // TODO: Have a level cut off so we don't descend all the way down the tree
 void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
-                                        float position, int task_spacing,
+                                        float position, int entity_spacing,
                                         float barheight, float blockheight,
                                         QRect * extents)
 {
@@ -1064,7 +1064,7 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
 
 
         // Draw border
-        if (task_spacing > 0)
+        if (entity_spacing > 0)
         {
             if (complete)
                 painter->drawRect(QRectF(x,y,w,h));
@@ -1090,7 +1090,7 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
     for (QVector<Event *>::Iterator child = evt->callees->begin();
          child != evt->callees->end(); ++child)
     {
-        paintNotStepEvents(painter, *child, position, task_spacing,
+        paintNotStepEvents(painter, *child, position, entity_spacing,
                            barheight, blockheight, extents);
     }
 

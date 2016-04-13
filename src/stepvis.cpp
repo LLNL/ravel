@@ -10,8 +10,8 @@
 #include "event.h"
 #include "p2pevent.h"
 #include "collectiveevent.h"
-#include "primarytaskgroup.h"
-#include "task.h"
+#include "primaryentitygroup.h"
+#include "entity.h"
 #include <iostream>
 #include <cmath>
 #include <QLocale>
@@ -56,8 +56,8 @@ void StepVis::setTrace(Trace * t)
         startStep = 0;
     stepSpan = initStepSpan;
     startEntity = 0;
-    entitySpan = trace->num_tasks;
-    maxEntities = trace->num_tasks;
+    entitySpan = trace->num_entities;
+    maxEntities = trace->num_entities;
     startPartition = 0;
 
     maxStep = trace->global_max_step;
@@ -81,7 +81,7 @@ void StepVis::setTrace(Trace * t)
         bool flip = false;
         int offset = 0;
         int color;
-        for (QMap<int, PrimaryTaskGroup *>::Iterator tg = trace->primaries->begin();
+        for (QMap<int, PrimaryEntityGroup *>::Iterator tg = trace->primaries->begin();
              tg != trace->primaries->end(); ++tg)
         {
             if (flip)
@@ -110,14 +110,14 @@ void StepVis::processVis()
     painter->setFont(QFont("Helvetica", 10));
     QFontMetrics font_metrics = painter->fontMetrics();
     int primary;
-    for (QMap<int, PrimaryTaskGroup *>::Iterator tg = trace->primaries->begin();
+    for (QMap<int, PrimaryEntityGroup *>::Iterator tg = trace->primaries->begin();
          tg != trace->primaries->end(); ++tg)
     {
         primary = font_metrics.width((*tg)->name);
         if (primary > labelWidth)
             labelWidth = primary;
-        for (QList<Task *>::Iterator t = (*tg)->tasks->begin();
-             t != (*tg)->tasks->end(); ++t)
+        for (QList<Entity *>::Iterator t = (*tg)->entities->begin();
+             t != (*tg)->entities->end(); ++t)
         {
             primary = font_metrics.width((*t)->name);
             if (primary > labelWidth)
@@ -271,8 +271,8 @@ void StepVis::mouseMoveEvent(QMouseEvent * event)
 
         if (startEntity < 0)
             startEntity = 0;
-        if (startEntity + entitySpan > trace->num_tasks)
-            startEntity = trace->num_tasks - entitySpan;
+        if (startEntity + entitySpan > trace->num_entities)
+            startEntity = trace->num_entities - entitySpan;
 
         mousex = event->x();
         mousey = event->y();
@@ -537,8 +537,8 @@ void StepVis::drawNativeGL()
     {
         if (entityheight < 1.0)
         {
-            double tasks_per_pixel = 1.0 / entityheight;
-            yoffset = tasks_per_pixel / 2;
+            double entities_per_pixel = 1.0 / entityheight;
+            yoffset = entities_per_pixel / 2;
             opacity = entityheight / density;
         }
         if (stepwidth < 1.0)
@@ -557,11 +557,11 @@ void StepVis::drawNativeGL()
 
     // Process events for values
     float x, y; // true position
-    float position; // placement of task
+    float position; // placement of entity
     QColor color;
-    float maxTask = entitySpan + startEntity;
+    float maxEntity = entitySpan + startEntity;
     float myopacity, opacity_multiplier = 1.0;
-    if (selected_gnome && !selected_tasks.isEmpty())
+    if (selected_gnome && !selected_entities.isEmpty())
         opacity_multiplier = 0.50;
     for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
@@ -575,19 +575,19 @@ void StepVis::drawNativeGL()
         {
             bool selected = false;
             if (part->gnome == selected_gnome
-                && selected_tasks.contains(proc_to_order[event_list.key()]))
+                && selected_entities.contains(proc_to_order[event_list.key()]))
             {
                 selected = true;
             }
 
             position = proc_to_order[event_list.key()];
-            // Out of task span check
+            // Out of entity span check
             if (position < floor(startEntity)
                 || position > ceil(startEntity + entitySpan))
             {
                  continue;
             }
-            y = (maxTask - position) * barheight - 1;
+            y = (maxEntity - position) * barheight - 1;
 
             for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
@@ -671,9 +671,9 @@ void StepVis::paintEvents(QPainter * painter)
     int effectiveHeight = rect().height() - colorBarHeight;
     int effectiveWidth = rect().width();
 
-    int task_spacing = 0;
+    int entity_spacing = 0;
     if (effectiveHeight / entitySpan > spacingMinimum)
-        task_spacing = 3;
+        entity_spacing = 3;
 
     int step_spacing = 0;
     if (effectiveWidth / stepSpan > spacingMinimum)
@@ -689,7 +689,7 @@ void StepVis::paintEvents(QPainter * painter)
     {
         blockwidth = floor(effectiveWidth / (ceil(stepSpan / 2.0)));
     }
-    float barheight = blockheight - task_spacing;
+    float barheight = blockheight - entity_spacing;
     float barwidth = blockwidth - step_spacing;
     entityheight = blockheight;
     stepwidth = blockwidth;
@@ -705,20 +705,20 @@ void StepVis::paintEvents(QPainter * painter)
     int topStep = boundStep(startStep + stepSpan) + 1;
     int bottomStep = floor(startStep) - 1;
     float myopacity, opacity = 1.0;
-    if (selected_gnome && !selected_tasks.isEmpty())
+    if (selected_gnome && !selected_entities.isEmpty())
         opacity = 0.50;
 
-    QList<int> overdraw_tasks;
+    QList<int> overdraw_entities;
 
     // Draw backgrounds for primaries
     int tg_extent = 0;
-    for (QMap<int, PrimaryTaskGroup *>::Iterator tg = trace->primaries->begin();
+    for (QMap<int, PrimaryEntityGroup *>::Iterator tg = trace->primaries->begin();
          tg != trace->primaries->end(); ++tg)
     {
         y = floor((tg_extent - startEntity) * blockheight) + 1;
         if (y > effectiveHeight)
             continue;
-        h = tg.value()->tasks->size() * entityheight;
+        h = tg.value()->entities->size() * entityheight;
         if (y + h > effectiveHeight)
             h = effectiveHeight - y;
         painter->fillRect(QRectF(labelWidth,
@@ -726,7 +726,7 @@ void StepVis::paintEvents(QPainter * painter)
                                  effectiveWidth - labelWidth,
                                  h),
                           QBrush(groupColorMap->value(tg.key())));
-        tg_extent += tg.value()->tasks->size();
+        tg_extent += tg.value()->entities->size();
     }
 
 
@@ -746,7 +746,7 @@ void StepVis::paintEvents(QPainter * painter)
         {
             bool selected = false;
             if (part->gnome == selected_gnome
-                && selected_tasks.contains(proc_to_order[event_list.key()]))
+                && selected_entities.contains(proc_to_order[event_list.key()]))
             {
                 selected = true;
             }
@@ -768,7 +768,7 @@ void StepVis::paintEvents(QPainter * painter)
                 {
                     continue;
                 }
-                // 0 = startEntity, effectiveHeight = stopTask (startEntity + entitySpan)
+                // 0 = startEntity, effectiveHeight = stopEntity (startEntity + entitySpan)
                 // 0 = startStep, rect().width() = stopStep (startStep + stepSpan)
 
                 x = getX(*evt);
@@ -812,7 +812,7 @@ void StepVis::paintEvents(QPainter * painter)
                 if (*evt == selected_event && !selected_aggregate)
                     painter->setPen(QPen(Qt::yellow));
                 // Draw border only if we're doing spacing, otherwise too messy
-                if (step_spacing > 0 && task_spacing > 0)
+                if (step_spacing > 0 && entity_spacing > 0)
                 {
                     if (complete)
                         painter->drawRect(QRectF(x,y,w,h));
@@ -829,7 +829,7 @@ void StepVis::paintEvents(QPainter * painter)
                 if (*evt == selected_event)
                 {
                     if (overdraw_selected)
-                        overdraw_tasks = (*evt)->neighborTasks();
+                        overdraw_entities = (*evt)->neighborEntities();
                     (*evt)->addComms(&selectedComms);
                 }
 
@@ -863,7 +863,7 @@ void StepVis::paintEvents(QPainter * painter)
 
                     if (*evt == selected_event && selected_aggregate)
                         painter->setPen(QPen(Qt::yellow));
-                    if (step_spacing > 0 && task_spacing > 0)
+                    if (step_spacing > 0 && entity_spacing > 0)
                         if (aggcomplete)
                             painter->drawRect(QRectF(xa, y, wa, h));
                         else
@@ -917,34 +917,34 @@ void StepVis::paintEvents(QPainter * painter)
     }
 
     if (overdraw_selected)
-        overdrawSelected(painter, overdraw_tasks);
+        overdrawSelected(painter, overdraw_entities);
 }
 
 // Might want to use something like this to also have a lens feature
-void StepVis::overdrawSelected(QPainter * painter, QList<int> tasks)
+void StepVis::overdrawSelected(QPainter * painter, QList<int> entities)
 {
     // Figure out how big the overdraw window should be
-    int selected_position = proc_to_order[selected_event->task];
-    QList<int> before_tasks = QList<int>();
-    QList<int> after_tasks = QList<int>();
+    int selected_position = proc_to_order[selected_event->entity];
+    QList<int> before_entities = QList<int>();
+    QList<int> after_entities = QList<int>();
     QMap<int, int> position_map = QMap<int, int>();
-    for (int i = 0; i < tasks.size(); i++)
+    for (int i = 0; i < entities.size(); i++)
     {
-        if (proc_to_order[tasks[i]] < selected_position)
+        if (proc_to_order[entities[i]] < selected_position)
         {
-            before_tasks.append(proc_to_order[tasks[i]]);
+            before_entities.append(proc_to_order[entities[i]]);
         }
         else
         {
-            after_tasks.append(proc_to_order[tasks[i]]);
+            after_entities.append(proc_to_order[entities[i]]);
         }
     }
-    qSort(before_tasks);
-    qSort(after_tasks);
-    for (int i = 0; i < before_tasks.size(); i++)
-        position_map.insert(before_tasks[i], i);
-    for (int i = 0; i < after_tasks.size(); i++)
-        position_map.insert(after_tasks[i], i);
+    qSort(before_entities);
+    qSort(after_entities);
+    for (int i = 0; i < before_entities.size(); i++)
+        position_map.insert(before_entities[i], i);
+    for (int i = 0; i < after_entities.size(); i++)
+        position_map.insert(after_entities[i], i);
 
     if (blockheight > 3) // keep same height for non-GL
     {
@@ -956,14 +956,14 @@ void StepVis::overdrawSelected(QPainter * painter, QList<int> tasks)
         // First we draw the background as white rectangles
         // Above
         painter->fillRect(QRect(labelWidth,
-                                selected_position - blockheight * before_tasks.size(),
-                                rect().width(), blockheight * before_tasks.size()),
+                                selected_position - blockheight * before_entities.size(),
+                                rect().width(), blockheight * before_entities.size()),
                           QBrush(Qt::white));
         // Below
         painter->fillRect(QRect(labelWidth,
                                 selected_position + blockheight,
                                 rect().width(),
-                                blockheight * after_tasks.size()),
+                                blockheight * after_entities.size()),
                           QBrush(Qt::white));
 
     }
@@ -984,7 +984,7 @@ void StepVis::overdrawSelected(QPainter * painter, QList<int> tasks)
 int StepVis::getY(CommEvent * evt)
 {
     int y = 0;
-    int position = proc_to_order[evt->task];
+    int position = proc_to_order[evt->entity];
     y = floor((position - startEntity) * blockheight) + 1;
     return y;
 }
@@ -1119,7 +1119,7 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
 
     if (rooted)
     {
-        if (coll_event->task == root)
+        if (coll_event->entity == root)
         {
             painter->setBrush(QBrush());
             prev_x += root_offset;
@@ -1139,7 +1139,7 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
         painter->setBrush(QBrush(Qt::darkGray));
         coll_event = cr->events->at(i);
 
-        if (rooted && coll_event->task == root)
+        if (rooted && coll_event->entity == root)
         {
             painter->setBrush(QBrush());
         }
@@ -1148,7 +1148,7 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
         x = getX(coll_event);
         if (rooted)
         {
-            if (coll_event->task == root)
+            if (coll_event->entity == root)
                 x += root_offset;
             else
                 x -= root_offset;
@@ -1165,7 +1165,7 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
             p2 = QPointF(x + w/2.0, y + h/2.0);
             drawArc(painter, &p1, &p2, ell_w * 1.5);
         }
-        else if (rooted && coll_event->task == root)
+        else if (rooted && coll_event->entity == root)
         {
             // ONE2ALL / ALL2ONE drawing handled after the loop
             root_x = x;
@@ -1194,7 +1194,7 @@ void StepVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
         for (int j = 0; j < cr->events->size(); j++)
         {
             other = cr->events->at(j);
-            if (other->task == root)
+            if (other->entity == root)
                 continue;
 
             oy = getY(other);
@@ -1416,10 +1416,10 @@ void StepVis::drawPrimaryLabels(QPainter * painter, int effectiveHeight,
 
     int current = start;
     int offset = 0;
-    for (QMap<int, PrimaryTaskGroup *>::Iterator tg = trace->primaries->begin();
+    for (QMap<int, PrimaryEntityGroup *>::Iterator tg = trace->primaries->begin();
          tg != trace->primaries->end(); ++tg)
     {
-        while (current < offset + (*tg)->tasks->size() && current <= end)
+        while (current < offset + (*tg)->entities->size() && current <= end)
         {
             y = floor((current - startEntity) * barHeight) + 1
                 + barHeight / 2 + labelDescent;
@@ -1429,13 +1429,13 @@ void StepVis::drawPrimaryLabels(QPainter * painter, int effectiveHeight,
                     painter->drawText(1, y, (*tg)->name);
                 else
                     painter->drawText(1, y,
-                                      (*tg)->tasks->at(current - offset)->name);
+                                      (*tg)->entities->at(current - offset)->name);
             }
             current += skip;
         }
         if (current > end)
             break;
 
-        offset += (*tg)->tasks->size();
+        offset += (*tg)->entities->size();
     }
 }

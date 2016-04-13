@@ -27,7 +27,7 @@
 #include "p2pevent.h"
 #include "message.h"
 #include "collectiveevent.h"
-#include "primarytaskgroup.h"
+#include "primaryentitygroup.h"
 #include "metrics.h"
 
 
@@ -106,7 +106,7 @@ void OTFConverter::convert()
     QElapsedTimer traceTimer;
     qint64 traceElapsed;
     traceTimer.start();
-    trace = new Trace(rawtrace->num_tasks, rawtrace->num_tasks);
+    trace = new Trace(rawtrace->num_entities, rawtrace->num_entities);
     trace->units = rawtrace->second_magnitude;
 
     // Start setting up new Trace
@@ -118,7 +118,7 @@ void OTFConverter::convert()
     trace->collectives = rawtrace->collectives;
     trace->collectiveMap = rawtrace->collectiveMap;
 
-    trace->taskgroups = rawtrace->taskgroups;
+    trace->entitygroups = rawtrace->entitygroups;
     trace->collective_definitions = rawtrace->collective_definitions;
 
     // Find the MPI Group key
@@ -187,7 +187,7 @@ void OTFConverter::convert()
          = trace->collectives->begin();
          cr != trace->collectives->end(); ++cr)
     {
-        qSort((*cr)->events->begin(), (*cr)->events->end(), eventTaskLessThan);
+        qSort((*cr)->events->begin(), (*cr)->events->end(), eventEntityLessThan);
     }
 
     traceElapsed = traceTimer.nsecsElapsed();
@@ -242,7 +242,7 @@ void OTFConverter::matchEvents()
     unsigned long long int max_complete = 0;
 
     emit(matchingUpdate(1, "Constructing events..."));
-    int progressPortion = std::max(round(rawtrace->num_tasks / 1.0
+    int progressPortion = std::max(round(rawtrace->num_entities / 1.0
                                          / event_match_portion), 1.0);
     int currentPortion = 0;
     int currentIter = 0;
@@ -323,7 +323,7 @@ void OTFConverter::matchEvents()
 
                     if (stack->isEmpty())
                     {
-                        (*(trace->roots))[isend->task]->append(isend);
+                        (*(trace->roots))[isend->entity]->append(isend);
                     }
 
                 }
@@ -357,7 +357,7 @@ void OTFConverter::matchEvents()
                         {
                             std::cout << "Error, skipping message (by send) at ";
                             std::cout << sendlist->at(sindex)->send_time << " on ";
-                            std::cout << (*evt)->task << std::endl;
+                            std::cout << (*evt)->entity << std::endl;
                             sindex++;
                         }
                     }
@@ -374,7 +374,7 @@ void OTFConverter::matchEvents()
                         {
                             std::cout << "Error, skipping message (by recv) at ";
                             std::cout << recvlist->at(rindex)->send_time << " on ";
-                            std::cout << (*evt)->task << std::endl;
+                            std::cout << (*evt)->entity << std::endl;
                             rindex++;
                         }
                     }
@@ -384,7 +384,7 @@ void OTFConverter::matchEvents()
                 if (cr)
                 {
                     cr->events->append(new CollectiveEvent(bgn->time, (*evt)->time,
-                                            bgn->value, bgn->task, bgn->task,
+                                            bgn->value, bgn->entity, bgn->entity,
                                             phase, cr));
                     cr->events->last()->comm_prev = prev;
                     if (prev)
@@ -436,7 +436,7 @@ void OTFConverter::matchEvents()
                     msgs->append(crec->message);
                     crec->message->sender = new P2PEvent(bgn->time, (*evt)->time,
                                                          bgn->value,
-                                                         bgn->task, bgn->task, phase,
+                                                         bgn->entity, bgn->entity, phase,
                                                          msgs);
 
                     if (isendflag)
@@ -493,7 +493,7 @@ void OTFConverter::matchEvents()
                     }
                     msgs->at(0)->receiver = new P2PEvent(bgn->time, (*evt)->time,
                                                          bgn->value,
-                                                         bgn->task, bgn->task, phase,
+                                                         bgn->entity, bgn->entity, phase,
                                                          msgs);
                     for (int i = 1; i < msgs->size(); i++)
                     {
@@ -559,7 +559,7 @@ void OTFConverter::matchEvents()
                 else // Non-com event
                 {
                     e = new Event(bgn->time, (*evt)->time, bgn->value,
-                                  bgn->task, bgn->task);
+                                  bgn->entity, bgn->entity);
 
                     // Stop by Waitall/Testall
                     if (!options->partitionByFunction)
@@ -609,7 +609,7 @@ void OTFConverter::matchEvents()
                 depth--;
                 e->depth = depth;
                 if (depth == 0 && !isendflag)
-                    (*(trace->roots))[(*evt)->task]->append(e);
+                    (*(trace->roots))[(*evt)->entity]->append(e);
 
                 if (e->exit > endtime)
                     endtime = e->exit;
@@ -636,7 +636,7 @@ void OTFConverter::matchEvents()
                     }
                 }
 
-                (*(trace->events))[(*evt)->task]->append(e);
+                (*(trace->events))[(*evt)->entity]->append(e);
             }
             else // Begin a subroutine
             {
@@ -676,7 +676,7 @@ void OTFConverter::matchEvents()
             prev = isend;
 
             if (stack->isEmpty())
-                (*(trace->roots))[isend->task]->append(isend);
+                (*(trace->roots))[isend->entity]->append(isend);
         }
         else // Only do this if it is empty
         {
@@ -690,7 +690,7 @@ void OTFConverter::matchEvents()
             EventRecord * bgn = stack->pop();
             endtime = std::max(endtime, bgn->time);
             Event * e = new Event(bgn->time, endtime, bgn->value,
-                          bgn->task, bgn->task);
+                          bgn->entity, bgn->entity);
             if (!stack->isEmpty())
             {
                 stack->top()->children.append(e);
@@ -701,11 +701,11 @@ void OTFConverter::matchEvents()
                 e->callees->append(*child);
                 (*child)->caller = e;
             }
-            (*(trace->events))[bgn->task]->append(e);
+            (*(trace->events))[bgn->entity]->append(e);
             depth--;
         }
 
-        // Prepare for next task
+        // Prepare for next entity
         stack->clear();
         sendgroup->clear();
     }
@@ -840,12 +840,12 @@ void OTFConverter::mergeByMultiCaller()
     QList<Partition *> * current_group = new QList<Partition *>();
     Event * multicaller = NULL;
 
-    // We assume partitions are in order by task
+    // We assume partitions are in order by entity
     for (QList<Partition *>::Iterator part = trace->partitions->begin();
          part != trace->partitions->end(); ++part)
     {
         // There should be only one event_list at this point, have not
-        // merged across tasks
+        // merged across entities
         for (QMap<int, QList<CommEvent *> *>::Iterator event_list = (*part)->events->begin();
                  event_list != (*part)->events->end(); ++event_list)
         {
@@ -879,7 +879,7 @@ void OTFConverter::mergeByMultiCaller()
 }
 
 // This is a lighter weight merge since we know at this stage everything stays
-// within its own task and the partitions that must be merged are contiguous
+// within its own entity and the partitions that must be merged are contiguous
 // Therefore we only need to merge the groups and remove the previous ones
 // from the partition list -- so we create the new ones and point the old
 // ones toward it so we can make a single pass to remove those that point to
@@ -976,7 +976,7 @@ void OTFConverter::matchEventsSaved()
     QList<Partition *> * sendgroup = new QList<Partition *>();
 
     emit(matchingUpdate(1, "Constructing events..."));
-    int progressPortion = std::max(round(rawtrace->num_tasks / 1.0
+    int progressPortion = std::max(round(rawtrace->num_entities / 1.0
                                          / event_match_portion), 1.0);
     int currentPortion = 0;
     int currentIter = 0;
@@ -1047,7 +1047,7 @@ void OTFConverter::matchEventsSaved()
                         {
                             std::cout << "Error, skipping message (by send) at ";
                             std::cout << sendlist->at(sindex)->send_time << " on ";
-                            std::cout << (*evt)->task << std::endl;
+                            std::cout << (*evt)->entity << std::endl;
                             sindex++;
                         }
                     }
@@ -1064,7 +1064,7 @@ void OTFConverter::matchEventsSaved()
                         {
                             std::cout << "Error, skipping message (by recv) at ";
                             std::cout << recvlist->at(rindex)->send_time << " on ";
-                            std::cout << (*evt)->task << std::endl;
+                            std::cout << (*evt)->entity << std::endl;
                             rindex++;
                         }
                     }
@@ -1074,7 +1074,7 @@ void OTFConverter::matchEventsSaved()
                 if (cr)
                 {
                     cr->events->append(new CollectiveEvent(bgn->time, (*evt)->time,
-                                            bgn->value, bgn->task, bgn->task,
+                                            bgn->value, bgn->entity, bgn->entity,
                                             phase, cr));
                     cr->events->last()->comm_prev = prev;
                     if (prev)
@@ -1114,7 +1114,7 @@ void OTFConverter::matchEventsSaved()
                     msgs->append(crec->message);
                     crec->message->sender = new P2PEvent(bgn->time, (*evt)->time,
                                                          bgn->value,
-                                                         bgn->task, bgn->task, phase,
+                                                         bgn->entity, bgn->entity, phase,
                                                          msgs);
 
                     crec->message->sender->comm_prev = prev;
@@ -1157,7 +1157,7 @@ void OTFConverter::matchEventsSaved()
                     }
                     msgs->at(0)->receiver = new P2PEvent(bgn->time, (*evt)->time,
                                                          bgn->value,
-                                                         bgn->task, bgn->task, phase,
+                                                         bgn->entity, bgn->entity, phase,
                                                          msgs);
                     for (int i = 1; i < msgs->size(); i++)
                     {
@@ -1179,13 +1179,13 @@ void OTFConverter::matchEventsSaved()
                 else // Non-com event
                 {
                     e = new Event(bgn->time, (*evt)->time, bgn->value,
-                                  bgn->task, bgn->task);
+                                  bgn->entity, bgn->entity);
                 }
 
                 depth--;
                 e->depth = depth;
                 if (depth == 0)
-                    (*(trace->roots))[(*evt)->task]->append(e);
+                    (*(trace->roots))[(*evt)->entity]->append(e);
 
                 if (!coalesced_event)
                 {
@@ -1202,7 +1202,7 @@ void OTFConverter::matchEventsSaved()
                         (*child)->caller = e;
                     }
 
-                    (*(trace->events))[(*evt)->task]->append(e);
+                    (*(trace->events))[(*evt)->entity]->append(e);
                 }
 
             }
@@ -1226,7 +1226,7 @@ void OTFConverter::matchEventsSaved()
             EventRecord * bgn = stack->pop();
             endtime = std::max(endtime, bgn->time);
             Event * e = new Event(bgn->time, endtime, bgn->value,
-                          bgn->task, bgn->task);
+                          bgn->entity, bgn->entity);
             if (!stack->isEmpty())
             {
                 stack->top()->children.append(e);
@@ -1237,11 +1237,11 @@ void OTFConverter::matchEventsSaved()
                 e->callees->append(*child);
                 (*child)->caller = e;
             }
-            (*(trace->events))[bgn->task]->append(e);
+            (*(trace->events))[bgn->entity]->append(e);
             depth--;
         }
 
-        // Prepare for next task
+        // Prepare for next entity
         stack->clear();
         sendgroup->clear();
         delete isends;

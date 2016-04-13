@@ -45,13 +45,13 @@ SOURCES  += main.cpp \
     counterrecord.cpp \
     charmimporter.cpp \
     otf2importer.cpp \
-    task.cpp \
-    clustertask.cpp \
-    taskgroup.cpp \
     otf2exporter.cpp \
     otf2exportfunctor.cpp \
-    primarytaskgroup.cpp \
-    metrics.cpp
+    metrics.cpp \
+    entity.cpp \
+    primaryentitygroup.cpp \
+    entitygroup.cpp \
+    clusterentity.cpp
 
 HEADERS += \
     trace.h \
@@ -95,13 +95,13 @@ HEADERS += \
     counterrecord.h \
     charmimporter.h \
     otf2importer.h \
-    task.h \
-    clustertask.h \
-    taskgroup.h \
     otf2exporter.h \
     otf2exportfunctor.h \
-    primarytaskgroup.h \
-    metrics.h
+    metrics.h \
+    entity.h \
+    primaryentitygroup.h \
+    entitygroup.h \
+    clusterentity.h
 
 FORMS += \
     mainwindow.ui \
