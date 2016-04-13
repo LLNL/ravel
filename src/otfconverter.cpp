@@ -623,7 +623,8 @@ void OTFConverter::matchEvents()
                     // the first one
                     if ((*child)->caller)
                     {
-                        if (e->callees->last() != (*child)->caller)
+                        if (e->callees->isEmpty()
+                            || e->callees->last() != (*child)->caller)
                             e->callees->append((*child)->caller);
                     }
                     else

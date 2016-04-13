@@ -41,7 +41,7 @@ public:
     void closeEvent(QCloseEvent *);
 
 public slots:
-    void launchOTFOptions();
+    void launchImportOptions();
     void launchVisOptions();
 
     // Signal relays
@@ -50,7 +50,7 @@ public slots:
     void selectEntities(QList<int> entities, Gnome *gnome);
 
     // Importing & Progress Bar
-    void importOTFbyGUI();
+    void importTracebyGUI();
     void traceFinished(Trace * trace);
     void updateProgress(int portion, QString msg);
     void traceSwitch();
@@ -103,8 +103,8 @@ private:
     QThread * exportThread;
 
     // Import Trace options
-    ImportOptions * otfoptions;
-    ImportOptionsDialog * otfdialog;
+    ImportOptions * importoptions;
+    ImportOptionsDialog * importdialog;
 
     // Color stuff & other vis options
     VisOptions * visoptions;
