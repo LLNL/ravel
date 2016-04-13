@@ -157,6 +157,9 @@ private:
     // For debugging
     void output_graph(QString filename, bool byparent = false);
     void verify_partitions();
+    void print_partition_info(QString message, QString graph_name = "",
+                              bool partition_verify = false,
+                              bool partition_count = false);
 
     // Extra metrics somewhat for debugging
     void setGnomeMetric(Partition * part, int gnome_index);

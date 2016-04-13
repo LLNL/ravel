@@ -350,94 +350,59 @@ void Trace::partition()
     // at the converter stage, now we have to do a lot of merging
     if (!options.partitionByFunction)
     {
-        verify_partitions();
-        traceTimer.start();
         // Merge communication
         // Note at this part the partitions do not have parent/child
         // relationships among them. That is first set in the merging of cycles.
-        std::cout << "Merging for messages..." << std::endl;
-        if (debug)
-            output_graph("../debug-output/1-pre-message.dot");
+        print_partition_info("Merging for messages...", "1-pre-message", true);
+        traceTimer.start();
         mergeForMessages();
         traceElapsed = traceTimer.nsecsElapsed();
         RavelUtils::gu_printTime(traceElapsed, "Message Merge: ");
-        if (debug)
-        {
-            verify_partitions();
-            output_graph("../debug-output/2-post-message.dot");
-            std::cout << "Partitions = " << partitions->size() << std::endl;
-        }
+        print_partition_info("", "2-post-message", true, true);
 
-          // Tarjan
-        if (debug)
-            output_graph("../debug-output/3-mergecycle-before.dot");
 
-        std::cout << "Merging cycles..." << std::endl;
+        // Tarjan
+        print_partition_info("Merging cycles...", "3-mergecycle-before");
         traceTimer.start();
         mergeCycles();
-        if (debug)
-        {
-            verify_partitions();
-            output_graph("../debug-output/4-mergecycle-after.dot");
-            std::cout << "Partitions = " << partitions->size() << std::endl;
-        }
         traceElapsed = traceTimer.nsecsElapsed();
         RavelUtils::gu_printTime(traceElapsed, "Cycle Merge: ");
+        print_partition_info("", "4-mergecycle-after", true, true);
+
 
         if (options.origin == OTFImportOptions::OF_CHARM)
         {
             // We can do entry repair until merge cycles because
             // it requires a dag. Then we have to do another
             // merge cycles in case we have once again destroyed the dag
-            std::cout << "Merge for entries" << std::endl;
+            print_partition_info("Merge for entries");
             traceTimer.start();
             mergeForEntryRepair();
-            if (debug)
-            {
-                verify_partitions();
-                output_graph("../debug-output/5-post-entryrepair.dot");
-                std::cout << "Partitions = " << partitions->size() << std::endl;
-            }
+            print_partition_info("", "5-post-entryrepair", true, true);
 
-            std::cout << "Second merge cycles..." << std::endl;
+            print_partition_info("Second merge cycles...");
             mergeCycles();
-            if (debug)
-            {
-                verify_partitions();
-                output_graph("../debug-output/6-post-entryrepair-cycle.dot");
-                std::cout << "Partitions = " << partitions->size() << std::endl;
-            }
             traceElapsed = traceTimer.nsecsElapsed();
             RavelUtils::gu_printTime(traceElapsed, "Repair + Next Cycle Merge: ");
-
+            print_partition_info("", "6-post-entryrepair-cycle", true, true);
 
 
             // Shortcut that is unnecessary with our current codes
             // but makes the final merging much faster.
-            std::cout << "Merge for atomics" << std::endl;
+            print_partition_info("Merge for atomics");
             mergeForEntryRepair(false);
-            if (debug)
-            {
-                verify_partitions();
-                output_graph("../debug-output/7-post-atomics.dot");
-            }
+            print_partition_info("", "7-post-atomics", true);
 
-            std::cout << "Third merge cycles..." << std::endl;
+
+            print_partition_info("Third merge cycles...");
             mergeCycles();
-            if (debug)
-            {
-                verify_partitions();
-                output_graph("../debug-output/8-post-atomics-cycle.dot");
-            }
-
+            print_partition_info("", "8-post-atomics-cycle", true, true);
         }
-        if (debug)
-            std::cout << "Partitions = " << partitions->size() << std::endl;
 
         // Merge by call tree
         if (options.callerMerge)
         {
-            std::cout << "Merging based on call tree..." << std::endl;
+            print_partition_info("Merging based on call tree...");
             traceTimer.start();
             set_dag_steps();
             mergeByCommonCaller();
@@ -447,7 +412,7 @@ void Trace::partition()
           // Merge by rank level [ later ]
         if (options.leapMerge)
         {
-            std::cout << "Merging to complete leaps..." << std::endl;
+            print_partition_info("Merging of complete leaps...");
             traceTimer.start();
             set_dag_steps();
             if (options.origin == OTFImportOptions::OF_CHARM)
@@ -643,10 +608,6 @@ void Trace::calculate_partition_duration()
         for (int i = (*part)->min_global_step;
              i <= (*part)->max_global_step; i += per_step)
         {
-            /*if (debug)
-            {
-                std::cout << "        on step " << i << std::endl;
-            }*/
             QList<CommEvent *> * i_list = new QList<CommEvent *>();
 
             for (QMap<int, QList<CommEvent *> *>::Iterator event_list
@@ -687,16 +648,13 @@ void Trace::calculate_partition_duration()
                     if (next != *evt)
                     {
                         (*evt)->extent_begin = next->exit;
-                        //std::cout << "Receiver next begin";
                     }
                     else
                     {
                         (*evt)->extent_begin = (*evt)->enter;
-                        //std::cout << "Receiver begin";
                     }
 
                     (*evt)->extent_end = std::max(next->exit, (*evt)->caller->exit);
-                   // std::cout << " with " << (*evt)->extent_begin << ", " << (*evt)->extent_end;
 
                 }
                 else
@@ -705,47 +663,25 @@ void Trace::calculate_partition_duration()
                     if ((*evt)->true_prev && (*evt)->caller == (*evt)->true_prev->caller) // From last comm
                     {
                         (*evt)->extent_begin = (*evt)->true_prev->exit;
-                        //std::cout << "Sender prev begin";
                     }
                     else
                     {
                         (*evt)->extent_begin = (*evt)->caller->enter;
-                        //std::cout << "Sender caller begin";
-                        /*std::cout << "For " << functions->value((*evt)->caller->function)->name.toStdString().c_str();
-                        std::cout << " : SEND to caller enter since";
-                        std::cout << " comm_prev = " << ((*evt)->comm_prev);
-                        if ((*evt)->comm_prev)
-                            std::cout << " caller = " << ((*evt)->comm_prev->caller == (*evt)->caller);
-                        std::cout << std::endl;
-                        */
                     }
 
-                    // (*evt)->extent_end = (*evt)->exit; <-- set on constructor
                     // Check if we are last and there is a recv to blame
                     // If not, go all the way to the end
                     if (!(*evt)->caller->callees->first()->isReceive()
                           && (!(*evt)->true_next || (*evt)->true_next->caller != (*evt)->caller))
                     {
                         (*evt)->extent_end = (*evt)->caller->exit;
-                        //std::cout << " and caller exit";
-                        /*
-                        std::cout << "For " << functions->value((*evt)->caller->function)->name.toStdString().c_str();
-                        std::cout << " : SEND to caller exit since";
-                        std::cout << " receive = " << ((*evt)->caller->callees->first()->isReceive());
-                        std::cout << " comm_next = " << ((*evt)->comm_next);
-                        if ((*evt)->comm_next)
-                            std::cout << " caller = " << ((*evt)->comm_next->caller == (*evt)->caller);
-                        std::cout << std::endl;
-                        */
                     }
                     else
                     {
-                        //std::cout << " and exit";
                         (*evt)->extent_end = (*evt)->exit;
                     }
 
                 }
-                //std::cout << " and extent is " << ((*evt)->extent_end - (*evt)->extent_begin) << std::endl;
                 if ((*evt)->extent_end - (*evt)->extent_begin < minduration)
                     minduration = (*evt)->extent_end - (*evt)->extent_begin;
             }
@@ -1091,7 +1027,10 @@ void Trace::finalizeEntityEventOrder()
 // not broken due to runtime, so would this be.
 void Trace::mergeForEntryRepair(bool entries)
 {
-    std::cout << "Repairing entries..." << std::endl;
+    print_partition_info("Repairing entries...");
+    QString debug_step = "7";
+    if (entries)
+        debug_step = "5";
 
     // We will try to do this in order
     set_partition_dag();
@@ -1106,17 +1045,10 @@ void Trace::mergeForEntryRepair(bool entries)
         (*partition)->new_partition = *partition;
         count++;
     }
-    if (debug && entries)
-        output_graph("../debug-output/5-tracegraph-repairnames-nosteps.dot");
-    else if (debug)
-        output_graph("../debug-output/7-tracegraph-repairnames-nosteps.dot");
+
+    print_partition_info("Set dag steps for repairs...", debug_step + "-tracegraph-repairnames-nosteps");
     set_dag_steps();
-    if (debug && entries)
-        output_graph("../debug-output/5-tracegraph-repairnames.dot");
-    else if (debug)
-        output_graph("../debug-output/7-tracegraph-repairnames.dot");
-    std::cout << "Set dag steps for repairs" << std::endl;
-    verify_partitions();
+    print_partition_info("", debug_step + "-tracegraph-repairname", true);
 
     // Now we want to merge everything in the same leap... but we treat the
     // partitions with only runtime chares in them differently
@@ -1135,11 +1067,7 @@ void Trace::mergeForEntryRepair(bool entries)
 
     while (!current_leap->isEmpty())
     {
-        verify_partitions();
-        if (debug && entries)
-            output_graph("../debug-output/5-tracegraph-repairnames-" + QString::number(leap) + ".dot");
-        else if (debug)
-            output_graph("../debug-output/7-tracegraph-repairnames-" + QString::number(leap) + ".dot");
+        print_partition_info("", debug_step + "-tracegraph-repairnames-" + QString::number(leap), true);
 
         QSet<Partition *> * next_leap = new QSet<Partition *>();
         QSet<QSet<Partition *> *> * merge_groups = new QSet<QSet<Partition *> *>();
@@ -1163,14 +1091,9 @@ void Trace::mergeForEntryRepair(bool entries)
             if (repairees->size() < 2)
                 continue;
 
-            if (repairees->size() > 1 && debug)
-                std::cout << "Merging children of " << (*partition)->debug_name << std::endl;
-
             for (QSet<Partition *>::Iterator child = repairees->begin();
                  child != repairees->end(); ++child)
             {
-                if (debug)
-                    std::cout << "     child: " << (*child)->debug_name << std::endl;
                 if (!child_group)
                 {
                     child_group = (*child)->group;
@@ -1217,8 +1140,6 @@ void Trace::mergeForEntryRepair(bool entries)
             p->debug_name = count;
             p->new_partition = p;
             count++;
-            if (debug)
-                std::cout << "Created " << p->debug_name << " at leap " << (leap+1) << std::endl;
             int min_leap = leap + 1;
 
             bool runtime = false;
@@ -1234,8 +1155,6 @@ void Trace::mergeForEntryRepair(bool entries)
                 partition_delete->insert(*partition);
                 (*partition)->new_partition = p;
 
-                if (debug)
-                    std::cout << "Staging " << (*partition)->debug_name << " for deletion" << std::endl;
                 min_leap = std::min((*partition)->dag_leap, min_leap);
 
                 // Merge all the events into the new partition
@@ -1263,8 +1182,6 @@ void Trace::mergeForEntryRepair(bool entries)
                 {
                     if (!((*group)->contains(*child)))
                     {
-                        if (debug)
-                            std::cout << "    adding child " << (*child)->debug_name << std::endl;
                         p->children->insert(*child);
                         for (QSet<Partition *>::Iterator group_member
                              = (*group)->begin();
@@ -1273,8 +1190,6 @@ void Trace::mergeForEntryRepair(bool entries)
                         {
                             if ((*child)->parents->contains(*group_member))
                             {
-                                if (debug)
-                                    std::cout << "     removing " << (*group_member)->debug_name << " as parent of " << (*child)->debug_name << std::endl;
                                 (*child)->parents->remove(*group_member);
                             }
                         }
@@ -1288,9 +1203,6 @@ void Trace::mergeForEntryRepair(bool entries)
                 {
                     if (!((*group)->contains(*parent)))
                     {
-                        if (debug)
-                            std::cout << "    adding parent " << (*parent)->debug_name << std::endl;
-
                         p->parents->insert(*parent);
                         for (QSet<Partition *>::Iterator group_member
                              = (*group)->begin();
@@ -1299,8 +1211,6 @@ void Trace::mergeForEntryRepair(bool entries)
                         {
                             if ((*parent)->children->contains(*group_member))
                             {
-                                if (debug)
-                                    std::cout << "     removing " << (*group_member)->debug_name << " as child of " << (*parent)->debug_name << std::endl;
                                 (*parent)->children->remove(*group_member);
                             }
                         }
@@ -1386,47 +1296,30 @@ void Trace::mergeForEntryRepair(bool entries)
 // Ordering between unordered sends and merging
 void Trace::mergeForCharmLeaps()
 {
-    std::cout << "Forcing partition dag of unordered sends..." << std::endl;
-    verify_partitions();
-    std::cout << "charm leap debug: pre-true on partitions " << partitions->size() << std::endl;
-    if (debug)
-        output_graph("../debug-output/9a-tracegraph-pretrue.dot");
+    print_partition_info("Forcing partition dag of unordered sends...",
+                          "9a-tracegraph-pretrue", true, true);
 
     // First things first, change parent/child relationships based on true_next/true_prev
     int count = 0;
     for (QList<Partition *>::Iterator part = partitions->begin();
          part != partitions->end(); ++part)
     {
-        if (debug)
-        {
-            std::cout << "Truing children " << count << ", " << (*part)->debug_name << std::endl;
-            count++;
-        }
         (*part)->debug_functions = functions;
 
         (*part)->semantic_children();
-        if (debug)
-            output_graph("../debug-output/9a-tracegraph-postsemantic-" + QString::number((*part)->debug_name) + ".dot");
-        (*part)->true_children();
-        if (debug)
-            output_graph("../debug-output/9a-tracegraph-posttrue-" + QString::number((*part)->debug_name) + ".dot");
+        print_partition_info("", "9a-tracegraph-postsemantic-" + QString::number((*part)->debug_name));
 
-        verify_partitions();
+        (*part)->true_children();
+        print_partition_info("", "9a-tracegraph-poststrue-" + QString::number((*part)->debug_name), true);
 
         if ((*part)->group->size() > 1)
-            std::cout << "I'm wrong about group state" << std::endl;
+            std::cout << "Error: Incorrect group state" << std::endl;
     }
-    if (debug)
-        output_graph("../debug-output/9b-tracegraph-posttrue.dot");
-    verify_partitions();
-    std::cout << "charm leap debug: pre-merge cycles" << std::endl;
+    print_partition_info("", "9b-tracegraph-posttrue", true, true);
 
     // fix cycles we have created
     mergeCycles();
     verify_partitions();
-
-    if (debug)
-        std::cout << "charm leap debug: finding dag entries" << std::endl;
 
     dag_entries->clear();
     for (QList<Partition *>::Iterator partition = partitions->begin();
@@ -1436,16 +1329,12 @@ void Trace::mergeForCharmLeaps()
             dag_entries->append(*partition);
     }
 
-    if (debug)
-        output_graph("../debug-output/9c-tracegraph-middle-nostep.dot");
+    print_partition_info("", "9c-tracegraph-middle-nostep");
 
     // Now that we have done that, reset the dag leaps
-    if (debug)
-        std::cout << "charm leap debug: Setting the dag steps" << std::endl;
     set_dag_steps();
 
-    if (debug)
-        output_graph("../debug-output/9d-tracegraph-middle.dot");
+    print_partition_info("","9d-tracegraph-middle");
 
 
     // Now we want to merge everything in the same leap... but we treat the
@@ -1527,7 +1416,6 @@ void Trace::mergeForCharmLeaps()
     } // End Leap While
     delete current_leap;
 
-    std::cout << "Doing the actual merger... " << std::endl;
     // Now we go through all our groups and merge them.
     // Now do the merger - we go through the leap and look at each
     // partition's group and mark anything we've already merged.
@@ -1664,7 +1552,7 @@ void Trace::mergeForCharmLeaps()
 //Sweep through by leap ordering partitions that have entity overlaps
 void Trace::forcePartitionDag()
 {
-    std::cout << "Forcing partition dag..." << std::endl;
+    print_partition_info("Enforcing partition DAG...");
     int leap = 0;
     QSet<Partition *> to_remove = QSet<Partition *>();
     QSet<Partition *> * current_leap = new QSet<Partition *>();
@@ -1678,9 +1566,6 @@ void Trace::forcePartitionDag()
 
     while (!current_leap->isEmpty())
     {
-        if (debug)
-            std::cout << " charm debug: leap " << leap << std::endl;
-
         QSet<Partition *> * next_leap = new QSet<Partition *>();
 
         for (QSet<Partition *>::Iterator part = current_leap->begin();
@@ -1717,8 +1602,6 @@ void Trace::forcePartitionDag()
                         later = *part;
                     }
 
-                    if (debug)
-                        std::cout << "    Overlapped entities! Earlier is " << earlier->debug_name << " vs " << later->debug_name << std::endl;
 
                     // Find overlapping parents that need to be removed
                     for (QSet<Partition *>::Iterator parent = later->parents->begin();
@@ -1772,8 +1655,6 @@ void Trace::forcePartitionDag()
                 if ((*child)->dag_leap == leap + 1)
                 {
                     next_leap->insert(*child);
-                    if (debug)
-                        std::cout << "Adding " << (*child)->debug_name << " to next leap" << std::endl;
                 }
             }
         }
@@ -1795,8 +1676,6 @@ void Trace::forcePartitionDag()
             dag_entries->append(*partition);
         }
     }
-    std::cout << "Handled app/runtime, now adding links" << std::endl;
-    verify_partitions();
 
     // Need to finally fix partitions that should parent each other but don't
     // e.g. those that don't have send-relations  but should have happens before
@@ -1878,55 +1757,38 @@ void Trace::assignSteps()
     QElapsedTimer traceTimer;
     qint64 traceElapsed;
 
-    std::cout << "Pre set dag steps in assign steps" << std::endl;
-    verify_partitions();
+    print_partition_info("Setting DAG leaps...", "", true);
     set_dag_steps();
-    std::cout << "Dag steps set" << std::endl;
-    verify_partitions();
+    print_partition_info("", "", true);
+
     if (options.origin == OTFImportOptions::OF_CHARM)
     {
-        if (debug)
-            output_graph("../debug-output/9-tracegraph-before.dot");
 
-        std::cout << "Merging for leaps in charm" << std::endl;
+        print_partition_info("Merging for Charm leaps", "9-tracegraph-before");
         traceTimer.start();
         mergeForCharmLeaps();
-        if (debug)
-            output_graph("../debug-output/9X-postcharmleap-preverify.dot");
+        print_partition_info("Setting up DAG...", "9X-postcharmleap-preverify", true, true);
 
-        std::cout << "Forcing DAG" << std::endl;
-        std::cout << "Partitions: " << partitions->size() << std::endl;
         set_dag_entries();
         set_dag_steps();
-        verify_partitions();
-        if (debug)
-            output_graph("../debug-output/10-tracegraph-charmleap.dot");
+        print_partition_info("", "10-tracegraph-charmleap", true);
+
         mergeCycles();
-        std::cout << "After another cycle merge partitions: " << partitions->size() << std::endl;
-        if (debug)
-        {
-            verify_partitions();
-            output_graph("../debug-output/10X-tracegraph-cyclepostleap.dot");
-            std::cout << "Partitions = " << partitions->size() << std::endl;
-        }
         traceElapsed = traceTimer.nsecsElapsed();
         RavelUtils::gu_printTime(traceElapsed, "Charm Leap Merge: ");
+        print_partition_info("", "10X-tracegraph-cyclepostleap", true, true);
 
         traceTimer.start();
         forcePartitionDag(); // overlap due to runtime versus application
-        if (debug)
-            verify_partitions();
         traceElapsed = traceTimer.nsecsElapsed();
-        RavelUtils::gu_printTime(traceElapsed, "Force Partition Dag: ");
+        RavelUtils::gu_printTime(traceElapsed, "Enforcing Partition Dag: ");
+        print_partition_info("", "11-tracegraph-after", true);
 
-
-        if (debug)
-            output_graph("../debug-output/11-tracegraph-after.dot");
         finalizeEntityEventOrder();
     }
     else if (options.reorderReceives)
     {
-        std::cout << "Forcing event order per partition..." << std::endl;
+        print_partition_info("Re-ordering out-of-order receives");
         for (QList<Partition *>::Iterator part = partitions->begin();
              part != partitions->end(); ++part)
         {
@@ -1936,8 +1798,8 @@ void Trace::assignSteps()
         }
     }
 
+    print_partition_info("Assigning local steps");
     traceTimer.start();
-    std::cout << "Assigning local steps" << std::endl;
     int progressPortion = std::max(round(partitions->size() / 1.0
                                          / steps_portion),
                                    1.0);
@@ -1999,32 +1861,25 @@ void Trace::assignSteps()
             }
         }
     }
-    if (debug)
-        output_graph("../debug-output/12-tracegraph-named.dot");
-
     traceElapsed = traceTimer.nsecsElapsed();
     RavelUtils::gu_printTime(traceElapsed, "Local Stepping: ");
+    print_partition_info("Setting global steps", "12-tracegraph-named");
 
-    std::cout << "Setting global steps..." << std::endl;
     traceTimer.start();
-
     set_global_steps();
 
     if (options.globalMerge) {
-        std::cout << "Merging global steps..." << std::endl;
+        print_partition_info("Merging global steps");
         mergeGlobalSteps();
     }
 
-    if (debug)
-        output_graph("../debug-output/13-dag-global.dot");
     traceElapsed = traceTimer.nsecsElapsed();
     RavelUtils::gu_printTime(traceElapsed, "Global Stepping: ");
-    std::cout << "Num partitions " << partitions->length() << std::endl;
     totalTime += totalTimer.nsecsElapsed();
     RavelUtils::gu_printTime(totalTime, "Total Algorithm Time: ");
+    print_partition_info("Calculating step-wise metrics", "13-dag-global", false, true);
 
     // Calculate Step metrics
-    std::cout << "Calculating lateness..." << std::endl;
     traceTimer.start();
 
     calculate_partition_lateness();
@@ -2038,7 +1893,7 @@ void Trace::assignSteps()
     }
 
     traceElapsed = traceTimer.nsecsElapsed();
-    RavelUtils::gu_printTime(traceElapsed, "Lateness Calculation: ");
+    RavelUtils::gu_printTime(traceElapsed, "Metrics Calculation: ");
 }
 
 // Adjacent (parent/child off by one dag leap) partitions are merged if along
@@ -3245,6 +3100,7 @@ void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
     RavelUtils::gu_printTime(traceElapsed, "Partition Merge: ");
 }
 
+// Determine the sources of the dag
 void Trace::set_dag_entries()
 {
     // Need to calculate new dag_entries
@@ -3492,6 +3348,7 @@ long long int Trace::getAggregateFunctionRecurse(Event * evt,
     return overlap;
 }
 
+// Find the smallest event in a timeline that contains the given time
 Event * Trace::findEvent(int entity, unsigned long long time)
 {
     Event * found = NULL;
@@ -3516,6 +3373,11 @@ void Trace::clear_dag_step_dict()
     dag_step_dict->clear();
 }
 
+// For debugging
+// Ensure partitions have the following properties:
+// 1) Partition only contains its own events
+// 2) Partitions with runtime events are marked as runtime partitions
+// 3) Partitions are not their own parents
 void Trace::verify_partitions()
 {
     return;
@@ -3612,4 +3474,25 @@ void Trace::output_graph(QString filename, bool byparent)
     graph << "}";
 
     graph.close();
+}
+
+// Print debug information
+void Trace::print_partition_info(QString message,
+                                 QString graph_name,
+                                 bool partition_verify,
+                                 bool partition_count)
+{
+    if (message.length() > 0)
+        std::cout << message.toStdString().c_str() << std::endl;
+    if (debug)
+    {
+        if (partition_verify)
+            verify_partitions();
+
+        if (graph_name.length() > 0)
+            output_graph("../debug-output/" + graph_name + ".dot");
+
+        if (partition_count)
+          std::cout << "Partitions = " << partitions->size() << std::endl;
+    }
 }

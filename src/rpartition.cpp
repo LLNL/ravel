@@ -1373,6 +1373,7 @@ Partition * Partition::newest_partition()
     return p;
 }
 
+// Verify each event in the partition actually belongs to the partition
 bool Partition::verify_members()
 {
     for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
@@ -1390,7 +1391,7 @@ bool Partition::verify_members()
     return true;
 }
 
-
+// Verify that if the partition has runtime events, it is a runtime partition
 bool Partition::verify_runtime(int runtime_id)
 {
     for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
@@ -1402,6 +1403,7 @@ bool Partition::verify_runtime(int runtime_id)
     return true;
 }
 
+// Verify partition is not its own parent
 bool Partition::verify_parents()
 {
     for (QSet<Partition *>::Iterator parent = parents->begin();
