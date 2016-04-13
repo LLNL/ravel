@@ -26,12 +26,14 @@
 #include "commbundle.h"
 #include "message.h"
 #include "clusterevent.h"
+#include "metrics.h"
+#include "commdrawinterface.h"
 #include <iostream>
 
 P2PEvent::P2PEvent(unsigned long long _enter, unsigned long long _exit,
-                   int _function, int _task, int _phase,
+                   int _function, int _entity, int _pe, int _phase,
                    QVector<Message *> *_messages)
-    : CommEvent(_enter, _exit, _function, _task, _phase),
+    : CommEvent(_enter, _exit, _function, _entity, _pe, _phase),
       subevents(NULL),
       messages(_messages),
       is_recv(false)
@@ -40,8 +42,8 @@ P2PEvent::P2PEvent(unsigned long long _enter, unsigned long long _exit,
 
 P2PEvent::P2PEvent(QList<P2PEvent *> * _subevents)
     : CommEvent(_subevents->first()->enter, _subevents->last()->exit,
-                _subevents->first()->function, _subevents->first()->task,
-                _subevents->first()->phase),
+                _subevents->first()->function, _subevents->first()->entity,
+                _subevents->first()->pe, _subevents->first()->phase),
       subevents(_subevents),
       messages(new QVector<Message *>()),
       is_recv(_subevents->first()->is_recv)
@@ -49,8 +51,6 @@ P2PEvent::P2PEvent(QList<P2PEvent *> * _subevents)
     this->depth = subevents->first()->depth;
 
     // Take over submessages & caller/callee relationships
-    //caller = subevents->first()->caller;
-    //int evt_index;
     for (QList<P2PEvent *>::Iterator evt = subevents->begin();
          evt != subevents->end(); ++evt)
     {
@@ -65,31 +65,24 @@ P2PEvent::P2PEvent(QList<P2PEvent *> * _subevents)
         }
 
         callees->append(*evt);
-        /*if (caller)
-        {
-            evt_index = caller->callees->indexOf(*evt);
-            if (evt_index > 0)
-                caller->callees->remove(evt_index);
-        }*/
+
         (*evt)->caller = this;
     }
-    //if (caller)
-    //    caller->callees->insert(evt_index, this);
 
     // Aggregate existing metrics
     P2PEvent * first = _subevents->first();
-    for (QMap<QString, MetricPair *>::Iterator counter = first->metrics->begin();
-         counter != first->metrics->end(); ++ counter)
+    QList<QString> names = first->metrics->getMetricList();
+    for (QList<QString>::Iterator counter = names.begin();
+         counter != names.end(); ++counter)
     {
-        QString name = counter.key();
         unsigned long long metric = 0, agg = 0;
         for (QList<P2PEvent *>::Iterator evt = subevents->begin();
              evt != subevents->end(); ++evt)
         {
-            metric += (*evt)->getMetric(name);
-            agg += (*evt)->getMetric(name, true);
+            metric += (*evt)->getMetric(*counter);
+            agg += (*evt)->getMetric(*counter, true);
         }
-        addMetric(name, metric, agg);
+        metrics->addMetric(*counter, metric, agg);
     }
 }
 
@@ -107,7 +100,79 @@ P2PEvent::~P2PEvent()
         delete subevents;
 }
 
-bool P2PEvent::isReceive()
+bool P2PEvent::operator<(const P2PEvent &event)
+{
+    if (enter == event.enter)
+    {
+        if (add_order == event.add_order)
+        {
+            if (is_recv)
+                return true;
+            else
+                return false;
+        }
+        return add_order < event.add_order;
+    }
+    return enter < event.enter;
+}
+
+bool P2PEvent::operator>(const P2PEvent &event)
+{
+    if (enter == event.enter)
+    {
+        if (add_order == event.add_order)
+        {
+            if (is_recv)
+                return false;
+            else
+                return true;
+        }
+        return add_order > event.add_order;
+    }
+    return enter > event.enter;
+}
+
+bool P2PEvent::operator<=(const P2PEvent &event)
+{
+    if (enter == event.enter)
+    {
+        if (add_order == event.add_order)
+        {
+            if (is_recv)
+                return true;
+            else
+                return false;
+        }
+        return add_order <= event.add_order;
+    }
+    return enter <= event.enter;
+}
+
+bool P2PEvent::operator>=(const P2PEvent &event)
+{
+    if (enter == event.enter)
+    {
+        if (add_order == event.add_order)
+        {
+            if (is_recv)
+                return false;
+            else
+                return true;
+        }
+        return add_order >= event.add_order;
+    }
+    return enter >= event.enter;
+}
+
+bool P2PEvent::operator==(const P2PEvent &event)
+{
+    return enter == event.enter
+            && add_order == event.add_order
+            && is_recv == event.is_recv;
+}
+
+
+bool P2PEvent::isReceive() const
 {
     return is_recv;
 }
@@ -149,9 +214,13 @@ bool P2PEvent::calculate_local_step()
              msg != messages->end(); ++msg)
         {
             if ((*msg)->sender->step < 0)
+            {
                 return false;
+            }
             else if ((*msg)->sender->step >= temp_step)
+            {
                 temp_step = (*msg)->sender->step + 1;
+            }
         }
     }
 
@@ -160,16 +229,25 @@ bool P2PEvent::calculate_local_step()
         step = temp_step;
         return true;
     }
+
     return false;
 }
 
 void P2PEvent::calculate_differential_metric(QString metric_name,
-                                             QString base_name)
+                                             QString base_name, bool aggregates)
 {
-    long long max_parent = getMetric(base_name, true);
-    long long max_agg_parent = 0;
-    if (comm_prev)
-        max_agg_parent = (comm_prev->getMetric(base_name));
+    long long max_parent = 0, max_agg_parent = 0;
+    if (aggregates) // If we have aggregates, the aggregate is the prev
+    {
+        max_parent = getMetric(base_name, true);
+        if (comm_prev)
+            max_agg_parent = comm_prev->getMetric(base_name);
+    }
+    else if (comm_prev) // Otheriwse, just look at the previous if it exists
+    {
+        max_parent = comm_prev->getMetric(base_name);
+    }
+
 
     if (is_recv)
     {
@@ -182,11 +260,16 @@ void P2PEvent::calculate_differential_metric(QString metric_name,
         }
     }
 
-    addMetric(metric_name,
-              std::max(0.,
-                       getMetric(base_name)- max_parent),
-              std::max(0.,
-                       getMetric(base_name, true)- max_agg_parent));
+    if (aggregates)
+        metrics->addMetric(metric_name,
+                           std::max(0.,
+                                    getMetric(base_name)- max_parent),
+                           std::max(0.,
+                                    getMetric(base_name, true)- max_agg_parent));
+    else
+        metrics->addMetric(metric_name,
+                           std::max(0.,
+                                    getMetric(base_name)- max_parent));
 }
 
 void P2PEvent::initialize_basic_strides(QSet<CollectiveRecord *> * collectives)
@@ -202,7 +285,7 @@ void P2PEvent::update_basic_strides()
     if (comm_prev && comm_prev->partition == partition)
         last_stride = comm_prev;
 
-    // Set last_stride based on task
+    // Set last_stride based on entity
     while (last_stride && last_stride->stride < 0)
     {
         last_stride = last_stride->comm_prev;
@@ -211,7 +294,7 @@ void P2PEvent::update_basic_strides()
         last_stride = NULL;
 
     next_stride = comm_next;
-    // Set next_stride based on task
+    // Set next_stride based on entity
     while (next_stride && next_stride->stride < 0)
     {
         next_stride = next_stride->comm_next;
@@ -227,11 +310,11 @@ void P2PEvent::initialize_strides(QList<CommEvent *> * stride_events,
     {
         stride_events->append(this);
 
-        // The next one in the task is a stride child
+        // The next one in the entity is a stride child
         set_stride_relationships(this);
 
         // Follow messages to their receives and then along
-        // the new task to find more stride children
+        // the new entity to find more stride children
         for (QVector<Message *>::Iterator msg = messages->begin();
              msg != messages->end(); ++msg)
         {
@@ -243,7 +326,7 @@ void P2PEvent::initialize_strides(QList<CommEvent *> * stride_events,
         recv_events->append(this);
         if (comm_prev && comm_prev->partition == partition)
             last_stride = comm_prev;
-        // Set last_stride based on task
+        // Set last_stride based on entity
         while (last_stride && last_stride->isReceive())
         {
             last_stride = last_stride->comm_prev;
@@ -252,7 +335,7 @@ void P2PEvent::initialize_strides(QList<CommEvent *> * stride_events,
             last_stride = NULL;
 
         next_stride = comm_next;
-        // Set next_stride based on task
+        // Set next_stride based on entity
         while (next_stride && next_stride->isReceive())
         {
             next_stride = next_stride->comm_next;
@@ -265,18 +348,18 @@ void P2PEvent::initialize_strides(QList<CommEvent *> * stride_events,
 
 void P2PEvent::set_stride_relationships(CommEvent * base)
 {
-    CommEvent * task_next = base->comm_next;
+    CommEvent * entity_next = base->comm_next;
 
     // while we have receives
-    while (task_next && task_next->isReceive())
+    while (entity_next && entity_next->isReceive())
     {
-        task_next = task_next->comm_next;
+        entity_next = entity_next->comm_next;
     }
 
-    if (task_next && task_next->partition == partition)
+    if (entity_next && entity_next->partition == partition)
     {
-        stride_children->insert(task_next);
-        task_next->stride_parents->insert(this);
+        stride_children->insert(entity_next);
+        entity_next->stride_parents->insert(this);
     }
 }
 
@@ -296,6 +379,43 @@ void P2PEvent::update_strides()
         {
             last_stride = (*msg)->sender;
         }
+    }
+}
+
+void P2PEvent::set_reorder_strides(QMap<int, QList<CommEvent *> *> * stride_map,
+                                   int offset, CommEvent *last, int debug)
+{
+    Q_UNUSED(last);
+    offset = 1;
+    for (QVector<Message *>::Iterator msg = messages->begin();
+         msg != messages->end(); ++msg)
+    {
+        (*msg)->receiver->stride = stride + offset;
+        //std::cout << "Setting stride " << (*msg)->receiver->stride << " for entity " << (*msg)->receiver->entity << " with add order " << (*msg)->receiver->add_order << std::endl;
+
+        if (!stride_map->contains(stride + offset))
+        {
+            stride_map->insert(stride + offset,
+                               new QList<CommEvent *>());
+        }
+        Q_ASSERT(stride + offset != stride);
+        Q_ASSERT(stride + offset != debug);
+        stride_map->value(stride + offset)->append((*msg)->receiver);
+
+        // Last stride to self for ordering
+        (*msg)->receiver->last_stride = (*msg)->receiver; //this;
+        /*if ((*msg)->receiver->comm_prev)
+        {
+            CommEvent * prev = (*msg)->receiver->comm_prev;
+            while (prev && !prev->isReceive() && prev->partition == partition)
+                prev = prev->comm_prev;
+
+            if (prev && prev->partition == partition && prev->isReceive())
+                (*msg)->receiver->last_stride = prev;
+        }*/
+
+        // next stride for tie-breaking so we know what entity it is
+        (*msg)->receiver->next_stride = this;
     }
 }
 
@@ -381,6 +501,44 @@ void P2PEvent::addToClusterEvent(ClusterEvent * ce, QString metric,
                   commtype, aggthreshhold);
 }
 
+void P2PEvent::track_delay(QPainter *painter, CommDrawInterface *vis)
+{
+    vis->drawDelayTracking(painter, this);
+}
+
+// What is the cause of the delay, this sender, or the pe_prev
+// that is the input parameter?
+CommEvent * P2PEvent::compare_to_sender(CommEvent * prev)
+{
+    if (!is_recv)
+        return prev;
+
+    unsigned long long max_time = 0;
+    CommEvent * sender = NULL;
+    for (QVector<Message *>::Iterator msg = messages->begin();
+         msg != messages->end(); ++msg)
+    {
+        if ((*msg)->sender->caller && (*msg)->sender->caller->exit > max_time)
+        {
+            max_time = (*msg)->sender->caller->exit;
+            sender = (*msg)->sender;
+        }
+        else if ((*msg)->sender->exit > max_time)
+        {
+            max_time = (*msg)->sender->exit;
+            sender = (*msg)->sender;
+        }
+    }
+
+    if (!prev)
+        return sender;
+
+    if (max_time > prev->exit)
+        return sender;
+
+    return prev;
+}
+
 void P2PEvent::addComms(QSet<CommBundle *> * bundleset)
 {
     for (QVector<Message *>::Iterator msg = messages->begin();
@@ -388,16 +546,16 @@ void P2PEvent::addComms(QSet<CommBundle *> * bundleset)
         bundleset->insert(*msg);
 }
 
-QList<int> P2PEvent::neighborTasks()
+QList<int> P2PEvent::neighborEntities()
 {
     QSet<int> neighbors = QSet<int>();
     for (QVector<Message *>::Iterator msg = messages->begin();
          msg != messages->end(); ++msg)
     {
-        neighbors.insert((*msg)->receiver->task);
-        neighbors.insert((*msg)->sender->task);
+        neighbors.insert((*msg)->receiver->entity);
+        neighbors.insert((*msg)->sender->entity);
     }
-    neighbors.remove(task);
+    neighbors.remove(entity);
     return neighbors.toList();
 }
 
@@ -429,8 +587,8 @@ void P2PEvent::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attribu
              OTF2_EvtWriter_MpiRecv(writer,
                                     NULL,
                                     (*msg)->recvtime,
-                                    (*msg)->sender->task,
-                                    (*msg)->taskgroup,
+                                    (*msg)->sender->entity,
+                                    (*msg)->entitygroup,
                                     (*msg)->tag,
                                     (*msg)->size);
          }
@@ -439,8 +597,8 @@ void P2PEvent::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attribu
             OTF2_EvtWriter_MpiSend(writer,
                                    NULL,
                                    (*msg)->sendtime,
-                                   (*msg)->receiver->task,
-                                   (*msg)->taskgroup,
+                                   (*msg)->receiver->entity,
+                                   (*msg)->entitygroup,
                                    (*msg)->tag,
                                    (*msg)->size);
          }

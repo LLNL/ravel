@@ -24,9 +24,11 @@
 //////////////////////////////////////////////////////////////////////////////
 #include "function.h"
 
-Function::Function(QString _n, int _g)
+Function::Function(QString _n, int _g, QString _s, int _c)
     : name(_n),
+      shortname(_s),
       group(_g),
-      comms(0)
+      comms(_c),
+      isMain(false)
 {
 }

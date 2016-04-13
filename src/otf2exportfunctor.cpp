@@ -24,7 +24,7 @@
 //////////////////////////////////////////////////////////////////////////////
 #include "otf2exportfunctor.h"
 #include "otf2exporter.h"
-#include "general_util.h"
+#include "ravelutils.h"
 
 #include <QElapsedTimer>
 
@@ -45,9 +45,7 @@ void OTF2ExportFunctor::exportTrace(Trace * trace, const QString& path,
     exporter->exportTrace(path, filename);
 
     traceElapsed = traceTimer.nsecsElapsed();
-    std::cout << "Total export time: ";
-    gu_printTime(traceElapsed);
-    std::cout << std::endl;
+    RavelUtils::gu_printTime(traceElapsed, "Total export time: ");
 
     emit(done());
 }

@@ -34,7 +34,7 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
     <x>0</x>
     <y>0</y>
     <width>412</width>
-    <height>520</height>
+    <height>593</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -109,7 +109,7 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
            <item>
             <widget class="QCheckBox" name="waitallCheckbox">
              <property name="toolTip">
-              <string>If requests are recorded, this option is ignored.</string>
+              <string>Merge MPI calls likely handled by the same Waitall/Testall. OTF1 only.</string>
              </property>
              <property name="text">
               <string>use Waitall heuristic if requests not recorded</string>
@@ -121,6 +121,9 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
            </item>
            <item>
             <widget class="QCheckBox" name="callerCheckbox">
+             <property name="toolTip">
+              <string>MPI Only. Merge MPI calls to the call tree depth of functions with multiple such calls.</string>
+             </property>
              <property name="text">
               <string>merge Partitions by call tree</string>
              </property>
@@ -128,6 +131,9 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
            </item>
            <item>
             <widget class="QCheckBox" name="leapCheckbox">
+             <property name="toolTip">
+              <string>Ensure all processes are active at every phase. MPI only.</string>
+             </property>
              <property name="text">
               <string>merge Partitions to complete Leaps</string>
              </property>
@@ -155,6 +161,9 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
               <layout class="QVBoxLayout" name="verticalLayout_2">
                <item>
                 <widget class="QCheckBox" name="skipCheckbox">
+                 <property name="toolTip">
+                  <string>If merging cannot increase processes per phase, skip rather than continuing the forward merge.</string>
+                 </property>
                  <property name="text">
                   <string>skip Leaps that cannot be merged</string>
                  </property>
@@ -166,6 +175,9 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
            </item>
            <item>
             <widget class="QCheckBox" name="globalMergeBox">
+             <property name="toolTip">
+              <string>Aggressively merge partitions using the same global logical steps. Useful for bulk synchronous applications.</string>
+             </property>
              <property name="text">
               <string>merge across global steps for clustering</string>
              </property>
@@ -173,6 +185,35 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
               <bool>true</bool>
              </property>
             </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_5">
+             <property name="leftMargin">
+              <number>6</number>
+             </property>
+             <property name="topMargin">
+              <number>6</number>
+             </property>
+             <property name="rightMargin">
+              <number>6</number>
+             </property>
+             <property name="bottomMargin">
+              <number>6</number>
+             </property>
+             <item>
+              <widget class="QLabel" name="label_5">
+               <property name="toolTip">
+                <string>Force partition breaks for Charm++ at the given functions. Comma separated.</string>
+               </property>
+               <property name="text">
+                <string>Charm++ break functions: </string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLineEdit" name="breakEdit"/>
+             </item>
+            </layout>
            </item>
           </layout>
          </item>
@@ -187,6 +228,9 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
        </property>
        <item>
         <widget class="QRadioButton" name="functionRadioButton">
+         <property name="toolTip">
+          <string>Attempts to partition the trace at the given function boundary.</string>
+         </property>
          <property name="text">
           <string>Partition at function breaks:</string>
          </property>
@@ -220,10 +264,20 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
    <item>
     <widget class="QCheckBox" name="messageSizeCheckbox">
      <property name="toolTip">
-      <string>Some trace utilities may store message size in only one place</string>
+      <string>As some trace utilities store message size in only one place, we do not enforce this check when matching messages. Check if this should be enforced.</string>
      </property>
      <property name="text">
       <string>Matching send/recv must have the same message size</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="recvReorderCheckbox">
+     <property name="toolTip">
+      <string>Re-order receives assuming each partition event and message requires the same time. Not yet supported with clustering.</string>
+     </property>
+     <property name="text">
+      <string>Idealized order of receives</string>
      </property>
     </widget>
    </item>
@@ -256,6 +310,9 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
      <property name="focusPolicy">
       <enum>Qt::WheelFocus</enum>
      </property>
+     <property name="toolTip">
+      <string>Cluster processes by similar metric profile. Not yet supported with receive reordering.</string>
+     </property>
      <property name="text">
       <string>Clustering Options</string>
      </property>
@@ -263,6 +320,9 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
    </item>
    <item>
     <widget class="QCheckBox" name="clusterCheckbox">
+     <property name="toolTip">
+      <string>Cluster processes by similar metric profile. Not yet supported with receive reordering.</string>
+     </property>
      <property name="text">
       <string>Cluster processes</string>
      </property>

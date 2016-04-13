@@ -27,9 +27,9 @@
 
 CollectiveEvent::CollectiveEvent(unsigned long long _enter,
                                  unsigned long long _exit,
-                                 int _function, int _task, int _phase,
+                                 int _function, int _entity, int _pe, int _phase,
                                  CollectiveRecord *_collective)
-    : CommEvent(_enter, _exit, _function, _task, _phase),
+    : CommEvent(_enter, _exit, _function, _entity, _pe, _phase),
       collective(_collective)
 {
 }
@@ -71,7 +71,7 @@ void CollectiveEvent::initialize_strides(QList<CommEvent *> * stride_events,
     Q_UNUSED(recv_events);
     stride_events->append(this);
 
-    // The next one in the task is a stride child
+    // The next one in the entitiy is a stride child
     set_stride_relationships();
 }
 
@@ -84,15 +84,15 @@ void CollectiveEvent::initialize_basic_strides(QSet<CollectiveRecord *> *collect
 void CollectiveEvent::update_basic_strides()
 {
     // First, we set up the graph based on what is in a stride
-    CommEvent * task_next = comm_next;
+    CommEvent * entity_next = comm_next;
 
     // while we have receives
-    while (task_next && task_next->stride < 0)
+    while (entity_next && entity_next->stride < 0)
     {
-        task_next = task_next->comm_next;
+        entity_next = entity_next->comm_next;
     }
 
-    if (task_next && task_next->partition == partition)
+    if (entity_next && entity_next->partition == partition)
     {
         // Add to everyone in the collective
         // as a parent. This will force the collective to be after
@@ -101,8 +101,8 @@ void CollectiveEvent::update_basic_strides()
              = collective->events->begin();
              ev != collective->events->end(); ++ev)
         {
-            task_next->stride_parents->insert(*ev);
-            (*ev)->stride_children->insert(task_next);
+            entity_next->stride_parents->insert(*ev);
+            (*ev)->stride_children->insert(entity_next);
         }
     }
 }
@@ -128,15 +128,15 @@ bool CollectiveEvent::calculate_local_step()
 
 void CollectiveEvent::set_stride_relationships()
 {
-    CommEvent * task_next = comm_next;
+    CommEvent * entity_next = comm_next;
 
     // while we have receives
-    while (task_next && task_next->isReceive())
+    while (entity_next && entity_next->isReceive())
     {
-        task_next = task_next->comm_next;
+        entity_next = entity_next->comm_next;
     }
 
-    if (task_next && task_next->partition == partition)
+    if (entity_next && entity_next->partition == partition)
     {
         // Add to everyone in the collective
         // as a parent. This will force the collective to be after
@@ -145,8 +145,8 @@ void CollectiveEvent::set_stride_relationships()
              = collective->events->begin();
              ev != collective->events->end(); ++ev)
         {
-            task_next->stride_parents->insert(*ev);
-            (*ev)->stride_children->insert(task_next);
+            entity_next->stride_parents->insert(*ev);
+            (*ev)->stride_children->insert(entity_next);
         }
     }
 }
@@ -209,15 +209,15 @@ void CollectiveEvent::addToClusterEvent(ClusterEvent * ce, QString metric,
                   ClusterEvent::CE_COMM_COLL, aggthreshhold);
 }
 
-QList<int> CollectiveEvent::neighborTasks()
+QList<int> CollectiveEvent::neighborEntities()
 {
     QList<int> neighbors = QList<int>();
     for (QList<CollectiveEvent *>::Iterator evt = collective->events->begin();
          evt != collective->events->end(); ++evt)
     {
-        neighbors.append((*evt)->task);
+        neighbors.append((*evt)->entity);
     }
-    neighbors.removeOne(task);
+    neighbors.removeOne(entity);
     return neighbors;
 }
 
@@ -235,7 +235,7 @@ void CollectiveEvent::writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * 
                                     NULL,
                                     exit,
                                     collective->collective,
-                                    collective->taskgroup,
+                                    collective->entitygroup,
                                     collective->root,
                                     0,
                                     0);

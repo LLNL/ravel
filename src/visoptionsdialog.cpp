@@ -55,6 +55,8 @@ VisOptionsDialog::VisOptionsDialog(QWidget *parent, VisOptions * _options,
             SLOT(onMetric(QString)));
     connect(ui->showAggregateCheckBox, SIGNAL(clicked(bool)), this,
             SLOT(onShowAggregate(bool)));
+    connect(ui->traceBackCheckBox, SIGNAL(clicked(bool)), this,
+            SLOT(onTraceBack(bool)));
     connect(ui->messageComboBox, SIGNAL(currentIndexChanged(int)), this,
             SLOT(onShowMessages(int)));
     connect(ui->inactiveCheckBox, SIGNAL(clicked(bool)), this,
@@ -116,6 +118,13 @@ void VisOptionsDialog::onShowAggregate(bool showAggregate)
     options->showAggregateSteps = showAggregate;
 }
 
+
+void VisOptionsDialog::onTraceBack(bool traceBack)
+{
+    options->traceBack = traceBack;
+}
+
+
 void VisOptionsDialog::onShowMessages(int showMessages)
 {
     if (showMessages == 0)
@@ -164,6 +173,11 @@ void VisOptionsDialog::setUIState()
         ui->showAggregateCheckBox->setChecked(true);
     else
         ui->showAggregateCheckBox->setChecked(false);
+
+    if (options->traceBack)
+        ui->traceBackCheckBox->setChecked(true);
+    else
+        ui->traceBackCheckBox->setChecked(false);
 
     if (options->showInactiveSteps)
         ui->inactiveCheckBox->setChecked(true);

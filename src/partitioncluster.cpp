@@ -27,7 +27,7 @@
 #include <climits>
 
 #include "clusterevent.h"
-#include "clustertask.h"
+#include "clusterentity.h"
 #include "event.h"
 #include "commevent.h"
 
@@ -35,7 +35,7 @@
 PartitionCluster::PartitionCluster(int num_steps, int start,
                                    long long int _divider)
     : startStep(start),
-      max_task(-1),
+      max_entity(-1),
       open(false),
       drawnOut(false),
       max_distance(0),
@@ -108,13 +108,13 @@ void PartitionCluster::makeClusterVectors()
 }
 
 
-// Add another task to this cluster using the events in elist, the given
-// metric and the task encapsulated by ClusterTask
-long long int PartitionCluster::addMember(ClusterTask * cp,
+// Add another entity to this cluster using the events in elist, the given
+// metric and the entity encapsulated by ClusterEntity
+long long int PartitionCluster::addMember(ClusterEntity * cp,
                                           QList<CommEvent *> * elist,
                                           QString metric)
 {
-    members->append(cp->task);
+    members->append(cp->entity);
     long long int max_evt_metric = 0;
     for (QList<CommEvent *>::Iterator evt = elist->begin();
          evt != elist->end(); ++evt)
@@ -123,7 +123,7 @@ long long int PartitionCluster::addMember(ClusterTask * cp,
         if (evt_metric > max_metric)
         {
             max_metric = evt_metric;
-            max_task = cp->task;
+            max_entity = cp->entity;
         }
         if (evt_metric > max_evt_metric)
             max_evt_metric = evt_metric;
@@ -139,7 +139,7 @@ long long int PartitionCluster::addMember(ClusterTask * cp,
 PartitionCluster::PartitionCluster(int member, QList<CommEvent *> *elist,
                                    QString metric, long long int _divider)
     : startStep(elist->at(0)->step),
-      max_task(member),
+      max_entity(member),
       open(false),
       drawnOut(false),
       max_distance(0),
@@ -170,7 +170,7 @@ PartitionCluster::PartitionCluster(long long int distance,
                                    PartitionCluster * c1,
                                    PartitionCluster * c2)
     : startStep(std::min(c1->startStep, c2->startStep)),
-      max_task(c1->max_task),
+      max_entity(c1->max_entity),
       open(false),
       max_distance(distance),
       max_metric(std::max(c1->max_metric, c2->max_metric)),
@@ -188,7 +188,7 @@ PartitionCluster::PartitionCluster(long long int distance,
     members->append(*(c1->members));
     members->append(*(c2->members));
     if (c2->max_metric > c1->max_metric)
-        max_task = c2->max_task;
+        max_entity = c2->max_entity;
 
     // Children are ordered by their max_metric
     if (c1->max_metric > c2->max_metric)

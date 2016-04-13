@@ -24,14 +24,14 @@
 //////////////////////////////////////////////////////////////////////////////
 #include "importoptionsdialog.h"
 #include "ui_importoptionsdialog.h"
-#include "otfimportoptions.h"
+#include "importoptions.h"
 
 ImportOptionsDialog::ImportOptionsDialog(QWidget *parent,
-                                         OTFImportOptions * _options)
+                                         ImportOptions * _options)
     : QDialog(parent),
     ui(new Ui::ImportOptionsDialog),
     options(_options),
-    saved(OTFImportOptions(*_options))
+    saved(ImportOptions(*_options))
 {
     ui->setupUi(this);
     connect(ui->buttonBox, SIGNAL(accepted()), this, SLOT(onOK()));
@@ -52,6 +52,8 @@ ImportOptionsDialog::ImportOptionsDialog(QWidget *parent,
             SLOT(onGlobalMerge(bool)));
     connect(ui->functionEdit, SIGNAL(textChanged(QString)), this,
             SLOT(onFunctionEdit(QString)));
+    connect(ui->breakEdit, SIGNAL(textChanged(QString)), this,
+            SLOT(onBreakEdit(QString)));
     connect(ui->clusterCheckbox, SIGNAL(clicked(bool)), this,
             SLOT(onCluster(bool)));
     connect(ui->isendCheckbox, SIGNAL(clicked(bool)), this,
@@ -60,9 +62,10 @@ ImportOptionsDialog::ImportOptionsDialog(QWidget *parent,
             SLOT(onMessageSize(bool)));
     connect(ui->stepCheckbox, SIGNAL(clicked(bool)), this,
             SLOT(onAdvancedStep(bool)));
+    connect(ui->recvReorderCheckbox, SIGNAL(clicked(bool)), this,
+            SLOT(onRecvReorder(bool)));
     connect(ui->seedEdit, SIGNAL(textChanged(QString)), this,
             SLOT(onSeedEdit(QString)));
-
     setUIState();
 }
 
@@ -141,9 +144,21 @@ void ImportOptionsDialog::onAdvancedStep(bool advanced)
     options->advancedStepping = advanced;
 }
 
+
+void ImportOptionsDialog::onRecvReorder(bool reorder)
+{
+    options->reorderReceives = reorder;
+    setUIState();
+}
+
 void ImportOptionsDialog::onFunctionEdit(const QString& text)
 {
     options->partitionFunction = text;
+}
+
+void ImportOptionsDialog::onBreakEdit(const QString& text)
+{
+    options->breakFunctions = text;
 }
 
 void ImportOptionsDialog::onSeedEdit(const QString& text)
@@ -174,8 +189,10 @@ void ImportOptionsDialog::setUIState()
     ui->isendCheckbox->setChecked(options->isendCoalescing);
     ui->messageSizeCheckbox->setChecked(options->enforceMessageSizes);
     ui->stepCheckbox->setChecked(options->advancedStepping);
+    ui->recvReorderCheckbox->setChecked(options->reorderReceives);
 
     ui->functionEdit->setText(options->partitionFunction);
+    ui->breakEdit->setText(options->breakFunctions);
 
     // Make available leap merge options
     if (options->leapMerge)
@@ -197,6 +214,10 @@ void ImportOptionsDialog::setUIState()
     }
     ui->seedEdit->setEnabled(options->cluster);
 
+
+    ui->recvReorderCheckbox->setEnabled(!options->cluster);
+    ui->clusterCheckbox->setEnabled(!options->reorderReceives);
+
     // Enable or Disable heuristic v. given partition
     if (options->partitionByFunction)
     {
@@ -207,6 +228,7 @@ void ImportOptionsDialog::setUIState()
         ui->leapCheckbox->setEnabled(false);
         ui->skipCheckbox->setEnabled(false);
         ui->functionEdit->setEnabled(true);
+        ui->breakEdit->setEnabled(false);
         ui->globalMergeBox->setEnabled(false);
     }
     else
@@ -217,6 +239,7 @@ void ImportOptionsDialog::setUIState()
         ui->callerCheckbox->setEnabled(true);
         ui->leapCheckbox->setEnabled(true);
         ui->functionEdit->setEnabled(false);
+        ui->breakEdit->setEnabled(true);
         ui->globalMergeBox->setEnabled(true);
     }
 }

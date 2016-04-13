@@ -449,7 +449,7 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
     <property name="title">
      <string>File</string>
     </property>
-    <addaction name="actionOpen_OTF"/>
+    <addaction name="actionOpen_Trace"/>
     <addaction name="actionSave"/>
     <addaction name="actionClose"/>
     <addaction name="actionQuit"/>
@@ -458,7 +458,7 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
     <property name="title">
      <string>Options</string>
     </property>
-    <addaction name="actionOTF_Importing"/>
+    <addaction name="actionTrace_Importing"/>
     <addaction name="actionVisualization"/>
    </widget>
    <widget class="QMenu" name="menuViews">
@@ -486,14 +486,14 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
     <string>Open Legacy JSON</string>
    </property>
   </action>
-  <action name="actionOpen_OTF">
+  <action name="actionOpen_Trace">
    <property name="text">
     <string>Open Trace</string>
    </property>
   </action>
-  <action name="actionOTF_Importing">
+  <action name="actionTrace_Importing">
    <property name="text">
-    <string>OTF Importing</string>
+    <string>Trace Importing</string>
    </property>
   </action>
   <action name="actionVisualization">

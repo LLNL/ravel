@@ -26,16 +26,18 @@
 #include "trace.h"
 #include "event.h"
 #include "commevent.h"
-#include "task.h"
-#include "taskgroup.h"
+#include "entity.h"
+#include "entitygroup.h"
 #include "function.h"
 #include "rpartition.h"
+#include "primaryentitygroup.h"
 #include <climits>
 #include <cmath>
 #include <iostream>
 
 OTF2Exporter::OTF2Exporter(Trace *_t)
     : trace(_t),
+      entities(trace->primaries->value(0)->entities),
       ravel_string(0),
       ravel_version_string(0),
       archive(NULL),
@@ -88,20 +90,20 @@ void OTF2Exporter::exportEvents()
 {
     OTF2_Archive_OpenEvtFiles(archive);
 
-    for (QMap<int, Task *>::Iterator task = trace->tasks->begin();
-         task != trace->tasks->end(); ++task)
+    for (QList<Entity *>::Iterator entity = entities->begin();
+         entity != entities->end(); ++entity)
     {
-        exportTaskEvents(task.key());
+        exportEntityEvents((*entity)->id);
     }
 
     OTF2_Archive_CloseEvtFiles(archive);
 }
 
-void OTF2Exporter::exportTaskEvents(int taskid)
+void OTF2Exporter::exportEntityEvents(int entityid)
 {
-    QVector<Event *> * roots = trace->roots->at(taskid);
+    QVector<Event *> * roots = trace->roots->at(entityid);
     OTF2_EvtWriter * evt_writer = OTF2_Archive_GetEvtWriter(archive,
-                                                            taskid);
+                                                            entityid);
     for (QVector<Event *>::Iterator root = roots->begin();
          root != roots->end(); ++root)
     {
@@ -135,8 +137,8 @@ void OTF2Exporter::exportDefinitions()
 
     exportAttributes();
     exportFunctions();
-    exportTasks();
-    exportTaskGroups();
+    exportEntities();
+    exportEntityGroups();
 
 }
 
@@ -209,16 +211,16 @@ void OTF2Exporter::exportAttributes()
     }
 }
 
-void OTF2Exporter::exportTaskGroups()
+void OTF2Exporter::exportEntityGroups()
 {
     // Communicators
-    for (QMap<int, TaskGroup *>::Iterator tg = trace->taskgroups->begin();
-         tg != trace->taskgroups->end(); ++tg)
+    for (QMap<int, EntityGroup *>::Iterator tg = trace->entitygroups->begin();
+         tg != trace->entitygroups->end(); ++tg)
     {
-        int num_tasks = (tg.value())->tasks->size();
-        uint64_t tasks[num_tasks];
-        for (int i = 0; i < num_tasks; i++)
-            tasks[i] = (tg.value())->tasks->at(i);
+        int num_entities = (tg.value())->entities->size();
+        uint64_t entities[num_entities];
+        for (int i = 0; i < num_entities; i++)
+            entities[i] = (tg.value())->entities->at(i);
 
         OTF2_GlobalDefWriter_WriteGroup(global_def_writer,
                                         (tg.value())->id /* id */,
@@ -226,8 +228,8 @@ void OTF2Exporter::exportTaskGroups()
                                         OTF2_GROUP_TYPE_COMM_LOCATIONS,
                                         OTF2_PARADIGM_MPI,
                                         OTF2_GROUP_FLAG_NONE,
-                                        num_tasks,
-                                        tasks);
+                                        num_entities,
+                                        entities);
 
         OTF2_GlobalDefWriter_WriteComm(global_def_writer,
                                        (tg.value())->id /* id */,
@@ -239,17 +241,17 @@ void OTF2Exporter::exportTaskGroups()
 
     // MPI Paradigm Group to be added
     // Create locations group
-    uint64_t comm_locations[trace->tasks->size()];
+    uint64_t comm_locations[entities->size()];
     int j = 0;
-    for (QMap<int, Task *>::Iterator task = trace->tasks->begin();
-         task != trace->tasks->end(); ++task)
+    for (QList<Entity *>::Iterator entity = entities->begin();
+         entity != entities->end(); ++entity)
     {
-        comm_locations[j] = (task.value())->id;
+        comm_locations[j] = (*entity)->id;
         j++;
     }
     // Find a unique ID
     int id = 0;
-    while (trace->taskgroups->contains(id))
+    while (trace->entitygroups->contains(id))
         id++;
 
     // Write group
@@ -259,29 +261,29 @@ void OTF2Exporter::exportTaskGroups()
                                      OTF2_GROUP_TYPE_COMM_LOCATIONS,
                                      OTF2_PARADIGM_MPI,
                                      OTF2_GROUP_FLAG_NONE,
-                                     trace->tasks->size(),
+                                     entities->size(),
                                      comm_locations );
 
 }
 
-void OTF2Exporter::exportTasks()
+void OTF2Exporter::exportEntities()
 {
-    for (QMap<int, Task *>::Iterator task = trace->tasks->begin();
-         task != trace->tasks->end(); ++task)
+    for (QList<Entity *>::Iterator entity = entities->begin();
+         entity != entities->end(); ++entity)
     {
         OTF2_GlobalDefWriter_WriteLocationGroup(global_def_writer,
-                                                (task.value())->id /* id */,
-                                                inverseStringMap.value((task.value())->name) /* name */,
+                                                (*entity)->id /* id */,
+                                                inverseStringMap.value((*entity)->name) /* name */,
                                                 OTF2_LOCATION_GROUP_TYPE_PROCESS,
                                                 0 /* system tree */ );
 
-        // TODO: Generalize this for non MPI tasks at #events
+        // TODO: Generalize this for non MPI entities at #events
         OTF2_GlobalDefWriter_WriteLocation(global_def_writer,
-                                           (task.value())->id /* id */,
-                                           inverseStringMap.value((task.value())->name) /* name */,
+                                           (*entity)->id /* id */,
+                                           inverseStringMap.value((*entity)->name) /* name */,
                                            OTF2_LOCATION_TYPE_CPU_THREAD,
-                                           trace->events->at(task.key())->size() /* # events */,
-                                           (task.value())->id /* location group */ );
+                                           trace->events->at((*entity)->id)->size() /* # events */,
+                                           (*entity)->id /* location group */ );
     }
 }
 
@@ -318,14 +320,14 @@ void OTF2Exporter::exportStrings()
     counter = addString("phase", counter);
     counter = addString("step", counter);
 
-    for (QMap<int, Task *>::Iterator task = trace->tasks->begin();
-         task != trace->tasks->end(); ++task)
+    for (QList<Entity *>::Iterator entity = entities->begin();
+         entity != entities->end(); ++entity)
     {
-        counter = addString((task.value())->name, counter);
+        counter = addString((*entity)->name, counter);
     }
 
-    for (QMap<int, TaskGroup *>::Iterator tg = trace->taskgroups->begin();
-         tg != trace->taskgroups->end(); ++tg)
+    for (QMap<int, EntityGroup *>::Iterator tg = trace->entitygroups->begin();
+         tg != trace->entitygroups->end(); ++tg)
     {
         counter = addString((tg.value())->name, counter);
     }

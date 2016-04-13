@@ -53,6 +53,7 @@ public slots:
     void onMetricColorTraditional(bool metricColor);
     void onMetric(QString metric);
     void onShowAggregate(bool showAggregate);
+    void onTraceBack(bool traceBack);
     void onShowMessages(int showMessages);
     void onColorCombo(QString type);
     void onShowInactive(bool showInactive);

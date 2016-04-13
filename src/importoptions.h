@@ -22,21 +22,19 @@
 // along with this program; if not, write to the Free Software Foundation,
 // Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 //////////////////////////////////////////////////////////////////////////////
-#ifndef OTFIMPORTOPTIONS_H
-#define OTFIMPORTOPTIONS_H
+#ifndef IMPORTOPTIONS_H
+#define IMPORTOPTIONS_H
 
 #include <QString>
 #include <QList>
 
 // Container for all the structure extraction options
-class OTFImportOptions
+class ImportOptions
 {
 public:
-    OTFImportOptions(bool _waitall = true,
+    ImportOptions(bool _waitall = true,
                      bool _leap = false, bool _skip = false,
                      bool _partition = false, QString _fxn = "");
-    //OTFImportOptions(const OTFImportOptions& copy);
-    //OTFImportOptions& operator=(const OTFImportOptions& copy);
 
     // Annoying stuff for cramming into OTF2 format
     QList<QString> getOptionNames();
@@ -59,9 +57,11 @@ public:
     long clusterSeed; // random seed for clustering
 
     bool advancedStepping; // send structure over receives
+    bool reorderReceives; // idealized receive order;
 
     OriginFormat origin;
     QString partitionFunction;
+    QString breakFunctions;
 
 };
 

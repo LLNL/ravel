@@ -38,6 +38,7 @@ public:
     StepVis(QWidget* parent = 0, VisOptions *_options = new VisOptions());
     ~StepVis();
     void setTrace(Trace * t);
+    void processVis();
 
     void mouseMoveEvent(QMouseEvent * event);
     void wheelEvent(QWheelEvent * event);
@@ -50,6 +51,8 @@ public:
     int getHeight() { return rect().height() - colorBarHeight; }
     void drawMessage(QPainter * painter, Message * message);
     void drawCollective(QPainter * painter, CollectiveRecord * cr);
+    void drawDelayTracking(QPainter * painter, CommEvent * c);
+
 
 public slots:
     void setSteps(float start, float stop, bool jump = false);
@@ -60,7 +63,7 @@ protected:
     void drawNativeGL();
     void paintEvents(QPainter *painter);
     void prepaint();
-    void overdrawSelected(QPainter *painter, QList<int> tasks);
+    void overdrawSelected(QPainter *painter, QList<int> entities);
     void drawColorBarGL();
     void drawColorBarText(QPainter * painter);
     void drawCollective(QPainter * painter, CollectiveRecord * cr,
@@ -73,6 +76,8 @@ protected:
     void drawColorValue(QPainter * painter);
     int getX(CommEvent * evt);
     int getY(CommEvent * evt);
+    void drawPrimaryLabels(QPainter * painter, int effectiveHeight,
+                           float barHeight);
 
 private:
     double maxMetric;
@@ -87,6 +92,8 @@ private:
     int ellipse_width;
     int ellipse_height;
     QMap<int, int> * overdrawYMap;
+
+    QMap<int, QColor> * groupColorMap;
 
     static const int colorBarHeight = 24;
 };

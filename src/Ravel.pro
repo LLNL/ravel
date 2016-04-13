@@ -44,12 +44,10 @@ SOURCES  += main.cpp \
     otfconverter.cpp \
     function.cpp \
     importoptionsdialog.cpp \
-    otfimportoptions.cpp \
     timelinevis.cpp \
     traditionalvis.cpp \
     visoptionsdialog.cpp \
     visoptions.cpp \
-    otfimportfunctor.cpp \
     gnome.cpp \
     exchangegnome.cpp \
     collectiverecord.cpp \
@@ -67,12 +65,17 @@ SOURCES  += main.cpp \
     commdrawinterface.cpp \
     counter.cpp \
     counterrecord.cpp \
+    charmimporter.cpp \
     otf2importer.cpp \
-    task.cpp \
-    clustertask.cpp \
-    taskgroup.cpp \
     otf2exporter.cpp \
-    otf2exportfunctor.cpp
+    otf2exportfunctor.cpp \
+    metrics.cpp \
+    entity.cpp \
+    primaryentitygroup.cpp \
+    entitygroup.cpp \
+    clusterentity.cpp \
+    importoptions.cpp \
+    importfunctor.cpp
 
 HEADERS += \
     trace.h \
@@ -88,14 +91,11 @@ HEADERS += \
     rawtrace.h \
     otfconverter.h \
     function.h \
-    general_util.h \
     importoptionsdialog.h \
-    otfimportoptions.h \
     timelinevis.h \
     traditionalvis.h \
     visoptionsdialog.h \
     visoptions.h \
-    otfimportfunctor.h \
     gnome.h \
     exchangegnome.h \
     collectiverecord.h \
@@ -114,12 +114,18 @@ HEADERS += \
     commdrawinterface.h \
     counter.h \
     counterrecord.h \
+    charmimporter.h \
     otf2importer.h \
-    task.h \
-    clustertask.h \
-    taskgroup.h \
     otf2exporter.h \
-    otf2exportfunctor.h
+    otf2exportfunctor.h \
+    metrics.h \
+    entity.h \
+    primaryentitygroup.h \
+    entitygroup.h \
+    clusterentity.h \
+    ravelutils.h \
+    importoptions.h \
+    importfunctor.h
 
 FORMS += \
     mainwindow.ui \
@@ -133,11 +139,14 @@ contains(DEFINES, OTF1LIB) {
     SOURCES += otfimporter.cpp
     HEADERS += otfimporter.h
 
-    unix:!macx: LIBS += -lotf -lz
+    unix:!macx: LIBS += -lotf
+
     macx: INCLUDEPATH += $${HOME}/opt/include/open-trace-format/
     macx: DEPENDPATH += $${HOME}/opt/include/open-trace-format/
     macx: LIBS += -L$${HOME}/opt/lib -lopen-trace-format
 }
+
+LIBS += -lz
 
 unix: INCLUDEPATH += $${HOME}/opt/include
 unix: DEPENDPATH += $${HOME}/opt/include
@@ -147,7 +156,6 @@ unix:!macx: DEPENDPATH += /opt/otf2/include
 
 unix:!macx: LIBS += -L/opt/otf2/lib -lotf2
 
-macx: LIBS += -lz
 macx: LIBS += -L$${HOME}/opt/lib -lotf2
 
 macx: INCLUDEPATH += $${HOME}/opt/include/otf2/

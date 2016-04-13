@@ -47,6 +47,7 @@ public:
     MessageType showMessages; // draw message lines
     bool topByCentroid; // focus processes are centroid of cluster
     bool showInactiveSteps; // default: no color for inactive proportion
+    bool traceBack; // trace back idles and such
     QString metric;
     ColorMapType maptype;
     ColorMap * divergentmap;

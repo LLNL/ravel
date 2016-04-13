@@ -54,12 +54,12 @@ set(Ravel_SOURCES
     otfconverter.cpp
     function.cpp
     importoptionsdialog.cpp
-    otfimportoptions.cpp
+    importoptions.cpp
     timelinevis.cpp
     traditionalvis.cpp
     visoptionsdialog.cpp
     visoptions.cpp
-    otfimportfunctor.cpp
+    importfunctor.cpp
     gnome.cpp
     exchangegnome.cpp
     collectiverecord.cpp
@@ -78,11 +78,14 @@ set(Ravel_SOURCES
     counter.cpp
     counterrecord.cpp
     otf2importer.cpp
-    task.cpp
-    clustertask.cpp
-    taskgroup.cpp
+    entity.cpp
+    clusterentity.cpp
+    entitygroup.cpp
     otf2exporter.cpp
     otf2exportfunctor.cpp
+    charmimporter.cpp
+    primaryentitygroup.cpp
+    metrics.cpp
     ${ADDED_SOURCES}
 )
 
@@ -100,14 +103,14 @@ set(Ravel_HEADERS
     rawtrace.h
     otfconverter.h
     function.h
-    general_util.h
+    ravelutils.h
     importoptionsdialog.h
-    otfimportoptions.h
+    importoptions.h
     timelinevis.h
     traditionalvis.h
     visoptionsdialog.h
     visoptions.h
-    otfimportfunctor.h
+    importfunctor.h
     gnome.h
     exchangegnome.h
     collectiverecord.h
@@ -127,11 +130,14 @@ set(Ravel_HEADERS
     counter.h
     counterrecord.h
     otf2importer.h
-    task.h
-    clustertask.h
-    taskgroup.h
+    entity.h
+    clusterentity.h
+    entitygroup.h
     otf2exporter.h
     otf2exportfunctor.h
+    charmimporter.h
+    primaryentitygroup.h
+    metrics.h
     ${ADDED_HEADERS}
 )
 

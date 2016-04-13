@@ -30,16 +30,14 @@
 CollectiveRecord::CollectiveRecord(unsigned long long _matching,
                                    unsigned int _root,
                                    unsigned int _collective,
-                                   unsigned int _taskgroup)
+                                   unsigned int _entitygroup)
     : CommBundle(),
       matchingId(_matching),
       root(_root),
       collective(_collective),
-      taskgroup(_taskgroup),
+      entitygroup(_entitygroup),
       mark(false),
-      events(new QList<CollectiveEvent *>())/*,
-      times(new QMap<int,
-            std::pair<unsigned long long int, unsigned long long int> >())*/
+      events(new QList<CollectiveEvent *>())
 
 {
 }

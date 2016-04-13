@@ -64,17 +64,19 @@ public:
         { Q_UNUSED(painter); Q_UNUSED(msg); }
     virtual void drawCollective(QPainter * painter, CollectiveRecord * cr)
         { Q_UNUSED(painter); Q_UNUSED(cr); }
+    virtual void drawDelayTracking(QPainter * painter, CommEvent * c)
+        { Q_UNUSED(painter); Q_UNUSED(c); }
 
 signals:
     void repaintAll();
     void stepsChanged(float start, float stop, bool jump);
     void eventClicked(Event * evt, bool aggregate, bool overdraw);
-    void tasksSelected(QList<int> processes, Gnome * gnome);
+    void entitiesSelected(QList<int> processes, Gnome * gnome);
 
 public slots:
     virtual void setSteps(float start, float stop, bool jump = false);
     virtual void selectEvent(Event *, bool, bool);
-    virtual void selectTasks(QList<int> tasks, Gnome * gnome);
+    virtual void selectEntities(QList<int> entities, Gnome * gnome);
 
 protected:
     void initializeGL();
@@ -104,7 +106,7 @@ protected:
 
     // Interactions
     QMap<Event *, QRect> drawnEvents;
-    QList<int> selected_tasks;
+    QList<int> selected_entities;
     Gnome * selected_gnome;
     Event * selected_event;
     bool selected_aggregate;

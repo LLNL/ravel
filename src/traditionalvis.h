@@ -47,6 +47,8 @@ public:
 
     void drawMessage(QPainter * painter, Message * message);
     void drawCollective(QPainter * painter, CollectiveRecord * cr);
+    void drawDelayTracking(QPainter * painter, CommEvent * c);
+
 
 signals:
     void timeScaleString(QString);
@@ -65,7 +67,7 @@ protected:
 
     // Paint all other events available
     void paintNotStepEvents(QPainter *painter, Event * evt, float position,
-                            int task_spacing, float barheight,
+                            int entity_spacing, float barheight,
                             float blockheight, QRect * extents);
 
 private:

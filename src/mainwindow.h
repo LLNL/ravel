@@ -34,14 +34,14 @@
 class Gnome;
 class Event;
 class Trace;
-class OTFImportOptions;
+class ImportOptions;
 class ImportOptionsDialog;
 class VisWidget;
 class VisOptions;
 class VisOptionsDialog;
 
 class QAction;
-class OTFImportFunctor;
+class ImportFunctor;
 class OTF2ExportFunctor;
 class QProgressDialog;
 class QThread;
@@ -65,16 +65,16 @@ public:
     void closeEvent(QCloseEvent *);
 
 public slots:
-    void launchOTFOptions();
+    void launchImportOptions();
     void launchVisOptions();
 
     // Signal relays
     void pushSteps(float start, float stop, bool jump = false);
     void selectEvent(Event * event, bool aggregate, bool overdraw);
-    void selectTasks(QList<int> tasks, Gnome *gnome);
+    void selectEntities(QList<int> entities, Gnome *gnome);
 
     // Importing & Progress Bar
-    void importOTFbyGUI();
+    void importTracebyGUI();
     void traceFinished(Trace * trace);
     void updateProgress(int portion, QString msg);
     void traceSwitch();
@@ -120,15 +120,15 @@ private:
     int activeTrace;
 
     // For progress bar
-    OTFImportFunctor * importWorker;
+    ImportFunctor * importWorker;
     QThread * importThread;
     QProgressDialog * progress;
     OTF2ExportFunctor * exportWorker;
     QThread * exportThread;
 
     // Import Trace options
-    OTFImportOptions * otfoptions;
-    ImportOptionsDialog * otfdialog;
+    ImportOptions * importoptions;
+    ImportOptionsDialog * importdialog;
 
     // Color stuff & other vis options
     VisOptions * visoptions;

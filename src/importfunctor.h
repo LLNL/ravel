@@ -22,18 +22,42 @@
 // along with this program; if not, write to the Free Software Foundation,
 // Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 //////////////////////////////////////////////////////////////////////////////
-#ifndef TASK_H
-#define TASK_H
+#ifndef IMPORTFUNCTOR_H
+#define IMPORTFUNCTOR_H
 
+#include <QObject>
 #include <QString>
 
-class Task
-{
-public:
-    Task(int _id, QString _name);
+class Trace;
+class ImportOptions;
 
-    int id;
-    QString name;
+// Handle signaling for progress bar
+class ImportFunctor : public QObject
+{
+    Q_OBJECT
+public:
+    ImportFunctor(ImportOptions * _options);
+    Trace * getTrace() { return trace; }
+
+public slots:
+    void doImportOTF(QString dataFileName);
+    void doImportOTF2(QString dataFileName);
+    void doImportCharm(QString dataFileName);
+    void finishInitialRead();
+    void updateMatching(int portion, QString msg);
+    void updatePreprocess(int portion, QString msg);
+    void updateClustering(int portion);
+    void switchProgress();
+
+signals:
+    void switching();
+    void done(Trace *);
+    void reportProgress(int, QString);
+    void reportClusterProgress(int, QString);
+
+private:
+    ImportOptions * options;
+    Trace * trace;
 };
 
-#endif // TASK_H
+#endif // IMPORTFUNCTOR_H

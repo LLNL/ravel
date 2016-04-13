@@ -34,7 +34,10 @@
 class Gnome;
 class Event;
 class CommEvent;
-class ClusterTask;
+class ClusterEntity;
+class Function;
+class Metrics;
+class Trace;
 
 class Partition
 {
@@ -44,6 +47,9 @@ public:
     void addEvent(CommEvent * e);
     void deleteEvents();
     void sortEvents();
+    void receive_reorder();
+    void receive_reorder_mpi();
+    void finalizeEntityEventOrder();
     void step();
     void basic_step();
 
@@ -56,19 +62,37 @@ public:
 
     void fromSaved();
 
-     // Time gap between partitions
+    // Time gap between partitions
     unsigned long long int distance(Partition * other);
 
-    // For common caller merge
-    Event * least_common_caller(int taskid, QMap<Event *, int> * memo = NULL);
-
-     // For leap merge - which children can we merge to
+    // For leap merge - which children can we merge to
     void calculate_dag_leap();
     QString generate_process_string(); // For debugging
 
-     // When we're merging, find what this merged into
+    // When we're merging, find what this merged into
     Partition * newest_partition();
     int num_events();
+
+    // For partition ordering
+    bool broken_entry(Partition * child);
+    void broken_entries(QSet<Partition *> * repairees);
+    void stitched_atomics(QSet<Partition *> * stitchees);
+    void semantic_children();
+    void true_children();
+    void set_atomics();
+    bool mergable(Partition * other);
+    QSet<int> entity_overlap(Partition * other);
+    Partition * earlier_partition(Partition * other, QSet<int> overlap_entities);
+    QSet<int> check_entity_children();
+
+    void calculate_imbalance(int num_pes);
+
+    // For debugging
+    void output_graph(QString filename, Trace *trace);
+    bool verify_members();
+    bool verify_runtime(int runtime_id);
+    bool verify_parents();
+    QString get_callers(QMap<int, Function *> * functions);
 
     // Core partition information, events per process and step summary
     QMap<int, QList<CommEvent *> *> * events;
@@ -76,6 +100,7 @@ public:
     int max_global_step;
     int min_global_step;
     int dag_leap;
+    bool runtime;
 
     // For message merge
     bool mark;
@@ -93,6 +118,13 @@ public:
     bool leapmark;
     QSet<Partition *> * group;
 
+    // For charm++ atomics
+    int min_atomic;
+    int max_atomic;
+
+    // For metrics
+    Metrics * metrics;
+
     // For graph drawing
     QString gvid;
 
@@ -101,18 +133,21 @@ public:
     // between processes but don't aid performance so may be wasteful
     Gnome * gnome;
     int gnome_type;
-    QVector<ClusterTask *> * cluster_tasks;
+    QVector<ClusterEntity *> * cluster_entities;
     void makeClusterVectors(QString metric);
     QMap<int, QVector<long long int> *> * cluster_vectors;
     QMap<int, int> * cluster_step_starts;
 
     bool debug_mark;
+    int debug_name;
+    QMap<int, Function *> * debug_functions;
 
 private:
     // Stepping logic -- probably want to rewrite
     int set_stride_dag(QList<CommEvent *> *stride_events);
 
     QList<CommEvent *> * free_recvs;
+    static const bool debug = false;
 
 };
 

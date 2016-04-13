@@ -23,18 +23,27 @@
 // Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 //////////////////////////////////////////////////////////////////////////////
 #include "commevent.h"
-#include "clusterevent.h"
 #include <otf2/OTF2_AttributeList.h>
 #include <otf2/OTF2_GeneralDefinitions.h>
 #include <iostream>
+#include "metrics.h"
+#include "rpartition.h"
 
 CommEvent::CommEvent(unsigned long long _enter, unsigned long long _exit,
-                     int _function, int _task, int _phase)
-    : Event(_enter, _exit, _function, _task),
-      metrics(new QMap<QString, MetricPair *>()),
+                     int _function, int _entity, int _pe, int _phase)
+    : Event(_enter, _exit, _function, _entity, _pe),
       partition(NULL),
       comm_next(NULL),
       comm_prev(NULL),
+      true_next(NULL),
+      true_prev(NULL),
+      pe_next(NULL),
+      pe_prev(NULL),
+      add_order(0),
+      extent_begin(_enter),
+      extent_end(_exit),
+      atomic(-1),
+      matching(-1),
       last_stride(NULL),
       next_stride(NULL),
       last_recvs(NULL),
@@ -43,19 +52,13 @@ CommEvent::CommEvent(unsigned long long _enter, unsigned long long _exit,
       stride_children(new QSet<CommEvent *>()),
       stride(-1),
       step(-1),
-      phase(_phase)
+      phase(_phase),
+      gvid("")
 {
 }
 
 CommEvent::~CommEvent()
 {
-    for (QMap<QString, MetricPair *>::Iterator itr = metrics->begin();
-         itr != metrics->end(); ++itr)
-    {
-        delete itr.value();
-    }
-    delete metrics;
-
     if (last_recvs)
         delete last_recvs;
     if (stride_children)
@@ -65,47 +68,119 @@ CommEvent::~CommEvent()
 }
 
 
-
-void CommEvent::addMetric(QString name, double event_value,
-                          double aggregate_value)
+bool CommEvent::operator<(const CommEvent &event)
 {
-    (*metrics)[name] = new MetricPair(event_value, aggregate_value);
+    if (enter == event.enter)
+    {
+        if (add_order == event.add_order)
+        {
+            if (isReceive())
+                return true;
+            else
+                return false;
+        }
+        return add_order < event.add_order;
+    }
+    return enter < event.enter;
 }
 
-void CommEvent::setMetric(QString name, double event_value,
-                          double aggregate_value)
+bool CommEvent::operator>(const CommEvent &event)
 {
-    MetricPair * mp = metrics->value(name);
-    mp->event = event_value;
-    mp->aggregate = aggregate_value;
+    if (enter == event.enter)
+    {
+        if (add_order == event.add_order)
+        {
+            if (isReceive())
+                return false;
+            else
+                return true;
+        }
+        return add_order > event.add_order;
+    }
+    return enter > event.enter;
+}
+
+bool CommEvent::operator<=(const CommEvent &event)
+{
+    if (enter == event.enter)
+    {
+        if (add_order == event.add_order)
+        {
+            if (isReceive())
+                return true;
+            else
+                return false;
+        }
+        return add_order <= event.add_order;
+    }
+    return enter <= event.enter;
+}
+
+bool CommEvent::operator>=(const CommEvent &event)
+{
+    if (enter == event.enter)
+    {
+        if (add_order == event.add_order)
+        {
+            if (isReceive())
+                return false;
+            else
+                return true;
+        }
+        return add_order >= event.add_order;
+    }
+    return enter >= event.enter;
+}
+
+bool CommEvent::operator==(const CommEvent &event)
+{
+    return enter == event.enter
+            && add_order == event.add_order
+            && isReceive() == event.isReceive();
 }
 
 bool CommEvent::hasMetric(QString name)
 {
-    return metrics->contains(name);
+    if (metrics->hasMetric(name))
+        return true;
+    else if (caller && caller->metrics->hasMetric(name))
+        return true;
+    else
+        return partition->metrics->hasMetric(name);
 }
 
 double CommEvent::getMetric(QString name, bool aggregate)
 {
-    if (aggregate)
-        return ((*metrics)[name])->aggregate;
+    if (metrics->hasMetric(name))
+        return metrics->getMetric(name, aggregate);
 
-    return ((*metrics)[name])->event;
+    if (caller && caller->metrics->hasMetric(name))
+        return caller->metrics->getMetric(name, aggregate);
+
+    if (partition->metrics->hasMetric(name))
+        return partition->metrics->getMetric(name, aggregate);
+
+    return 0;
 }
 
 void CommEvent::calculate_differential_metric(QString metric_name,
-                                              QString base_name)
+                                              QString base_name, bool aggregates)
 {
-    long long max_parent = getMetric(base_name, true);
+    long long max_parent = metrics->getMetric(base_name, true);
     long long max_agg_parent = 0;
-    if (comm_prev)
-        max_agg_parent = (comm_prev->getMetric(base_name));
+    if (aggregates && comm_prev)
+        max_agg_parent = (comm_prev->metrics->getMetric(base_name));
 
-    addMetric(metric_name,
-              std::max(0.,
-                       getMetric(base_name)- max_parent),
-              std::max(0.,
-                       getMetric(base_name, true)- max_agg_parent));
+    if (aggregates)
+        metrics->addMetric(metric_name,
+                           std::max(0.,
+                                    getMetric(base_name)- max_parent),
+                           std::max(0.,
+                                    getMetric(base_name, true)- max_agg_parent));
+    else
+        metrics->addMetric(metric_name,
+                           std::max(0.,
+                                    getMetric(base_name)- max_parent));
 }
 
 void CommEvent::writeOTF2Leave(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap)
@@ -142,18 +217,18 @@ void CommEvent::writeOTF2Leave(OTF2_EvtWriter * writer, QMap<QString, int> * att
     for (QMap<QString, int>::Iterator attr = attributeMap->begin();
          attr != attributeMap->end(); ++attr)
     {
-        if (!hasMetric(attr.key()))
+        if (!metrics->hasMetric(attr.key()))
             continue;
 
         OTF2_AttributeValue attr_value;
-        attr_value.uint64 = getMetric(attr.key());
+        attr_value.uint64 = metrics->getMetric(attr.key());
         OTF2_AttributeList_AddAttribute(attribute_list,
                                         attributeMap->value(attr.key()),
                                         OTF2_TYPE_UINT64,
                                         attr_value);
 
         OTF2_AttributeValue agg_value;
-        agg_value.uint64 = getMetric(attr.key(), true);
+        agg_value.uint64 = metrics->getMetric(attr.key(), true);
         OTF2_AttributeList_AddAttribute(attribute_list,
                                         attributeMap->value(attr.key() + "_agg"),
                                         OTF2_TYPE_UINT64,

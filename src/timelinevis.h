@@ -34,7 +34,7 @@ class TimelineVis : public VisWidget
 public:
     TimelineVis(QWidget* parent = 0, VisOptions * _options = new VisOptions());
     ~TimelineVis();
-    void processVis();
+    virtual void processVis();
 
     void mousePressEvent(QMouseEvent * event);
     void mouseReleaseEvent(QMouseEvent * event);
@@ -44,12 +44,12 @@ public:
 
 public slots:
     virtual void selectEvent(Event * event, bool aggregate, bool overdraw);
-    void selectTasks(QList<int> tasks, Gnome *gnome);
+    void selectEntities(QList<int> entities, Gnome *gnome);
 
 protected:
     void drawHover(QPainter *painter);
-    void drawTaskLabels(QPainter * painter, int effectiveHeight,
-                           float barHeight);
+    void drawEntityLabels(QPainter * painter, int effectiveHeight,
+                          float barHeight);
 
     bool jumped;
     bool mousePressed;
@@ -59,19 +59,21 @@ protected:
     int pressx;
     int pressy;
     float stepwidth;
-    float taskheight;
+    float entityheight;
     int labelWidth;
     int labelHeight;
     int labelDescent;
     int cursorWidth;
 
     int maxStep;
+    int maxEntities;
     int startPartition;
     float startStep;
-    float startTask; // refers to order rather than process really
+    float startEntity; // refers to order rather than process really
     float stepSpan;
-    float taskSpan;
+    float entitySpan;
     float lastStartStep;
+    int idleFunction;
     QMap<int, int> proc_to_order;
     QMap<int, int> order_to_proc;
 

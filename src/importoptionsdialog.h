@@ -26,7 +26,7 @@
 #define IMPORTOPTIONSDIALOG_H
 
 #include <QDialog>
-#include "otfimportoptions.h"
+#include "importoptions.h"
 
 // GUI to set import options, must functions are GUI handlers
 namespace Ui {
@@ -39,7 +39,7 @@ class ImportOptionsDialog : public QDialog
 
 public:
     explicit ImportOptionsDialog(QWidget *parent = 0,
-                                 OTFImportOptions * _options = NULL);
+                                 ImportOptions * _options = NULL);
     ~ImportOptionsDialog();
 
 public slots:
@@ -55,7 +55,9 @@ public slots:
     void onIsend(bool coalesce);
     void onMessageSize(bool enforce);
     void onAdvancedStep(bool advanced);
+    void onRecvReorder(bool reorder);
     void onFunctionEdit(const QString& text);
+    void onBreakEdit(const QString& text);
     void onCluster(bool cluster);
     void onSeedEdit(const QString& text);
 
@@ -63,8 +65,8 @@ public slots:
 private:
     Ui::ImportOptionsDialog *ui;
 
-    OTFImportOptions * options;
-    OTFImportOptions saved;
+    ImportOptions * options;
+    ImportOptions saved;
 
     void setUIState();
 };

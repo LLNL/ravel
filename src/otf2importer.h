@@ -34,12 +34,12 @@
 class CommRecord;
 class RawTrace;
 class Function;
-class Task;
-class TaskGroup;
+class EntityGroup;
 class OTFCollective;
 class Counter;
 class CollectiveRecord;
-class OTFImportOptions;
+class ImportOptions;
+class PrimaryEntityGroup;
 
 class OTF2Importer
 {
@@ -332,7 +332,7 @@ private:
 
     bool enforceMessageSize;
 
-    OTFImportOptions * options;
+    ImportOptions * options;
     OTF2_Reader * otfReader;
     OTF2_GlobalDefReaderCallbacks * global_def_callbacks;
     OTF2_GlobalEvtReaderCallbacks * global_evt_callbacks;
@@ -356,10 +356,10 @@ private:
 
     RawTrace * rawtrace;
 
-    QMap<int, Task *> * tasks;
+    QMap<int, PrimaryEntityGroup *> * primaries;
     QMap<int, QString> * functionGroups;
     QMap<int, Function *> * functions;
-    QMap<int, TaskGroup *> * taskgroups;
+    QMap<int, EntityGroup *> * entitygroups;
     QMap<int, OTFCollective *> * collective_definitions;
     QMap<unsigned int, Counter *> * counters;
 

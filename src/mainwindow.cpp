@@ -31,14 +31,14 @@
 #include "clustertreevis.h"
 #include "otfconverter.h"
 #include "importoptionsdialog.h"
-#include "general_util.h"
+#include "ravelutils.h"
 #include "verticallabel.h"
 #include "viswidget.h"
 #include "trace.h"
-#include "otfimportoptions.h"
+#include "importoptions.h"
 #include "visoptions.h"
 #include "visoptionsdialog.h"
-#include "otfimportfunctor.h"
+#include "importfunctor.h"
 #include "otf2exportfunctor.h"
 
 #include <QFileDialog>
@@ -64,21 +64,16 @@ MainWindow::MainWindow(QWidget *parent) :
     importWorker(NULL),
     importThread(NULL),
     progress(NULL),
-    otfoptions(new OTFImportOptions()),
-    otfdialog(NULL),
+    importoptions(new ImportOptions()),
+    importdialog(NULL),
     visoptions(new VisOptions()),
     visdialog(NULL),
     activetracename(""),
     activetraces(QStack<QString>()),
-    dataDirectory(""),
-    otf1Support(false)
+    dataDirectory("")
 {
     readSettings();
     ui->setupUi(this);
-    #ifdef OTF1LIB
-        otf1Support = true;
-        std::cout << "OTF1 SUPPORT" << std::endl;
-    #endif
 
     // Overview
     OverviewVis* overview = new OverviewVis(ui->overviewContainer, visoptions);
@@ -146,8 +141,8 @@ MainWindow::MainWindow(QWidget *parent) :
             SLOT(pushSteps(float, float, bool)));
     connect((clustervis), SIGNAL(eventClicked(Event *, bool, bool)), this,
             SLOT(selectEvent(Event *, bool, bool)));
-    connect((clustervis), SIGNAL(tasksSelected(QList<int>, Gnome*)), this,
-            SLOT(selectTasks(QList<int>, Gnome*)));
+    connect((clustervis), SIGNAL(entitiesSelected(QList<int>, Gnome*)), this,
+            SLOT(selectEntities(QList<int>, Gnome*)));
 
     connect((clustervis), SIGNAL(focusGnome()), clustertreevis,
             SLOT(repaint()));
@@ -170,9 +165,9 @@ MainWindow::MainWindow(QWidget *parent) :
             SLOT(setValue(int)));
 
     // Menu
-    connect(ui->actionOpen_OTF, SIGNAL(triggered()),this,
-            SLOT(importOTFbyGUI()));
-    ui->actionOpen_OTF->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_O));
+    connect(ui->actionOpen_Trace, SIGNAL(triggered()),this,
+            SLOT(importTracebyGUI()));
+    ui->actionOpen_Trace->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_O));
 
     connect(ui->actionSave, SIGNAL(triggered()), this,
             SLOT(saveCurrentTrace()));
@@ -184,9 +179,9 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionClose->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_C));
     ui->actionClose->setEnabled(false);
 
-    connect(ui->actionOTF_Importing, SIGNAL(triggered()), this,
-            SLOT(launchOTFOptions()));
-    ui->actionOTF_Importing->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_I));
+    connect(ui->actionTrace_Importing, SIGNAL(triggered()), this,
+            SLOT(launchImportOptions()));
+    ui->actionTrace_Importing->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_I));
     connect(ui->actionVisualization, SIGNAL(triggered()), this,
             SLOT(launchVisOptions()));
     ui->actionVisualization->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_V));
@@ -237,7 +232,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
-    delete otfdialog;
+    delete importdialog;
     delete ui;
 }
 
@@ -282,19 +277,19 @@ void MainWindow::selectEvent(Event * event, bool aggregate, bool overdraw)
     }
 }
 
-void MainWindow::selectTasks(QList<int> tasks, Gnome * gnome)
+void MainWindow::selectEntities(QList<int> entities, Gnome * gnome)
 {
     for(int i = 0; i < viswidgets.size(); i++)
     {
-        viswidgets[i]->selectTasks(tasks, gnome);
+        viswidgets[i]->selectEntities(entities, gnome);
     }
 }
 
-void MainWindow::launchOTFOptions()
+void MainWindow::launchImportOptions()
 {
-    delete otfdialog;
-    otfdialog = new ImportOptionsDialog(this, otfoptions);
-    otfdialog->show();
+    delete importdialog;
+    importdialog = new ImportOptionsDialog(this, importoptions);
+    importdialog->show();
 }
 
 void MainWindow::launchVisOptions()
@@ -307,6 +302,8 @@ void MainWindow::launchVisOptions()
         visdialog = new VisOptionsDialog(this, visoptions);
     visdialog->show();
 
+    if (!traces[activeTrace]->use_aggregates)
+        visoptions->showAggregateSteps = false;
     for(int i = 0; i < viswidgets.size(); i++)
         viswidgets[i]->repaint();
 }
@@ -341,10 +338,6 @@ void MainWindow::saveCurrentTrace()
 
     exportThread->start();
     emit(exportTrace(traces[activeTrace], saveFile.path(), saveFile.fileName()));
-    /*
-    OTF2Exporter exporter = OTF2Exporter(traces[activeTrace]);
-    exporter.exportTrace(saveFile.path(), saveFile.fileName());
-    */
 }
 
 void MainWindow::exportFinished()
@@ -356,13 +349,14 @@ void MainWindow::exportFinished()
     delete exportThread;
 }
 
-void MainWindow::importOTFbyGUI()
+void MainWindow::importTracebyGUI()
 {
-    // Now get the OTF File
+    // Now get the Trace File
     QString dataFileName = "";
-    QString fileTypes = "Trace Files (*.otf2)";
+
+    QString fileTypes = "Trace Files (*.otf2 *.sts)";
 #ifdef OTF1LIB
-    fileTypes = "Trace Files (*.otf2 *.otf)";
+    fileTypes = "Trace Files (*.otf2 *.sts *.otf)";
 #endif
     dataFileName = QFileDialog::getOpenFileName(this,
                                                 tr("Import Trace Data"),
@@ -392,21 +386,41 @@ void MainWindow::importTrace(QString dataFileName){
     progress->show();
 
     importThread = new QThread();
-    importWorker = new OTFImportFunctor(otfoptions);
+    importWorker = new ImportFunctor(importoptions);
     importWorker->moveToThread(importThread);
 
     if (dataFileName.endsWith("otf", Qt::CaseInsensitive))
     {
-        otfoptions->origin = OTFImportOptions::OF_OTF;
+        importoptions->origin = ImportOptions::OF_OTF;
         connect(this, SIGNAL(operate(QString)), importWorker,
                 SLOT(doImportOTF(QString)));
     }
-    else //(dataFileName.endsWith("otf2", Qt::CaseInsensitive))
+    else if (dataFileName.endsWith("otf2", Qt::CaseInsensitive))
     {
-        otfoptions->origin = OTFImportOptions::OF_OTF2;
-        otfoptions->waitallMerge = false; // Not applicable
+        importoptions->origin = ImportOptions::OF_OTF2;
+        importoptions->waitallMerge = false; // Not applicable
         connect(this, SIGNAL(operate(QString)), importWorker,
                 SLOT(doImportOTF2(QString)));
+    }
+    else if (dataFileName.endsWith("sts", Qt::CaseInsensitive))
+    {
+        importoptions->origin = ImportOptions::OF_CHARM;
+        importoptions->waitallMerge = false; // Not applicable
+        importoptions->leapMerge = false; // Not applicable across all chare arrays -- perhaps per chare array
+        importoptions->isendCoalescing = false; // Not applicable
+        importoptions->callerMerge = false; // Done differently in charm importer
+        importoptions->advancedStepping = false; // Not for this
+        visoptions->showAggregateSteps = false;
+        connect(this, SIGNAL(operate(QString)), importWorker,
+                SLOT(doImportCharm(QString)));
+    }
+    else
+    {
+        std::cout << "Unrecognized trace format!" << std::endl;
+        progress->close();
+        delete progress;
+        delete importThread;
+        delete importWorker;
     }
 
     connect(importWorker, SIGNAL(switching()), this, SLOT(traceSwitch()));
@@ -467,6 +481,13 @@ void MainWindow::traceFinished(Trace * trace)
     }
     dataDirectory = traceDir.absolutePath();
 
+    if (!trace->metrics->contains(visoptions->metric)) {
+        if (importoptions->origin == ImportOptions::OF_CHARM)
+            visoptions->metric = "Duration";
+        else
+            visoptions->metric = "Lateness";
+    }
+
     trace->name = activetracename;
     QAction * action = ui->menuTraces->addAction(activetracename);
     action->setCheckable(true);
@@ -496,7 +517,7 @@ void MainWindow::activeTraceChanged(bool first)
     if (first)
     {
         viswidgets[STEPVIS]->setClosed(false);
-        if (otfoptions->cluster)
+        if (importoptions->cluster)
         {
             int traditional_height = splitter_sizes[splitterMap[TIMEVIS]];
             splitter_sizes[splitterMap[STEPVIS]] += traditional_height / 2;
@@ -518,7 +539,7 @@ void MainWindow::activeTraceChanged(bool first)
         setVisWidgetState();
     }
     // If new trace does not have cluster but the cluster is open, close it
-    else if (!otfoptions->cluster && !viswidgets[CLUSTERVIS]->isClosed())
+    else if (!importoptions->cluster && !viswidgets[CLUSTERVIS]->isClosed())
     {
         splitter_sizes[splitterMap[CLUSTERVIS]] = 0;
         viswidgets[CLUSTERVIS]->setClosed(true);

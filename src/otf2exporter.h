@@ -28,8 +28,10 @@
 #include <otf2/otf2.h>
 #include <QString>
 #include <QMap>
+#include <QList>
 
 class Trace;
+class Entity;
 
 class OTF2Exporter
 {
@@ -46,6 +48,11 @@ public:
                void*            callerData,
                bool             final )
     {
+        Q_UNUSED(userData);
+        Q_UNUSED(fileType);
+        Q_UNUSED(location);
+        Q_UNUSED(callerData);
+        Q_UNUSED(final);
         return OTF2_FLUSH;
     }
 
@@ -54,6 +61,9 @@ public:
                 OTF2_FileType    fileType,
                 OTF2_LocationRef location )
     {
+        Q_UNUSED(userData);
+        Q_UNUSED(fileType);
+        Q_UNUSED(location);
         return 0;
     }
 
@@ -61,6 +71,7 @@ public:
 
 private:
     Trace * trace;
+    QList<Entity *> * entities;
     int ravel_string;
     int ravel_version_string;
 
@@ -72,10 +83,10 @@ private:
     int addString(QString str, int counter);
     void exportAttributes();
     void exportFunctions();
-    void exportTasks();
-    void exportTaskGroups();
+    void exportEntities();
+    void exportEntityGroups();
     void exportEvents();
-    void exportTaskEvents(int taskid);
+    void exportEntityEvents(int entityid);
 
     QMap<QString, int> inverseStringMap;
     QMap<QString, int> * attributeMap;

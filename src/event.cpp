@@ -24,34 +24,53 @@
 //////////////////////////////////////////////////////////////////////////////
 #include "event.h"
 #include "function.h"
+#include "metrics.h"
+#include "rpartition.h"
 #include <iostream>
 
 Event::Event(unsigned long long _enter, unsigned long long _exit,
-             int _function, int _task)
+             int _function, int _entity, int _pe)
     : caller(NULL),
       callees(new QVector<Event *>()),
       enter(_enter),
       exit(_exit),
       function(_function),
-      task(_task),
-      depth(-1)
+      entity(_entity),
+      pe(_pe),
+      depth(-1),
+      metrics(new Metrics())
 {
 
 }
 
 Event::~Event()
 {
+    delete metrics;
     if (callees)
         delete callees;
 }
 
 bool Event::operator<(const Event &event)
 {
+    if (enter == event.enter)
+    {
+        if (this->isReceive())
+            return true;
+        else
+            return false;
+    }
     return enter < event.enter;
 }
 
 bool Event::operator>(const Event &event)
 {
+    if (enter == event.enter)
+    {
+        if (this->isReceive())
+            return false;
+        else
+            return true;
+    }
     return enter > event.enter;
 }
 
@@ -104,33 +123,6 @@ unsigned long long Event::getVisibleEnd(unsigned long long start)
         }
     }
     return end;
-}
-
-Event * Event::least_common_caller(Event * second)
-{
-    // Search while we still can until they are equal or there
-    // is nothing left we can do
-    Event * first = this;
-    while ((first != second) && (first->caller || second->caller))
-    {
-        if (first->depth > second->depth && first->caller)
-        {
-            first = first->caller;
-        }
-        else if (first->depth < second->depth && second->caller)
-        {
-            second = second->caller;
-        }
-        else if (first->depth == second->depth && first->caller && second->caller)
-        {
-            first = first->caller;
-            second = second->caller;
-        }
-    }
-
-    if (first == second)
-        return first;
-    return NULL;
 }
 
 // Check if this Event and the argument Event share the same subtree:

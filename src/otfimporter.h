@@ -32,13 +32,13 @@
 #include "otf.h"
 
 class CommRecord;
-class Task;
 class Function;
-class TaskGroup;
+class EntityGroup;
 class OTFCollective;
 class Counter;
 class CollectiveRecord;
 class RawTrace;
+class PrimaryEntityGroup;
 
 // Use OTF API to get records
 class OTFImporter
@@ -134,10 +134,10 @@ private:
     QVector<QLinkedList<CommRecord *> *> * unmatched_sends;
 
     RawTrace * rawtrace;
-    QMap<int, Task *> * tasks;
+    QMap<int, PrimaryEntityGroup *> * primaries;
     QMap<int, QString> * functionGroups;
     QMap<int, Function *> * functions;
-    QMap<int, TaskGroup *> * taskgroups;
+    QMap<int, EntityGroup *> * entitygroups;
     QMap<int, OTFCollective *> * collective_definitions;
     QMap<unsigned int, Counter *> * counters;
 

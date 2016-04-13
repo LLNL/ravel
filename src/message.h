@@ -40,7 +40,7 @@ public:
     P2PEvent * receiver;
     unsigned long long sendtime;
     unsigned long long recvtime;
-    int taskgroup;
+    int entitygroup;
     unsigned int tag;
     unsigned long long size;
 

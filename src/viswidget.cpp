@@ -34,7 +34,7 @@
 #include <QLocale>
 
 #include "trace.h"
-#include "general_util.h"
+#include "ravelutils.h"
 
 
 VisWidget::VisWidget(QWidget *parent, VisOptions * _options) :
@@ -48,7 +48,7 @@ VisWidget::VisWidget(QWidget *parent, VisOptions * _options) :
     changeSource(false),
     border(20),
     drawnEvents(QMap<Event *, QRect>()),
-    selected_tasks(QList<int>()),
+    selected_entities(QList<int>()),
     selected_gnome(NULL),
     selected_event(NULL),
     selected_aggregate(false),
@@ -92,9 +92,9 @@ void VisWidget::selectEvent(Event * evt, bool aggregate, bool overdraw)
     Q_UNUSED(overdraw);
 }
 
-void VisWidget::selectTasks(QList<int> tasks, Gnome *gnome)
+void VisWidget::selectEntities(QList<int> entities, Gnome *gnome)
 {
-    Q_UNUSED(tasks);
+    Q_UNUSED(entities);
     Q_UNUSED(gnome);
 }
 
@@ -104,7 +104,7 @@ void VisWidget::setTrace(Trace * t)
     trace = t;
 
     drawnEvents.clear();
-    selected_tasks.clear();
+    selected_entities.clear();
     selected_gnome = NULL;
     selected_event = NULL;
     selected_aggregate = false;
@@ -280,7 +280,7 @@ QString VisWidget::drawTimescale(QPainter * painter, unsigned long long start,
     unsigned long long tick = (tick_span - start % tick_span) + start;
 
     // TODO: MAKE THIS PART OPTIONAL
-    QString seconds = getUnits(trace->units);
+    QString seconds = RavelUtils::RavelUtils::getUnits(trace->units);
     int tick_divisor = 1;
     unsigned long long tick_base = 0;
     if (!options->absoluteTime)
@@ -294,7 +294,7 @@ QString VisWidget::drawTimescale(QPainter * painter, unsigned long long start,
                                         / pow((double) trace->units, 10),
                                         'f', trace->units - span_unit)
                                         + "s + "
-                                        + getUnits(trace->units
+                                        + RavelUtils::RavelUtils::getUnits(trace->units
                                                    - 3 * floor(span_unit / 3))
                                         + ":";
     }

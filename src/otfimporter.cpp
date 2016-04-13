@@ -27,8 +27,8 @@
 #include <QElapsedTimer>
 #include <iostream>
 #include <cmath>
-#include "general_util.h"
-#include "task.h"
+#include "ravelutils.h"
+#include "entity.h"
 #include "rawtrace.h"
 #include "commrecord.h"
 #include "eventrecord.h"
@@ -36,8 +36,9 @@
 #include "function.h"
 #include "counter.h"
 #include "counterrecord.h"
-#include "taskgroup.h"
+#include "entitygroup.h"
 #include "otfcollective.h"
+#include "primaryentitygroup.h"
 #include "otf.h"
 
 OTFImporter::OTFImporter()
@@ -56,10 +57,10 @@ OTFImporter::OTFImporter()
       unmatched_recvs(new QVector<QLinkedList<CommRecord *> *>()),
       unmatched_sends(new QVector<QLinkedList<CommRecord *> *>()),
       rawtrace(NULL),
-      tasks(NULL),
+      primaries(NULL),
       functionGroups(NULL),
       functions(NULL),
-      taskgroups(NULL),
+      entitygroups(NULL),
       collective_definitions(NULL),
       counters(NULL),
       collectives(NULL),
@@ -121,10 +122,11 @@ RawTrace * OTFImporter::importOTF(const char* otf_file, bool _enforceMessageSize
 
     setHandlers();
 
-    tasks = new QMap<int, Task *>();
+    primaries = new QMap<int, PrimaryEntityGroup *>();
+    primaries->insert(0, new PrimaryEntityGroup(0, "MPI_COMM_WORLD"));
     functionGroups = new QMap<int, QString>();
     functions = new QMap<int, Function *>();
-    taskgroups = new QMap<int, TaskGroup *>();
+    entitygroups = new QMap<int, EntityGroup *>();
     collective_definitions = new QMap<int, OTFCollective *>();
     collectives = new QMap<unsigned long long, CollectiveRecord *>();
     counters = new QMap<unsigned int, Counter *>();
@@ -132,12 +134,12 @@ RawTrace * OTFImporter::importOTF(const char* otf_file, bool _enforceMessageSize
     std::cout << "Reading definitions" << std::endl;
     OTF_Reader_readDefinitions(otfReader, handlerArray);
 
-    rawtrace = new RawTrace(num_processes);
-    rawtrace->tasks = tasks;
+    rawtrace = new RawTrace(num_processes, num_processes);
+    rawtrace->primaries = primaries;
     rawtrace->second_magnitude = second_magnitude;
     rawtrace->functions = functions;
     rawtrace->functionGroups = functionGroups;
-    rawtrace->taskgroups = taskgroups;
+    rawtrace->entitygroups = entitygroups;
     rawtrace->collective_definitions = collective_definitions;
     rawtrace->collectives = collectives;
     rawtrace->counters = counters;
@@ -208,9 +210,7 @@ RawTrace * OTFImporter::importOTF(const char* otf_file, bool _enforceMessageSize
 
 
     traceElapsed = traceTimer.nsecsElapsed();
-    std::cout << "OTF Reading: ";
-    gu_printTime(traceElapsed);
-    std::cout << std::endl;
+    RavelUtils::gu_printTime(traceElapsed, "OTF Reading: ");
 
     return rawtrace;
 }
@@ -367,7 +367,10 @@ int OTFImporter::handleDefProcess(void * userData, uint32_t stream,
     Q_UNUSED(stream);
     Q_UNUSED(parent);
 
-    ((OTFImporter *) userData)->tasks->insert(process - 1, new Task(process - 1, QString(name)));
+    PrimaryEntityGroup * MPI = ((OTFImporter *) userData)->primaries->value(0);
+    MPI->entities->insert(process - 1,
+                       new Entity(process - 1, QString(name),
+                       MPI));
     ((OTFImporter *) userData)->num_processes++;
     return 0;
 }
@@ -535,13 +538,13 @@ int OTFImporter::handleDefProcessGroup(void * userData, uint32_t stream,
     if (qname.contains("MPI_COMM_SELF")) // Probably won't use this
         return 0;
 
-    TaskGroup * t = new TaskGroup(procGroup, qname);
+    EntityGroup * t = new EntityGroup(procGroup, qname);
     for (int i = 0; i < numberOfProcs; i++)
     {
-        t->tasks->append(procs[i] - 1);
-        t->taskorder->insert(procs[i] - 1, i);
+        t->entities->append(procs[i] - 1);
+        t->entityorder->insert(procs[i] - 1, i);
     }
-    (*(((OTFImporter*) userData)->taskgroups))[procGroup] = t;
+    (*(((OTFImporter*) userData)->entitygroups))[procGroup] = t;
 
     return 0;
 }
@@ -620,6 +623,9 @@ int OTFImporter::handleEndCollectiveOperation(void * userData, uint64_t time,
                                               OTF_KeyValueList * list)
 {
     Q_UNUSED(userData);
+    Q_UNUSED(time);
+    Q_UNUSED(process);
+    Q_UNUSED(matchingId);
     Q_UNUSED(list);
 
     return 0;

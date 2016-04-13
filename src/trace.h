@@ -33,16 +33,17 @@
 #include <QQueue>
 #include <QStack>
 #include <QSharedPointer>
+#include <QElapsedTimer>
 
-#include "otfimportoptions.h"
+#include "importoptions.h"
 
 class Partition;
 class Gnome;
 class Event;
 class CommEvent;
 class Function;
-class Task;
-class TaskGroup;
+class EntityGroup;
+class PrimaryEntityGroup;
 class OTFCollective;
 class CollectiveRecord;
 
@@ -50,21 +51,25 @@ class Trace : public QObject
 {
     Q_OBJECT
 public:
-    Trace(int nt);
+    Trace(int nt, int np);
     ~Trace();
 
-    void preprocess(OTFImportOptions * _options);
+    void preprocess(ImportOptions * _options);
     void preprocessFromSaved();
     void partition();
     void assignSteps();
     void gnomify();
     void mergePartitions(QList<QList<Partition *> *> * components);
-    Event * findEvent(int task, unsigned long long time);
+    Event * findEvent(int entity, unsigned long long time);
 
     QString name;
     QString fullpath;
-    int num_tasks;
+    int num_entities;
+    int num_application_entities; // debug
+    int num_pes;
     int units;
+    bool use_aggregates;
+    qint64 totalTime;
 
     QList<Partition *> * partitions;
     QList<QString> * metrics;
@@ -72,21 +77,22 @@ public:
     QList<Gnome *> * gnomes;
 
     // Processing options
-    OTFImportOptions options;
+    ImportOptions options;
 
     // Below set by OTFConverter
     QMap<int, QString> * functionGroups;
     QMap<int, Function *> * functions;
 
-    QMap<int, Task *> * tasks;
-    QMap<int, TaskGroup *> * taskgroups;
+    QMap<int, PrimaryEntityGroup *> * primaries;
+    QMap<int, EntityGroup *> * entitygroups;
     QMap<int, OTFCollective *> * collective_definitions;
 
     QMap<unsigned long long, CollectiveRecord *> * collectives;
     QVector<QMap<unsigned long long, CollectiveRecord *> *> * collectiveMap;
 
-    QVector<QVector<Event *> *> * events;
-    QVector<QVector<Event *> *> * roots; // Roots of call trees per process
+    QVector<QVector<Event *> *> * events; // This is going to be by entities
+    QVector<QVector<Event *> *> * pe_events; // This is by pes
+    QVector<QVector<Event *> *> * roots; // Roots of call trees per pe
 
     int mpi_group; // functionGroup index of "MPI" functions
 
@@ -129,22 +135,24 @@ private:
     // Partition Dag
     void set_partition_dag();
     void set_dag_steps();
+    void set_dag_entries();
+    void clear_dag_step_dict();
 
     // Partitioning process
     void mergeForMessages();
     void mergeForMessagesHelper(Partition * part, QSet<Partition *> * to_merge,
                                 QQueue<Partition *> * to_process);
     void mergeCycles();
-    void mergeByCommonCaller();
     void mergeByLeap();
     void mergeGlobalSteps(); // Use after global steps are set, needs fixing
     class RecurseInfo {  // For Tarjan
     public:
         RecurseInfo(Partition * p, Partition * c, QList<Partition *> * cc, int i)
             : part(p), child(c), children(cc), cIndex(i) {}
+
         Partition * part;
         Partition * child;
-        QList<Partition *> * children;
+        QList<Partition *> * children; // Used later
         int cIndex;
     };
 
@@ -158,13 +166,23 @@ private:
     QList<QList<Partition *> *> * tarjan();
 
     // Steps and metrics
+    void mergeForEntryRepair(bool entries = true);
+    void mergeForCharmLeaps();
+    void forcePartitionDag();
+    void finalizeEntityEventOrder();
     void set_global_steps();
     void calculate_lateness();
     void calculate_differential_lateness(QString metric_name, QString base_name);
     void calculate_partition_lateness();
+    void calculate_partition_duration();
+    void calculate_partition_metrics();
 
     // For debugging
     void output_graph(QString filename, bool byparent = false);
+    void verify_partitions();
+    void print_partition_info(QString message, QString graph_name = "",
+                              bool partition_verify = false,
+                              bool partition_count = false);
 
     // Extra metrics somewhat for debugging
     void setGnomeMetric(Partition * part, int gnome_index);
@@ -178,13 +196,12 @@ private:
 
     bool isProcessed; // Partitions exist
 
-    // TODO: Replace this terrible stuff with QSharedPointer
-    //QSet<RecurseInfo *> * riTracker;
-    //QSet<QList<Partition *> *> * riChildrenTracker;
+    QElapsedTimer totalTimer;
 
-    static const int partition_portion = 45;
-    static const int lateness_portion = 35;
-    static const int steps_portion = 20;
+    static const bool debug = false;
+    static const int partition_portion = 25;
+    static const int lateness_portion = 45;
+    static const int steps_portion = 30;
     static const QString collectives_string;
 };
 

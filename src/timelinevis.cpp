@@ -34,6 +34,7 @@
 #include "trace.h"
 #include "event.h"
 #include "function.h"
+#include "rpartition.h"
 
 TimelineVis::TimelineVis(QWidget* parent, VisOptions * _options)
     : VisWidget(parent = parent, _options),
@@ -45,18 +46,20 @@ TimelineVis::TimelineVis(QWidget* parent, VisOptions * _options)
       pressx(0),
       pressy(0),
       stepwidth(0),
-      taskheight(0),
+      entityheight(0),
       labelWidth(0),
       labelHeight(0),
       labelDescent(0),
       cursorWidth(0),
       maxStep(0),
+      maxEntities(0),
       startPartition(0),
       startStep(0),
-      startTask(0),
+      startEntity(0),
       stepSpan(0),
-      taskSpan(0),
+      entitySpan(0),
       lastStartStep(0),
+      idleFunction(-1),
       proc_to_order(QMap<int, int>()),
       order_to_proc(QMap<int, int>())
 {
@@ -77,20 +80,30 @@ void TimelineVis::processVis()
 {
     proc_to_order = QMap<int, int>();
     order_to_proc = QMap<int, int>();
-    for (int i = 0; i < trace->num_tasks; i++) {
+    for (int i = 0; i < maxEntities; i++) {
         proc_to_order[i] = i;
         order_to_proc[i] = i;
     }
 
-    // Determine needs for task labels
-    int max_task = pow(10,ceil(log10(trace->num_tasks)) + 1) - 1;
+    for (QMap<int, Function *>::Iterator fxn = trace->functions->begin();
+         fxn != trace->functions->end(); ++fxn)
+    {
+        if ((fxn.value())->name == "Idle")
+        {
+            idleFunction = fxn.key();
+            break;
+        }
+    }
+
+    // Determine needs for entity labels
+    int max_entity = pow(10,ceil(log10(maxEntities)) + 1) - 1;
     QPainter * painter = new QPainter();
     painter->begin(this);
     painter->setPen(Qt::black);
     painter->setFont(QFont("Helvetica", 10));
     QLocale systemlocale = QLocale::system();
     QFontMetrics font_metrics = painter->fontMetrics();
-    QString testString = systemlocale.toString(max_task);
+    QString testString = systemlocale.toString(max_entity);
     labelWidth = font_metrics.width(testString);
     labelHeight = font_metrics.height();
     labelDescent = font_metrics.descent();
@@ -209,10 +222,10 @@ void TimelineVis::leaveEvent(QEvent *event)
 }
 
 // We can either select a single event exclusive-or select a
-// number of tasks in a gnome right now.
+// number of entities in a gnome right now.
 void TimelineVis::selectEvent(Event * event, bool aggregate, bool overdraw)
 {
-    selected_tasks.clear();
+    selected_entities.clear();
     selected_gnome = NULL;
     selected_event = event;
     selected_aggregate = aggregate;
@@ -225,9 +238,9 @@ void TimelineVis::selectEvent(Event * event, bool aggregate, bool overdraw)
         repaint();
 }
 
-void TimelineVis::selectTasks(QList<int> tasks, Gnome * gnome)
+void TimelineVis::selectEntities(QList<int> entities, Gnome * gnome)
 {
-    selected_tasks = tasks;
+    selected_entities = entities;
     selected_gnome = gnome;
     selected_event = NULL;
     if (changeSource) {
@@ -254,8 +267,12 @@ void TimelineVis::drawHover(QPainter * painter)
     else
     {
         // Fall through and draw Event
-        text = ((*(trace->functions))[hover_event->function])->name;
-        // + ", " + QString::number(hover_event->step).toStdString().c_str();
+        if (hover_event->caller)
+        {
+            text = trace->functions->value(hover_event->caller->function)->name;
+            text += " : ";
+        }
+        text += trace->functions->value(hover_event->function)->name;
     }
 
     // Determine bounding box of FontMetrics
@@ -275,7 +292,7 @@ void TimelineVis::drawHover(QPainter * painter)
     painter->drawText(mousex + 2 + cursorWidth, mousey + textRect.height() - 2, text);
 }
 
-void TimelineVis::drawTaskLabels(QPainter * painter, int effectiveHeight,
+void TimelineVis::drawEntityLabels(QPainter * painter, int effectiveHeight,
                                     float barHeight)
 {
     painter->setPen(Qt::black);
@@ -284,17 +301,17 @@ void TimelineVis::drawTaskLabels(QPainter * painter, int effectiveHeight,
     int total_labels = floor(effectiveHeight / labelHeight);
     int y;
     int skip = 1;
-    if (total_labels < taskSpan)
+    if (total_labels < entitySpan)
     {
-        skip = ceil(float(taskSpan) / total_labels);
+        skip = ceil(float(entitySpan) / total_labels);
     }
 
-    int start = std::max(floor(startTask), 0.0);
-    int end = std::min(ceil(startTask + taskSpan),
-                       trace->num_tasks - 1.0);
+    int start = std::max(floor(startEntity), 0.0);
+    int end = std::min(ceil(startEntity + entitySpan),
+                       maxEntities - 1.0);
     for (int i = start; i <= end; i+= skip) // Do this by order
     {
-        y = floor((i - startTask) * barHeight) + 1 + barHeight / 2
+        y = floor((i - startEntity) * barHeight) + 1 + barHeight / 2
             + labelDescent;
         if (y < effectiveHeight)
             painter->drawText(1, y, QString::number(order_to_proc[i]));

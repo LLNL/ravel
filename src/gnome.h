@@ -30,13 +30,13 @@
 #include "function.h"
 #include "visoptions.h"
 #include "partitioncluster.h"
-#include "clustertask.h"
+#include "clusterentity.h"
 #include <QPainter>
 #include <QRect>
 
 class Event;
 class QMouseEvent;
-class ClusterTask;
+class ClusterEntity;
 
 // Our unit of clustering and drawing. The idea is the inheritance hierarchy
 // will allow customization. However, this design with both a detector and
@@ -78,17 +78,19 @@ public:
 
     virtual void drawMessage(QPainter * painter, Message * message) { Q_UNUSED(painter); Q_UNUSED(message); }
     virtual void drawCollective(QPainter * painter, CollectiveRecord * cr) { Q_UNUSED(painter); Q_UNUSED(cr); }
+    virtual void drawDelayTracking(QPainter * painter, CommEvent * c)
+        { Q_UNUSED(painter); Q_UNUSED(c); }
 
     // For clusterings
-    struct task_distance {
-        double operator()(ClusterTask * cp1, ClusterTask * cp2) const {
+    struct entity_distance {
+        double operator()(ClusterEntity * cp1, ClusterEntity * cp2) const {
             return cp1->calculateMetricDistance(*cp2);
         }
     };
 
-    struct task_distance_np {
-        double operator()(const ClusterTask& cp1,
-                          const ClusterTask& cp2) const {
+    struct entity_distance_np {
+        double operator()(const ClusterEntity& cp1,
+                          const ClusterEntity& cp2) const {
             return cp1.calculateMetricDistance(cp2);
         }
     };
@@ -116,12 +118,12 @@ protected:
     class CentroidDistance {
     public:
         CentroidDistance(long long int _d, int _p)
-            : distance(_d), task(_p) {}
+            : distance(_d), entity(_p) {}
         bool operator<(const CentroidDistance &cd) const
             { return distance < cd.distance; }
 
         long long int distance;
-        int task;
+        int entity;
     };
     class AverageMetric {
     public:
@@ -138,10 +140,10 @@ protected:
     void findMusters();
     void findClusters();
     void hierarchicalMusters();
-    virtual void generateTopTasks(PartitionCluster * pc = NULL);
-    void generateTopTasksWorker(int task);
-    int findCentroidTask(PartitionCluster * pc);
-    int findMaxMetricTask(PartitionCluster * pc);
+    virtual void generateTopEntities(PartitionCluster * pc = NULL);
+    void generateTopEntitiesWorker(int entity);
+    int findCentroidEntity(PartitionCluster * pc);
+    int findMaxMetricEntity(PartitionCluster * pc);
 
 
     class DrawMessage {
@@ -158,8 +160,8 @@ protected:
     QMap<int, PartitionCluster * > * cluster_leaves;
     QMap<int, PartitionCluster * > * cluster_map;
     PartitionCluster * cluster_root;
-    int max_metric_task;
-    QList<int> top_tasks; // focus tasks really
+    int max_metric_entity;
+    QList<int> top_entities; // focus entities really
     bool alternation; // cluster background
     int neighbors; // neighbor radius
 
@@ -174,7 +176,7 @@ protected:
     int stepwidth;
 
     void drawGnomeQtCluster(QPainter * painter, QRect extents, int blockwidth);
-    void drawGnomeQtTopTasks(QPainter * painter, QRect extents,
+    void drawGnomeQtTopEntities(QPainter * painter, QRect extents,
                                  int blockwidth, int barwidth);
     void drawGnomeQtClusterBranch(QPainter * painter, QRect current,
                                   PartitionCluster * pc,

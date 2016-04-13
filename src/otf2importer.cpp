@@ -27,16 +27,17 @@
 #include <QElapsedTimer>
 #include <iostream>
 #include <cmath>
-#include "general_util.h"
+#include "ravelutils.h"
 #include "rawtrace.h"
 #include "commrecord.h"
 #include "eventrecord.h"
 #include "collectiverecord.h"
-#include "taskgroup.h"
+#include "entitygroup.h"
 #include "otfcollective.h"
 #include "function.h"
-#include "task.h"
-#include "otfimportoptions.h"
+#include "entity.h"
+#include "importoptions.h"
+#include "primaryentitygroup.h"
 
 OTF2Importer::OTF2Importer()
     : from_saved_version(""),
@@ -50,7 +51,7 @@ OTF2Importer::OTF2Importer()
       sendcount(0),
       recvcount(0),
       enforceMessageSize(false),
-      options(new OTFImportOptions()),
+      options(new ImportOptions()),
       otfReader(NULL),
       global_def_callbacks(NULL),
       global_evt_callbacks(NULL),
@@ -59,8 +60,8 @@ OTF2Importer::OTF2Importer()
       locationMap(new QMap<OTF2_LocationRef, OTF2Location *>()),
       locationGroupMap(new QMap<OTF2_LocationGroupRef, OTF2LocationGroup *>()),
       regionMap(new QMap<OTF2_RegionRef, OTF2Region *>()),
-      groupMap(new QMap<OTF2_GroupRef, OTF2Group *>()),
       commMap(new QMap<OTF2_CommRef, OTF2Comm *>()),
+      groupMap(new QMap<OTF2_GroupRef, OTF2Group *>()),
       commIndexMap(new QMap<OTF2_CommRef, int>()),
       regionIndexMap(new QMap<OTF2_RegionRef, int>()),
       locationIndexMap(new QMap<OTF2_LocationRef, int>()),
@@ -69,10 +70,10 @@ OTF2Importer::OTF2Importer()
       unmatched_send_requests(new QVector<QLinkedList<CommRecord *> *>()),
       unmatched_send_completes(new QVector<QLinkedList<OTF2IsendComplete *> *>()),
       rawtrace(NULL),
-      tasks(NULL),
+      primaries(NULL),
       functionGroups(NULL),
       functions(NULL),
-      taskgroups(NULL),
+      entitygroups(NULL),
       collective_definitions(new QMap<int, OTFCollective *>()),
       counters(NULL),
       collectives(NULL),
@@ -281,22 +282,22 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file, bool _enforceMessageSi
                                           &definitions_read );
 
 
-    tasks = new QMap<int, Task *>();
+    primaries = new QMap<int, PrimaryEntityGroup *>();
     functionGroups = new QMap<int, QString>();
     functions = new QMap<int, Function *>();
-    taskgroups = new QMap<int, TaskGroup *>();
+    entitygroups = new QMap<int, EntityGroup *>();
     collectives = new QMap<unsigned long long, CollectiveRecord *>();
     counters = new QMap<unsigned int, Counter *>();
 
     processDefinitions();
 
-    rawtrace = new RawTrace(num_processes);
+    rawtrace = new RawTrace(num_processes, num_processes);
     *(rawtrace->options) = *options;
-    rawtrace->tasks = tasks;
+    rawtrace->primaries = primaries;
     rawtrace->second_magnitude = second_magnitude;
     rawtrace->functions = functions;
     rawtrace->functionGroups = functionGroups;
-    rawtrace->taskgroups = taskgroups;
+    rawtrace->entitygroups = entitygroups;
     rawtrace->collective_definitions = collective_definitions;
     rawtrace->collectives = collectives;
     rawtrace->counters = counters;
@@ -333,6 +334,7 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file, bool _enforceMessageSi
                 OTF2_Reader_CloseDefReader( otfReader, def_reader );
             }
         }
+        // Required line, though unused
         OTF2_EvtReader * unused = OTF2_Reader_GetEvtReader(otfReader, loc.key());
     }
     if (def_files_success)
@@ -430,9 +432,7 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file, bool _enforceMessageSi
 
 
     traceElapsed = traceTimer.nsecsElapsed();
-    std::cout << "OTF Reading: ";
-    gu_printTime(traceElapsed);
-    std::cout << std::endl;
+    RavelUtils::gu_printTime(traceElapsed, "OTF Reading: ");
 
     return rawtrace;
 }
@@ -490,16 +490,17 @@ void OTF2Importer::processDefinitions()
          comm != commMap->end(); ++comm)
     {
         commIndexMap->insert(comm.key(), index);
-        TaskGroup * t = new TaskGroup(index, stringMap->value((comm.value())->name));
-        delete t->tasks;
-        t->tasks = groupMap->value((comm.value())->group)->members;
-        for (int i = 0; i < t->tasks->size(); i++)
-            t->taskorder->insert(t->tasks->at(i), i);
-        taskgroups->insert(index, t);
+        EntityGroup * t = new EntityGroup(index, stringMap->value((comm.value())->name));
+        delete t->entities;
+        t->entities = groupMap->value((comm.value())->group)->members;
+        for (int i = 0; i < t->entities->size(); i++)
+            t->entityorder->insert(t->entities->at(i), i);
+        entitygroups->insert(index, t);
         index++;
     }
 
     // Grab only the MPI locations
+    primaries->insert(0, new PrimaryEntityGroup(0, "MPI"));
     for (QMap<OTF2_LocationRef, OTF2Location *>::Iterator loc = locationMap->begin();
          loc != locationMap->end(); ++loc)
     {
@@ -509,9 +510,12 @@ void OTF2Importer::processDefinitions()
             OTF2_LocationType type = (loc.value())->type;
             if (type == OTF2_LOCATION_TYPE_CPU_THREAD)
             {
-                int task = (loc.value())->self;
-                tasks->insert(task, new Task(task, stringMap->value(loc.value()->name)));
-                locationIndexMap->insert(loc.key(), task);
+                int entity = (loc.value())->self;
+                primaries->value(0)->entities->insert(entity,
+                                                   new Entity(entity,
+                                                            stringMap->value(loc.value()->name),
+                                                            primaries->value(0)));
+                locationIndexMap->insert(loc.key(), entity);
                 num_processes++;
             }
         }
@@ -526,7 +530,7 @@ void OTF2Importer::processDefinitions()
         if (name == "Ravel")
         {
             from_saved_version = stringMap->value(attribute->description);
-            options->origin = OTFImportOptions::OF_SAVE_OTF2;
+            options->origin = ImportOptions::OF_SAVE_OTF2;
         }
         else if (name == "step")
         {
@@ -845,8 +849,8 @@ OTF2_CallbackCode OTF2Importer::callbackMPISend(OTF2_LocationRef locationID,
     }
     else
     {
-        int taskgroup = ((OTF2Importer *) userData)->commIndexMap->value(communicator);
-        cr = new CommRecord(sender, converted_time, world_receiver, 0, msgLength, msgTag, taskgroup);
+        int entitygroup = ((OTF2Importer *) userData)->commIndexMap->value(communicator);
+        cr = new CommRecord(sender, converted_time, world_receiver, 0, msgLength, msgTag, entitygroup);
         (*((((OTF2Importer*) userData)->rawtrace)->messages))[sender]->append(cr);
         (*(((OTF2Importer *) userData)->unmatched_sends))[sender]->append(cr);
     }
@@ -893,9 +897,9 @@ OTF2_CallbackCode OTF2Importer::callbackMPIIsend(OTF2_LocationRef locationID,
     }
     else
     {
-        int taskgroup = ((OTF2Importer *) userData)->commIndexMap->value(communicator);
+        int entitygroup = ((OTF2Importer *) userData)->commIndexMap->value(communicator);
         cr = new CommRecord(sender, converted_time, receiver, 0, msgLength,
-                            msgTag, taskgroup, requestID);
+                            msgTag, entitygroup, requestID);
         (*((((OTF2Importer*) userData)->rawtrace)->messages))[sender]->append(cr);
         (*(((OTF2Importer *) userData)->unmatched_sends))[sender]->append(cr);
     }
@@ -1024,8 +1028,8 @@ OTF2_CallbackCode OTF2Importer::callbackMPIRecv(OTF2_LocationRef locationID,
     }
     else
     {
-        int taskgroup = ((OTF2Importer *) userData)->commIndexMap->value(communicator);
-        cr = new CommRecord(world_sender, 0, receiver, converted_time, msgLength, msgTag, taskgroup);
+        int entitygroup = ((OTF2Importer *) userData)->commIndexMap->value(communicator);
+        cr = new CommRecord(world_sender, 0, receiver, converted_time, msgLength, msgTag, entitygroup);
         ((*(((OTF2Importer*) userData)->unmatched_recvs))[world_sender])->append(cr);
     }
     (*((((OTF2Importer*) userData)->rawtrace)->messages_r))[receiver]->append(cr);
@@ -1072,8 +1076,8 @@ OTF2_CallbackCode OTF2Importer::callbackMPIIrecv(OTF2_LocationRef locationID,
     }
     else
     {
-        int taskgroup = ((OTF2Importer *) userData)->commIndexMap->value(communicator);
-        cr = new CommRecord(sender, 0, receiver, converted_time, msgLength, msgTag, taskgroup);
+        int entitygroup = ((OTF2Importer *) userData)->commIndexMap->value(communicator);
+        cr = new CommRecord(sender, 0, receiver, converted_time, msgLength, msgTag, entitygroup);
         ((*(((OTF2Importer*) userData)->unmatched_recvs))[sender])->append(cr);
     }
     (*((((OTF2Importer*) userData)->rawtrace)->messages_r))[receiver]->append(cr);
