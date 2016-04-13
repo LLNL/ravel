@@ -26,6 +26,10 @@ public:
     bool operator<=(const Event &);
     bool operator>=(const Event &);
     bool operator==(const Event &);
+    static bool eventEntityLessThan(const Event * evt1, const Event * evt2)
+    {
+        return evt1->entity < evt2->entity;
+    }
 
     virtual bool hasMetric(QString name);
     virtual double getMetric(QString name, bool aggregate = false);
@@ -64,10 +68,5 @@ public:
     Partition * partition; // for debugging
     int atomic; // for debugging
 };
-
-static bool eventEntityLessThan(const Event * evt1, const Event * evt2)
-{
-    return evt1->entity < evt2->entity;
-}
 
 #endif // EVENT_H

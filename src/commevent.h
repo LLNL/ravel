@@ -27,6 +27,99 @@ public:
     bool operator>=(const CommEvent &);
     bool operator==(const CommEvent &);
 
+    // Compare based on strides... if there is a tie, take the one
+    // that comes from a less entity id. If the entity ids are the same
+    // we prioriize the send as that is probably connected to a preceding
+    // recv. Otherwise, we just go by time
+    static bool eventStrideLessThan(const CommEvent * evt1, const CommEvent * evt2)
+    {
+        if (evt1->last_stride->stride == evt2->last_stride->stride)
+        {
+            // This should only happen on receives, but just in case
+            if (evt1->last_stride->next_stride && evt2->last_stride->next_stride)
+            {
+                if (evt1->last_stride->next_stride->entity == evt2->last_stride->next_stride->entity)
+                {
+                    // Happens in the case where entity X and entity Y send to entity Z
+                    // and both of those Z entries send back to entity X and entity Y
+                    // recv X and recv Y have the same number and were sent by
+                    // the same entity and have the same stride.
+                    if (evt1->stride == evt2->stride)
+                    {
+                        // Need to go back to the senders to figure it out
+                        if (evt1->last_stride->next_stride
+                            && evt2->last_stride->next_stride)
+                            return eventStrideLessThan(evt1->last_stride->next_stride,
+                                                       evt2->last_stride->next_stride);
+
+
+                        if (evt1->isReceive() && !evt2->isReceive())
+                            return evt2;
+                        else if (!evt1->isReceive() && evt2->isReceive())
+                            return evt1;
+                        else
+                            return evt1->enter < evt2->enter;
+
+                    }
+                    else
+                    {
+                        return evt1->stride < evt2->stride;
+                    }
+                }
+                else
+                {
+                    return evt1->last_stride->next_stride->entity < evt2->last_stride->next_stride->entity;
+                }
+            }
+            else
+            {
+                if (evt1->stride == evt2->stride)
+                {
+                    // Need to go back to the senders to figure it out
+                    if (evt1->last_stride->next_stride
+                        && evt2->last_stride->next_stride)
+                        return eventStrideLessThan(evt1->last_stride->next_stride,
+                                                   evt2->last_stride->next_stride);
+
+                    if (evt1->isReceive() && !evt2->isReceive())
+                        return evt2;
+                    else if (!evt1->isReceive() && evt2->isReceive())
+                        return evt1;
+                    else
+                        return evt1->enter < evt2->enter;
+
+                }
+                else
+                {
+                    return evt1->stride < evt2->stride;
+                }
+            }
+        }
+
+        return evt1->last_stride->stride < evt2->last_stride->stride;
+    }
+
+    static bool eventStrideLessThanMPI(const CommEvent * evt1, const CommEvent * evt2)
+    {
+        if (evt1->stride == evt2->stride)
+        {
+            if (evt1->next_stride && evt2->next_stride)
+            {
+                return evt1->next_stride->entity < evt2->next_stride->entity;
+            }
+            else
+            {
+                if (evt1->isReceive() && !evt2->isReceive())
+                    return evt2;
+                else if (!evt1->isReceive() && evt2->isReceive())
+                    return evt1;
+                else
+                    return evt1->enter < evt2->enter;
+            }
+        }
+        return evt1->stride < evt2->stride;
+    }
+
 
     bool hasMetric(QString name);
     double getMetric(QString name, bool aggregate = false);
@@ -101,97 +194,4 @@ public:
     QString gvid;
 
 };
-
-// Compare based on strides... if there is a tie, take the one
-// that comes from a less entity id. If the entity ids are the same
-// we prioriize the send as that is probably connected to a preceding
-// recv. Otherwise, we just go by time
-static bool eventStrideLessThan(const CommEvent * evt1, const CommEvent * evt2)
-{
-    if (evt1->last_stride->stride == evt2->last_stride->stride)
-    {
-        // This should only happen on receives, but just in case
-        if (evt1->last_stride->next_stride && evt2->last_stride->next_stride)
-        {
-            if (evt1->last_stride->next_stride->entity == evt2->last_stride->next_stride->entity)
-            {
-                // Happens in the case where entity X and entity Y send to entity Z
-                // and both of those Z entries send back to entity X and entity Y
-                // recv X and recv Y have the same number and were sent by
-                // the same entity and have the same stride.
-                if (evt1->stride == evt2->stride)
-                {
-                    // Need to go back to the senders to figure it out
-                    if (evt1->last_stride->next_stride
-                        && evt2->last_stride->next_stride)
-                        return eventStrideLessThan(evt1->last_stride->next_stride,
-                                                   evt2->last_stride->next_stride);
-
-
-                    if (evt1->isReceive() && !evt2->isReceive())
-                        return evt2;
-                    else if (!evt1->isReceive() && evt2->isReceive())
-                        return evt1;
-                    else
-                        return evt1->enter < evt2->enter;
-
-                }
-                else
-                {
-                    return evt1->stride < evt2->stride;
-                }
-            }
-            else
-            {
-                return evt1->last_stride->next_stride->entity < evt2->last_stride->next_stride->entity;
-            }
-        }
-        else
-        {
-            if (evt1->stride == evt2->stride)
-            {
-                // Need to go back to the senders to figure it out
-                if (evt1->last_stride->next_stride
-                    && evt2->last_stride->next_stride)
-                    return eventStrideLessThan(evt1->last_stride->next_stride,
-                                               evt2->last_stride->next_stride);
-
-                if (evt1->isReceive() && !evt2->isReceive())
-                    return evt2;
-                else if (!evt1->isReceive() && evt2->isReceive())
-                    return evt1;
-                else
-                    return evt1->enter < evt2->enter;
-
-            }
-            else
-            {
-                return evt1->stride < evt2->stride;
-            }
-        }
-    }
-
-    return evt1->last_stride->stride < evt2->last_stride->stride;
-}
-
-static bool eventStrideLessThanMPI(const CommEvent * evt1, const CommEvent * evt2)
-{
-    if (evt1->stride == evt2->stride)
-    {
-        if (evt1->next_stride && evt2->next_stride)
-        {
-            return evt1->next_stride->entity < evt2->next_stride->entity;
-        }
-        else
-        {
-            if (evt1->isReceive() && !evt2->isReceive())
-                return evt2;
-            else if (!evt1->isReceive() && evt2->isReceive())
-                return evt1;
-            else
-                return evt1->enter < evt2->enter;
-        }
-    }
-    return evt1->stride < evt2->stride;
-}
 #endif // COMMEVENT_H

@@ -686,7 +686,7 @@ void Partition::receive_reorder_mpi()
          event_list != events->end(); ++event_list)
     {
         qSort(event_list.value()->begin(), event_list.value()->end(),
-              eventStrideLessThanMPI);
+              CommEvent::eventStrideLessThanMPI);
     }
 
     std::cout << "Deleting..." << std::endl;
@@ -813,7 +813,7 @@ void Partition::receive_reorder()
          event_list != events->end(); ++event_list)
     {
         qSort(event_list.value()->begin(), event_list.value()->end(),
-              eventStrideLessThan);
+              CommEvent::eventStrideLessThan);
     }
 
     // Finally clean up stride_map

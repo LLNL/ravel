@@ -187,7 +187,7 @@ void OTFConverter::convert()
          = trace->collectives->begin();
          cr != trace->collectives->end(); ++cr)
     {
-        qSort((*cr)->events->begin(), (*cr)->events->end(), eventEntityLessThan);
+        qSort((*cr)->events->begin(), (*cr)->events->end(), Event::eventEntityLessThan);
     }
 
     traceElapsed = traceTimer.nsecsElapsed();
