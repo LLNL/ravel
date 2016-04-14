@@ -52,6 +52,7 @@ public:
     virtual void setTrace(Trace *t);
     Trace * getTrace() { return trace; }
     virtual void processVis();
+    void clear();
     virtual QSize sizeHint() const;
 
     void setClosed(bool _closed);

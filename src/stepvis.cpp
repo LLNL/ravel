@@ -412,6 +412,8 @@ void StepVis::wheelEvent(QWheelEvent * event)
 
 void StepVis::prepaint()
 {
+    if (!visProcessed)
+        return;
     closed = false;
     drawnEvents.clear();
     if (jumped) // We have to redo the active_partitions
@@ -519,7 +521,7 @@ void StepVis::drawNativeGL()
     int width = rect().width() - labelWidth;
     int height = effectiveHeight;
     float effectiveSpan = stepSpan;
-    if (!(options->showAggregateSteps))
+    if (!(options->showAggregateSteps) || trace->use_aggregates)
         effectiveSpan /= 2.0;
 
     glViewport(labelWidth,
@@ -599,6 +601,7 @@ void StepVis::drawNativeGL()
     float myopacity, opacity_multiplier = 1.0;
     if (selected_gnome && !selected_entities.isEmpty())
         opacity_multiplier = 0.50;
+    std::cout << startStep << std::endl;
     for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
         part = trace->partitions->at(i);
@@ -633,12 +636,12 @@ void StepVis::drawNativeGL()
                     continue;
 
                 // Calculate position of this bar in float space
-                if (options->showAggregateSteps)
+                if (options->showAggregateSteps || !trace->use_aggregates)
                     x = ((*evt)->step - startStep) * barwidth;
                 else
                     x = ((*evt)->step - startStep) / 2 * barwidth;
 
-                color = options->colormap->color((*evt)->getMetric(metric));  //(*(*evt)->metrics)[metric]->event);
+                color = options->colormap->color((*evt)->getMetric(metric));
                 if (selected)
                     myopacity = opacity;
                 else
@@ -667,7 +670,7 @@ void StepVis::drawNativeGL()
                     if (x + barwidth <= 0)
                         continue;
 
-                    color = options->colormap->color((*evt)->getMetric(metric, false)); //(*(*evt)->metrics)[metric]->aggregate);
+                    color = options->colormap->color((*evt)->getMetric(metric, true));
 
                     bars.append(x - xoffset);
                     bars.append(y - yoffset);

@@ -199,7 +199,6 @@ void CharmImporter::importCharmLog(QString dataFileName, ImportOptions * _option
         (*(entity_events))[i] = new QVector<CharmEvt *>();
         (*(charm_p2ps))[i] = new QVector<P2PEvent *>();
     }
-    trace->pe_events = pe_events;
 
     // Change per-PE stuff to per-chare stuff
     makeEntityEvents();
@@ -331,7 +330,7 @@ void CharmImporter::readLog(QString logFileName, bool gzipped, int pe)
 }
 
 // Take CharmEvt tidbits and make Events out of them
-// Will fill the trace->pe_events and the trace->roots
+// Will fill the pe_events and the trace->roots
 // After this is done we will take the trace events and
 // turn them into partitions.
 void CharmImporter::makeEntityEvents()
@@ -440,8 +439,8 @@ void CharmImporter::makeEntityEvents()
                     if (charm_p2ps->at((*evt)->entity)->size() > 0)
                         last_p2p = charm_p2ps->at((*evt)->entity)->last();
                     Event * prev_evt = NULL;
-                    if (trace->pe_events->at((*evt)->pe)->size() > 0)
-                        prev_evt = trace->pe_events->at((*evt)->pe)->last();
+                    if (pe_events->at((*evt)->pe)->size() > 0)
+                        prev_evt = pe_events->at((*evt)->pe)->last();
                     if (last_p2p && prev_evt && prev_evt->entity == (*evt)->entity)
                     {
                         // If these didn't have atomics set in them. We have
@@ -677,7 +676,7 @@ int CharmImporter::makeEntityEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bg
         (*child)->caller = e;
     }
 
-    (*(trace->pe_events))[bgn->pe]->append(e);
+    (*pe_events)[bgn->pe]->append(e);
     return depth;
 }
 

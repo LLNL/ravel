@@ -481,13 +481,6 @@ void MainWindow::traceFinished(Trace * trace)
     }
     dataDirectory = traceDir.absolutePath();
 
-    if (!trace->metrics->contains(visoptions->metric)) {
-        if (importoptions->origin == ImportOptions::OF_CHARM)
-            visoptions->metric = "Duration";
-        else
-            visoptions->metric = "Lateness";
-    }
-
     trace->name = activetracename;
     QAction * action = ui->menuTraces->addAction(activetracename);
     action->setCheckable(true);
@@ -505,6 +498,13 @@ void MainWindow::updateProgress(int portion, QString msg)
 // rather than a default... or not reset splitters at all
 void MainWindow::activeTraceChanged(bool first)
 {
+    if (!traces[activeTrace]->metrics->contains(visoptions->metric)) {
+        if (traces[activeTrace]->options.origin == ImportOptions::OF_CHARM)
+            visoptions->metric = "Duration";
+        else
+            visoptions->metric = "Lateness";
+    }
+
     for(int i = 0; i < viswidgets.size(); i++)
     {
         viswidgets[i]->setTrace(traces[activeTrace]);
@@ -593,18 +593,21 @@ void MainWindow::closeTrace()
     delete trace;
 
     int index = -1;
-    QString fallback = activetraces.pop();
-    while (index < 0 && !activetraces.isEmpty())
+    if (activetraces.size() > 0)
     {
-        for (int i = 0; i < traces.size(); i++)
+        QString fallback = activetraces.pop();
+        while (index < 0 && !activetraces.isEmpty())
         {
-            if (fallback == traces[i]->name)
+            for (int i = 0; i < traces.size(); i++)
             {
-                index = i;
+                if (fallback == traces[i]->name)
+                {
+                    index = i;
+                }
             }
+            if (index < 0)
+                fallback = activetraces.pop();
         }
-        if (index < 0)
-            fallback = activetraces.pop();
     }
 
     if (index >= 0)
@@ -615,6 +618,11 @@ void MainWindow::closeTrace()
     else // We must have no traces left
     {
         ui->menuTraces->setEnabled(false);
+        for(int i = 0; i < viswidgets.size(); i++)
+        {
+            viswidgets[i]->clear();
+        }
+        activeTrace = -1;
     }
 }
 
