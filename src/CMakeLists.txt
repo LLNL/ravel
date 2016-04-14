@@ -8,6 +8,7 @@ find_package(OpenGL)
 find_package(Muster REQUIRED)
 find_package(OTF)
 find_package(OTF2 REQUIRED)
+find_package(ZLIB REQUIRED)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS}")
 
@@ -17,6 +18,7 @@ set(CMAKE_AUTOMOC ON)
 include_directories(${Qt5Widgets_INCLUDE_DIRS}
                     ${Muster_INCLUDE_DIRS}
                     ${OTF2_INCLUDE_DIRS}
+                    ${ZLIB_INCLUDE_DIRS}
                    )
 
 SET(ADDED_SOURCES "")
@@ -160,6 +162,7 @@ target_link_libraries(Ravel
                       ${OPENGL_LIBRARIES}
                       ${Muster_LIBRARIES}
                       ${OTF2_LIBRARIES}
+                      ${ZLIB_LIBRARIES}
                      )
 
 if (OTF_FOUND)
