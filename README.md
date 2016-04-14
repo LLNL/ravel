@@ -1,13 +1,14 @@
 Ravel
 =====
-Ravel is an MPI trace visualization tool. Ravel is unique in that it shows not
-only physical timelines, but also logical ones structured to better capture
-the intended organization of communication operations. Ravel reads Open Trace
-Format versions 1 and 2, calculates logical structure, and presents the
-results using multiple coordinated views.
+Ravel is a trace visualization tool for MPI with recent experimental support
+for Charm++. Ravel is unique in that it shows not only physical timelines, but
+also logical ones structured to better capture the intended organization of
+communication operations. Ravel calculates logical structure from Open Trace
+Format or Charm++ Projections logs and presents the results using multiple
+coordinated views.
 
 In logical time, all operations are colored via some metric. The default
-metric is *lateness* which measures the difference in exit time of an
+metric for MPI is *lateness* which measures the difference in exit time of an
 operation compared to its peers at the same logical timestep. 
 
 ![Ravel Logical and Physical Timelines](/images/pf3d32_sf_700.png)
@@ -15,19 +16,11 @@ operation compared to its peers at the same logical timestep.
 Installation
 ------------
 Ravel depends on:
-<<<<<<< HEAD
-- [Open Trace Format 1.12+][http://tu-dresden.de/die_tu_dresden/zentrale_einrichtungen/zih/forschung/projekte/otf/index_html/document_view?set_language=en]
-- [Open Trace Format version 2 1.4+][http://www.vi-hps.org/projects/score-p/]
-- [Muster 1.0.1+][https://github.com/scalability-llnl/muster]
-- [Qt5][http://www.qt.io/download/]
-- [cmake 2.8.9+][http://www.cmake.org/download/]
-=======
 - [Open Trace Format version 2 1.4+](http://www.vi-hps.org/projects/score-p/)
 - [Qt4.8+](http://www.qt.io/download/)
 - [Muster 1.0.1+](https://github.com/scalability-llnl/muster)
 - (Install only) [cmake 2.8.9+](http://www.cmake.org/download/)
 - (Optional) [Open Trace Format 1.12+](http://tu-dresden.de/die_tu_dresden/zentrale_einrichtungen/zih/forschung/projekte/otf/index_html/document_view?set_language=en)
->>>>>>> b8ac227... Update README for optional OTF, references
 
 To install:
 
@@ -49,7 +42,7 @@ Usage
 Before opening the trace, check your settings under `Options->OTF Importing`.
 These options will affect the logical organization even determined by Ravel.
 Once you are happy with your options, use `File->Open Trace` and navigate to
-your `.otf` or `.otf2` file.
+your `.otf`, `.otf2`, or `.sts` file.
 
 #### Partitions
 
@@ -63,28 +56,34 @@ think of them separately.
   * use Waitall heuristic: OTF version 1 only, will group all uninterrupted 
     send operations before each Waitall in the same phase
   * merge Partitions by call tree: Will merge communication operations up the
-    call stack until reaching a call containing multiple such operations.
+    call stack until reaching a call containing multiple such operations. MPI
+    only.
   * merge Partitions to complete Leaps: Avoids sparse partitions by forcing
     each rank to be active at each distance in the phase DAG. Useful for bulk
-    synchronous codes.
+    synchronous codes. MPI only.
     * skip Leaps that cannot be merged: Relaxes the leap merge when it cannot
       find a next merge.
   * merge across global steps: This merge happens after stepping, so it does
     not affect the logical structure, but groups MPI ranks that cover the same
-    logical step.
+    logical step. MPI only.
+  * Charm++ break functions: Force the breaking of partitions at the given
+    common-separated list of Charm++ entry methods.
 * Partition at function breaks: Use if you know your phases are contained in
   a given function. List the function. 
 
 #### Other Options
 * Matching send/recv must have the same message size: Enforces send and receive
   reporting the same message size. Uncheck this for Scalasca-generated OTF2.
+* Idealized order of receives: Change the order of receives from their true
+  physical time order to an idealized one in each phase. We recommend this for
+  Charm++. It is not compatible with clustering.
 * Advanced stepping within a partition: Align sends based on happened-before
-  structure rather than as early as possible.
+  structure rather than as early as possible. MPI only.
 * Coalesce Isends: Groups neighboring `MPI_Isend`s into a single operation
-  which may send to multiple receive operations. We recommend this option by
-default
+  which may send to multiple receive operations. We recommend this option as a
+  default for all MPI traces.
 * Cluster processes: Shows a cluster view that clusters the processes by the
-  active metric. This is useful for large process counts.
+  active metric. This is useful for large process counts. MPI only.
   * Seed: Set seed for repeatable clustering.
 
 ### Navigating Traces
@@ -138,6 +137,12 @@ Bhatele, Martin Schulz, and Bernd Hamann. Combing the Communication Hairball:
 Visualizing Parallel Execution Traces using Logical Time. *IEEE Transactions on
 Visualization and Computer Graphics, Proceedings of InfoVis '14*, 20(12):2349-2358, December 2014. 
 [DOI: 10.1109/TVCG.2014.2346456](http://dx.doi.org/10.1109/TVCG.2014.2346456)
+
+Katherine E. Isaacs, Abhinav Bhatele, Jonathan Lifflander, David Boehme, Todd
+Gamblin, Bernd Hamann, Peer-Timo Bremer. Recovering Logical Structure from
+Charm++ Event Traces. In *Proceedings fo the ACM/IEEE Conference on
+Supercomputing (SC15)*, November 2015. [DOI:
+10.1145/2807591.2807634](http://dx.doit.org/10.1145/2807591.2807634)
 
 Katherine E. Isaacs, Todd Gamblin, Abhinav Bhatele, Martin Schulz, Bernd
 Hamann, and Peer-Timo Bremer. Ordering Traces Logically to Identify Lateness
