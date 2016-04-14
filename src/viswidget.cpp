@@ -160,6 +160,12 @@ void VisWidget::qtPaint(QPainter *painter)
     Q_UNUSED(painter);
 }
 
+void VisWidget::clear()
+{
+    visProcessed = false;
+    repaint();
+}
+
 // If a described box falls outside the given extents
 // We only draw the border where to the edge of the extents.
 // We use this when we draw partial boxes and cannot rely on automatic clipping.

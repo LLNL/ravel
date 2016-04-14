@@ -63,7 +63,6 @@ Trace * OTFConverter::importOTF(QString filename, ImportOptions *_options)
 
     delete importer;
     trace->fullpath = filename;
-    trace->pe_events = trace->events;
     #endif
     return trace;
 }
@@ -84,7 +83,6 @@ Trace * OTFConverter::importOTF2(QString filename, ImportOptions *_options)
 
     delete importer;
     trace->fullpath = filename;
-    trace->pe_events = trace->events;
     return trace;
 }
 

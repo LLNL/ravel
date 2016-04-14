@@ -321,7 +321,7 @@ void TraditionalVis::setSteps(float start, float stop, bool jump)
 
 void TraditionalVis::prepaint()
 {
-    if (!trace)
+    if (!visProcessed)
         return;
     closed = false;
     drawnEvents.clear();

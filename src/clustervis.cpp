@@ -237,6 +237,8 @@ void ClusterVis::clusterChanged()
 // Called before drawing begins
 void ClusterVis::prepaint()
 {
+    if (!visProcessed)
+        return;
     closed = false;
     drawnGnomes.clear();
 
