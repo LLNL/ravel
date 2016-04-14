@@ -142,7 +142,7 @@ Katherine E. Isaacs, Abhinav Bhatele, Jonathan Lifflander, David Boehme, Todd
 Gamblin, Bernd Hamann, Peer-Timo Bremer. Recovering Logical Structure from
 Charm++ Event Traces. In *Proceedings fo the ACM/IEEE Conference on
 Supercomputing (SC15)*, November 2015. [DOI:
-10.1145/2807591.2807634](http://dx.doit.org/10.1145/2807591.2807634)
+10.1145/2807591.2807634](http://dx.doi.org/10.1145/2807591.2807634)
 
 Katherine E. Isaacs, Todd Gamblin, Abhinav Bhatele, Martin Schulz, Bernd
 Hamann, and Peer-Timo Bremer. Ordering Traces Logically to Identify Lateness
