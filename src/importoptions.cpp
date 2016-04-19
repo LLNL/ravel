@@ -38,7 +38,7 @@ ImportOptions::ImportOptions(bool _waitall, bool _leap, bool _skip,
       seedClusters(false),
       clusterSeed(0),
       advancedStepping(true),
-      reorderReceives(true),
+      reorderReceives(false),
       origin(OF_NONE),
       partitionFunction(_fxn),
       breakFunctions("")
