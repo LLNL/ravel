@@ -723,7 +723,7 @@ void CharmImporter::chargeIdleness()
                 // First check if the sender was actually caused by something happening
                 // after the idle. In this case we don't count it at all since it
                 // wasn't contributing to the idle.
-                if (sender->comm_prev && sender->comm_prev->enter > idle_evt->exit)
+                if (sender->caller && sender->caller->enter > idle_evt->exit - 1)
                 {
                     flag = false;
                 }
