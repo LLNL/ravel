@@ -62,7 +62,7 @@ private:
     void exportEntities();
     void exportEntityGroups();
     void exportEvents();
-    void exportEntityEvents(long entityid);
+    void exportEntityEvents(unsigned long entityid);
 
     QMap<QString, int> inverseStringMap;
     QMap<QString, int> * attributeMap;

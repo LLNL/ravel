@@ -75,7 +75,7 @@ void OTF2Exporter::exportEvents()
     OTF2_Archive_CloseEvtFiles(archive);
 }
 
-void OTF2Exporter::exportEntityEvents(long entityid)
+void OTF2Exporter::exportEntityEvents(unsigned long entityid)
 {
     QVector<Event *> * roots = trace->roots->at(entityid);
     OTF2_EvtWriter * evt_writer = OTF2_Archive_GetEvtWriter(archive,

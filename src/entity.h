@@ -8,9 +8,9 @@ class PrimaryEntityGroup;
 class Entity
 {
 public:
-    Entity(long _id, QString _name, PrimaryEntityGroup * _primary);
+    Entity(unsigned long _id, QString _name, PrimaryEntityGroup * _primary);
 
-    long id;
+    unsigned long id;
     QString name;
 
     PrimaryEntityGroup * primary;

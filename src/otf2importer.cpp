@@ -486,7 +486,7 @@ void OTF2Importer::processDefinitions()
             OTF2_LocationType type = (loc.value())->type;
             if (type == OTF2_LOCATION_TYPE_CPU_THREAD)
             {
-                int entity = (loc.value())->self;
+                unsigned long entity = (loc.value())->self;
                 primaries->value(0)->entities->insert(entity,
                                                    new Entity(entity,
                                                             stringMap->value(loc.value()->name),

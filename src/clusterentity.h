@@ -7,11 +7,11 @@ class ClusterEntity
 {
 public:
     ClusterEntity();
-    ClusterEntity(long _e, int _step);
+    ClusterEntity(unsigned long _e, int _step);
     ClusterEntity(const ClusterEntity& other);
     ~ClusterEntity();
 
-    long entity;
+    unsigned long entity;
     int startStep; // What step our metric_events starts at
 
     // Representative vector of events for clustering. This is contiguous
