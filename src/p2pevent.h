@@ -30,7 +30,7 @@ public:
     void initialize_strides(QList<CommEvent *> * stride_events,
                             QList<CommEvent *> * recv_events);
     void update_strides();
-    void set_reorder_strides(QMap<int, QList<CommEvent *> *> * stride_map,
+    void set_reorder_strides(QMap<unsigned long, QList<CommEvent *> *> * stride_map,
                              int offset, CommEvent * last = NULL, int debug = -1);
     void initialize_basic_strides(QSet<CollectiveRecord *> * collectives);
     void update_basic_strides();

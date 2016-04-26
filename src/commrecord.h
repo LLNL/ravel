@@ -7,15 +7,15 @@ class Message;
 class CommRecord
 {
 public:
-    CommRecord(unsigned int _s, unsigned long long int _st,
-               unsigned int _r, unsigned long long int _rt,
+    CommRecord(unsigned long _s, unsigned long long int _st,
+               unsigned long _r, unsigned long long int _rt,
                unsigned long long _size, unsigned int _tag,
                unsigned int _group,
                unsigned long long int _request = 0);
 
-    unsigned int sender;
+    unsigned long sender;
     unsigned long long int send_time;
-    unsigned int receiver;
+    unsigned long receiver;
     unsigned long long int recv_time;
 
     unsigned long long size;

@@ -205,7 +205,7 @@ void Gnome::findClusters()
 {
     // Calculate initial distances
     QList<DistancePair> distances;
-    QList<int> entities = partition->events->keys();
+    QList<unsigned long> entities = partition->events->keys();
     top_entities.clear();
     if (cluster_root)
     {

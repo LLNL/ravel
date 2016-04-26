@@ -36,7 +36,7 @@ void OTF2Exporter::exportTrace(QString path, QString filename)
     for (int i = 0; i < trace->partitions->size(); i++)
     {
         Partition * p = trace->partitions->at(i);
-        for (QMap<int, QList<CommEvent *> *>::Iterator elist = p->events->begin();
+        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator elist = p->events->begin();
              elist != p->events->end(); ++elist)
         {
             for (QList<CommEvent *>::Iterator evt = (elist.value())->begin();

@@ -296,7 +296,7 @@ void Trace::gnomify()
 
 void Trace::setGnomeMetric(Partition * part, int gnome_index)
 {
-    for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
          = part->events->begin();
          event_list != part->events->end(); ++event_list)
     {
@@ -317,7 +317,7 @@ void Trace::addPartitionMetric()
     for (QList<Partition *>::Iterator part = partitions->begin();
          part != partitions->end(); ++part)
     {
-        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
              = (*part)->events->begin();
              event_list != (*part)->events->end(); ++event_list)
         {
@@ -472,7 +472,7 @@ void Trace::set_global_steps()
             (*part)->mark = false; // Using this to debug again
 
             // Set steps for partition events
-            for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+            for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
                  = (*part)->events->begin();
                  event_list != (*part)->events->end(); ++event_list)
             {
@@ -515,7 +515,7 @@ void Trace::calculate_differential_lateness(QString metric_name,
     for (QList<Partition *>::Iterator part = partitions->begin();
          part != partitions->end(); ++part)
     {
-        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
              = (*part)->events->begin();
              event_list != (*part)->events->end(); ++event_list)
         {
@@ -567,7 +567,7 @@ void Trace::calculate_partition_duration()
         {
             QList<CommEvent *> * i_list = new QList<CommEvent *>();
 
-            for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+            for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
                  = (*part)->events->begin();
                  event_list != (*part)->events->end(); ++event_list)
             {
@@ -696,7 +696,7 @@ void Trace::calculate_partition_lateness()
         {
             QList<CommEvent *> * i_list = new QList<CommEvent *>();
 
-            for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+            for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
                  = (*part)->events->begin();
                  event_list != (*part)->events->end(); ++event_list)
             {
@@ -845,7 +845,7 @@ void Trace::calculate_lateness()
         for (QSet<Partition *>::Iterator part = active_partitions->begin();
              part != active_partitions->end(); ++part)
         {
-            for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+            for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
                  = (*part)->events->begin();
                  event_list != (*part)->events->end(); ++event_list)
             {
@@ -1092,8 +1092,8 @@ void Trace::mergeForEntryRepair(bool entries)
                 min_leap = std::min((*partition)->dag_leap, min_leap);
 
                 // Merge all the events into the new partition
-                QList<int> keys = (*partition)->events->keys();
-                for (QList<int>::Iterator k = keys.begin(); k != keys.end(); ++k)
+                QList<unsigned long> keys = (*partition)->events->keys();
+                for (QList<unsigned long>::Iterator k = keys.begin(); k != keys.end(); ++k)
                 {
                     if (p->events->contains(*k))
                     {
@@ -1211,7 +1211,7 @@ void Trace::mergeForEntryRepair(bool entries)
             dag_entries->append(*partition);
 
         // Update event's reference just in case
-        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
              = (*partition)->events->begin();
              event_list != (*partition)->events->end(); ++event_list)
         {
@@ -1378,8 +1378,8 @@ void Trace::mergeForCharmLeaps()
             (*partition)->new_partition = p;
 
             // Merge all the events into the new partition
-            QList<int> keys = (*partition)->events->keys();
-            for (QList<int>::Iterator k = keys.begin(); k != keys.end(); ++k)
+            QList<unsigned long> keys = (*partition)->events->keys();
+            for (QList<unsigned long>::Iterator k = keys.begin(); k != keys.end(); ++k)
             {
                 if (p->events->contains(*k))
                 {
@@ -1518,7 +1518,7 @@ void Trace::forcePartitionDag()
                 if ((*other)->dag_leap != leap)
                     continue;
 
-                QSet<int> overlap_entities = (*part)->entity_overlap(*other);
+                QSet<unsigned long> overlap_entities = (*part)->entity_overlap(*other);
                 if (!overlap_entities.isEmpty())
                 {
                     // Now we have to figure out which one comes before the other
@@ -1547,7 +1547,7 @@ void Trace::forcePartitionDag()
 
                         // Now test if parent has a entity overlap, if so stage it
                         // for removal
-                        for (QMap<int, QList<CommEvent *> *>::Iterator entitylist
+                        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator entitylist
                              = (*parent)->events->begin();
                              entitylist != (*parent)->events->end(); ++entitylist)
                         {
@@ -1616,13 +1616,13 @@ void Trace::forcePartitionDag()
     // in order to force this dag. We start from the back.
     set_dag_steps();
     leap -= 1; // Should be the last leap
-    QMap<int, int> entity_to_last_leap = QMap<int, int>();
+    QMap<unsigned long, int> entity_to_last_leap = QMap<unsigned long, int>();
 
     int found_leap;
     QSet<Partition *> * search_leap;
-    QSet<int> found_entities = QSet<int>();
+    QSet<unsigned long> found_entities = QSet<unsigned long>();
     QSet<int> found_leaps = QSet<int>();
-    QSet<int> seen_entities = QSet<int>();
+    QSet<unsigned long> seen_entities = QSet<unsigned long>();
     while (leap >= 0)
     {
         current_leap = dag_step_dict->value(leap);
@@ -1631,18 +1631,18 @@ void Trace::forcePartitionDag()
              part != current_leap->end(); ++part)
         {
             // Let's test for entities! If we're okay, we need not do anything
-            QList<int> myentities = (*part)->events->keys();
-            for (QList<int>::Iterator t = myentities.begin(); t != myentities.end(); ++t)
+            QList<unsigned long> myentities = (*part)->events->keys();
+            for (QList<unsigned long>::Iterator t = myentities.begin(); t != myentities.end(); ++t)
             {
                 seen_entities.insert(*t);
             }
 
-            QSet<int> missing = (*part)->check_entity_children();
+            QSet<unsigned long> missing = (*part)->check_entity_children();
             if (missing.isEmpty())
                 continue;
 
             found_leaps.clear();
-            for (QSet<int>::Iterator element = missing.begin();
+            for (QSet<unsigned long>::Iterator element = missing.begin();
                  element != missing.end(); ++element)
             {
                 if (entity_to_last_leap.contains(*element))
@@ -1675,7 +1675,7 @@ void Trace::forcePartitionDag()
             }
         }
         // Update the last leap of chares at this leap to this one
-        for (QSet<int>::Iterator t = seen_entities.begin();
+        for (QSet<unsigned long>::Iterator t = seen_entities.begin();
              t != seen_entities.end(); ++t)
         {
             entity_to_last_leap[*t] = leap;
@@ -1822,12 +1822,12 @@ void Trace::mergeByLeap()
     }
     while (!current_leap->isEmpty())
     {
-        QSet<int> entities = QSet<int>();
+        QSet<unsigned long> entities = QSet<unsigned long>();
         QSet<Partition *> * next_leap = new QSet<Partition *>();
         for (QSet<Partition *>::Iterator partition = current_leap->begin();
              partition != current_leap->end(); ++partition)
         {
-            entities += QSet<int>::fromList((*partition)->events->keys());
+            entities += QSet<unsigned long>::fromList((*partition)->events->keys());
         }
 
 
@@ -1835,7 +1835,7 @@ void Trace::mergeByLeap()
         if (entities.size() < num_entities)
         {
             QSet<Partition *> * new_leap_parts = new QSet<Partition *>();
-            QSet<int> added_entities = QSet<int>();
+            QSet<unsigned long> added_entities = QSet<unsigned long>();
             bool back_merge = false;
             for (QSet<Partition *>::Iterator partition = current_leap->begin();
                  partition != current_leap->end(); ++partition)
@@ -1900,10 +1900,10 @@ void Trace::mergeByLeap()
                          child != (*partition)->children->end(); ++child)
                     {
                         if ((*child)->dag_leap == (*partition)->dag_leap + 1
-                             && ((QSet<int>::fromList((*child)->events->keys())
+                             && ((QSet<unsigned long>::fromList((*child)->events->keys())
                                   - entities)).size() > 0)
                         {
-                            added_entities += (QSet<int>::fromList((*child)->events->keys())
+                            added_entities += (QSet<unsigned long>::fromList((*child)->events->keys())
                                                                      - entities);
                             (*partition)->group->unite(*((*child)->group));
                             for (QSet<Partition *>::Iterator group_member
@@ -1996,8 +1996,8 @@ void Trace::mergeByLeap()
                     min_leap = std::min((*partition)->dag_leap, min_leap);
 
                     // Merge all the events into the new partition
-                    QList<int> keys = (*partition)->events->keys();
-                    for (QList<int>::Iterator k = keys.begin(); k != keys.end(); ++k)
+                    QList<unsigned long> keys = (*partition)->events->keys();
+                    for (QList<unsigned long>::Iterator k = keys.begin(); k != keys.end(); ++k)
                     {
                         if (p->events->contains(*k))
                         {
@@ -2167,7 +2167,7 @@ void Trace::mergeByLeap()
             dag_entries->append(*partition);
 
         // Update event's reference just in case
-        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
              = (*partition)->events->begin();
              event_list != (*partition)->events->end(); ++event_list)
         {
@@ -2242,8 +2242,8 @@ void Trace::mergeGlobalSteps()
              partition != working_set->end(); ++partition)
         {
             // Merge all the events into the new partition
-            QList<int> keys = (*partition)->events->keys();
-            for (QList<int>::Iterator k = keys.begin(); k != keys.end(); ++k)
+            QList<unsigned long> keys = (*partition)->events->keys();
+            for (QList<unsigned long>::Iterator k = keys.begin(); k != keys.end(); ++k)
             {
                 if (p->events->contains(*k))
                 {
@@ -2344,7 +2344,7 @@ void Trace::mergeGlobalSteps()
             dag_entries->append(*partition);
 
         // Update event's reference just in case
-        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
              = (*partition)->events->begin();
              event_list != (*partition)->events->end(); ++event_list)
         {
@@ -2369,7 +2369,7 @@ void Trace::mergeForMessagesHelper(Partition * part,
                                    QSet<Partition *> * to_merge,
                                    QQueue<Partition *> * to_process)
 {
-    for(QMap<int, QList<CommEvent *> *>::Iterator event_list
+    for(QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
         = part->events->begin();
         event_list != part->events->end(); ++event_list)
     {
@@ -2613,8 +2613,8 @@ void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
                 p->max_atomic = (*partition)->max_atomic;
 
             // Merge all the events into the new partition
-            QList<int> keys = (*partition)->events->keys();
-            for (QList<int>::Iterator k = keys.begin(); k != keys.end(); ++k)
+            QList<unsigned long> keys = (*partition)->events->keys();
+            for (QList<unsigned long>::Iterator k = keys.begin(); k != keys.end(); ++k)
             {
                 if (p->events->contains(*k))
                 {
@@ -2698,7 +2698,7 @@ void Trace::mergePartitions(QList<QList<Partition *> *> * components) {
         (*partition)->sortEvents();
 
         // Set Event partition for all of the events.
-        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
              = (*partition)->events->begin();
              event_list != (*partition)->events->end(); ++event_list)
         {
@@ -2755,7 +2755,7 @@ void Trace::set_dag_entries()
             dag_entries->append(*partition);
 
         // Update event's reference just in case
-        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
              = (*partition)->events->begin();
              event_list != (*partition)->events->end(); ++event_list)
         {
@@ -2782,7 +2782,7 @@ void Trace::set_partition_dag()
         {
             parent_flag = false;
 
-            for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+            for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
                  = (*partition)->events->begin();
                  event_list != (*partition)->events->end(); ++event_list)
             {
@@ -2834,7 +2834,7 @@ void Trace::set_partition_dag()
         {
             parent_flag = false;
 
-            for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+            for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
                  = (*partition)->events->begin();
                  event_list != (*partition)->events->end(); ++event_list)
             {

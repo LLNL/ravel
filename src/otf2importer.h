@@ -278,11 +278,11 @@ public:
 
 
     // Match comm record of sender and receiver to find both times
-    static bool compareComms(CommRecord * comm, unsigned int sender,
-                             unsigned int receiver, unsigned int tag,
+    static bool compareComms(CommRecord * comm, unsigned long sender,
+                             unsigned long receiver, unsigned int tag,
                              unsigned int size);
-    static bool compareComms(CommRecord * comm, unsigned int sender,
-                             unsigned int receiver, unsigned int tag);
+    static bool compareComms(CommRecord * comm, unsigned long sender,
+                             unsigned long receiver, unsigned int tag);
 
 
     static uint64_t convertTime(void* userData, OTF2_TimeStamp time);
@@ -323,7 +323,7 @@ private:
 
     QMap<OTF2_CommRef, int> * commIndexMap;
     QMap<OTF2_RegionRef, int> * regionIndexMap;
-    QMap<OTF2_LocationRef, int> * locationIndexMap;
+    QMap<OTF2_LocationRef, unsigned long> * locationIndexMap;
 
     QVector<QLinkedList<CommRecord *> *> * unmatched_recvs;
     QVector<QLinkedList<CommRecord *> *> * unmatched_sends;

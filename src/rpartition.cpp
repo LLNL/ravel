@@ -17,7 +17,7 @@
 #include "trace.h"
 
 Partition::Partition()
-    : events(new QMap<int, QList<CommEvent *> *>),
+    : events(new QMap<unsigned long, QList<CommEvent *> *>),
       max_step(-1),
       max_global_step(-1),
       min_global_step(-1),
@@ -52,7 +52,7 @@ Partition::Partition()
 
 Partition::~Partition()
 {
-    for (QMap<int, QList<CommEvent *> *>::Iterator eitr = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator eitr = events->begin();
          eitr != events->end(); ++eitr)
     {
         // Don't necessarily delete events as they are saved by merging
@@ -80,7 +80,7 @@ Partition::~Partition()
 // (e.g. destroying the trace)
 void Partition::deleteEvents()
 {
-    for (QMap<int, QList<CommEvent *> *>::Iterator eitr = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator eitr = events->begin();
          eitr != events->end(); ++eitr)
     {
         for (QList<CommEvent *>::Iterator itr = (eitr.value())->begin();
@@ -133,7 +133,7 @@ void Partition::addEvent(CommEvent * e)
 }
 
 void Partition::sortEvents(){
-    for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
     {
         qSort((event_list.value())->begin(), (event_list.value())->end(),
@@ -147,7 +147,7 @@ void Partition::sortEvents(){
 unsigned long long int Partition::distance(Partition * other)
 {
     unsigned long long int dist = ULLONG_MAX;
-    for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
     {
         if (other->events->contains(event_list.key()))
@@ -173,7 +173,7 @@ void Partition::fromSaved()
     sortEvents();
 
     // Parent/Children handled in trace, this will just set min/max steps
-    for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
     {
         if (event_list.value()->first()->step < min_global_step || min_global_step < 0)
@@ -208,7 +208,7 @@ void Partition::set_atomics()
 // same entity.
 void Partition::semantic_children()
 {
-    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator evtlist = events->begin();
          evtlist != events->end(); ++evtlist)
     {
         for (QList<CommEvent *>::Iterator evt = evtlist.value()->begin();
@@ -242,7 +242,7 @@ void Partition::semantic_children()
 // our child partition.
 void Partition::true_children()
 {
-    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator evtlist = events->begin();
          evtlist != events->end(); ++evtlist)
     {
         for (QList<CommEvent *>::Iterator evt = evtlist.value()->begin();
@@ -295,7 +295,7 @@ bool Partition::mergable(Partition * other)
         return false;
 
     bool overlap = false;
-    for (QMap<int, QList<CommEvent *> *>::Iterator entitylist = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator entitylist = events->begin();
          entitylist != events->end(); ++entitylist)
     {
         if (other->events->contains(entitylist.key()))
@@ -309,7 +309,7 @@ bool Partition::mergable(Partition * other)
 bool Partition::broken_entry(Partition * child)
 {
     CommEvent * evt = NULL;
-    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator evtlist = events->begin();
          evtlist != events->end(); ++evtlist)
     {
         if (evtlist.value()->size() == 0)
@@ -333,7 +333,7 @@ bool Partition::broken_entry(Partition * child)
 
 void Partition::broken_entries(QSet<Partition *> * repairees)
 {
-    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator evtlist = events->begin();
          evtlist != events->end(); ++evtlist)
     {
         for (QList<CommEvent *>::Iterator evt = evtlist.value()->begin();
@@ -351,7 +351,7 @@ void Partition::broken_entries(QSet<Partition *> * repairees)
 
 void Partition::stitched_atomics(QSet<Partition *> * stitchees)
 {
-    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator evtlist = events->begin();
          evtlist != events->end(); ++evtlist)
     {
         for (QList<CommEvent *>::Iterator evt = evtlist.value()->begin();
@@ -367,9 +367,9 @@ void Partition::stitched_atomics(QSet<Partition *> * stitchees)
     }
 }
 
-QSet<int> Partition::check_entity_children()
+QSet<unsigned long> Partition::check_entity_children()
 {
-    QSet<int> entity_children = events->keys().toSet();
+    QSet<unsigned long> entity_children = events->keys().toSet();
     for (QSet<Partition *>::Iterator child = children->begin();
          child != children->end(); ++child)
     {
@@ -381,10 +381,10 @@ QSet<int> Partition::check_entity_children()
 }
 
 // Find entity overlaps between partitions.
-QSet<int> Partition::entity_overlap(Partition * other)
+QSet<unsigned long> Partition::entity_overlap(Partition * other)
 {
-    QSet<int> overlap = QSet<int>();
-    for (QMap<int, QList<CommEvent *> *>::Iterator entitylist = events->begin();
+    QSet<unsigned long> overlap = QSet<unsigned long>();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator entitylist = events->begin();
          entitylist != events->end(); ++entitylist)
     {
         // We can't compare
@@ -410,15 +410,15 @@ QSet<int> Partition::entity_overlap(Partition * other)
 // is in a different partition.
 // We also want to take PE into account since some will share a PE.
 // Then we can probably compare them even if they're different entities.
-Partition * Partition::earlier_partition(Partition * other, QSet<int> overlap_entities)
+Partition * Partition::earlier_partition(Partition * other, QSet<unsigned long> overlap_entities)
 {
     // Counts for which one has the earlier earliest event
-    int me = 0, them = 0, me_both = 0, them_both = 0;
+    unsigned long me = 0, them = 0, me_both = 0, them_both = 0;
     bool mine_first, theirs_first;
 
-    QMap<int, QList<CommEvent *> *> by_pe = QMap<int, QList<CommEvent *> *>();
+    QMap<unsigned long, QList<CommEvent *> *> by_pe = QMap<unsigned long, QList<CommEvent *> *>();
 
-    for (QSet<int>::Iterator entity = overlap_entities.begin();
+    for (QSet<unsigned long>::Iterator entity = overlap_entities.begin();
          entity != overlap_entities.end(); ++entity)
     {
         // Now let's just do the voting and avoid the comm/prev/next
@@ -466,7 +466,7 @@ Partition * Partition::earlier_partition(Partition * other, QSet<int> overlap_en
     int me_pe = 0, them_pe = 0;
     if (me_both == them_both)
     {
-        for (QMap<int, QList<CommEvent *> *>::Iterator pe_list = by_pe.begin();
+        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator pe_list = by_pe.begin();
              pe_list != by_pe.end(); ++pe_list)
         {
             qSort(pe_list.value()->begin(), pe_list.value()->end());
@@ -477,7 +477,7 @@ Partition * Partition::earlier_partition(Partition * other, QSet<int> overlap_en
         }
     }
 
-    for (QMap<int, QList<CommEvent *> *>::Iterator pe_list = by_pe.begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator pe_list = by_pe.begin();
          pe_list != by_pe.end(); ++pe_list)
     {
         delete pe_list.value();
@@ -507,7 +507,7 @@ void Partition::finalizeEntityEventOrder()
 {
     CommEvent * prev;
 
-    for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
     {
         prev = NULL;
@@ -527,7 +527,7 @@ void Partition::receive_reorder_mpi()
 {
     // Partitions always start with some sends that have no previous parent
     // We will start these and set stride.
-    QMap<int, QList<CommEvent *> *> * stride_map = new QMap<int, QList<CommEvent *> *>();
+    QMap<unsigned long, QList<CommEvent *> *> * stride_map = new QMap<unsigned long, QList<CommEvent *> *>();
     stride_map->insert(0, new QList<CommEvent *>());
     int max_stride = 0;
     int current_stride = 0;
@@ -535,7 +535,7 @@ void Partition::receive_reorder_mpi()
     bool sendflag = false; // we have run into a send
     CommEvent * local_evt = NULL;
 
-    for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
     {
         if (!event_list.value()->first()->isReceive())
@@ -626,7 +626,7 @@ void Partition::receive_reorder_mpi()
     } // End stride increasing
 
     // Now that we have strides, sort them by stride
-    for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
     {
         qSort(event_list.value()->begin(), event_list.value()->end(),
@@ -634,7 +634,7 @@ void Partition::receive_reorder_mpi()
     }
 
     // Finally clean up stride_map
-    for (QMap<int, QList<CommEvent *> *>::Iterator lst = stride_map->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator lst = stride_map->begin();
          lst != stride_map->end(); ++lst)
     {
         delete lst.value();
@@ -646,7 +646,7 @@ void Partition::receive_reorder()
 {
     // Partitions always start with some sends that have no previous parent
     // We will start these and set stride.
-    QMap<int, QList<CommEvent *> *> * stride_map = new QMap<int, QList<CommEvent *> *>();
+    QMap<unsigned long, QList<CommEvent *> *> * stride_map = new QMap<unsigned long, QList<CommEvent *> *>();
     stride_map->insert(0, new QList<CommEvent *>());
     int max_stride = 0;
     int current_stride = 0;
@@ -654,7 +654,7 @@ void Partition::receive_reorder()
     CommEvent * local_evt = NULL;
 
     int count = 0;
-    for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
     {
         for (QList<CommEvent *>::Iterator evt = event_list.value()->begin();
@@ -752,7 +752,7 @@ void Partition::receive_reorder()
     } // End stride increasing
 
     // Now that we have strides, sort them by stride
-    for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
     {
         qSort(event_list.value()->begin(), event_list.value()->end(),
@@ -760,7 +760,7 @@ void Partition::receive_reorder()
     }
 
     // Finally clean up stride_map
-    for (QMap<int, QList<CommEvent *> *>::Iterator lst = stride_map->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator lst = stride_map->begin();
          lst != stride_map->end(); ++lst)
     {
         delete lst.value();
@@ -772,7 +772,7 @@ void Partition::basic_step()
 {
     // Find collectives / mark as strides
     QSet<CollectiveRecord *> * collectives = new QSet<CollectiveRecord *>();
-    for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
     {
         for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
@@ -783,7 +783,7 @@ void Partition::basic_step()
     }
 
     // Set up stride graph
-    for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
     {
         for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
@@ -822,9 +822,9 @@ void Partition::basic_step()
     max_step = -1;
     int entity;
     CommEvent * evt;
-    QList<int> entities = events->keys();
-    QMap<int, CommEvent*> next_step = QMap<int, CommEvent*>();
-    for (int i = 0; i < entities.size(); i++)
+    QList<unsigned long> entities = events->keys();
+    QMap<unsigned long, CommEvent*> next_step = QMap<unsigned long, CommEvent*>();
+    for (unsigned long i = 0; i < entities.size(); i++)
     {
         if ((*events)[entities[i]]->size() > 0) {
             next_step[entities[i]] = (*events)[entities[i]]->at(0);
@@ -982,7 +982,7 @@ void Partition::step()
 
     QList<CommEvent *> * stride_events = new QList<CommEvent *>();
     QList<CommEvent *> * recv_events = new QList<CommEvent *>();
-    for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
     {
         for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
@@ -1009,10 +1009,10 @@ void Partition::step()
     // This may be somewhat similar to restep/finalize... but slightly
     // different so look into that.
     max_step = -1;
-    int entity;
+    unsigned long entity;
     CommEvent * evt;
-    QList<int> entities = events->keys();
-    QMap<int, CommEvent*> next_step = QMap<int, CommEvent*>();
+    QList<unsigned long> entities = events->keys();
+    QMap<unsigned long, CommEvent*> next_step = QMap<unsigned long, CommEvent*>();
     for (int i = 0; i < entities.size(); i++)
     {
         if ((*events)[entities[i]]->size() > 0) {
@@ -1088,7 +1088,7 @@ void Partition::step()
     }
 
     // Now handle all of the left over recvs
-    for (int i = 0; i < entities.size(); i++)
+    for (unsigned long i = 0; i < entities.size(); i++)
     {
         entity = entities[i];
         evt = next_step[entity];
@@ -1190,7 +1190,7 @@ void Partition::calculate_imbalance(int num_pes)
     for (int i = 0; i < num_pes; i++)
         durations.append(0);
 
-    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator evtlist = events->begin();
          evtlist != events->end(); ++evtlist)
     {
         for (QList<CommEvent *>::Iterator evt = evtlist.value()->begin();
@@ -1213,7 +1213,7 @@ void Partition::calculate_imbalance(int num_pes)
     unsigned long long imbalance = max_duration - min_duration;
     metrics->addMetric("Imbalance", imbalance, imbalance);
 
-    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator evtlist = events->begin();
          evtlist != events->end(); ++evtlist)
     {
         for (QList<CommEvent *>::Iterator evt = evtlist.value()->begin();
@@ -1245,7 +1245,7 @@ void Partition::makeClusterVectors(QString metric)
 
     // Create a ClusterEntity for each entity and in each set metric_events
     // so it fills in the missing steps with the previous metric value.
-    for (QMap<int, QList<CommEvent *> *>::Iterator event_list = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list = events->begin();
          event_list != events->end(); ++event_list)
     {
         QVector<long long int> * metric_vector = new QVector<long long int>();
@@ -1287,7 +1287,7 @@ QString Partition::generate_process_string()
 {
     QString ps = "";
     bool first = true;
-    for (QMap<int, QList<CommEvent *> *>::Iterator itr = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator itr = events->begin();
          itr != events->end(); ++itr)
     {
         if (!first)
@@ -1303,7 +1303,7 @@ QString Partition::generate_process_string()
 int Partition::num_events()
 {
     int count = 0;
-    for (QMap<int, QList<CommEvent *> *>::Iterator itr = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator itr = events->begin();
          itr != events->end(); ++itr)
         count += (*itr)->length();
     return count;
@@ -1321,7 +1321,7 @@ Partition * Partition::newest_partition()
 // Verify each event in the partition actually belongs to the partition
 bool Partition::verify_members()
 {
-    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator evtlist = events->begin();
          evtlist != events->end(); ++evtlist)
     {
         for (QList<CommEvent *>::Iterator evt = evtlist.value()->begin();
@@ -1339,7 +1339,7 @@ bool Partition::verify_members()
 // Verify that if the partition has runtime events, it is a runtime partition
 bool Partition::verify_runtime(int runtime_id)
 {
-    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator evtlist = events->begin();
          evtlist != events->end(); ++evtlist)
     {
         if (evtlist.key() >= runtime_id && !runtime)
@@ -1363,7 +1363,7 @@ bool Partition::verify_parents()
 QString Partition::get_callers(QMap<int, Function *> * functions)
 {
     QSet<QString> callers = QSet<QString>();
-    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator evtlist = events->begin();
          evtlist != events->end(); ++evtlist)
     {
         for (QList<CommEvent *>::Iterator evt = evtlist.value()->begin();
@@ -1407,7 +1407,7 @@ void Partition::output_graph(QString filename, Trace * trace)
     QMap<int, QString> entities = QMap<int, QString>();
 
     int id = 0;
-    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator evtlist = events->begin();
          evtlist != events->end(); ++evtlist)
     {
         entities.insert(evtlist.key(), QString::number(id));
@@ -1447,7 +1447,7 @@ void Partition::output_graph(QString filename, Trace * trace)
 
 
     CommEvent * prev = NULL;
-    for (QMap<int, QList<CommEvent *> *>::Iterator evtlist = events->begin();
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator evtlist = events->begin();
          evtlist != events->end(); ++evtlist)
     {
         prev = NULL;

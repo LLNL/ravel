@@ -11,10 +11,10 @@ class Event;
 class EventRecord
 {
 public:
-    EventRecord(unsigned int _entity, unsigned long long int _t, unsigned int _v, bool _e = true);
+    EventRecord(unsigned long _entity, unsigned long long int _t, unsigned int _v, bool _e = true);
     ~EventRecord();
 
-    unsigned int entity;
+    unsigned long entity;
     unsigned long long int time;
     unsigned int value;
     bool enter;

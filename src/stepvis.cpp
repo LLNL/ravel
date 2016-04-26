@@ -109,31 +109,19 @@ void StepVis::processVis()
     painter->setPen(Qt::black);
     painter->setFont(QFont("Helvetica", 10));
     QFontMetrics font_metrics = painter->fontMetrics();
-    if (trace->options.origin == ImportOptions::OF_CHARM)
+    int primary, entity;
+    for (QMap<int, PrimaryEntityGroup *>::Iterator tg = trace->primaries->begin();
+         tg != trace->primaries->end(); ++tg)
     {
-        int primary, entity;
-        for (QMap<int, PrimaryEntityGroup *>::Iterator tg = trace->primaries->begin();
-             tg != trace->primaries->end(); ++tg)
+        primary = font_metrics.width((*tg)->name);
+        if (primary > labelWidth)
+            labelWidth = primary;
+        for (QList<Entity *>::Iterator t = (*tg)->entities->begin();
+             t != (*tg)->entities->end(); ++t)
         {
-            primary = font_metrics.width((*tg)->name);
-            if (primary > labelWidth)
-                labelWidth = primary;
-            for (QList<Entity *>::Iterator t = (*tg)->entities->begin();
-                 t != (*tg)->entities->end(); ++t)
-            {
-                entity = font_metrics.width((*t)->name);
-                if (entity > labelWidth)
-                    labelWidth = entity;
-            }
-        }
-    } else {
-        int idWidth;
-        for (QMap<int, PrimaryEntityGroup *>::Iterator tg = trace->primaries->begin();
-             tg != trace->primaries->end(); ++tg)
-        {
-            idWidth = font_metrics.width((*tg)->entities->length());
-            if (idWidth  > labelWidth)
-                labelWidth = idWidth ;
+            entity = font_metrics.width((*t)->name);
+            if (entity > labelWidth)
+                labelWidth = entity;
         }
     }
     painter->end();
@@ -150,7 +138,7 @@ void StepVis::setupMetric()
     for (QList<Partition *>::Iterator part = trace->partitions->begin();
          part != trace->partitions->end(); ++part)
     {
-        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
              = (*part)->events->begin();
              event_list != (*part)->events->end(); ++event_list)
         {
@@ -585,7 +573,7 @@ void StepVis::drawNativeGL()
             break;
         else if (part->max_global_step < bottomStep)
             continue;
-        for (QMap<int, QList<CommEvent *> *>::Iterator event_list = part->events->begin();
+        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list = part->events->begin();
              event_list != part->events->end(); ++event_list)
         {
             bool selected = false;
@@ -755,7 +743,7 @@ void StepVis::paintEvents(QPainter * painter)
             continue;
 
         // Go through events in partition
-        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
              = part->events->begin();
              event_list != part->events->end(); ++event_list)
         {
@@ -1433,49 +1421,26 @@ void StepVis::drawPrimaryLabels(QPainter * painter, int effectiveHeight,
 
     int current = start;
     int offset = 0;
-    if (trace->options.origin == ImportOptions::OF_CHARM)
+    for (QMap<int, PrimaryEntityGroup *>::Iterator tg = trace->primaries->begin();
+         tg != trace->primaries->end(); ++tg)
     {
-        for (QMap<int, PrimaryEntityGroup *>::Iterator tg = trace->primaries->begin();
-             tg != trace->primaries->end(); ++tg)
+        while (current < offset + (*tg)->entities->size() && current <= end)
         {
-            while (current < offset + (*tg)->entities->size() && current <= end)
+            y = floor((current - startEntity) * barHeight) + 1
+                    + barHeight / 2 + labelDescent;
+            if (y < effectiveHeight)
             {
-                y = floor((current - startEntity) * barHeight) + 1
-                        + barHeight / 2 + labelDescent;
-                if (y < effectiveHeight)
-                {
-                    if (current == offset)
-                        painter->drawText(1, y, (*tg)->name);
-                    else
-                        painter->drawText(1, y,
-                                          (*tg)->entities->at(current - offset)->name);
-                }
-                current += skip;
-            }
-            if (current > end)
-                break;
-
-            offset += (*tg)->entities->size();
-        }
-    } else {
-        for (QMap<int, PrimaryEntityGroup *>::Iterator tg = trace->primaries->begin();
-             tg != trace->primaries->end(); ++tg)
-        {
-            while (current < offset + (*tg)->entities->size() && current <= end)
-            {
-                y = floor((current - startEntity) * barHeight) + 1
-                        + barHeight / 2 + labelDescent;
-                if (y < effectiveHeight)
-                {
+                if (current == offset)
+                    painter->drawText(1, y, (*tg)->name);
+                else
                     painter->drawText(1, y,
-                                          QString::number((*tg)->entities->at(current - offset)->id));
-                }
-                current += skip;
+                                      (*tg)->entities->at(current - offset)->name);
             }
-            if (current > end)
-                break;
-
-            offset += (*tg)->entities->size();
+            current += skip;
         }
+        if (current > end)
+            break;
+
+        offset += (*tg)->entities->size();
     }
 }

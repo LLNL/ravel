@@ -62,7 +62,7 @@ void TraditionalVis::setTrace(Trace * t)
     for (QList<Partition*>::Iterator part = trace->partitions->begin();
          part != trace->partitions->end(); ++part)
     {
-        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
              = (*part)->events->begin(); event_list != (*part)->events->end();
              ++event_list)
         {
@@ -102,7 +102,7 @@ void TraditionalVis::setTrace(Trace * t)
     for (QList<Partition*>::Iterator part = trace->partitions->begin();
          part != trace->partitions->end(); ++part)
     {
-        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
              = (*part)->events->begin(); event_list != (*part)->events->end();
              ++event_list)
         {
@@ -432,7 +432,7 @@ void TraditionalVis::drawNativeGL()
         if (part->min_global_step > upperStep)
             break;
 
-        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
              = part->events->begin(); event_list != part->events->end();
              ++event_list)
         {
@@ -592,7 +592,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
         part = trace->partitions->at(i);
         if (part->min_global_step > upperStep)
             break;
-        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
              = part->events->begin(); event_list != part->events->end();
              ++event_list)
         {

@@ -842,7 +842,7 @@ void OTFConverter::mergeByMultiCaller()
     {
         // There should be only one event_list at this point, have not
         // merged across entities
-        for (QMap<int, QList<CommEvent *> *>::Iterator event_list = (*part)->events->begin();
+        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list = (*part)->events->begin();
                  event_list != (*part)->events->end(); ++event_list)
         {
             // If our first value equals the previous' last value -- add
@@ -893,7 +893,7 @@ void OTFConverter::mergeContiguous(QList<QList<Partition * > *> * groups)
              part != (*group)->end(); ++part)
         {
             (*part)->new_partition = p;
-            for (QMap<int, QList<CommEvent *> *>::Iterator proc
+            for (QMap<unsigned long, QList<CommEvent *> *>::Iterator proc
                  = (*part)->events->begin();
                  proc != (*part)->events->end(); ++proc)
             {
