@@ -1123,8 +1123,8 @@ void OTF2Importer::processCollectives()
 
             // Look through fragment list of other members of communicator for
             // matching fragments
-            QList<uint32_t> * members = groupMap->value(commMap->value(fragment->comm)->group)->members;
-            for (QList<uint32_t>::Iterator process = members->begin();
+            QList<uint64_t> * members = groupMap->value(commMap->value(fragment->comm)->group)->members;
+            for (QList<uint64_t>::Iterator process = members->begin();
                  process != members->end(); ++process)
             {
                 OTF2CollectiveFragment * match = NULL;

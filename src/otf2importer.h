@@ -139,14 +139,14 @@ public:
                   OTF2_GroupFlag _flags)
             : self(_self), name(_name), type(_type),
               paradigm(_paradigm), flags(_flags),
-              members(new QList<uint32_t>()) {}
+              members(new QList<uint64_t>()) {}
 
         OTF2_GroupRef self;
         OTF2_StringRef name;
         OTF2_GroupType type;
         OTF2_Paradigm paradigm;
         OTF2_GroupFlag flags;
-        QList<uint32_t> * members;
+        QList<uint64_t> * members;
     };
 
 

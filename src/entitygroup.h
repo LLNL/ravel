@@ -17,8 +17,8 @@ public:
     // May need to keep additional names if we have several that are the same
 
     // This order is important for communicator rank ID
-    QList<unsigned int> * entities;
-    QMap<unsigned int, int> * entityorder;
+    QList<unsigned long> * entities;
+    QMap<unsigned long, int> * entityorder;
 };
 
 #endif // ENTITYGROUP_H

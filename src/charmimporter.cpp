@@ -766,7 +766,7 @@ void CharmImporter::buildPartitions()
         breakables = options->breakFunctions.split(",");
 
     int count = 0;
-    int entityid = 0;
+    long entityid = 0;
     for (QVector<QVector<P2PEvent *> *>::Iterator p2plist = charm_p2ps->begin();
          p2plist != charm_p2ps->end(); ++p2plist)
     {
@@ -977,7 +977,7 @@ int CharmImporter::makeEntities()
     chare_to_entity->insert(ChareIndex(main, 0, 0, 0, 0), 0);
     application_chares.insert(main);
 
-    int entityid = 1;
+    long entityid = 1;
     if (arrays->size() > 0)
     {
         QMap<int, int> chare_count = QMap<int, int>();
