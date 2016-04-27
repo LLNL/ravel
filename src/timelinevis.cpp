@@ -11,6 +11,8 @@
 #include "event.h"
 #include "function.h"
 #include "rpartition.h"
+#include "entity.h"
+#include "primaryentitygroup.h"
 
 TimelineVis::TimelineVis(QWidget* parent, VisOptions * _options)
     : VisWidget(parent = parent, _options),
@@ -74,6 +76,15 @@ void TimelineVis::processVis()
     QFontMetrics font_metrics = painter->fontMetrics();
     QString testString = systemlocale.toString(max_entity);
     labelWidth = font_metrics.width(testString);
+    if (trace->processingElements)
+    {
+        for (QList<Entity *>::Iterator ent = trace->processingElements->entities->begin();
+             ent != trace->processingElements->entities->end(); ++ent)
+        {
+            labelWidth = std::max(labelWidth, font_metrics.width((*ent)->name));
+        }
+        labelWidth += 2;
+    }
     labelHeight = font_metrics.height();
     labelDescent = font_metrics.descent();
     painter->end();
@@ -278,11 +289,25 @@ void TimelineVis::drawEntityLabels(QPainter * painter, int effectiveHeight,
     int start = std::max(floor(startEntity), 0.0);
     int end = std::min(ceil(startEntity + entitySpan),
                        maxEntities - 1.0);
-    for (int i = start; i <= end; i+= skip) // Do this by order
+
+    if (trace->processingElements)
     {
-        y = floor((i - startEntity) * barHeight) + 1 + barHeight / 2
-            + labelDescent;
-        if (y < effectiveHeight)
-            painter->drawText(1, y, QString::number(order_to_proc[i]));
+        for (int i = start; i <= end; i+= skip) // Do this by order
+        {
+            y = floor((i - startEntity) * barHeight) + 1 + barHeight / 2
+                    + labelDescent;
+            if (y < effectiveHeight)
+                painter->drawText(1, y, trace->processingElements->entities->at(i)->name);
+        }
+    }
+    else
+    {
+        for (int i = start; i <= end; i+= skip) // Do this by order
+        {
+            y = floor((i - startEntity) * barHeight) + 1 + barHeight / 2
+                + labelDescent;
+            if (y < effectiveHeight)
+                painter->drawText(1, y, QString::number(order_to_proc[i]));
+        }
     }
 }

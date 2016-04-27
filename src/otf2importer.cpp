@@ -472,7 +472,7 @@ void OTF2Importer::defineEntities()
                 {
                     unsigned long entity = locationIndexMap->value(loc.key());
                     Entity * locationEntity = new Entity(entity,
-                                                         stringMap->value(loc.value()->name),
+                                                         QString::number(loc.value()->group),
                                                          primaries->value(0));
                     primaries->value(0)->entities->insert(entity, locationEntity);
                     entityMap.insert(loc.key(), locationEntity);

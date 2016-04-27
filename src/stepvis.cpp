@@ -117,6 +117,7 @@ void StepVis::processVis()
     painter->setFont(QFont("Helvetica", 10));
     QFontMetrics font_metrics = painter->fontMetrics();
     int primary, entity;
+    labelWidth = 0;
     for (QMap<int, PrimaryEntityGroup *>::Iterator tg = trace->primaries->begin();
          tg != trace->primaries->end(); ++tg)
     {
@@ -130,6 +131,7 @@ void StepVis::processVis()
             if (entity > labelWidth)
                 labelWidth = entity;
         }
+        labelWidth += 2;
     }
     painter->end();
     delete painter;
