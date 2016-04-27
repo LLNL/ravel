@@ -6,6 +6,7 @@
 #include <QString>
 #include <QMap>
 #include <QVector>
+#include <QSet>
 
 class CommRecord;
 class RawTrace;
@@ -88,6 +89,35 @@ public:
         uint64_t num_events;
         OTF2_LocationType type;
         OTF2_LocationGroupRef group;
+
+        bool operator<(const OTF2Location & location)
+        {
+            if (group == location.group)
+                return self < location.self;
+            return group < location.group;
+        }
+        bool operator>(const OTF2Location & location)
+        {
+            if (group == location.group)
+                return self > location.self;
+            return group > location.group;
+        }
+        bool operator<=(const OTF2Location & location)
+        {
+            if (group == location.group)
+                return self <= location.self;
+            return group <= location.group;
+        }
+        bool operator>=(const OTF2Location & location)
+        {
+            if (group == location.group)
+                return self >= location.self;
+            return group >= location.group;
+        }
+        bool operator==(const OTF2Location & location)
+        {
+            return group == location.group && self == location.self;
+        }
     };
 
     class OTF2Comm {
@@ -305,6 +335,7 @@ private:
     void setDefCallbacks();
     void setEvtCallbacks();
     void processCollectives();
+    void defineEntities();
 
     bool enforceMessageSize;
 
@@ -324,6 +355,10 @@ private:
     QMap<OTF2_CommRef, int> * commIndexMap;
     QMap<OTF2_RegionRef, int> * regionIndexMap;
     QMap<OTF2_LocationRef, unsigned long> * locationIndexMap;
+
+    QList<OTF2Location *> threadList;
+    QSet<OTF2_LocationRef> MPILocations;
+    PrimaryEntityGroup * processingElements;
 
     QVector<QLinkedList<CommRecord *> *> * unmatched_recvs;
     QVector<QLinkedList<CommRecord *> *> * unmatched_sends;

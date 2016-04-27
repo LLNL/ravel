@@ -13,6 +13,8 @@
 #include "colormap.h"
 #include "commevent.h"
 #include "event.h"
+#include "entity.h"
+#include "primaryentitygroup.h"
 #include "p2pevent.h"
 #include "collectiveevent.h"
 
@@ -39,7 +41,6 @@ TraditionalVis::~TraditionalVis()
     }
     delete stepToTime;
 }
-
 
 void TraditionalVis::setTrace(Trace * t)
 {
@@ -117,6 +118,27 @@ void TraditionalVis::setTrace(Trace * t)
                 if ((*stepToTime)[step]->stop < (*evt)->exit)
                     (*stepToTime)[step]->stop = (*evt)->exit;
             }
+        }
+    }
+
+    // Create processing element mapping
+    proc_to_order = QMap<int, int>();
+    order_to_proc = QMap<int, int>();
+    if (trace->processingElements)
+    {
+        int index = 0;
+        for (QList<Entity *>::Iterator entity = trace->processingElements->entities->begin();
+             entity != trace->processingElements->entities->end(); ++entity)
+        {
+            proc_to_order[(*entity)->id] = index;
+            order_to_proc[index] = (*entity)->id;
+        }
+    }
+    else
+    {
+        for (int i = 0; i < trace->num_pes; i++) {
+            proc_to_order[i] = i;
+            order_to_proc[i] = i;
         }
     }
 

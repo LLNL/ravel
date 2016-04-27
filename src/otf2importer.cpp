@@ -41,6 +41,9 @@ OTF2Importer::OTF2Importer()
       commIndexMap(new QMap<OTF2_CommRef, int>()),
       regionIndexMap(new QMap<OTF2_RegionRef, int>()),
       locationIndexMap(new QMap<OTF2_LocationRef, unsigned long>()),
+      threadList(QList<OTF2Location *>()),
+      MPILocations(QSet<OTF2_LocationRef>()),
+      processingElements(NULL),
       unmatched_recvs(new QVector<QLinkedList<CommRecord *> *>()),
       unmatched_sends(new QVector<QLinkedList<CommRecord *> *>()),
       unmatched_send_requests(new QVector<QLinkedList<CommRecord *> *>()),
@@ -407,6 +410,10 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file, bool _enforceMessageSi
               << unmatched_recv_count << " unmatched recvs." << std::endl;
 
 
+    defineEntities();
+    rawtrace->processingElements = processingElements;
+    rawtrace->num_entities = MPILocations.size();
+
     traceElapsed = traceTimer.nsecsElapsed();
     RavelUtils::gu_printTime(traceElapsed, "OTF Reading: ");
 
@@ -447,6 +454,54 @@ void OTF2Importer::setDefCallbacks()
     // TODO: Metrics might be akin to counters
 }
 
+void OTF2Importer::defineEntities()
+{
+    // Grab only the MPI locations
+    primaries->insert(0, new PrimaryEntityGroup(0, "MPI"));
+    QMap<OTF2_LocationRef, Entity *> entityMap = QMap<OTF2_LocationRef, Entity *>();
+    for (QMap<OTF2_LocationRef, OTF2Location *>::Iterator loc = locationMap->begin();
+         loc != locationMap->end(); ++loc)
+    {
+        OTF2_LocationGroupType group = (locationGroupMap->value((loc.value())->group))->type;
+        if (group == OTF2_LOCATION_GROUP_TYPE_PROCESS)
+        {
+            OTF2_LocationType type = (loc.value())->type;
+            if (type == OTF2_LOCATION_TYPE_CPU_THREAD)
+            {
+                if (MPILocations.contains(loc.key()))
+                {
+                    unsigned long entity = locationIndexMap->value(loc.key());
+                    Entity * locationEntity = new Entity(entity,
+                                                         stringMap->value(loc.value()->name),
+                                                         primaries->value(0));
+                    primaries->value(0)->entities->insert(entity, locationEntity);
+                    entityMap.insert(loc.key(), locationEntity);
+                }
+            }
+        }
+    }
+
+    processingElements = new PrimaryEntityGroup(1, "PEs");
+    qSort(threadList);
+    for (QList<OTF2Location *>::Iterator loc = threadList.begin();
+         loc != threadList.end(); ++loc)
+    {
+        if (MPILocations.contains((*loc)->self))
+        {
+            processingElements->entities->append(entityMap.value((*loc)->self));
+        }
+        else
+        {
+            unsigned long entity = locationIndexMap->value((*loc)->self);
+            Entity * locationEntity = new Entity(entity,
+                                                 stringMap->value((*loc)->name),
+                                                 processingElements);
+            processingElements->entities->append(locationEntity);
+        }
+    }
+
+}
+
 void OTF2Importer::processDefinitions()
 {
     int index = 0;
@@ -461,6 +516,23 @@ void OTF2Importer::processDefinitions()
 
     functionGroups->insert(OTF2_PARADIGM_MPI, "MPI");
 
+    // Grab only the PE locations
+    for (QMap<OTF2_LocationRef, OTF2Location *>::Iterator loc = locationMap->begin();
+         loc != locationMap->end(); ++loc)
+    {
+        OTF2_LocationGroupType group = (locationGroupMap->value((loc.value())->group))->type;
+        if (group == OTF2_LOCATION_GROUP_TYPE_PROCESS)
+        {
+            OTF2_LocationType type = (loc.value())->type;
+            if (type == OTF2_LOCATION_TYPE_CPU_THREAD)
+            {
+                threadList.append(loc.value());
+                locationIndexMap->insert(loc.key(), threadList.size() - 1);
+            }
+        }
+    }
+    num_processes = threadList.size();
+
     index = 0;
     for (QMap<OTF2_CommRef, OTF2Comm *>::Iterator comm = commMap->begin();
          comm != commMap->end(); ++comm)
@@ -473,30 +545,6 @@ void OTF2Importer::processDefinitions()
             t->entityorder->insert(t->entities->at(i), i);
         entitygroups->insert(index, t);
         index++;
-    }
-
-    // Grab only the MPI locations
-    primaries->insert(0, new PrimaryEntityGroup(0, "MPI"));
-    unsigned long entity = 0;
-    for (QMap<OTF2_LocationRef, OTF2Location *>::Iterator loc = locationMap->begin();
-         loc != locationMap->end(); ++loc)
-    {
-        OTF2_LocationGroupType group = (locationGroupMap->value((loc.value())->group))->type;
-        if (group == OTF2_LOCATION_GROUP_TYPE_PROCESS)
-        {
-            OTF2_LocationType type = (loc.value())->type;
-            if (type == OTF2_LOCATION_TYPE_CPU_THREAD)
-            {
-                primaries->value(0)->entities->insert(entity,
-                                                      new Entity(entity,
-                                                                 stringMap->value(loc.value()->name),
-                                                                 primaries->value(0)));
-                locationIndexMap->insert(loc.key(), entity);
-                std::cout << (ulong(loc.key())) << " " << entity << std::endl;
-                entity++;
-                num_processes++;
-            }
-        }
     }
 
     // Ravel info
@@ -794,6 +842,7 @@ OTF2_CallbackCode OTF2Importer::callbackMPISend(OTF2_LocationRef locationID,
                                                 uint64_t msgLength)
 {
     Q_UNUSED(attributeList);
+    ((OTF2Importer *) userData)->MPILocations.insert(locationID);
 
     // Every time we find a send, check the unmatched recvs
     // to see if it has a match
@@ -846,6 +895,7 @@ OTF2_CallbackCode OTF2Importer::callbackMPIIsend(OTF2_LocationRef locationID,
                                                  uint64_t requestID)
 {
     Q_UNUSED(attributeList);
+    ((OTF2Importer *) userData)->MPILocations.insert(locationID);
 
     // Every time we find a send, check the unmatched recvs
     // to see if it has a match
@@ -976,6 +1026,7 @@ OTF2_CallbackCode OTF2Importer::callbackMPIRecv(OTF2_LocationRef locationID,
                                                 uint64_t msgLength)
 {
     Q_UNUSED(attributeList);
+    ((OTF2Importer *) userData)->MPILocations.insert(locationID);
 
     // Look for match in unmatched_sends
     unsigned long long converted_time = convertTime(userData, time);
@@ -1027,6 +1078,7 @@ OTF2_CallbackCode OTF2Importer::callbackMPIIrecv(OTF2_LocationRef locationID,
 {
     Q_UNUSED(attributeList);
     Q_UNUSED(requestID);
+    ((OTF2Importer *) userData)->MPILocations.insert(locationID);
 
     // Look for match in unmatched_sends
     unsigned long long converted_time = convertTime(userData, time);
@@ -1073,6 +1125,7 @@ OTF2_CallbackCode OTF2Importer::callbackMPICollectiveBegin(OTF2_LocationRef loca
 {
     Q_UNUSED(locationID);
     Q_UNUSED(attributeList);
+    ((OTF2Importer *) userData)->MPILocations.insert(locationID);
 
     unsigned long location = ((OTF2Importer *) userData)->locationIndexMap->value(locationID);
     uint64_t converted_time = convertTime(userData, time);
@@ -1093,7 +1146,7 @@ OTF2_CallbackCode OTF2Importer::callbackMPICollectiveEnd(OTF2_LocationRef locati
     Q_UNUSED(attributeList);
     Q_UNUSED(sizeSent);
     Q_UNUSED(sizeReceived);
-    //Q_UNUSED(time);
+    ((OTF2Importer *) userData)->MPILocations.insert(locationID);
 
     unsigned long location = ((OTF2Importer *) userData)->locationIndexMap->value(locationID);
 

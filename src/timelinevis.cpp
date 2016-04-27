@@ -54,13 +54,6 @@ TimelineVis::~TimelineVis()
 
 void TimelineVis::processVis()
 {
-    proc_to_order = QMap<int, int>();
-    order_to_proc = QMap<int, int>();
-    for (int i = 0; i < maxEntities; i++) {
-        proc_to_order[i] = i;
-        order_to_proc[i] = i;
-    }
-
     for (QMap<int, Function *>::Iterator fxn = trace->functions->begin();
          fxn != trace->functions->end(); ++fxn)
     {

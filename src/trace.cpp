@@ -41,12 +41,13 @@ Trace::Trace(int nt, int np)
       functionGroups(new QMap<int, QString>()),
       functions(new QMap<int, Function *>()),
       primaries(NULL),
+      processingElements(NULL),
       entitygroups(NULL),
       collective_definitions(NULL),
       collectives(NULL),
       collectiveMap(NULL),
-      events(new QVector<QVector<Event *> *>(nt)),
-      roots(new QVector<QVector<Event *> *>(np)),
+      events(new QVector<QVector<Event *> *>(std::max(nt, np))),
+      roots(new QVector<QVector<Event *> *>(std::max(nt, np))),
       mpi_group(-1),
       global_max_step(-1),
       dag_entries(new QList<Partition *>()),
@@ -54,11 +55,11 @@ Trace::Trace(int nt, int np)
       isProcessed(false),
       totalTimer(QElapsedTimer())
 {
-    for (int i = 0; i < nt; i++) {
+    for (int i = 0; i < std::max(nt, np); i++) {
         (*events)[i] = new QVector<Event *>();
     }
 
-    for (int i = 0; i < np; i++)
+    for (int i = 0; i < std::max(nt, np); i++)
     {
         (*roots)[i] = new QVector<Event *>();
     }

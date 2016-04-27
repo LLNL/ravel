@@ -35,6 +35,7 @@ public:
 
     ImportOptions * options;
     QMap<int, PrimaryEntityGroup *> * primaries;
+    PrimaryEntityGroup * processingElements;
     QMap<int, QString> * functionGroups;
     QMap<int, Function *> * functions;
     QVector<QVector<EventRecord *> *> * events;

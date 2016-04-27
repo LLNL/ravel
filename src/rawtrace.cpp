@@ -17,6 +17,7 @@
 RawTrace::RawTrace(int nt, int np)
     : options(new ImportOptions()),
       primaries(NULL),
+      processingElements(NULL),
       functionGroups(NULL),
       functions(NULL),
       events(NULL),

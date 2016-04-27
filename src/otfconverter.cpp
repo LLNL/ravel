@@ -112,6 +112,7 @@ void OTFConverter::convert()
     trace->functions = rawtrace->functions;
     delete trace->functionGroups;
     trace->primaries = rawtrace->primaries;
+    trace->processingElements = rawtrace->processingElements;
     trace->functionGroups = rawtrace->functionGroups;
     trace->collectives = rawtrace->collectives;
     trace->collectiveMap = rawtrace->collectiveMap;
