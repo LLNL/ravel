@@ -104,9 +104,9 @@ void StepVis::processVis()
 {
     TimelineVis::processVis();
 
-    proc_to_order = QMap<int, int>();
-    order_to_proc = QMap<int, int>();
-    for (int i = 0; i < maxEntities; i++) {
+    proc_to_order = QMap<unsigned long, unsigned long>();
+    order_to_proc = QMap<unsigned long, unsigned long>();
+    for (unsigned long i = 0; i < maxEntities; i++) {
         proc_to_order[i] = i;
         order_to_proc[i] = i;
     }

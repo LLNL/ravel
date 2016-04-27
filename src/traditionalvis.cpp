@@ -122,8 +122,8 @@ void TraditionalVis::setTrace(Trace * t)
     }
 
     // Create processing element mapping
-    proc_to_order = QMap<int, int>();
-    order_to_proc = QMap<int, int>();
+    proc_to_order = QMap<unsigned long, unsigned long>();
+    order_to_proc = QMap<unsigned long, unsigned long>();
     if (trace->processingElements)
     {
         int index = 0;
@@ -132,6 +132,7 @@ void TraditionalVis::setTrace(Trace * t)
         {
             proc_to_order[(*entity)->id] = index;
             order_to_proc[index] = (*entity)->id;
+            index++;
         }
     }
     else

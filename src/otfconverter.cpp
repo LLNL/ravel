@@ -104,7 +104,7 @@ void OTFConverter::convert()
     QElapsedTimer traceTimer;
     qint64 traceElapsed;
     traceTimer.start();
-    trace = new Trace(rawtrace->num_entities, rawtrace->num_entities);
+    trace = new Trace(rawtrace->num_entities, rawtrace->num_pes);
     trace->units = rawtrace->second_magnitude;
 
     // Start setting up new Trace

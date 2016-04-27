@@ -36,8 +36,8 @@ TimelineVis::TimelineVis(QWidget* parent, VisOptions * _options)
       entitySpan(0),
       lastStartStep(0),
       idleFunction(-1),
-      proc_to_order(QMap<int, int>()),
-      order_to_proc(QMap<int, int>())
+      proc_to_order(QMap<unsigned long, unsigned long>()),
+      order_to_proc(QMap<unsigned long, unsigned long>())
 {
     setMouseTracking(true);
     cursorWidth = 16;
