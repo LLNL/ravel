@@ -37,6 +37,8 @@
 #include "colormap.h"
 #include "commevent.h"
 #include "event.h"
+#include "entity.h"
+#include "primaryentitygroup.h"
 #include "p2pevent.h"
 #include "collectiveevent.h"
 
@@ -64,7 +66,6 @@ TraditionalVis::~TraditionalVis()
     delete stepToTime;
 }
 
-
 void TraditionalVis::setTrace(Trace * t)
 {
     VisWidget::setTrace(t);
@@ -86,7 +87,7 @@ void TraditionalVis::setTrace(Trace * t)
     for (QList<Partition*>::Iterator part = trace->partitions->begin();
          part != trace->partitions->end(); ++part)
     {
-        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
              = (*part)->events->begin(); event_list != (*part)->events->end();
              ++event_list)
         {
@@ -126,7 +127,7 @@ void TraditionalVis::setTrace(Trace * t)
     for (QList<Partition*>::Iterator part = trace->partitions->begin();
          part != trace->partitions->end(); ++part)
     {
-        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
              = (*part)->events->begin(); event_list != (*part)->events->end();
              ++event_list)
         {
@@ -141,6 +142,28 @@ void TraditionalVis::setTrace(Trace * t)
                 if ((*stepToTime)[step]->stop < (*evt)->exit)
                     (*stepToTime)[step]->stop = (*evt)->exit;
             }
+        }
+    }
+
+    // Create processing element mapping
+    proc_to_order = QMap<unsigned long, unsigned long>();
+    order_to_proc = QMap<unsigned long, unsigned long>();
+    if (trace->processingElements)
+    {
+        int index = 0;
+        for (QList<Entity *>::Iterator entity = trace->processingElements->entities->begin();
+             entity != trace->processingElements->entities->end(); ++entity)
+        {
+            proc_to_order[(*entity)->id] = index;
+            order_to_proc[index] = (*entity)->id;
+            index++;
+        }
+    }
+    else
+    {
+        for (int i = 0; i < trace->num_pes; i++) {
+            proc_to_order[i] = i;
+            order_to_proc[i] = i;
         }
     }
 
@@ -456,7 +479,7 @@ void TraditionalVis::drawNativeGL()
         if (part->min_global_step > upperStep)
             break;
 
-        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
              = part->events->begin(); event_list != part->events->end();
              ++event_list)
         {
@@ -616,7 +639,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
         part = trace->partitions->at(i);
         if (part->min_global_step > upperStep)
             break;
-        for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
              = part->events->begin(); event_list != part->events->end();
              ++event_list)
         {

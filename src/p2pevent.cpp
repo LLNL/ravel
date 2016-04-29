@@ -382,7 +382,7 @@ void P2PEvent::update_strides()
     }
 }
 
-void P2PEvent::set_reorder_strides(QMap<int, QList<CommEvent *> *> * stride_map,
+void P2PEvent::set_reorder_strides(QMap<unsigned long, QList<CommEvent *> *> *stride_map,
                                    int offset, CommEvent *last, int debug)
 {
     Q_UNUSED(last);
@@ -391,7 +391,6 @@ void P2PEvent::set_reorder_strides(QMap<int, QList<CommEvent *> *> * stride_map,
          msg != messages->end(); ++msg)
     {
         (*msg)->receiver->stride = stride + offset;
-        //std::cout << "Setting stride " << (*msg)->receiver->stride << " for entity " << (*msg)->receiver->entity << " with add order " << (*msg)->receiver->add_order << std::endl;
 
         if (!stride_map->contains(stride + offset))
         {
@@ -404,15 +403,6 @@ void P2PEvent::set_reorder_strides(QMap<int, QList<CommEvent *> *> * stride_map,
 
         // Last stride to self for ordering
         (*msg)->receiver->last_stride = (*msg)->receiver; //this;
-        /*if ((*msg)->receiver->comm_prev)
-        {
-            CommEvent * prev = (*msg)->receiver->comm_prev;
-            while (prev && !prev->isReceive() && prev->partition == partition)
-                prev = prev->comm_prev;
-
-            if (prev && prev->partition == partition && prev->isReceive())
-                (*msg)->receiver->last_stride = prev;
-        }*/
 
         // next stride for tie-breaking so we know what entity it is
         (*msg)->receiver->next_stride = this;

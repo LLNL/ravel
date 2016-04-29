@@ -39,7 +39,7 @@ class Event
 {
 public:
     Event(unsigned long long _enter, unsigned long long _exit, int _function,
-          int _entity, int _pe);
+          unsigned long _entity, unsigned long _pe);
     ~Event();
 
     // Based on enter time
@@ -75,8 +75,8 @@ public:
     unsigned long long enter;
     unsigned long long exit;
     int function;
-    int entity;
-    int pe;
+    unsigned long entity;
+    unsigned long pe;
     int depth;
 
     Metrics * metrics; // Lateness or Counters etc

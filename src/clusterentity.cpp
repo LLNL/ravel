@@ -25,8 +25,8 @@
 #include "clusterentity.h"
 #include <float.h>
 
-ClusterEntity::ClusterEntity(int _t, int _step)
-    : entity(_t),
+ClusterEntity::ClusterEntity(unsigned long _e, int _step)
+    : entity(_e),
       startStep(_step),
       metric_events(new QVector<long long int>())
 {

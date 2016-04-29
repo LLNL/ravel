@@ -208,7 +208,7 @@ private:
     int makeEntities();
     void makeEntityEvents();
     int makeEntityEventsPop(QStack<CharmEvt *> * stack, CharmEvt * bgn,
-                          long endtime, int phase, int depth, int atomic);
+                            long endtime, int phase, int depth, int atomic);
 
     void chargeIdleness();
 

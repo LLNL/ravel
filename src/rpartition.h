@@ -81,9 +81,9 @@ public:
     void true_children();
     void set_atomics();
     bool mergable(Partition * other);
-    QSet<int> entity_overlap(Partition * other);
-    Partition * earlier_partition(Partition * other, QSet<int> overlap_entities);
-    QSet<int> check_entity_children();
+    QSet<unsigned long> entity_overlap(Partition * other);
+    Partition * earlier_partition(Partition * other, QSet<unsigned long> overlap_entities);
+    QSet<unsigned long> check_entity_children();
 
     void calculate_imbalance(int num_pes);
 
@@ -95,7 +95,7 @@ public:
     QString get_callers(QMap<int, Function *> * functions);
 
     // Core partition information, events per process and step summary
-    QMap<int, QList<CommEvent *> *> * events;
+    QMap<unsigned long, QList<CommEvent *> *> * events;
     int max_step;
     int max_global_step;
     int min_global_step;

@@ -54,7 +54,7 @@ bool ExchangeGnome::detectGnome(Partition * part)
     bool gnome = true;
     QSet<int> sends = QSet<int>();
     QSet<int> recvs = QSet<int>();
-    for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
          = part->events->begin();
          event_list != part->events->end(); ++event_list)
     {
@@ -110,7 +110,7 @@ ExchangeGnome::ExchangeType ExchangeGnome::findType()
     int types[EXCH_UNKNOWN + 1];
     for (int i = 0; i <= EXCH_UNKNOWN; i++)
         types[i] = 0;
-    for (QMap<int, QList<CommEvent *> *>::Iterator event_list
+    for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
          = partition->events->begin();
          event_list != partition->events->end(); ++event_list)
     {

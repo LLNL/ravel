@@ -84,6 +84,7 @@ public:
     QMap<int, Function *> * functions;
 
     QMap<int, PrimaryEntityGroup *> * primaries;
+    PrimaryEntityGroup * processingElements;
     QMap<int, EntityGroup *> * entitygroups;
     QMap<int, OTFCollective *> * collective_definitions;
 

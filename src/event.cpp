@@ -29,7 +29,7 @@
 #include <iostream>
 
 Event::Event(unsigned long long _enter, unsigned long long _exit,
-             int _function, int _entity, int _pe)
+             int _function, unsigned long _entity, unsigned long _pe)
     : caller(NULL),
       callees(new QVector<Event *>()),
       enter(_enter),

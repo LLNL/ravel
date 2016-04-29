@@ -74,8 +74,8 @@ protected:
     float entitySpan;
     float lastStartStep;
     int idleFunction;
-    QMap<int, int> proc_to_order;
-    QMap<int, int> order_to_proc;
+    QMap<unsigned long, unsigned long> proc_to_order;
+    QMap<unsigned long, unsigned long> order_to_proc;
 
     static const int spacingMinimum = 12;
 

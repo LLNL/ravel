@@ -25,7 +25,7 @@
 #include "eventrecord.h"
 #include "event.h"
 
-EventRecord::EventRecord(unsigned int _entity, unsigned long long int _t,
+EventRecord::EventRecord(unsigned long _entity, unsigned long long int _t,
                          unsigned int _v, bool _e)
     : entity(_entity),
       time(_t),

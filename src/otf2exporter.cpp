@@ -60,7 +60,7 @@ void OTF2Exporter::exportTrace(QString path, QString filename)
     for (int i = 0; i < trace->partitions->size(); i++)
     {
         Partition * p = trace->partitions->at(i);
-        for (QMap<int, QList<CommEvent *> *>::Iterator elist = p->events->begin();
+        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator elist = p->events->begin();
              elist != p->events->end(); ++elist)
         {
             for (QList<CommEvent *>::Iterator evt = (elist.value())->begin();
@@ -99,7 +99,7 @@ void OTF2Exporter::exportEvents()
     OTF2_Archive_CloseEvtFiles(archive);
 }
 
-void OTF2Exporter::exportEntityEvents(int entityid)
+void OTF2Exporter::exportEntityEvents(unsigned long entityid)
 {
     QVector<Event *> * roots = trace->roots->at(entityid);
     OTF2_EvtWriter * evt_writer = OTF2_Archive_GetEvtWriter(archive,
