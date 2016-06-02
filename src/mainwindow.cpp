@@ -287,6 +287,13 @@ void MainWindow::launchVisOptions()
 void MainWindow::saveCurrentTrace()
 {
     // Get save file name
+    if (traces[activeTrace]->options.origin == ImportOptions::OF_CHARM) {
+        QMessageBox::warning(this, tr("Cannot Save File"),
+                             tr("Exporting to OTF2 not currently supported for Charm++ traces."),
+                             QMessageBox::Ok);
+        return;
+    }
+
     QFileInfo traceInfo = QFileInfo(traces[activeTrace]->fullpath);
     QString dataFileName = QFileDialog::getSaveFileName(this,
                                                         tr("Save Ravel Trace Data"),
@@ -473,11 +480,21 @@ void MainWindow::updateProgress(int portion, QString msg)
 // rather than a default... or not reset splitters at all
 void MainWindow::activeTraceChanged(bool first)
 {
-    if (!traces[activeTrace]->metrics->contains(visoptions->metric)) {
+    if (!traces[activeTrace]->metrics->contains(visoptions->metric))
+    {
         if (traces[activeTrace]->options.origin == ImportOptions::OF_CHARM)
             visoptions->metric = "Duration";
         else
             visoptions->metric = "Lateness";
+    }
+
+    if (traces[activeTrace]->options.origin == ImportOptions::OF_CHARM)
+    {
+        ui->actionSave->setEnabled(false);
+    }
+    else
+    {
+        ui->actionSave->setEnabled(true);
     }
 
     for(int i = 0; i < viswidgets.size(); i++)
@@ -538,7 +555,6 @@ void MainWindow::activeTraceChanged(bool first)
         setVisWidgetState();
     }
     ui->actionClose->setEnabled(true);
-    ui->actionSave->setEnabled(true);
     ui->menuTraces->setEnabled(true);
 
     QList<QAction *> actions = ui->menuTraces->actions();
@@ -593,6 +609,8 @@ void MainWindow::closeTrace()
     else // We must have no traces left
     {
         ui->menuTraces->setEnabled(false);
+        ui->actionSave->setEnabled(false);
+        ui->actionClose->setEnabled(false);
         for(int i = 0; i < viswidgets.size(); i++)
         {
             viswidgets[i]->clear();
