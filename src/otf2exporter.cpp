@@ -98,6 +98,8 @@ void OTF2Exporter::exportDefinitions()
     for (QVector<QVector<Event *> *>::Iterator evts = trace->events->begin();
          evts != trace->events->end(); ++evts)
     {
+        if ((*evts)->isEmpty())
+            continue;
         if ((*evts)->first()->enter < start)
             start = (*evts)->first()->enter;
         if ((*evts)->last()->exit > end)
