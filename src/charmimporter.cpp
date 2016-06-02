@@ -976,6 +976,9 @@ int CharmImporter::makeEntities()
     primaries->value(0)->entities->append(mainEntity);
     chare_to_entity->insert(ChareIndex(main, 0, 0, 0, 0), 0);
     application_chares.insert(main);
+    EntityGroup * group = new EntityGroup(0, "all");
+    group->entities->append(0);
+    group->entityorder->insert(0, 0);
 
     unsigned long entityid = 1;
     if (arrays->size() > 0)
@@ -1012,6 +1015,8 @@ int CharmImporter::makeEntities()
                                        primaries->value(array.key()));
                 primaries->value(array.key())->entities->append(entity);
                 chare_to_entity->insert(*index, entityid);
+                group->entities->append(entityid);
+                group->entityorder->insert(entityid, entityid);
                 entityid++;
             }
 
@@ -1038,6 +1043,8 @@ int CharmImporter::makeEntities()
                                            primaries->value(chare.key()));
                     primaries->value(chare.key())->entities->append(entity);
                     chare_to_entity->insert(*index, entityid);
+                    group->entities->append(entityid);
+                    group->entityorder->insert(entityid, entityid);
                     entityid++;
                 }
 
@@ -1056,8 +1063,12 @@ int CharmImporter::makeEntities()
                                "pe " + QString::number(i),
                                primaries->value(chares->size()));
         primaries->value(chares->size())->entities->append(entity);
+        group->entities->append(entityid);
+        group->entityorder->insert(entityid, entityid);
         entityid++;
     }
+
+    entitygroups->insert(0, group);
     return entityid;
 }
 
