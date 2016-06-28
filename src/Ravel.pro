@@ -36,7 +36,6 @@ SOURCES  += main.cpp \
     mainwindow.cpp \
     viswidget.cpp \
     overviewvis.cpp \
-    stepvis.cpp \
     colormap.cpp \
     commrecord.cpp \
     eventrecord.cpp \
@@ -48,13 +47,7 @@ SOURCES  += main.cpp \
     traditionalvis.cpp \
     visoptionsdialog.cpp \
     visoptions.cpp \
-    gnome.cpp \
-    exchangegnome.cpp \
     collectiverecord.cpp \
-    partitioncluster.cpp \
-    clusterevent.cpp \
-    clustervis.cpp \
-    clustertreevis.cpp \
     verticallabel.cpp \
     rpartition.cpp \
     metricrangedialog.cpp \
@@ -65,7 +58,6 @@ SOURCES  += main.cpp \
     commdrawinterface.cpp \
     counter.cpp \
     counterrecord.cpp \
-    charmimporter.cpp \
     otf2importer.cpp \
     otf2exporter.cpp \
     otf2exportfunctor.cpp \
@@ -73,7 +65,6 @@ SOURCES  += main.cpp \
     entity.cpp \
     primaryentitygroup.cpp \
     entitygroup.cpp \
-    clusterentity.cpp \
     importoptions.cpp \
     importfunctor.cpp
 
@@ -84,7 +75,6 @@ HEADERS += \
     mainwindow.h \
     viswidget.h \
     overviewvis.h \
-    stepvis.h \
     colormap.h \
     commrecord.h \
     eventrecord.h \
@@ -96,13 +86,7 @@ HEADERS += \
     traditionalvis.h \
     visoptionsdialog.h \
     visoptions.h \
-    gnome.h \
-    exchangegnome.h \
     collectiverecord.h \
-    partitioncluster.h \
-    clusterevent.h \
-    clustervis.h \
-    clustertreevis.h \
     verticallabel.h \
     rpartition.h \
     metricrangedialog.h \
@@ -114,7 +98,6 @@ HEADERS += \
     commdrawinterface.h \
     counter.h \
     counterrecord.h \
-    charmimporter.h \
     otf2importer.h \
     otf2exporter.h \
     otf2exportfunctor.h \
@@ -122,14 +105,12 @@ HEADERS += \
     entity.h \
     primaryentitygroup.h \
     entitygroup.h \
-    clusterentity.h \
     ravelutils.h \
     importoptions.h \
     importfunctor.h
 
 FORMS += \
     mainwindow.ui \
-    importoptionsdialog.ui \
     visoptionsdialog.ui \
     metricrangedialog.ui
 
