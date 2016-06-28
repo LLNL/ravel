@@ -38,7 +38,6 @@
 #include "importoptions.h"
 
 class Partition;
-class Gnome;
 class Event;
 class CommEvent;
 class Function;
@@ -54,30 +53,21 @@ public:
     Trace(int nt, int np);
     ~Trace();
 
-    void preprocess(ImportOptions * _options);
-    void preprocessFromSaved();
+    void preprocess();
     void partition();
-    void assignSteps();
-    void gnomify();
     void mergePartitions(QList<QList<Partition *> *> * components);
     Event * findEvent(int entity, unsigned long long time);
 
     QString name;
     QString fullpath;
     int num_entities;
-    int num_application_entities; // debug
     int num_pes;
     int units;
-    bool use_aggregates;
     qint64 totalTime;
 
     QList<Partition *> * partitions;
     QList<QString> * metrics;
     QMap<QString, QString> * metric_units;
-    QList<Gnome *> * gnomes;
-
-    // Processing options
-    ImportOptions options;
 
     // Below set by OTFConverter
     QMap<int, QString> * functionGroups;
@@ -96,7 +86,7 @@ public:
 
     int mpi_group; // functionGroup index of "MPI" functions
 
-    int global_max_step; // largest global step
+    int max_time; // largest global step
     QList<Partition * > * dag_entries; // Leap 0 in the dag
     QMap<int, QSet<Partition *> *> * dag_step_dict; // Map leap to partition
 
@@ -125,8 +115,6 @@ public:
 signals:
     // This is for progress bars
     void updatePreprocess(int, QString);
-    void updateClustering(int);
-    void startClustering();
 
 private:
     // Link the comm events together by order
@@ -138,61 +126,14 @@ private:
     void set_dag_entries();
     void clear_dag_step_dict();
 
-    // Partitioning process
-    void mergeForMessages();
-    void mergeForMessagesHelper(Partition * part, QSet<Partition *> * to_merge,
-                                QQueue<Partition *> * to_process);
-    void mergeCycles();
-    void mergeByLeap();
-    void mergeGlobalSteps(); // Use after global steps are set, needs fixing
-    class RecurseInfo {  // For Tarjan
-    public:
-        RecurseInfo(Partition * p, Partition * c, QList<Partition *> * cc, int i)
-            : part(p), child(c), children(cc), cIndex(i) {}
-
-        Partition * part;
-        Partition * child;
-        QList<Partition *> * children; // Used later
-        int cIndex;
-    };
-
-    // Tarjan
-    void strong_connect_loop(Partition * part, QStack<Partition *> * stack,
-                            QList<Partition *> * children, int cIndex,
-                            QStack<QSharedPointer<RecurseInfo> > * recurse,
-                             QList<QList<Partition *> *> * components);
-    int strong_connect_iter(Partition * partition, QStack<Partition *> * stack,
-                            QList<QList<Partition *> *> * components, int index);
-    QList<QList<Partition *> *> * tarjan();
-
-    // Steps and metrics
-    void mergeForEntryRepair(bool entries = true);
-    void mergeForCharmLeaps();
-    void forcePartitionDag();
-    void finalizeEntityEventOrder();
-    void set_global_steps();
-    void calculate_lateness();
-    void calculate_differential_lateness(QString metric_name, QString base_name);
-    void calculate_partition_lateness();
-    void calculate_partition_duration();
-    void calculate_partition_metrics();
 
     // For debugging
     void output_graph(QString filename, bool byparent = false);
-    void verify_partitions();
     void print_partition_info(QString message, QString graph_name = "",
-                              bool partition_verify = false,
                               bool partition_count = false);
 
     // Extra metrics somewhat for debugging
-    void setGnomeMetric(Partition * part, int gnome_index);
     void addPartitionMetric();
-
-    // Find functions inside aggregate function
-    long long int getAggregateFunctionRecurse(Event * evt,
-                                              QMap<int, FunctionPair> * fpMap,
-                                              unsigned long long start,
-                                              unsigned long long stop);
 
     bool isProcessed; // Partitions exist
 

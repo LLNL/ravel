@@ -53,17 +53,14 @@ TimelineVis::TimelineVis(QWidget* parent, VisOptions * _options)
       labelHeight(0),
       labelDescent(0),
       cursorWidth(0),
-      maxStep(0),
+      maxTime(0),
       maxEntities(0),
       startPartition(0),
-      startStep(0),
+      startTime(0),
       startEntity(0),
-      stepSpan(0),
+      timeSpan(0),
       entitySpan(0),
-      lastStartStep(0),
-      idleFunction(-1),
-      proc_to_order(QMap<unsigned long, unsigned long>()),
-      order_to_proc(QMap<unsigned long, unsigned long>())
+      laststartTime(0)
 {
     setMouseTracking(true);
     cursorWidth = 16;
@@ -133,63 +130,18 @@ void TimelineVis::mouseDoubleClickEvent(QMouseEvent * event)
         {
             if (evt.key() == selected_event) // We were in this event
             {
-                if (options->showAggregateSteps)
-                {
-                    // we're in the aggregate event
-                    if (x < evt.value().x() + evt.value().width() / 2)
-                    {
-                        if (selected_aggregate)
-                        {
-                            selected_event = NULL;
-                            selected_aggregate = false;
-                        }
-                        else
-                        {
-                            selected_aggregate = true;
-                        }
-                    }
-                    else // We're in the normal event
-                    {
-                        if (selected_aggregate)
-                        {
-                            selected_aggregate = false;
-                        }
-                        else
-                        {
-                            selected_event = NULL;
-                        }
-                    }
-                }
-                else
-                    selected_event = NULL;
+                selected_event = NULL;
             }
             else // This is a new event to us
             {
-                // we're in the aggregate event
-                if (options->showAggregateSteps
-                    && x < evt.value().x() + evt.value().width() / 2)
-                {
-                    selected_aggregate = true;
-                }
-                else
-                {
-                    selected_aggregate = false;
-                }
                 selected_event = evt.key();
             }
             break;
         }
     }
 
-    overdraw_selected = false;
-    if (Qt::MetaModifier && event->modifiers()
-        && selected_event && !selected_aggregate)
-    {
-        overdraw_selected = true;
-    }
-
     changeSource = true;
-    emit eventClicked(selected_event, selected_aggregate, overdraw_selected);
+    emit eventClicked(selected_event);
     repaint();
 }
 
@@ -230,10 +182,7 @@ void TimelineVis::leaveEvent(QEvent *event)
 void TimelineVis::selectEvent(Event * event, bool aggregate, bool overdraw)
 {
     selected_entities.clear();
-    selected_gnome = NULL;
     selected_event = event;
-    selected_aggregate = aggregate;
-    overdraw_selected = overdraw;
     if (changeSource) {
         changeSource = false;
         return;
@@ -245,7 +194,6 @@ void TimelineVis::selectEvent(Event * event, bool aggregate, bool overdraw)
 void TimelineVis::selectEntities(QList<int> entities, Gnome * gnome)
 {
     selected_entities = entities;
-    selected_gnome = gnome;
     selected_event = NULL;
     if (changeSource) {
         changeSource = false;

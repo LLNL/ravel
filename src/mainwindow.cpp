@@ -25,21 +25,15 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "overviewvis.h"
-#include "stepvis.h"
 #include "traditionalvis.h"
-#include "clustervis.h"
-#include "clustertreevis.h"
 #include "otfconverter.h"
-#include "importoptionsdialog.h"
 #include "ravelutils.h"
 #include "verticallabel.h"
 #include "viswidget.h"
 #include "trace.h"
-#include "importoptions.h"
 #include "visoptions.h"
 #include "visoptionsdialog.h"
 #include "importfunctor.h"
-#include "otf2exportfunctor.h"
 
 #include <QFileDialog>
 #include <QFileInfo>
@@ -64,8 +58,6 @@ MainWindow::MainWindow(QWidget *parent) :
     importWorker(NULL),
     importThread(NULL),
     progress(NULL),
-    importoptions(new ImportOptions()),
-    importdialog(NULL),
     visoptions(new VisOptions()),
     visdialog(NULL),
     activetracename(""),
@@ -82,26 +74,11 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->overviewLabelWidget->layout()->addWidget(new VerticalLabel("Overview",
                                                                    ui->overviewLabelWidget));
 
-    connect(overview, SIGNAL(stepsChanged(float, float, bool)), this,
+    connect(overview, SIGNAL(timeChanged(float, float, bool)), this,
             SLOT(pushSteps(float, float, bool)));
     viswidgets.push_back(overview);
-    splitterMap.push_back(3);
+    splitterMap.push_back(1);
     splitterActions.push_back(ui->actionMetric_Overview);
-
-    // Logical Timeline
-    StepVis* stepvis = new StepVis(ui->stepContainer, visoptions);
-    ui->stepContainer->layout()->addWidget(stepvis);
-    ui->logicalLabelWidget->setLayout(new QVBoxLayout());
-    ui->logicalLabelWidget->layout()->addWidget(new VerticalLabel("Logical",
-                                                                  ui->logicalLabelWidget));
-
-    connect((stepvis), SIGNAL(stepsChanged(float, float, bool)), this,
-            SLOT(pushSteps(float, float, bool)));
-    connect((stepvis), SIGNAL(eventClicked(Event *, bool, bool)), this,
-            SLOT(selectEvent(Event *, bool, bool)));
-    viswidgets.push_back(stepvis);
-    splitterMap.push_back(0);
-    splitterActions.push_back(ui->actionLogical_Steps);
 
     // Physical Timeline
     TraditionalVis* timevis = new TraditionalVis(ui->traditionalContainer,
@@ -115,92 +92,37 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->traditionalLabelWidget->layout()->addWidget(timescaleLabel);
     timescaleLabel->setAlignment(Qt::AlignRight | Qt::AlignBottom);
 
-    connect((timevis), SIGNAL(stepsChanged(float, float, bool)), this,
+    connect((timevis), SIGNAL(timeChanged(float, float, bool)), this,
             SLOT(pushSteps(float, float, bool)));
     connect((timevis), SIGNAL(eventClicked(Event *, bool, bool)), this,
             SLOT(selectEvent(Event *, bool, bool)));
     connect((timevis), SIGNAL(timeScaleString(QString)), timescaleLabel,
             SLOT(setText(QString)));
     viswidgets.push_back(timevis);
-    splitterMap.push_back(2);
+    splitterMap.push_back(0);
     splitterActions.push_back(ui->actionPhysical_Time);
 
-    // Cluster View
-    ClusterTreeVis* clustertreevis = new ClusterTreeVis(ui->stepContainer,
-                                                        visoptions);
-    ui->treeContainer->layout()->addWidget(clustertreevis);
-
-    ClusterVis* clustervis = new ClusterVis(clustertreevis, ui->stepContainer,
-                                            visoptions);
-    ui->clusterContainer->layout()->addWidget(clustervis);
-    ui->clusterLabelWidget->setLayout(new QVBoxLayout());
-    ui->clusterLabelWidget->layout()->addWidget(new VerticalLabel("Clusters",
-                                                                  ui->clusterLabelWidget));
-
-    connect((clustervis), SIGNAL(stepsChanged(float, float, bool)), this,
-            SLOT(pushSteps(float, float, bool)));
-    connect((clustervis), SIGNAL(eventClicked(Event *, bool, bool)), this,
-            SLOT(selectEvent(Event *, bool, bool)));
-    connect((clustervis), SIGNAL(entitiesSelected(QList<int>, Gnome*)), this,
-            SLOT(selectEntities(QList<int>, Gnome*)));
-
-    connect((clustervis), SIGNAL(focusGnome()), clustertreevis,
-            SLOT(repaint()));
-    connect((clustervis), SIGNAL(clusterChange()), clustertreevis,
-            SLOT(clusterChanged()));
-    connect((clustertreevis), SIGNAL(clusterChange()), clustervis,
-            SLOT(clusterChanged()));
-    connect((clustervis), SIGNAL(neighborChange(int)), clustertreevis,
-            SLOT(repaint()));
-
-    viswidgets.push_back(clustervis);
-    viswidgets.push_back(clustertreevis);
-    splitterMap.push_back(1);
-    splitterActions.push_back(ui->actionClustered_Logical_Steps);
-
-    // Sliders
-    connect(ui->verticalSlider, SIGNAL(valueChanged(int)), clustervis,
-            SLOT(changeNeighborRadius(int)));
-    connect((clustervis), SIGNAL(neighborChange(int)), ui->verticalSlider,
-            SLOT(setValue(int)));
 
     // Menu
     connect(ui->actionOpen_Trace, SIGNAL(triggered()),this,
             SLOT(importTracebyGUI()));
     ui->actionOpen_Trace->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_O));
 
-    connect(ui->actionSave, SIGNAL(triggered()), this,
-            SLOT(saveCurrentTrace()));
-    ui->actionSave->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_S));
-    ui->actionSave->setEnabled(false);
-
     connect(ui->actionClose, SIGNAL(triggered()), this,
             SLOT(closeTrace()));
     ui->actionClose->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_C));
     ui->actionClose->setEnabled(false);
 
-    connect(ui->actionTrace_Importing, SIGNAL(triggered()), this,
-            SLOT(launchImportOptions()));
-    ui->actionTrace_Importing->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_I));
     connect(ui->actionVisualization, SIGNAL(triggered()), this,
             SLOT(launchVisOptions()));
     ui->actionVisualization->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_V));
 
-
-    connect(ui->actionLogical_Steps, SIGNAL(triggered()), this,
-            SLOT(toggleLogicalSteps()));
-    ui->actionLogical_Steps->setShortcut(QKeySequence(Qt::ALT + Qt::Key_L));
-    connect(ui->actionClustered_Logical_Steps, SIGNAL(triggered()), this,
-            SLOT(toggleClusteredSteps()));
-    ui->actionClustered_Logical_Steps->setShortcut(QKeySequence(Qt::ALT + Qt::Key_C));
     connect(ui->actionPhysical_Time, SIGNAL(triggered()), this,
             SLOT(togglePhysicalTime()));
     ui->actionPhysical_Time->setShortcut(QKeySequence(Qt::ALT + Qt::Key_P));
     connect(ui->actionMetric_Overview, SIGNAL(triggered()), this,
             SLOT(toggleMetricOverview()));
     ui->actionMetric_Overview->setShortcut(QKeySequence(Qt::ALT + Qt::Key_M));
-    visactions.append(ui->actionLogical_Steps);
-    visactions.append(ui->actionClustered_Logical_Steps);
     visactions.append(ui->actionPhysical_Time);
     visactions.append(ui->actionMetric_Overview);
 
@@ -221,8 +143,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // Initial splitter sizes
     QList<int> sizes = QList<int>();
-    sizes.append(500);
-    sizes.append(500);
     sizes.append(500);
     sizes.append(70);
     ui->splitter->setSizes(sizes);
@@ -302,58 +222,8 @@ void MainWindow::launchVisOptions()
         visdialog = new VisOptionsDialog(this, visoptions);
     visdialog->show();
 
-    if (!traces[activeTrace]->use_aggregates)
-        visoptions->showAggregateSteps = false;
     for(int i = 0; i < viswidgets.size(); i++)
         viswidgets[i]->repaint();
-}
-
-void MainWindow::saveCurrentTrace()
-{
-    // Get save file name
-    if (traces[activeTrace]->options.origin == ImportOptions::OF_CHARM) {
-        QMessageBox::warning(this, tr("Cannot Save File"),
-                             tr("Exporting to OTF2 not currently supported for Charm++ traces."),
-                             QMessageBox::Ok);
-        return;
-    }
-
-    QFileInfo traceInfo = QFileInfo(traces[activeTrace]->fullpath);
-    QString dataFileName = QFileDialog::getSaveFileName(this,
-                                                        tr("Save Ravel Trace Data"),
-                                                        QFileInfo(traceInfo.absoluteDir(),
-                                                                  traceInfo.baseName()
-                                                                  + ".save").absoluteFilePath(),
-                                                        tr("Trace Files(*.otf2)"));
-
-    QFileInfo saveFile = QFileInfo(dataFileName);
-
-    progress = new QProgressDialog("Writing Trace...", "", 0, 0, this);
-    progress->setWindowTitle("Exporting Trace...");
-    progress->setCancelButton(0);
-    progress->show();
-
-    exportThread = new QThread();
-    exportWorker = new OTF2ExportFunctor();
-    exportWorker->moveToThread(exportThread);
-
-    connect(this, SIGNAL(exportTrace(Trace *, QString, QString)), exportWorker,
-            SLOT(exportTrace(Trace *, QString, QString)));
-
-    connect(exportWorker, SIGNAL(done()), this,
-            SLOT(exportFinished()));
-
-    exportThread->start();
-    emit(exportTrace(traces[activeTrace], saveFile.path(), saveFile.fileName()));
-}
-
-void MainWindow::exportFinished()
-{
-    progress->close();
-
-    delete exportWorker;
-    delete progress;
-    delete exportThread;
 }
 
 void MainWindow::importTracebyGUI()
@@ -408,18 +278,6 @@ void MainWindow::importTrace(QString dataFileName){
         importoptions->waitallMerge = false; // Not applicable
         connect(this, SIGNAL(operate(QString)), importWorker,
                 SLOT(doImportOTF2(QString)));
-    }
-    else if (dataFileName.endsWith("sts", Qt::CaseInsensitive))
-    {
-        importoptions->origin = ImportOptions::OF_CHARM;
-        importoptions->waitallMerge = false; // Not applicable
-        importoptions->leapMerge = false; // Not applicable across all chare arrays -- perhaps per chare array
-        importoptions->isendCoalescing = false; // Not applicable
-        importoptions->callerMerge = false; // Done differently in charm importer
-        importoptions->advancedStepping = false; // Not for this
-        visoptions->showAggregateSteps = false;
-        connect(this, SIGNAL(operate(QString)), importWorker,
-                SLOT(doImportCharm(QString)));
     }
     else
     {
@@ -507,19 +365,7 @@ void MainWindow::activeTraceChanged(bool first)
 {
     if (!traces[activeTrace]->metrics->contains(visoptions->metric))
     {
-        if (traces[activeTrace]->options.origin == ImportOptions::OF_CHARM)
-            visoptions->metric = "Duration";
-        else
-            visoptions->metric = "Lateness";
-    }
-
-    if (traces[activeTrace]->options.origin == ImportOptions::OF_CHARM)
-    {
-        ui->actionSave->setEnabled(false);
-    }
-    else
-    {
-        ui->actionSave->setEnabled(true);
+        visoptions->metric = "None";
     }
 
     for(int i = 0; i < viswidgets.size(); i++)
@@ -533,47 +379,8 @@ void MainWindow::activeTraceChanged(bool first)
     // On the first trace, choose these default settings
     if (first)
     {
-        viswidgets[STEPVIS]->setClosed(false);
-        if (importoptions->cluster)
-        {
-            int traditional_height = splitter_sizes[splitterMap[TIMEVIS]];
-            splitter_sizes[splitterMap[STEPVIS]] += traditional_height / 2;
-            splitter_sizes[splitterMap[CLUSTERVIS]] += traditional_height / 2;
-            viswidgets[CLUSTERVIS]->setClosed(false);
-        }
-        else
-        {
-            splitter_sizes[splitterMap[STEPVIS]] += splitter_sizes[splitterMap[CLUSTERVIS]]
-                                                    + splitter_sizes[splitterMap[TIMEVIS]];
-            splitter_sizes[splitterMap[CLUSTERVIS]] = 0;
-            viswidgets[CLUSTERVIS]->setClosed(true);
-        }
-        splitter_sizes[splitterMap[TIMEVIS]] = 0;
-        viswidgets[TIMEVIS]->setClosed(true);
-
-        ui->splitter->setSizes(splitter_sizes);
-        ui->sideSplitter->setSizes(splitter_sizes);
-        setVisWidgetState();
-    }
-    // If new trace does not have cluster but the cluster is open, close it
-    else if (!importoptions->cluster && !viswidgets[CLUSTERVIS]->isClosed())
-    {
-        splitter_sizes[splitterMap[CLUSTERVIS]] = 0;
-        viswidgets[CLUSTERVIS]->setClosed(true);
-        viswidgets[STEPVIS]->setClosed(false);
-        if (viswidgets[TIMEVIS]->isClosed())
-        {
-            splitter_sizes[splitterMap[STEPVIS]] += splitter_sizes[splitterMap[CLUSTERVIS]]
-                                                    + splitter_sizes[splitterMap[TIMEVIS]];
-            splitter_sizes[splitterMap[TIMEVIS]] = 0;
-            viswidgets[TIMEVIS]->setClosed(true);
-        }
-        else
-        {
-            splitter_sizes[splitterMap[STEPVIS]] += splitter_sizes[splitterMap[CLUSTERVIS]]/2;
-            splitter_sizes[splitterMap[TIMEVIS]] += splitter_sizes[splitterMap[CLUSTERVIS]]/2;
-            viswidgets[TIMEVIS]->setClosed(false);
-        }
+        splitter_sizes[splitterMap[TIMEVIS]] = traditional_height;
+        viswidgets[TIMEVIS]->setClosed(false);
 
         ui->splitter->setSizes(splitter_sizes);
         ui->sideSplitter->setSizes(splitter_sizes);
@@ -702,50 +509,12 @@ void MainWindow::setVisWidgetState()
     }
 }
 
-void MainWindow::toggleLogicalSteps()
-{
-    QList<int> sizes = ui->splitter->sizes();
-    if (ui->actionLogical_Steps->isChecked())
-    {
-        sizes[splitterMap[STEPVIS]] = this->height() / 3;
-        viswidgets[STEPVIS]->setClosed(false);
-    }
-    else
-    {
-        sizes[splitterMap[STEPVIS]] = 0;
-        viswidgets[STEPVIS]->setClosed(true);
-    }
-    ui->splitter->setSizes(sizes);
-    linkSideSplitter();
-    setVisWidgetState();
-}
-
-void MainWindow::toggleClusteredSteps()
-{
-    QList<int> sizes = ui->splitter->sizes();
-    if (ui->actionClustered_Logical_Steps->isChecked())
-    {
-        sizes[splitterMap[CLUSTERVIS]] = this->height() / 3;
-        viswidgets[CLUSTERVIS]->setClosed(false);
-        viswidgets[CLUSTERTREEVIS]->setClosed(false);
-    }
-    else
-    {
-        sizes[splitterMap[CLUSTERVIS]] = 0;
-        viswidgets[CLUSTERVIS]->setClosed(true);
-        viswidgets[CLUSTERTREEVIS]->setClosed(true);
-    }
-    ui->splitter->setSizes(sizes);
-    linkSideSplitter();
-    setVisWidgetState();
-}
-
 void MainWindow::togglePhysicalTime()
 {
     QList<int> sizes = ui->splitter->sizes();
     if (ui->actionPhysical_Time->isChecked())
     {
-        sizes[splitterMap[TIMEVIS]] = this->height() / 3;
+        sizes[splitterMap[TIMEVIS]] = this->height();
         viswidgets[TIMEVIS]->setClosed(false);
     }
     else

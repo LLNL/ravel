@@ -49,18 +49,18 @@ OverviewVis::OverviewVis(QWidget *parent, VisOptions * _options)
 // When you click that maps to a global step, but we
 // find things every other step due to aggregated events,
 // so we have to get the event step
-int OverviewVis::roundeven(float step)
+int OverviewVis::roundeven(float time)
 {
     int rounded = floor(step);
     if (rounded % 2 == 1)
         rounded += 1;
-    while (rounded > maxStep)
+    while (rounded > maxTime)
         rounded -= 2;
     return rounded;
 }
 
 // We use the set steps to find out where the cursor goes in the overview.
-void OverviewVis::setSteps(float start, float stop, bool jump)
+void OverviewVis::setTime(float start, float stop, bool jump)
 {
     Q_UNUSED(jump);
 
@@ -71,33 +71,16 @@ void OverviewVis::setSteps(float start, float stop, bool jump)
         changeSource = false;
         return;
     }
-    int startStep = roundeven(start);
-    int stopStep = roundeven(stop);
-    if (startStep < 0)
-        startStep = 0;
-    if (stopStep > maxStep)
-        stopStep = maxStep;
+    startTime = roundeven(start);
+    stopTime = roundeven(stop);
+    if (startTime < minTime)
+        startTime = minTime;
+    if (stopTime > maxTime)
+        stopTime = maxTime;
 
     int width = size().width() - 2*border;
-    startCursor = floor(width * start / 1.0 / maxStep);
-    stopCursor = ceil(width * stop / 1.0 / maxStep);
-    /* Pre-VIS when this was done with time rather than steps
-    startCursor = stepPositions[startStep].first;
-    while (startCursor >= rect().width()) // For no-data steps
-    {
-        startStep -= 2;
-        startCursor = stepPositions[startStep].second;
-    }
-    stopCursor = stepPositions[stopStep].second;
-    while (stopCursor < 0) // For no-data steps
-    {
-        stopStep += 2;
-        stopCursor = stepPositions[stopStep].second;
-    }
-    startTime = (startCursor / 1.0  / (size().width() - 2 * border)) * (maxTime - minTime) + minTime;
-    stopTime = (stopCursor / 1.0  / (size().width() - 2 * border)) * (maxTime - minTime) + minTime;
-    //std::cout << startCursor << ", " << stopCursor << std::endl;
-    */
+    startCursor = floor(width * start / 1.0 / maxTime);
+    stopCursor = ceil(width * stop / 1.0 / maxTime);
 
     if (!closed)
         repaint();
@@ -138,35 +121,11 @@ void OverviewVis::mouseReleaseEvent(QMouseEvent * event) {
     // PreVis int timespan = maxTime - minTime;
     int width = size().width() - 2 * border;
 
-    /* PreVis
     startTime = (startCursor / 1.0 / width) * timespan + minTime;
     stopTime = (stopCursor / 1.0 / width) * timespan + minTime;
 
-    int startStep = -1;
-    int stopStep = -1 ;
-    */
-    startStep = floor(maxStep * startCursor / 1.0 / width);
-    stopStep = ceil(maxStep * stopCursor / 1.0 / width);
-
-    // We know first is always greater than second
-    // Each stepPosition is the range of cursor positions for that step
-    // For a range, we want the startStep to be the first one where
-    // first < cursor and second > cursor or both are above cursor
-    // and stopStep to be the last one where second > cursor or first > cursor
-    // and we want to ignore invalid values (where second is -1)
-    /* PreVis for (int i = 0; i < stepPositions.size(); i++) {
-        if (stepPositions[i].second != -1) {
-            if (stepPositions[i].second >= startCursor && startStep == -1)
-                startStep = i;
-            if (stepPositions[i].second >= stopCursor && stopStep == -1)
-                stopStep = i;
-        }
-    } */
-    if (stopStep < 0)
-        stopStep = maxStep;
-    //std::cout << startStep << ", " << stopStep << " : " << startCursor << ", " << stopCursor << std::endl;
     changeSource = true;
-    emit stepsChanged(startStep, stopStep, true);
+    emit timeChanged(startTime, stopTime, true);
 }
 
 
@@ -176,59 +135,12 @@ void OverviewVis::setTrace(Trace * t)
 {
     VisWidget::setTrace(t);
     cacheMetric = options->metric;
-    maxStep = trace->global_max_step;
-    minTime = ULLONG_MAX;
-    maxTime = 0;
-    //unsigned long long init_time = ULLONG_MAX;
-    //unsigned long long finalize_time = 0;
-    // Maybe we should have this be by step instead? We'll see. Right now it
-    // uses the full events list which seems unnecessary
+    maxTime = trace->max_time;
+    minTime = trace->min_time;
 
-    // PreVis commented to change
-    /*for (QList<Partition *>::Iterator part = trace->partitions->begin(); part != trace->partitions->end(); ++part)
-    {
-        for (QMap<int, QList<Event *>*>::Iterator elist = (*part)->events->begin(); elist != (*part)->events->end(); ++elist)
-        {
-            for (QList<Event *>::Iterator evt = (elist.value())->begin(); evt != (elist.value())->end(); ++evt)
-            {
-                if ((*evt)->enter < minTime)
-                    minTime = (*evt)->enter;
-                if ((*evt)->exit > maxTime)
-                    maxTime = (*evt)->exit;
-            }
-
-        }
-
-    }
-    */
-
-    /*for (QVector<QVector<Event *> *>::Iterator eitr = trace->events->begin(); eitr != trace->events->end(); ++eitr)
-    {
-        for (QVector<Event *>::Iterator itr = (*eitr)->begin(); itr != (*eitr)->end(); ++itr)
-        {
-            if ((*itr)->enter > maxTime)
-                maxTime = (*itr)->enter;
-            if ((*itr)->exit < minTime)
-                minTime = (*itr)->exit;
-            if ((*itr)->enter > finalize_time && ((*(trace->functions))[(*itr)->function])->name == "MPI_Finalize")
-                finalize_time = (*itr)->enter; // Last MPI_Finalize enter
-            if ((*itr)->exit < init_time && ((*(trace->functions))[(*itr)->function])->name == "MPI_Init")
-                init_time = (*itr)->exit; // Earliest MPI_Init exit
-        }
-    }*/
-
-    /*if (finalize_time > 0)
-        maxTime = std::min(maxTime, finalize_time);
-    if (init_time < ULLONG_MAX)
-        minTime = std::max(minTime, init_time);
-        */
 
     startTime = minTime;
-    stopTime = minTime;
-
-    // VIS
-    startStep = 0;
-    stopStep = initStepSpan;
+    stopTime = initTimeSpan + minTime;
 }
 
 
@@ -242,8 +154,8 @@ void OverviewVis::processVis()
         return;
     int width = size().width() - 2 * border;
     heights = QVector<float>(width, 0);
-    int stepspan = maxStep + 1;
-    stepWidth = width / 1.0 / stepspan;
+    int timeSpan = maxTime + 1;
+    timeWidth = width / 1.0 / timeSpan;
     int start_int, stop_int;
     QString metric = options->metric;
     //stepPositions = QVector<std::pair<int, int> >(maxStep+1, std::pair<int, int>(width + 1, -1));
@@ -261,8 +173,8 @@ void OverviewVis::processVis()
                  evt != (event_list.value())->end(); ++evt)
             {
                 // start and stop are the cursor positions
-                float start = (width - 1) * (((*evt)->step) / 1.0 / stepspan);
-                float stop = start + stepWidth;
+                float start = (width - 1) * (((*evt)->enter) / 1.0 / timeSpan);
+                float stop = start + timeWidth;
                 start_int = static_cast<int>(start);
                 stop_int = static_cast<int>(stop);
 
@@ -279,31 +191,7 @@ void OverviewVis::processVis()
                         heights[i] += (*evt)->getMetric(metric);
                     }
 
-                }
-
-                // again for the aggregate
-                if ((*evt)->step == 0)
-                    continue;
-                start = (width - 1) * (((*evt)->step - 1) / 1.0 / stepspan);
-                stop = start + stepWidth;
-                start_int = static_cast<int>(start);
-                stop_int = static_cast<int>(stop); // start_int + i_step_width;
-
-                if ((*evt)->hasMetric(metric)
-                        && (*evt)->getMetric(metric, true)> 0)
-                {
-                    heights[start_int] += (*evt)->getMetric(metric, true)
-                                          * (start - start_int);
-                    if (stop_int != start_int)
-                    {
-                        heights[stop_int] += (*evt)->getMetric(metric, true)
-                                             * (stop - stop_int);
-                    }
-                    for (int i = start_int + 1; i < stop_int; i++)
-                    {
-                        heights[i] += (*evt)->getMetric(metric, true);
-                    }
-                }
+                }      
             }
         }
     }
@@ -322,8 +210,8 @@ void OverviewVis::processVis()
         heights[i] = maxHeight * (heights[i] - minMetric) / maxMetric;
     }
 
-    startCursor = (startStep) / 1.0 / (maxStep) * width;
-    stopCursor = (stopStep) / 1.0 / (maxStep) * width;
+    startCursor = (startTime) / 1.0 / (maxTime) * width;
+    stopCursor = (stopTime) / 1.0 / (maxTime) * width;
 
     visProcessed = true;
 }

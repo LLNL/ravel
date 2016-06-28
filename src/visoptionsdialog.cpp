@@ -47,20 +47,10 @@ VisOptionsDialog::VisOptionsDialog(QWidget *parent, VisOptions * _options,
 
     connect(ui->buttonBox, SIGNAL(accepted()), this, SLOT(onOK()));
     connect(ui->buttonBox, SIGNAL(rejected()), this, SLOT(onCancel()));
-    connect(ui->metricColorTraditionalCheckBox, SIGNAL(clicked(bool)), this,
-            SLOT(onMetricColorTraditional(bool)));
-    connect(ui->absoluteTimeCheckBox, SIGNAL(clicked(bool)), this,
-            SLOT(onAbsoluteTime(bool)));
     connect(ui->metricComboBox, SIGNAL(currentIndexChanged(QString)), this,
             SLOT(onMetric(QString)));
-    connect(ui->showAggregateCheckBox, SIGNAL(clicked(bool)), this,
-            SLOT(onShowAggregate(bool)));
-    connect(ui->traceBackCheckBox, SIGNAL(clicked(bool)), this,
-            SLOT(onTraceBack(bool)));
     connect(ui->messageComboBox, SIGNAL(currentIndexChanged(int)), this,
             SLOT(onShowMessages(int)));
-    connect(ui->inactiveCheckBox, SIGNAL(clicked(bool)), this,
-            SLOT(onShowInactive(bool)));
     connect(ui->colorComboBox, SIGNAL(currentIndexChanged(QString)), this,
             SLOT(onColorCombo(QString)));
 
@@ -113,18 +103,6 @@ void VisOptionsDialog::onMetric(QString metric)
         options->metric = metric;
 }
 
-void VisOptionsDialog::onShowAggregate(bool showAggregate)
-{
-    options->showAggregateSteps = showAggregate;
-}
-
-
-void VisOptionsDialog::onTraceBack(bool traceBack)
-{
-    options->traceBack = traceBack;
-}
-
-
 void VisOptionsDialog::onShowMessages(int showMessages)
 {
     if (showMessages == 0)
@@ -133,11 +111,6 @@ void VisOptionsDialog::onShowMessages(int showMessages)
         options->showMessages = VisOptions::MSG_TRUE;
     else if (showMessages == 2)
         options->showMessages = VisOptions::MSG_SINGLE;
-}
-
-void VisOptionsDialog::onShowInactive(bool showInactive)
-{
-    options->showInactiveSteps = showInactive;
 }
 
 void VisOptionsDialog::onColorCombo(QString type)
@@ -163,26 +136,6 @@ void VisOptionsDialog::setUIState()
         ui->absoluteTimeCheckBox->setChecked(true);
     else
         ui->absoluteTimeCheckBox->setChecked(true);
-
-    if (options->colorTraditionalByMetric)
-        ui->metricColorTraditionalCheckBox->setChecked(true);
-    else
-        ui->metricColorTraditionalCheckBox->setChecked(false);
-
-    if (options->showAggregateSteps)
-        ui->showAggregateCheckBox->setChecked(true);
-    else
-        ui->showAggregateCheckBox->setChecked(false);
-
-    if (options->traceBack)
-        ui->traceBackCheckBox->setChecked(true);
-    else
-        ui->traceBackCheckBox->setChecked(false);
-
-    if (options->showInactiveSteps)
-        ui->inactiveCheckBox->setChecked(true);
-    else
-        ui->inactiveCheckBox->setChecked(false);
 
     if (options->maptype == VisOptions::COLOR_SEQUENTIAL)
         ui->colorComboBox->setCurrentIndex(0);

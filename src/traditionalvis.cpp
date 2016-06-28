@@ -71,8 +71,8 @@ void TraditionalVis::setTrace(Trace * t)
     VisWidget::setTrace(t);
 
     // Initial conditions
-    startStep = 0;
-    int stopStep = startStep + initStepSpan;
+    startTime = 0;
+    int stopTime = startTime + inittimeSpan;
     startEntity = 0;
     entitySpan = trace->num_pes;
     maxEntities = trace->num_pes;
@@ -83,7 +83,7 @@ void TraditionalVis::setTrace(Trace * t)
     maxTime = 0;
     startTime = ULLONG_MAX;
     unsigned long long stopTime = 0;
-    maxStep = trace->global_max_step;
+    maxTime = trace->max_time;
     for (QList<Partition*>::Iterator part = trace->partitions->begin();
          part != trace->partitions->end(); ++part)
     {
@@ -98,75 +98,16 @@ void TraditionalVis::setTrace(Trace * t)
                     maxTime = (*evt)->exit;
                 if ((*evt)->enter < minTime)
                     minTime = (*evt)->enter;
-                if ((*evt)->step >= boundStep(startStep)
+                if ((*evt)->step >= boundStep(startTime)
                         && (*evt)->enter < startTime)
                     startTime = (*evt)->enter;
-                if ((*evt)->step <= boundStep(stopStep)
+                if ((*evt)->step <= boundStep(stopTime)
                         && (*evt)->exit > stopTime)
                     stopTime = (*evt)->exit;
             }
         }
     }
     timeSpan = stopTime - startTime;
-    stepSpan = stopStep - startStep;
-
-    // Clean up old
-    for (QVector<TimePair *>::Iterator itr = stepToTime->begin();
-         itr != stepToTime->end(); itr++)
-    {
-        delete *itr;
-        *itr = NULL;
-    }
-    delete stepToTime;
-
-    // Create time/step mapping
-    stepToTime = new QVector<TimePair *>();
-    for (int i = 0; i < maxStep/2 + 1; i++)
-        stepToTime->insert(i, new TimePair(ULLONG_MAX, 0));
-    int step;
-    for (QList<Partition*>::Iterator part = trace->partitions->begin();
-         part != trace->partitions->end(); ++part)
-    {
-        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
-             = (*part)->events->begin(); event_list != (*part)->events->end();
-             ++event_list)
-        {
-            for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
-                 evt != (event_list.value())->end(); ++evt)
-            {
-                if ((*evt)->step < 0)
-                    continue;
-                step = (*evt)->step / 2;
-                if ((*stepToTime)[step]->start > (*evt)->enter)
-                    (*stepToTime)[step]->start = (*evt)->enter;
-                if ((*stepToTime)[step]->stop < (*evt)->exit)
-                    (*stepToTime)[step]->stop = (*evt)->exit;
-            }
-        }
-    }
-
-    // Create processing element mapping
-    proc_to_order = QMap<unsigned long, unsigned long>();
-    order_to_proc = QMap<unsigned long, unsigned long>();
-    if (trace->processingElements)
-    {
-        int index = 0;
-        for (QList<Entity *>::Iterator entity = trace->processingElements->entities->begin();
-             entity != trace->processingElements->entities->end(); ++entity)
-        {
-            proc_to_order[(*entity)->id] = index;
-            order_to_proc[index] = (*entity)->id;
-            index++;
-        }
-    }
-    else
-    {
-        for (int i = 0; i < trace->num_pes; i++) {
-            proc_to_order[i] = i;
-            order_to_proc[i] = i;
-        }
-    }
-
 }
 
 void TraditionalVis::mouseDoubleClickEvent(QMouseEvent * event)
@@ -186,7 +127,6 @@ void TraditionalVis::mouseDoubleClickEvent(QMouseEvent * event)
             }
             else
             {
-                selected_aggregate = false;
                 selected_event = evt.key();
             }
             break;
@@ -241,7 +181,7 @@ void TraditionalVis::rightDrag(QMouseEvent * event)
 
     repaint();
     changeSource = true;
-    emit stepsChanged(startStep, startStep + stepSpan, false);
+    emit timeChanged(startTime, startTime + timeSpan, false);
 }
 
 
@@ -252,7 +192,7 @@ void TraditionalVis::mouseMoveEvent(QMouseEvent * event)
 
     lassoRect = QRect();
     if (mousePressed && !rightPressed) {
-        lastStartStep = startStep;
+        lastStartTime = startTime;
         int diffx = mousex - event->x();
         int diffy = mousey - event->y();
         startTime += timeSpan / 1.0 / rect().width() * diffx;
@@ -294,8 +234,7 @@ void TraditionalVis::mouseMoveEvent(QMouseEvent * event)
                 hover_event = NULL;
             else
             {
-                int hover_proc = order_to_proc[floor((mousey - 1) / blockheight)
-                                                + startEntity];
+                int hover_proc = floor((mousey - 1) / blockheight) + startEntity;
                 unsigned long long hover_time = (mousex - 1 - labelWidth)
                                                 / 1.0 / rect().width()
                                                 * timeSpan + startTime;
@@ -305,11 +244,11 @@ void TraditionalVis::mouseMoveEvent(QMouseEvent * event)
         }
     }
 
-    // startStep & stepSpan are calculated during painting when we
+    // startTime & timeSpan are calculated during painting when we
     // examine each element
     if (mousePressed) {
         changeSource = true;
-        emit stepsChanged(startStep, startStep + stepSpan, false);
+        emit timeChanged(startTime, startTime + timeSpan, false);
     }
 }
 
@@ -328,20 +267,20 @@ void TraditionalVis::wheelEvent(QWheelEvent * event)
         startEntity = avgProc - entitySpan / 2.0;
     } else {
         // Horizontal
-        lastStartStep = startStep;
+        lastStartTime = startTime;
         float middleTime = startTime + timeSpan / 2.0;
         timeSpan *= scale;
         startTime = middleTime - timeSpan / 2.0;
     }
     repaint();
     changeSource = true;
-    // startStep & stepSpan are calculated during painting when we
+    // startTime & timeSpan are calculated during painting when we
     // examine each element
-    emit stepsChanged(startStep, startStep + stepSpan, false);
+    emit timeChanged(startTime, startTime + timeSpan, false);
 }
 
 
-void TraditionalVis::setSteps(float start, float stop, bool jump)
+void TraditionalVis::setTime(float start, float stop, bool jump)
 {
     if (!visProcessed)
         return;
@@ -350,15 +289,9 @@ void TraditionalVis::setSteps(float start, float stop, bool jump)
         changeSource = false;
         return;
     }
-    lastStartStep = startStep;
-    startStep = start;
-    stepSpan = stop - start;
-    int starter = std::max(boundStep(start)/2, 0);
-    if (starter >= stepToTime->size())
-        starter = stepToTime->size() - 1;
-    startTime = (*stepToTime)[starter]->start;
-    timeSpan = (*stepToTime)[std::min(boundStep(stop)/2,  maxStep/2)]->stop
-            - startTime;
+    lastStartTime = startTime;
+    startTime = start;
+    timeSpan = stop - start;
     jumped = jump;
 
     if (!closed) {
@@ -372,20 +305,20 @@ void TraditionalVis::prepaint()
         return;
     closed = false;
     drawnEvents.clear();
-    int bottomStep = floor(startStep) - 1;
-    // Fix bottomStep in the case where there are no steps in the view,
+    int bottomTime = floor(startTime) - 1;
+    // Fix bottomTime in the case where there are no steps in the view,
     // otherwise partition place will be lost
-    while (bottomStep > 0 && stepToTime->value(bottomStep/2)->stop > startTime)
-       bottomStep -= 2;
+    while (bottomTime > 0 && stepToTime->value(bottomTime/2)->stop > startTime)
+       bottomTime -= 2;
     if (jumped) // We have to redo the active_partitions
     {
         // We know this list is in order, so we only have to go so far
-        //int topStep = boundStep(startStep + stepSpan) + 1;
+        //int topStep = boundStep(startTime + timeSpan) + 1;
         Partition * part = NULL;
         for (int i = 0; i < trace->partitions->length(); ++i)
         {
             part = trace->partitions->at(i);
-            if (part->max_global_step >= bottomStep)
+            if (part->max_time >= bottomTime)
             {
                 startPartition = i;
                 break;
@@ -395,13 +328,13 @@ void TraditionalVis::prepaint()
     else // We nudge the active partitions as necessary
     {
         Partition * part = NULL;
-        if (startStep <= lastStartStep) // check earlier partitions
+        if (startTime <= lastStartTime) // check earlier partitions
         {
             // Keep setting the one before until its right
             for (int i = startPartition; i >= 0; --i)
             {
                 part = trace->partitions->at(i);
-                if (part->max_global_step >= bottomStep)
+                if (part->max_time >= bottomTime)
                 {
                     startPartition = i;
                 }
@@ -411,13 +344,13 @@ void TraditionalVis::prepaint()
                 }
             }
         }
-        else if (startStep > lastStartStep) // check current partitions up
+        else if (startTime > lastStartTime) // check current partitions up
         {
             // As soon as we find one, we're good
             for (int i = startPartition; i < trace->partitions->length(); ++i)
             {
                 part = trace->partitions->at(i);
-                if (part->max_global_step >= bottomStep)
+                if (part->max_time >= bottomTime)
                 {
                     startPartition = i;
                     break;
@@ -435,7 +368,7 @@ void TraditionalVis::drawNativeGL()
         return;
 
     int effectiveHeight = rect().height() - timescaleHeight;
-    if (effectiveHeight / entitySpan >= 3 && rect().width() / stepSpan >= 3)
+    if (effectiveHeight / entitySpan >= 3 && rect().width() / timeSpan >= 3)
         return;
 
     QString metric(options->metric);
@@ -466,17 +399,17 @@ void TraditionalVis::drawNativeGL()
     float x, y, w; // true position
     float position; // placement of entity
     Partition * part = NULL;
-    int oldStart = startStep;
-    int oldStop = stepSpan + startStep;
-    int step, stopStep = 0;
-    int upperStep = startStep + stepSpan + 2;
-    startStep = maxStep;
+    int oldStart = startTime;
+    int oldStop = timeSpan + startTime;
+    int step, stopTime = 0;
+    int uppertime = startTime + timeSpan + 2;
+    startTime = maxStep;
     QColor color;
     float maxEntity = entitySpan + startEntity;
     for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
         part = trace->partitions->at(i);
-        if (part->min_global_step > upperStep)
+        if (part->min_time > uppertime)
             break;
 
         for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
@@ -501,10 +434,10 @@ void TraditionalVis::drawNativeGL()
 
                 // save step information for emitting
                 step = (*evt)->step;
-                if (step >= 0 && step > stopStep)
-                    stopStep = step;
-                if (step >= 0 && step < startStep) {
-                    startStep = step;
+                if (step >= 0 && step > stopTime)
+                    stopTime = step;
+                if (step >= 0 && step < startTime) {
+                    startTime = step;
                 }
 
                 // Calculate position of this bar in float space
@@ -554,12 +487,12 @@ void TraditionalVis::drawNativeGL()
     glDrawArrays(GL_QUADS,0,bars.size()/2);
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_COLOR_ARRAY);
-    if (stopStep == 0 && startStep == maxStep)
+    if (stopTime == 0 && startTime == maxStep)
     {
-        stopStep = oldStop;
-        startStep = oldStart;
+        stopTime = oldStop;
+        startTime = oldStart;
     }
-    stepSpan = stopStep - startStep;
+    timeSpan = stopTime - startTime;
 }
 
 
@@ -598,11 +531,11 @@ void TraditionalVis::paintEvents(QPainter *painter)
     blockheight = floor(canvasHeight / entitySpan);
     float barheight = blockheight - entity_spacing;
     entityheight = blockheight;
-    int oldStart = startStep;
-    int oldStop = stepSpan + startStep;
-    int upperStep = startStep + stepSpan + 2;
-    startStep = maxStep;
-    int stopStep = 0;
+    int oldStart = startTime;
+    int oldStop = timeSpan + startTime;
+    int upperTime = startTime + timeSpan + 2;
+    startTime = maxStep;
+    int stopTime = 0;
     QRect extents = QRect(labelWidth, 0, rect().width(), canvasHeight);
 
     painter->setFont(QFont("Helvetica", 10));
@@ -637,7 +570,7 @@ void TraditionalVis::paintEvents(QPainter *painter)
     for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
         part = trace->partitions->at(i);
-        if (part->min_global_step > upperStep)
+        if (part->min_time > upperTime)
             break;
         for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
              = part->events->begin(); event_list != part->events->end();
@@ -647,14 +580,8 @@ void TraditionalVis::paintEvents(QPainter *painter)
             for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
                  evt != (event_list.value())->end(); ++evt)
             {
-                bool selected = false;
-                if (part->gnome == selected_gnome
-                    && selected_entities.contains(proc_to_order[(*evt)->pe]))
-                {
-                    selected = true;
-                }
 
-                position = proc_to_order[(*evt)->pe];
+                position = (*evt)->pe;
                 // Out of entity span test
                if (position < floor(startEntity)
                        || position > ceil(startEntity + entitySpan))
@@ -665,16 +592,6 @@ void TraditionalVis::paintEvents(QPainter *painter)
                  // Out of time span test
                 if ((*evt)->exit < startTime || (*evt)->enter > stopTime)
                     continue;
-
-
-                // save step information for emitting
-                step = (*evt)->step;
-                if (step >= 0 && step > stopStep)
-                    stopStep = step;
-                if (step >= 0 && step < startStep) {
-                    startStep = step;
-                }
-
 
                 w = ((*evt)->exit - (*evt)->enter) / 1.0
                         / timeSpan * rect().width();
@@ -876,12 +793,12 @@ void TraditionalVis::paintEvents(QPainter *painter)
         selected_event->track_delay(painter, this);
     }
 
-    if (stopStep == 0 && startStep == maxStep)
+    if (stopTime == 0 && startTime == maxStep)
     {
-        stopStep = oldStop;
-        startStep = oldStart;
+        stopTime = oldStop;
+        startTime = oldStart;
     }
-    stepSpan = stopStep - startStep;
+    timeSpan = stopTime - startTime;
     painter->fillRect(QRectF(0,canvasHeight,rect().width(),rect().height()),
                       QBrush(QColor(Qt::white)));
 }
@@ -893,8 +810,7 @@ void TraditionalVis::drawMessage(QPainter * painter, Message * msg)
         penwidth = 2;
 
     Qt::GlobalColor pencolor = Qt::black;
-    if (!selected_aggregate
-                && (selected_event == msg->sender || selected_event == msg->receiver))
+    if (selected_event == msg->sender || selected_event == msg->receiver)
         pencolor = Qt::yellow;
 
 
@@ -973,7 +889,7 @@ void TraditionalVis::drawCollective(QPainter * painter, CollectiveRecord * cr)
 int TraditionalVis::getY(CommEvent * evt)
 {
     int y = 0;
-    int position = proc_to_order[evt->pe];
+    int position = evt->pe;
     y = floor((position - startEntity) * blockheight) + 1;
     return y;
 }
@@ -990,57 +906,6 @@ int TraditionalVis::getW(CommEvent *evt)
 {
     return (evt->exit - evt->enter) / 1.0 / timeSpan * rect().width();
 }
-
-void TraditionalVis::drawDelayTracking(QPainter * painter, CommEvent * c)
-{
-    int penwidth = 1;
-    if (entitySpan <= 32)
-        penwidth = 2;
-
-    CommEvent * current = c;
-    CommEvent * backward = NULL;
-    Qt::GlobalColor pencolor = Qt::green;
-    while (current)
-    {
-        backward = current->compare_to_sender(current->pe_prev);
-
-        if (!backward)
-            break;
-
-        pencolor = Qt::magenta; // queueing in magenta
-        //if (backward != current->pe_prev) // messages in yellow
-        //    pencolor = Qt::darkGreen;
-
-        QPointF p1, p2;
-        int y = getY(current);
-        int x = getX(current);
-        int w = getW(current);
-        int h = blockheight;
-
-        if (options->showMessages == VisOptions::MSG_TRUE)
-        {
-            p1 = QPointF(x + w/2.0, y + h/2.0);
-            y = getY(backward);
-            x = getX(backward);
-            p2 = QPointF(x + w/2.0, y + h/2.0);
-        }
-        else
-        {
-            w = getW(backward);
-            p1 = QPointF(x, y + h/2.0);
-            y = getY(backward);
-            p2 = QPointF(x + w, y + h/2.0);
-        }
-        if (backward != current->pe_prev) // messages dashed over black
-            painter->setPen(QPen(pencolor, penwidth, Qt::DotLine));
-        else
-            painter->setPen(QPen(pencolor, penwidth, Qt::SolidLine));
-        painter->drawLine(p1, p2);
-
-        current = backward;
-    }
-}
-
 
 // To make sure events have correct overlapping, this draws from the root down
 // TODO: Have a level cut off so we don't descend all the way down the tree

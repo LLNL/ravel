@@ -39,7 +39,6 @@ class Function;
 class Counter;
 class CounterRecord;
 class EventRecord;
-class ImportOptions;
 
 // Trace from OTF without processing
 class RawTrace
@@ -57,7 +56,6 @@ public:
         CollectiveRecord * cr;
     };
 
-    ImportOptions * options;
     QMap<int, PrimaryEntityGroup *> * primaries;
     PrimaryEntityGroup * processingElements;
     QMap<int, QString> * functionGroups;

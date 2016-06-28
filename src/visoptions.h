@@ -32,9 +32,7 @@ class ColorMap;
 class VisOptions
 {
 public:
-    VisOptions(bool _showAgg = true,
-               bool _metricTraditional = true,
-               QString _metric = "Lateness");
+    VisOptions(QString _metric = "Lateness");
     VisOptions(const VisOptions& copy);
     void setRange(double low, double high);
 
@@ -42,12 +40,8 @@ public:
     enum MessageType { MSG_NONE, MSG_TRUE, MSG_SINGLE };
 
     bool absoluteTime;
-    bool showAggregateSteps;
-    bool colorTraditionalByMetric; // color physical timeline by metric
     MessageType showMessages; // draw message lines
-    bool topByCentroid; // focus processes are centroid of cluster
-    bool showInactiveSteps; // default: no color for inactive proportion
-    bool traceBack; // trace back idles and such
+
     QString metric;
     ColorMapType maptype;
     ColorMap * divergentmap;

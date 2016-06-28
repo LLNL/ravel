@@ -44,18 +44,9 @@ public:
     bool isP2P() { return false; }
     bool isReceive() { return false; }
     virtual bool isCollective() { return true; }
-    void fixPhases();
-    void initialize_strides(QList<CommEvent *> * stride_events,
-                            QList<CommEvent *> * recv_events);
-    void initialize_basic_strides(QSet<CollectiveRecord *> *collectives);
-    void update_basic_strides();
-    bool calculate_local_step();
-    void writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap);
 
     void addComms(QSet<CommBundle *> * bundleset) { bundleset->insert(collective); }
-    QList<int> neighborEntities();
     CollectiveRecord * getCollective() { return collective; }
-    QSet<Partition *> * mergeForMessagesHelper();
 
     ClusterEvent * createClusterEvent(QString metric, long long divider);
     void addToClusterEvent(ClusterEvent * ce, QString metric,

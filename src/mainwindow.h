@@ -31,11 +31,8 @@
 #include <QList>
 #include <QVector>
 
-class Gnome;
 class Event;
 class Trace;
-class ImportOptions;
-class ImportOptionsDialog;
 class VisWidget;
 class VisOptions;
 class VisOptionsDialog;
@@ -82,18 +79,12 @@ public slots:
     // High level GUI update
     void handleSplitter(int pos, int index);
     void handleSideSplitter(int pos, int index);
-    void toggleLogicalSteps();
-    void toggleClusteredSteps();
     void togglePhysicalTime();
     void toggleMetricOverview();
 
     // Change Traces
     void traceTriggered(QAction * action);
     void closeTrace();
-
-    // Saving
-    void saveCurrentTrace();
-    void exportFinished();
 
     // Settings
     void writeSettings();
@@ -126,10 +117,6 @@ private:
     OTF2ExportFunctor * exportWorker;
     QThread * exportThread;
 
-    // Import Trace options
-    ImportOptions * importoptions;
-    ImportOptionsDialog * importdialog;
-
     // Color stuff & other vis options
     VisOptions * visoptions;
     VisOptionsDialog * visdialog;
@@ -141,10 +128,7 @@ private:
     bool otf1Support;
 
     static const int OVERVIEW = 0;
-    static const int STEPVIS = 1;
-    static const int TIMEVIS = 2;
-    static const int CLUSTERVIS = 3;
-    static const int CLUSTERTREEVIS = 4;
+    static const int TIMEVIS = 1;
 };
 
 #endif // MAINWINDOW_H

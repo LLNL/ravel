@@ -25,16 +25,9 @@
 #include "visoptions.h"
 #include "colormap.h"
 
-VisOptions::VisOptions(bool _showAgg,
-                 bool _metricTraditional,
-                 QString _metric)
+VisOptions::VisOptions(QString _metric)
     : absoluteTime(true),
-      showAggregateSteps(_showAgg),
-      colorTraditionalByMetric(_metricTraditional),
       showMessages(MSG_TRUE),
-      topByCentroid(false),
-      showInactiveSteps(true),
-      traceBack(false),
       metric(_metric),
       maptype(COLOR_DIVERGING),
       divergentmap(new ColorMap(QColor(173, 216, 230), 0)),
@@ -76,12 +69,7 @@ VisOptions::VisOptions(bool _showAgg,
 VisOptions::VisOptions(const VisOptions& copy)
 {
     absoluteTime = copy.absoluteTime;
-    showAggregateSteps = copy.showAggregateSteps;
-    colorTraditionalByMetric = copy.colorTraditionalByMetric;
     showMessages = copy.showMessages;
-    showInactiveSteps = copy.showInactiveSteps;
-    topByCentroid = copy.topByCentroid;
-    traceBack = copy.traceBack;
     metric = copy.metric;
     maptype = copy.maptype;
     divergentmap = new ColorMap(*(copy.divergentmap));

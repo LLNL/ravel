@@ -42,7 +42,6 @@ SOURCES  += main.cpp \
     rawtrace.cpp \
     otfconverter.cpp \
     function.cpp \
-    importoptionsdialog.cpp \
     timelinevis.cpp \
     traditionalvis.cpp \
     visoptionsdialog.cpp \
@@ -59,13 +58,10 @@ SOURCES  += main.cpp \
     counter.cpp \
     counterrecord.cpp \
     otf2importer.cpp \
-    otf2exporter.cpp \
-    otf2exportfunctor.cpp \
     metrics.cpp \
     entity.cpp \
     primaryentitygroup.cpp \
     entitygroup.cpp \
-    importoptions.cpp \
     importfunctor.cpp
 
 HEADERS += \
@@ -81,7 +77,6 @@ HEADERS += \
     rawtrace.h \
     otfconverter.h \
     function.h \
-    importoptionsdialog.h \
     timelinevis.h \
     traditionalvis.h \
     visoptionsdialog.h \
@@ -99,14 +94,11 @@ HEADERS += \
     counter.h \
     counterrecord.h \
     otf2importer.h \
-    otf2exporter.h \
-    otf2exportfunctor.h \
     metrics.h \
     entity.h \
     primaryentitygroup.h \
     entitygroup.h \
     ravelutils.h \
-    importoptions.h \
     importfunctor.h
 
 FORMS += \

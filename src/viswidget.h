@@ -39,7 +39,6 @@ class VisOptions;
 class Trace;
 class QPainter;
 class Message;
-class Gnome;
 class QPaintEvent;
 class Event;
 
@@ -65,26 +64,24 @@ public:
         { Q_UNUSED(painter); Q_UNUSED(msg); }
     virtual void drawCollective(QPainter * painter, CollectiveRecord * cr)
         { Q_UNUSED(painter); Q_UNUSED(cr); }
-    virtual void drawDelayTracking(QPainter * painter, CommEvent * c)
-        { Q_UNUSED(painter); Q_UNUSED(c); }
 
 signals:
     void repaintAll();
-    void stepsChanged(float start, float stop, bool jump);
-    void eventClicked(Event * evt, bool aggregate, bool overdraw);
-    void entitiesSelected(QList<int> processes, Gnome * gnome);
+    void timeChanged(float start, float stop, bool jump);
+    void eventClicked(Event * evt);
+    void entitiesSelected(QList<int> processes);
 
 public slots:
-    virtual void setSteps(float start, float stop, bool jump = false);
-    virtual void selectEvent(Event *, bool, bool);
-    virtual void selectEntities(QList<int> entities, Gnome * gnome);
+    virtual void setTime(float start, float stop, bool jump = false);
+    virtual void selectEvent(Event *);
+    virtual void selectEntities(QList<int> entities);
 
 protected:
     void initializeGL();
     void paintEvent(QPaintEvent *event);
     void incompleteBox(QPainter *painter,
                        float x, float y, float w, float h, QRect *extents);
-    int boundStep(float step); // Determine upper bound on step
+    int boundTime(floattime); // Determine upper bound on step
 
     virtual void drawNativeGL();
     virtual void qtPaint(QPainter *painter);
@@ -108,15 +105,11 @@ protected:
     // Interactions
     QMap<Event *, QRect> drawnEvents;
     QList<int> selected_entities;
-    Gnome * selected_gnome;
     Event * selected_event;
-    bool selected_aggregate;
-    bool overdraw_selected;
     Event * hover_event;
-    bool hover_aggregate;
     bool closed;
 
-    static const int initStepSpan = 15;
+    static const int initTimeSpan = 90000;
     static const int timescaleHeight = 20;
     static const int timescaleTickHeight = 5;
 };

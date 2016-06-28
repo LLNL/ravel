@@ -47,8 +47,6 @@ public:
 
     CommEvent * getDesignee();
     void draw(QPainter * painter, CommDrawInterface * vis);
-
-    int set_basic_strides();
 };
 
 #endif // COLLECTIVERECORD_H

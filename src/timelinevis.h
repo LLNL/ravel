@@ -65,17 +65,14 @@ protected:
     int labelDescent;
     int cursorWidth;
 
-    int maxStep;
+    int maxTime;
     int maxEntities;
     int startPartition;
-    float startStep;
+    float startTime;
     float startEntity; // refers to order rather than process really
-    float stepSpan;
+    float timeSpan;
     float entitySpan;
-    float lastStartStep;
-    int idleFunction;
-    QMap<unsigned long, unsigned long> proc_to_order;
-    QMap<unsigned long, unsigned long> order_to_proc;
+    float lastStartTime;
 
     static const int spacingMinimum = 12;
 

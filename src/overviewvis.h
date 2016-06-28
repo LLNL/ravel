@@ -54,27 +54,22 @@ protected:
     void qtPaint(QPainter *painter);
 
 private:
-    int roundeven(float step);
+    int roundeven(float time);
 
     QString cacheMetric; // So we can tell if metric changes
 
     // We can do this by time or steps, currently steps
     unsigned long long minTime;
     unsigned long long maxTime;
-    int maxStep;
+    int maxTime;
     int startCursor;
     int stopCursor;
     unsigned long long startTime;
     unsigned long long stopTime;
-    int startStep;
-    int stopStep;
-    float stepWidth;
+    float timeWidth;
     int height;
     bool mousePressed;
     QVector<float> heights; // bar heights
-
-    // Map between cursor position and steps
-    QVector<std::pair<int, int> > stepPositions;
 };
 
 #endif // OVERVIEWVIS_H

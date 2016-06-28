@@ -16,18 +16,15 @@ Metrics::~Metrics()
 
 }
 
-void Metrics::addMetric(QString name, double event_value,
-                          double aggregate_value)
+void Metrics::addMetric(QString name, double event_value)
 {
-    (*metrics)[name] = new MetricPair(event_value, aggregate_value);
+    (*metrics)[name] = new MetricPair(event_value);
 }
 
-void Metrics::setMetric(QString name, double event_value,
-                          double aggregate_value)
+void Metrics::setMetric(QString name, double event_value)
 {
     MetricPair * mp = metrics->value(name);
     mp->event = event_value;
-    mp->aggregate = aggregate_value;
 }
 
 bool Metrics::hasMetric(QString name)
@@ -35,11 +32,8 @@ bool Metrics::hasMetric(QString name)
     return metrics->contains(name);
 }
 
-double Metrics::getMetric(QString name, bool aggregate)
+double Metrics::getMetric(QString name)
 {
-    if (aggregate)
-        return ((*metrics)[name])->aggregate;
-
     return ((*metrics)[name])->event;
 }
 

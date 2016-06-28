@@ -49,12 +49,8 @@ VisWidget::VisWidget(QWidget *parent, VisOptions * _options) :
     border(20),
     drawnEvents(QMap<Event *, QRect>()),
     selected_entities(QList<int>()),
-    selected_gnome(NULL),
     selected_event(NULL),
-    selected_aggregate(false),
-    overdraw_selected(false),
     hover_event(NULL),
-    hover_aggregate(NULL),
     closed(false)
 {
     // GLWidget options
@@ -78,24 +74,21 @@ void VisWidget::initializeGL()
     glDisable(GL_DEPTH);
 }
 
-void VisWidget::setSteps(float start, float stop, bool jump)
+void VisWidget::setTime(float start, float stop, bool jump)
 {
     Q_UNUSED(start);
     Q_UNUSED(stop);
     Q_UNUSED(jump);
 }
 
-void VisWidget::selectEvent(Event * evt, bool aggregate, bool overdraw)
+void VisWidget::selectEvent(Event * evt)
 {
     Q_UNUSED(evt);
-    Q_UNUSED(aggregate);
-    Q_UNUSED(overdraw);
 }
 
-void VisWidget::selectEntities(QList<int> entities, Gnome *gnome)
+void VisWidget::selectEntities(QList<int> entities)
 {
     Q_UNUSED(entities);
-    Q_UNUSED(gnome);
 }
 
 
@@ -105,12 +98,8 @@ void VisWidget::setTrace(Trace * t)
 
     drawnEvents.clear();
     selected_entities.clear();
-    selected_gnome = NULL;
     selected_event = NULL;
-    selected_aggregate = false;
-    overdraw_selected = false;
     hover_event = NULL;
-    hover_aggregate = false;
 }
 
 void VisWidget::prepaint()
@@ -224,11 +213,11 @@ void VisWidget::incompleteBox(QPainter *painter, float x, float y, float w, floa
 
 // If we want an odd step, we actually need the step after it since that is
 // where in the information is stored. This function computes that.
-int VisWidget::boundStep(float step) {
-    int bstep = ceil(step);
-    if (bstep % 2)
-        bstep++;
-    return bstep;
+int VisWidget::boundTime(float time) {
+    int btime = ceil(time);
+    if (btime % 2)
+        btime++;
+    return btime;
 }
 
 void VisWidget::setClosed(bool _closed)

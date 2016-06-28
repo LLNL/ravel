@@ -10,21 +10,18 @@ class Metrics
 public:
     Metrics();
     ~Metrics();
-    void addMetric(QString name, double event_value,
-                   double aggregate_value = 0);
-    void setMetric(QString name, double event_value,
-                   double aggregate_value = 0);
+    void addMetric(QString name, double event_value);
+    void setMetric(QString name, double event_value);
     bool hasMetric(QString name);
-    double getMetric(QString name, bool aggregate = false);
+    double getMetric(QString name);
     QList<QString> getMetricList();
 
     class MetricPair {
     public:
-        MetricPair(double _e, double _a)
-            : event(_e), aggregate(_a) {}
+        MetricPair(double _e)
+            : event(_e) {}
 
         double event; // value at event
-        double aggregate; // value at prev. aggregate event
     };
 
     QMap<QString, MetricPair *> * metrics; // Lateness or Counters etc

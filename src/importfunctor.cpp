@@ -23,47 +23,16 @@
 // Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 //////////////////////////////////////////////////////////////////////////////
 #include "importfunctor.h"
-#include "charmimporter.h"
 #include "ravelutils.h"
 #include <QElapsedTimer>
 
 #include "trace.h"
 #include "otfconverter.h"
-#include "importoptions.h"
 #include "otf2importer.h"
 
-ImportFunctor::ImportFunctor(ImportOptions * _options)
-    : options(_options),
-      trace(NULL)
+ImportFunctor::ImportFunctor()
+    : trace(NULL)
 {
-}
-
-void ImportFunctor::doImportCharm(QString dataFileName)
-{
-    std::cout << "Processing " << dataFileName.toStdString().c_str() << std::endl;
-    QElapsedTimer traceTimer;
-    qint64 traceElapsed;
-
-    traceTimer.start();
-
-    CharmImporter * importer = new CharmImporter();
-    importer->importCharmLog(dataFileName, options);
-
-    Trace* trace = importer->getTrace();
-    delete importer;
-    trace->fullpath = dataFileName;
-    //delete converter;
-    connect(trace, SIGNAL(updatePreprocess(int, QString)), this,
-            SLOT(updatePreprocess(int, QString)));
-    connect(trace, SIGNAL(updateClustering(int)), this,
-            SLOT(updateClustering(int)));
-    connect(trace, SIGNAL(startClustering()), this, SLOT(switchProgress()));
-    trace->preprocess(options);
-
-    traceElapsed = traceTimer.nsecsElapsed();
-    RavelUtils::gu_printTime(traceElapsed, "Total trace: ");
-
-    emit(done(trace));
 }
 
 void ImportFunctor::doImportOTF2(QString dataFileName)
@@ -85,13 +54,7 @@ void ImportFunctor::doImportOTF2(QString dataFileName)
     {
         connect(trace, SIGNAL(updatePreprocess(int, QString)), this,
                 SLOT(updatePreprocess(int, QString)));
-        connect(trace, SIGNAL(updateClustering(int)), this,
-                SLOT(updateClustering(int)));
-        connect(trace, SIGNAL(startClustering()), this, SLOT(switchProgress()));
-        if (trace->options.origin == ImportOptions::OF_SAVE_OTF2)
-            trace->preprocessFromSaved();
-        else
-            trace->preprocess(options);
+        trace->preprocess(options);
     }
 
     traceElapsed = traceTimer.nsecsElapsed();
@@ -120,9 +83,6 @@ void ImportFunctor::doImportOTF(QString dataFileName)
     {
         connect(trace, SIGNAL(updatePreprocess(int, QString)), this,
                 SLOT(updatePreprocess(int, QString)));
-        connect(trace, SIGNAL(updateClustering(int)), this,
-                SLOT(updateClustering(int)));
-        connect(trace, SIGNAL(startClustering()), this, SLOT(switchProgress()));
         trace->preprocess(options);
     }
 
@@ -146,11 +106,6 @@ void ImportFunctor::updateMatching(int portion, QString msg)
 void ImportFunctor::updatePreprocess(int portion, QString msg)
 {
     emit(reportProgress(50 + portion / 2.0, msg));
-}
-
-void ImportFunctor::updateClustering(int portion)
-{
-    emit(reportClusterProgress(portion, "Clustering..."));
 }
 
 void ImportFunctor::switchProgress()

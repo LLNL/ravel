@@ -64,9 +64,6 @@ public:
     virtual bool isCommEvent() { return false; }
     virtual bool isReceive() const { return false; }
     virtual bool isCollective() { return false; }
-    virtual void writeToOTF2(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap);
-    virtual void writeOTF2Leave(OTF2_EvtWriter * writer, QMap<QString, int> * attributeMap);
-    virtual void writeOTF2Enter(OTF2_EvtWriter * writer);
 
     // Call tree info
     Event * caller;

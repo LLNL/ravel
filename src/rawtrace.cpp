@@ -39,8 +39,7 @@
 
 
 RawTrace::RawTrace(int nt, int np)
-    : options(new ImportOptions()),
-      primaries(NULL),
+    : primaries(NULL),
       processingElements(NULL),
       functionGroups(NULL),
       functions(NULL),
@@ -110,8 +109,6 @@ RawTrace::~RawTrace()
         *eitr = NULL;
     }
     delete collectiveBits;
-
-    delete options;
 
     if (metric_names)
         delete metric_names;
