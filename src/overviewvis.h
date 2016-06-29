@@ -54,8 +54,6 @@ protected:
     void qtPaint(QPainter *painter);
 
 private:
-    int roundeven(float time);
-
     QString cacheMetric; // So we can tell if metric changes
 
     // We can do this by time or steps, currently steps

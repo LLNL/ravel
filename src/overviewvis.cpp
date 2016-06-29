@@ -46,19 +46,6 @@ OverviewVis::OverviewVis(QWidget *parent, VisOptions * _options)
     mousePressed = false;
 }
 
-// When you click that maps to a global step, but we
-// find things every other step due to aggregated events,
-// so we have to get the event step
-int OverviewVis::roundeven(float time)
-{
-    int rounded = floor(time);
-    if (rounded % 2 == 1)
-        rounded += 1;
-    while (rounded > maxTime)
-        rounded -= 2;
-    return rounded;
-}
-
 // We use the set steps to find out where the cursor goes in the overview.
 void OverviewVis::setTime(float start, float stop, bool jump)
 {
@@ -71,16 +58,22 @@ void OverviewVis::setTime(float start, float stop, bool jump)
         changeSource = false;
         return;
     }
-    startTime = roundeven(start);
-    stopTime = roundeven(stop);
-    if (startTime < minTime)
-        startTime = minTime;
+
+    startTime = start;
+    stopTime = stop;
+    if (startTime < initTime)
+        startTime = initTime;
     if (stopTime > maxTime)
         stopTime = maxTime;
 
     int width = size().width() - 2*border;
-    startCursor = floor(width * start / 1.0 / maxTime);
-    stopCursor = ceil(width * stop / 1.0 / maxTime);
+    double timeSpan = maxTime - initTime;
+    double startOffset = startTime - initTime;
+    double stopOffset = stopTime - initTime;
+    double widthParts = width / timeSpan;
+
+    startCursor = floor(widthParts * startOffset);
+    stopCursor = ceil(widthParts * stopOffset);
 
     if (!closed)
         repaint();
@@ -215,8 +208,8 @@ void OverviewVis::processVis()
         heights[i] = maxHeight * (heights[i] - minMetric) / maxMetric;
     }
 
-    startCursor = (startTime) / 1.0 / (maxTime) * width;
-    stopCursor = (stopTime) / 1.0 / (maxTime) * width;
+    startCursor = (startTime - initTime) / 1.0 / (maxTime - initTime) * width;
+    stopCursor = (stopTime - initTime) / 1.0 / (maxTime - initTime) * width;
 
     visProcessed = true;
 }
@@ -256,7 +249,7 @@ void OverviewVis::qtPaint(QPainter *painter)
         painter->drawLine(p1, p2);
     }
 
-    // Draw selection
+    // Draw selection    
     int startSelect = startCursor;
     int stopSelect = stopCursor;
     if (startSelect > stopSelect) {
@@ -264,6 +257,7 @@ void OverviewVis::qtPaint(QPainter *painter)
         startSelect = stopSelect;
         stopSelect = tmp;
     }
+
     painter->setPen(QPen(QColor(255, 255, 144, 150)));
     painter->setBrush(QBrush(QColor(255, 255, 144, 100)));
 
