@@ -81,7 +81,7 @@ protected:
     void paintEvent(QPaintEvent *event);
     void incompleteBox(QPainter *painter,
                        float x, float y, float w, float h, QRect *extents);
-    int boundTime(floattime); // Determine upper bound on step
+    int boundTime(float time); // Determine upper bound on step
 
     virtual void drawNativeGL();
     virtual void qtPaint(QPainter *painter);

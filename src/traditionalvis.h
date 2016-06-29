@@ -29,6 +29,7 @@
 #include <QVector>
 
 class CommEvent;
+class CommBundle;
 
 // Physical timeline
 class TraditionalVis : public TimelineVis
@@ -47,14 +48,12 @@ public:
 
     void drawMessage(QPainter * painter, Message * message);
     void drawCollective(QPainter * painter, CollectiveRecord * cr);
-    void drawDelayTracking(QPainter * painter, CommEvent * c);
-
 
 signals:
     void timeScaleString(QString);
 
 public slots:
-    void setSteps(float start, float stop, bool jump = false);
+    void setTime(float start, float stop, bool jump = false);
 
 protected:
     void qtPaint(QPainter *painter);
@@ -68,7 +67,11 @@ protected:
     // Paint all other events available
     void paintNotStepEvents(QPainter *painter, Event * evt, float position,
                             int entity_spacing, float barheight,
-                            float blockheight, QRect * extents);
+                            float blockheight, QRect * extents, QSet<CommBundle *> *drawComms, QSet<CommBundle *> *selectedComms);
+    void paintNotStepEventsGL(Event * evt,
+                              float position, float barheight,
+                              QVector<GLfloat> * bars,
+                              QVector<GLfloat> * colors);
 
 private:
     // For keeping track of map betewen real time and step time
@@ -85,7 +88,6 @@ private:
     unsigned long long maxTime;
     unsigned long long startTime;
     unsigned long long timeSpan;
-    QVector<TimePair* > * stepToTime;
     QRect lassoRect;
     float blockheight;
 

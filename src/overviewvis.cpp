@@ -50,7 +50,7 @@ OverviewVis::OverviewVis(QWidget *parent, VisOptions * _options)
 // so we have to get the event step
 int OverviewVis::roundeven(float time)
 {
-    int rounded = floor(step);
+    int rounded = floor(time);
     if (rounded % 2 == 1)
         rounded += 1;
     while (rounded > maxTime)
@@ -120,8 +120,9 @@ void OverviewVis::mouseReleaseEvent(QMouseEvent * event) {
     // PreVis int timespan = maxTime - minTime;
     int width = size().width() - 2 * border;
 
-    startTime = (startCursor / 1.0 / width) * timespan + minTime;
-    stopTime = (stopCursor / 1.0 / width) * timespan + minTime;
+    unsigned long long timeSpan = maxTime - minTime;
+    startTime = (startCursor / 1.0 / width) * timeSpan + minTime;
+    stopTime = (stopCursor / 1.0 / width) * timeSpan + minTime;
 
     changeSource = true;
     emit timeChanged(startTime, stopTime, true);
@@ -160,36 +161,33 @@ void OverviewVis::processVis()
     for (QVector<QVector<Event *> *>::Iterator events = trace->events->begin();
          events != trace->events->end(); ++events)
     {
-        for (QVector<Event *>::Iterator event_list
+        for (QVector<Event *>::Iterator evt
              = (*events)->begin();
-             event_list != (*events)->end(); ++event_list)
+             evt != (*events)->end(); ++evt)
         {
             // For each event, we figure out which steps it spans and then we
             // accumulate height over those steps based on the event's metric
             // value
-            for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
-                 evt != (event_list.value())->end(); ++evt)
+
+            // start and stop are the cursor positions
+            float start = (width - 1) * (((*evt)->enter - minTime) / 1.0 / timeSpan);
+            float stop = start + timeWidth * ((*evt)->exit - (*evt)->exit);
+            start_int = static_cast<int>(start);
+            stop_int = static_cast<int>(stop);
+
+            if ((*evt)->hasMetric(metric) && (*evt)->getMetric(metric)> 0)
             {
-                // start and stop are the cursor positions
-                float start = (width - 1) * (((*evt)->enter - minTime) / 1.0 / timeSpan);
-                float stop = start + timeWidth * ((*evt)->exit - (*evt)->exit);
-                start_int = static_cast<int>(start);
-                stop_int = static_cast<int>(stop);
-
-                if ((*evt)->hasMetric(metric) && (*evt)->getMetric(metric)> 0)
+                heights[start_int] += (*evt)->getMetric(metric)
+                        * (start - start_int);
+                if (stop_int != start_int) {
+                    heights[stop_int] += (*evt)->getMetric(metric)
+                            * (stop - stop_int);
+                }
+                for (int i = start_int + 1; i < stop_int; i++)
                 {
-                    heights[start_int] += (*evt)->getMetric(metric)
-                                          * (start - start_int);
-                    if (stop_int != start_int) {
-                        heights[stop_int] += (*evt)->getMetric(metric)
-                                             * (stop - stop_int);
-                    }
-                    for (int i = start_int + 1; i < stop_int; i++)
-                    {
-                        heights[i] += (*evt)->getMetric(metric);
-                    }
+                    heights[i] += (*evt)->getMetric(metric);
+                }
 
-                }      
             }
         }
     }

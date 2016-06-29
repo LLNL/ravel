@@ -72,25 +72,3 @@ bool CommEvent::operator==(const CommEvent &event)
     return enter == event.enter
             && isReceive() == event.isReceive();
 }
-
-bool CommEvent::hasMetric(QString name)
-{
-    if (metrics->hasMetric(name))
-        return true;
-    else if (caller && caller->metrics->hasMetric(name))
-        return true;
-    else
-        return false;
-}
-
-double CommEvent::getMetric(QString name)
-{
-    if (metrics->hasMetric(name))
-        return metrics->getMetric(name);
-
-    if (caller && caller->metrics->hasMetric(name))
-        return caller->metrics->getMetric(name);
-
-    return 0;
-}
-

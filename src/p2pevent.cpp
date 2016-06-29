@@ -80,3 +80,10 @@ bool P2PEvent::isReceive() const
 {
     return is_recv;
 }
+
+void P2PEvent::addComms(QSet<CommBundle *> * bundleset)
+{
+    for (QVector<Message *>::Iterator msg = messages->begin();
+         msg != messages->end(); ++msg)
+        bundleset->insert(*msg);
+}

@@ -34,7 +34,6 @@
 #include "function.h"
 #include "counter.h"
 #include "counterrecord.h"
-#include "importoptions.h"
 #include <stdint.h>
 
 
@@ -56,7 +55,6 @@ RawTrace::RawTrace(int nt, int np)
       num_entities(nt),
       num_pes(np),
       second_magnitude(1),
-      from_saved_version(""),
       metric_names(NULL),
       metric_units(NULL)
 {

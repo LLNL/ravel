@@ -123,3 +123,24 @@ unsigned long long Event::getVisibleEnd(unsigned long long start)
     }
     return end;
 }
+
+bool Event::hasMetric(QString name)
+{
+    if (metrics->hasMetric(name))
+        return true;
+    else if (caller && caller->metrics->hasMetric(name))
+        return true;
+    else
+        return false;
+}
+
+double Event::getMetric(QString name)
+{
+    if (metrics->hasMetric(name))
+        return metrics->getMetric(name);
+
+    if (caller && caller->metrics->hasMetric(name))
+        return caller->metrics->getMetric(name);
+
+    return 0;
+}

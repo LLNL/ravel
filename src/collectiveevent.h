@@ -48,10 +48,6 @@ public:
     void addComms(QSet<CommBundle *> * bundleset) { bundleset->insert(collective); }
     CollectiveRecord * getCollective() { return collective; }
 
-    ClusterEvent * createClusterEvent(QString metric, long long divider);
-    void addToClusterEvent(ClusterEvent * ce, QString metric,
-                           long long divider);
-
     CollectiveRecord * collective;
 
 private:

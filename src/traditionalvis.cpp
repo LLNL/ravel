@@ -30,7 +30,6 @@
 #include <QWheelEvent>
 
 #include "trace.h"
-#include "rpartition.h"
 #include "function.h"
 #include "otfcollective.h"
 #include "message.h"
@@ -98,7 +97,7 @@ void TraditionalVis::mouseDoubleClickEvent(QMouseEvent * event)
         }
 
     changeSource = true;
-    emit eventClicked(selected_event, false, false);
+    emit eventClicked(selected_event);
     repaint();
 }
 
@@ -305,14 +304,11 @@ void TraditionalVis::drawNativeGL()
     QVector<GLfloat> * colors = new QVector<GLfloat>();
 
     // Process events for values
-    float x, y, w; // true position
     float position; // placement of entity
-    int stopTime = 0;
-    int uppertime = startTime + timeSpan + 2;
-    startTime = maxStep;
-    QColor color;
-    float maxEntity = entitySpan + startEntity;
 
+    int start = std::max(int(floor(startEntity)), 0);
+    int end = std::min(int(ceil(startEntity + entitySpan)),
+                       trace->num_pes - 1);
     for (int i = start; i <= end; ++i)
     {
         position = i;
@@ -320,72 +316,7 @@ void TraditionalVis::drawNativeGL()
         for (QVector<Event *>::Iterator root = roots->begin();
              root != roots->end(); ++root)
         {
-            paintNotStepEventsGL(painter, *root, position, entity_spacing,
-                                 barheight, blockheight, &extents, bars, colors);
-        }
-    }
-    for (int i = startPartition; i < trace->partitions->length(); ++i)
-    {
-        part = trace->partitions->at(i);
-        if (part->min_time > uppertime)
-            break;
-
-        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
-             = part->events->begin(); event_list != part->events->end();
-             ++event_list)
-        {
-
-            for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
-                 evt != (event_list.value())->end(); ++evt)
-            {
-
-                position = proc_to_order[(*evt)->pe];
-                 // Out of entity span test
-                if (position < floor(startEntity)
-                        || position > ceil(startEntity + entitySpan))
-                    continue;
-                y = (maxEntity - position) * barheight - 1;
-                // Out of time span test
-                if ((*evt)->exit < startTime || (*evt)->enter > stopTime)
-                    continue;
-
-
-                // Calculate position of this bar in float space
-                w = (*evt)->exit - (*evt)->enter;
-                x = 0;
-                if ((*evt)->enter >= startTime)
-                    x = (*evt)->enter - startTime;
-                else
-                    w -= (startTime - (*evt)->enter);
-
-                color = options->colormap->color((*evt)->getMetric(options->metric)); //    (*(*evt)->metrics)[metric]->event);
-                if (options->colorTraditionalByMetric
-                        && (*evt)->hasMetric(options->metric))
-                    color= options->colormap->color((*evt)->getMetric(options->metric));
-                else
-                {
-                    if (*evt == selected_event)
-                        color = Qt::yellow;
-                    else
-                        color = QColor(200, 200, 255);
-                }
-
-                bars->append(x);
-                bars->append(y);
-                bars->append(x);
-                bars->append(y + barheight);
-                bars->append(x + w);
-                bars->append(y + barheight);
-                bars->append(x + w);
-                bars->append(y);
-                for (int j = 0; j < 4; ++j)
-                {
-                    colors->append(color.red() / 255.0);
-                    colors->append(color.green() / 255.0);
-                    colors->append(color.blue() / 255.0);
-                }
-
-            }
+            paintNotStepEventsGL(*root, position, barheight, bars, colors);
         }
     }
 
@@ -403,7 +334,7 @@ void TraditionalVis::drawNativeGL()
 
 // To make sure events have correct overlapping, this draws from the root down
 // TODO: Have a level cut off so we don't descend all the way down the tree
-void TraditionalVis::paintNotStepEventsGL(QPainter *painter, Event * evt,
+void TraditionalVis::paintNotStepEventsGL(Event * evt,
                                           float position, float barheight,
                                           QVector<GLfloat> * bars,
                                           QVector<GLfloat> * colors)
@@ -420,10 +351,9 @@ void TraditionalVis::paintNotStepEventsGL(QPainter *painter, Event * evt,
     else
         w -= (startTime - evt->enter);
 
-    color = options->colormap->color((*evt)->getMetric(options->metric)); //    (*(*evt)->metrics)[metric]->event);
-    if (options->colorTraditionalByMetric
-            && evt->hasMetric(options->metric))
-        color= options->colormap->color((*evt)->getMetric(options->metric));
+    QColor color = options->colormap->color(evt->getMetric(options->metric)); //    (*(*evt)->metrics)[metric]->event);
+    if (evt->hasMetric(options->metric))
+        color= options->colormap->color(evt->getMetric(options->metric));
     else
     {
         if (evt == selected_event)
@@ -436,8 +366,6 @@ void TraditionalVis::paintNotStepEventsGL(QPainter *painter, Event * evt,
             color = QColor(graycolor, graycolor, graycolor);
         }
     }
-
-    QBrush(QColor(graycolor, graycolor, graycolor));
 
     bars->append(x);
     bars->append(y);
@@ -457,8 +385,7 @@ void TraditionalVis::paintNotStepEventsGL(QPainter *painter, Event * evt,
     for (QVector<Event *>::Iterator child = evt->callees->begin();
          child != evt->callees->end(); ++child)
     {
-        paintNotStepEvents(painter, *child, position,
-                           barheight, bars, colors);
+        paintNotStepEventsGL(*child, position, barheight, bars, colors);
     }
 
 
@@ -498,7 +425,6 @@ void TraditionalVis::paintEvents(QPainter *painter)
     blockheight = floor(canvasHeight / entitySpan);
     float barheight = blockheight - entity_spacing;
     entityheight = blockheight;
-    startTime = maxStep;
     QRect extents = QRect(labelWidth, 0, rect().width(), canvasHeight);
 
     painter->setFont(QFont("Helvetica", 10));
@@ -519,7 +445,8 @@ void TraditionalVis::paintEvents(QPainter *painter)
              root != roots->end(); ++root)
         {
             paintNotStepEvents(painter, *root, position, entity_spacing,
-                               barheight, blockheight, &extents);
+                               barheight, blockheight, &extents, &drawComms,
+                               &selectedComms);
         }
     }
 
@@ -655,15 +582,16 @@ int TraditionalVis::getW(CommEvent *evt)
 void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
                                         float position, int entity_spacing,
                                         float barheight, float blockheight,
-                                        QRect * extents)
+                                        QRect * extents, QSet<CommBundle *> * drawComms,
+                                        QSet<CommBundle *> * selectedComms)
 {
     if (evt->enter > startTime + timeSpan || evt->exit < startTime)
         return; // Out of time
     if (evt->isCommEvent())
     {
-        (*evt)->addComms(&drawComms);
-        if (*evt == selected_event)
-            (*evt)->addComms(&selectedComms);
+        evt->addComms(drawComms);
+        if (evt == selected_event)
+            evt->addComms(selectedComms);
     }
 
     int x, y, w, h;
@@ -706,8 +634,7 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
         {
             // Draw event
             int graycolor = 0;
-            if (evt->function != idleFunction)
-                graycolor = std::max(100, 100 + evt->depth * 20);
+            graycolor = std::max(100, 100 + evt->depth * 20);
             painter->fillRect(QRectF(x, y, w, h),
                               QBrush(QColor(graycolor, graycolor, graycolor)));
         }
@@ -741,7 +668,8 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
          child != evt->callees->end(); ++child)
     {
         paintNotStepEvents(painter, *child, position, entity_spacing,
-                           barheight, blockheight, extents);
+                           barheight, blockheight, extents, drawComms,
+                           selectedComms);
     }
 
 

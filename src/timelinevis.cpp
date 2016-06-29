@@ -34,7 +34,6 @@
 #include "trace.h"
 #include "event.h"
 #include "function.h"
-#include "rpartition.h"
 #include "entity.h"
 #include "primaryentitygroup.h"
 
@@ -60,7 +59,7 @@ TimelineVis::TimelineVis(QWidget* parent, VisOptions * _options)
       startEntity(0),
       timeSpan(0),
       entitySpan(0),
-      laststartTime(0)
+      lastStartTime(0)
 {
     setMouseTracking(true);
     cursorWidth = 16;
@@ -77,16 +76,6 @@ TimelineVis::~TimelineVis()
 
 void TimelineVis::processVis()
 {
-    for (QMap<int, Function *>::Iterator fxn = trace->functions->begin();
-         fxn != trace->functions->end(); ++fxn)
-    {
-        if ((fxn.value())->name == "Idle")
-        {
-            idleFunction = fxn.key();
-            break;
-        }
-    }
-
     // Determine needs for entity labels
     int max_entity = pow(10,ceil(log10(maxEntities)) + 1) - 1;
     QPainter * painter = new QPainter();
@@ -191,7 +180,7 @@ void TimelineVis::selectEvent(Event * event, bool aggregate, bool overdraw)
         repaint();
 }
 
-void TimelineVis::selectEntities(QList<int> entities, Gnome * gnome)
+void TimelineVis::selectEntities(QList<int> entities)
 {
     selected_entities = entities;
     selected_event = NULL;
@@ -212,20 +201,13 @@ void TimelineVis::drawHover(QPainter * painter)
     QFontMetrics font_metrics = painter->fontMetrics();
 
     QString text = "";
-    if (hover_aggregate) // Do not draw
+    if (hover_event->caller)
     {
-        return;
+        text = trace->functions->value(hover_event->caller->function)->name;
+        text += " : ";
     }
-    else
-    {
-        // Fall through and draw Event
-        if (hover_event->caller)
-        {
-            text = trace->functions->value(hover_event->caller->function)->name;
-            text += " : ";
-        }
-        text += trace->functions->value(hover_event->function)->name;
-    }
+    text += trace->functions->value(hover_event->function)->name;
+
 
     // Determine bounding box of FontMetrics
     QRect textRect = font_metrics.boundingRect(text);
@@ -279,7 +261,7 @@ void TimelineVis::drawEntityLabels(QPainter * painter, int effectiveHeight,
             y = floor((i - startEntity) * barHeight) + 1 + barHeight / 2
                 + labelDescent;
             if (y < effectiveHeight)
-                painter->drawText(1, y, QString::number(order_to_proc[i]));
+                painter->drawText(1, y, QString::number(i));
         }
     }
 }

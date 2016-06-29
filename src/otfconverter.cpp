@@ -37,7 +37,6 @@
 #endif
 
 #include "otf2importer.h"
-#include "importoptions.h"
 #include "rawtrace.h"
 #include "trace.h"
 #include "counter.h"
@@ -46,7 +45,6 @@
 #include "eventrecord.h"
 #include "commrecord.h"
 #include "counterrecord.h"
-#include "rpartition.h"
 #include "event.h"
 #include "commevent.h"
 #include "p2pevent.h"
@@ -63,7 +61,7 @@ const QString OTFConverter::collectives_string
       + QString("MPI_AllgathervMPI_GathervMPI_Scatterv");
 
 OTFConverter::OTFConverter()
-    : rawtrace(NULL), trace(NULL), options(NULL), phaseFunction(-1)
+    : rawtrace(NULL), trace(NULL)
 {
 }
 
@@ -72,16 +70,13 @@ OTFConverter::~OTFConverter()
 }
 
 
-Trace * OTFConverter::importOTF(QString filename, ImportOptions *_options)
+Trace * OTFConverter::importOTF(QString filename)
 {
     #ifdef OTF1LIB
-    // Keep track of options
-    options = _options;
 
     // Start with the rawtrace similar to what we got from PARAVER
     OTFImporter * importer = new OTFImporter();
-    rawtrace = importer->importOTF(filename.toStdString().c_str(),
-                                   options->enforceMessageSizes);
+    rawtrace = importer->importOTF(filename.toStdString().c_str());
     emit(finishRead());
 
     convert();
@@ -93,33 +88,17 @@ Trace * OTFConverter::importOTF(QString filename, ImportOptions *_options)
 }
 
 
-Trace * OTFConverter::importOTF2(QString filename, ImportOptions *_options)
+Trace * OTFConverter::importOTF2(QString filename)
 {
-    // Keep track of options
-    options = _options;
-
     // Start with the rawtrace similar to what we got from PARAVER
     OTF2Importer * importer = new OTF2Importer();
-    rawtrace = importer->importOTF2(filename.toStdString().c_str(),
-                                    options->enforceMessageSizes);
+    rawtrace = importer->importOTF2(filename.toStdString().c_str());
     emit(finishRead());
 
     convert();
 
     delete importer;
     trace->fullpath = filename;
-    return trace;
-}
-
-Trace * OTFConverter::importCharm(RawTrace * rt, ImportOptions *_options)
-{
-    options = _options;
-
-    rawtrace = rt;
-    emit(finishRead());
-
-    convert();
-
     return trace;
 }
 
@@ -181,15 +160,6 @@ void OTFConverter::convert()
     delete rawtrace;
 }
 
-void OTFConverter::makeSingletonPartition(CommEvent * evt)
-{
-    Partition * p = new Partition();
-    p->addEvent(evt);
-    evt->partition = p;
-    p->new_partition = p;
-    trace->partitions->append(p);
-}
-
 // Determine events as blocks of matching enter and exit,
 // link them into a call tree
 void OTFConverter::matchEvents()
@@ -208,14 +178,12 @@ void OTFConverter::matchEvents()
     int currentIter = 0;
     bool sflag, rflag, isendflag;
 
-    int spartcounter = 0, rpartcounter = 0, cpartcounter = 0;
     for (int i = 0; i < rawtrace->events->size(); i++)
     {
         QVector<EventRecord *> * event_list = rawtrace->events->at(i);
         int depth = 0;
         int phase = 0;
         unsigned long long endtime = 0;
-        max_complete = 0;
         if (round(currentIter / progressPortion) > currentPortion)
         {
             ++currentPortion;
@@ -312,9 +280,6 @@ void OTFConverter::matchEvents()
                                                     lastcounters);
 
                     e = cr->events->last();
-                    makeSingletonPartition(cr->events->last());
-
-                    cpartcounter++;
                 }
                 else if (sflag)
                 {
@@ -328,8 +293,6 @@ void OTFConverter::matchEvents()
                         crec->message->tag = crec->tag;
                         crec->message->size = crec->size;
                     }
-                    if (crec->send_complete > max_complete)
-                        max_complete = crec->send_complete;
                     msgs->append(crec->message);
                     crec->message->sender = new P2PEvent(bgn->time, (*evt)->time,
                                                          bgn->value,
@@ -347,10 +310,7 @@ void OTFConverter::matchEvents()
                                                     lastcounters);
 
                     e = crec->message->sender;
-                    makeSingletonPartition(crec->message->sender);
                     sindex++;
-
-                    spartcounter++;
                 }
                 else if (rflag)
                 {
@@ -385,10 +345,6 @@ void OTFConverter::matchEvents()
                     if (prev)
                         prev->comm_next = msgs->at(0)->receiver;
                     prev = msgs->at(0)->receiver;
-
-                    makeSingletonPartition(msgs->at(0)->receiver);
-
-                    rpartcounter++;
 
                     counter_index = advanceCounters(msgs->at(0)->receiver,
                                                     counterstack,

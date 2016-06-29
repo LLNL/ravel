@@ -51,7 +51,6 @@ public slots:
     void onOK();
     void onAbsoluteTime(bool absolute);
     void onMetric(QString metric);
-    void onShowAggregate(bool showAggregate);
     void onShowMessages(int showMessages);
     void onColorCombo(QString type);
 

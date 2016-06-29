@@ -49,19 +49,14 @@ public:
     bool operator>=(const CommEvent &);
     bool operator==(const CommEvent &);
 
-    bool hasMetric(QString name);
-    double getMetric(QString name);
-
     virtual int comm_count(QMap<Event *, int> *memo = NULL)=0;
     bool isCommEvent() { return true; }
     virtual bool isP2P() { return false; }
     virtual bool isReceive() const { return false; }
     virtual bool isCollective() { return false; }
 
-    virtual void addComms(QSet<CommBundle *> * bundleset)=0;
     virtual QVector<Message *> * getMessages() { return NULL; }
     virtual CollectiveRecord * getCollective() { return NULL; }
-
 
     CommEvent * comm_next;
     CommEvent * comm_prev;

@@ -49,7 +49,6 @@ OTF2Importer::OTF2Importer()
       exitcount(0),
       sendcount(0),
       recvcount(0),
-      enforceMessageSize(false),
       otfReader(NULL),
       global_def_callbacks(NULL),
       global_evt_callbacks(NULL),
@@ -83,7 +82,7 @@ OTF2Importer::OTF2Importer()
       collective_fragments(NULL),
       metrics(QList<OTF2_AttributeRef>()),
       metric_names(new QList<QString>()),
-      metric_units(new QMap<QString, QString>()),
+      metric_units(new QMap<QString, QString>())
 {
     collective_definitions->insert(0, new OTFCollective(0, 1, "Barrier"));
     collective_definitions->insert(1, new OTFCollective(1, 2, "Bcast"));
@@ -241,13 +240,10 @@ OTF2Importer::~OTF2Importer()
         delete eitr.value();
     }
     delete commMap;
-
-    delete options;
 }
 
-RawTrace * OTF2Importer::importOTF2(const char* otf_file, bool _enforceMessageSize)
+RawTrace * OTF2Importer::importOTF2(const char* otf_file)
 {
-    enforceMessageSize = _enforceMessageSize;
     entercount = 0;
     exitcount = 0;
     sendcount = 0;
@@ -291,7 +287,6 @@ RawTrace * OTF2Importer::importOTF2(const char* otf_file, bool _enforceMessageSi
     processDefinitions();
 
     rawtrace = new RawTrace(num_processes, num_processes);
-    *(rawtrace->options) = *options;
     rawtrace->primaries = primaries;
     rawtrace->second_magnitude = second_magnitude;
     rawtrace->functions = functions;
@@ -762,35 +757,6 @@ OTF2_CallbackCode OTF2Importer::callbackLeave(OTF2_LocationRef locationID,
                                        false);
     ((*((((OTF2Importer*) userData)->rawtrace)->events))[location])->append(er);
 
-    // Note, the leave is the only place the save file stores attributes, so
-    // we only need to check them here.
-    if (OTF2_AttributeList_GetNumberOfElements(attributeList) > 0
-        && ((OTF2Importer * ) userData)->from_saved_version.length() > 0)
-    {
-        QMap<OTF2_StringRef, QString> * strMap = ((OTF2Importer *) userData)->stringMap;
-        QMap<OTF2_AttributeRef, OTF2Attribute *> * attrMap = ((OTF2Importer *) userData)->attributeMap;
-        er->metrics = new QMap<QString, unsigned long long>();
-        er->ravel_info = new QMap<QString, int>();
-        uint64_t metric;
-        for (QList<OTF2_AttributeRef>::Iterator attrRef
-             = ((OTF2Importer *) userData)->metrics.begin();
-             attrRef != ((OTF2Importer *) userData)->metrics.end(); ++attrRef)
-        {
-            OTF2_AttributeList_GetUint64(attributeList, *attrRef, &metric);
-            er->metrics->insert(strMap->value(attrMap->value(*attrRef)->name),
-                                metric);
-        }
-        OTF2_AttributeList_GetUint64(attributeList,
-                                     ((OTF2Importer *) userData)->stepRef,
-                                     &metric);
-        er->ravel_info->insert("step", metric);
-
-        OTF2_AttributeList_GetUint64(attributeList,
-                                     ((OTF2Importer *) userData)->phaseRef,
-                                     &metric);
-        er->ravel_info->insert("phase", metric);
-    }
-
     return OTF2_CALLBACK_SUCCESS;
 }
 
@@ -838,12 +804,10 @@ OTF2_CallbackCode OTF2Importer::callbackMPISend(OTF2_LocationRef locationID,
     unsigned long world_receiver = group->members->at(receiver);
     CommRecord * cr = NULL;
     QLinkedList<CommRecord *> * unmatched = (*(((OTF2Importer *) userData)->unmatched_recvs))[sender];
-    bool useSize = ((OTF2Importer *) userData)->enforceMessageSize;
     for (QLinkedList<CommRecord *>::Iterator itr = unmatched->begin();
          itr != unmatched->end(); ++itr)
     {
-        if (useSize ? OTF2Importer::compareComms((*itr), sender, world_receiver, msgTag, msgLength)
-                    : OTF2Importer::compareComms((*itr), sender, world_receiver, msgTag))
+        if (OTF2Importer::compareComms((*itr), sender, world_receiver, msgTag))
         {
             cr = *itr;
             cr->send_time = converted_time;
@@ -888,12 +852,10 @@ OTF2_CallbackCode OTF2Importer::callbackMPIIsend(OTF2_LocationRef locationID,
     unsigned long sender = ((OTF2Importer *) userData)->locationIndexMap->value(locationID);
     CommRecord * cr = NULL;
     QLinkedList<CommRecord *> * unmatched = (*(((OTF2Importer *) userData)->unmatched_recvs))[sender];
-    bool useSize = ((OTF2Importer *) userData)->enforceMessageSize;
     for (QLinkedList<CommRecord *>::Iterator itr = unmatched->begin();
          itr != unmatched->end(); ++itr)
     {
-        if (useSize ? OTF2Importer::compareComms((*itr), sender, receiver, msgTag, msgLength)
-                    : OTF2Importer::compareComms((*itr), sender, receiver, msgTag))
+        if (OTF2Importer::compareComms((*itr), sender, receiver, msgTag))
         {
             cr = *itr;
             cr->send_time = converted_time;
@@ -1021,12 +983,10 @@ OTF2_CallbackCode OTF2Importer::callbackMPIRecv(OTF2_LocationRef locationID,
     unsigned long world_sender = group->members->at(sender);
     CommRecord * cr = NULL;
     QLinkedList<CommRecord *> * unmatched = (*(((OTF2Importer*) userData)->unmatched_sends))[world_sender];
-    bool useSize = ((OTF2Importer *) userData)->enforceMessageSize;
     for (QLinkedList<CommRecord *>::Iterator itr = unmatched->begin();
          itr != unmatched->end(); ++itr)
     {
-        if (useSize ? OTF2Importer::compareComms((*itr), world_sender, receiver, msgTag, msgLength)
-                    : OTF2Importer::compareComms((*itr), world_sender, receiver, msgTag))
+        if (OTF2Importer::compareComms((*itr), world_sender, receiver, msgTag))
         {
             cr = *itr;
             cr->recv_time = converted_time;
@@ -1070,12 +1030,10 @@ OTF2_CallbackCode OTF2Importer::callbackMPIIrecv(OTF2_LocationRef locationID,
     unsigned long receiver = ((OTF2Importer *) userData)->locationIndexMap->value(locationID);
     CommRecord * cr = NULL;
     QLinkedList<CommRecord *> * unmatched = (*(((OTF2Importer*) userData)->unmatched_sends))[sender];
-    bool useSize = ((OTF2Importer *) userData)->enforceMessageSize;
     for (QLinkedList<CommRecord *>::Iterator itr = unmatched->begin();
          itr != unmatched->end(); ++itr)
     {
-        if (useSize ? OTF2Importer::compareComms((*itr), sender, receiver, msgTag, msgLength)
-                    : OTF2Importer::compareComms((*itr), sender, receiver, msgTag))
+        if (OTF2Importer::compareComms((*itr), sender, receiver, msgTag))
         {
             cr = *itr;
             cr->recv_time = converted_time;

@@ -50,7 +50,6 @@ OTFImporter::OTFImporter()
       exitcount(0),
       sendcount(0),
       recvcount(0),
-      enforceMessageSize(false),
       fileManager(NULL),
       otfReader(NULL),
       handlerArray(NULL),
@@ -103,9 +102,8 @@ OTFImporter::~OTFImporter()
     delete unmatched_sends;
 }
 
-RawTrace * OTFImporter::importOTF(const char* otf_file, bool _enforceMessageSize)
+RawTrace * OTFImporter::importOTF(const char* otf_file)
 {
-    enforceMessageSize = _enforceMessageSize;
     entercount = 0;
     exitcount = 0;
     sendcount = 0;
@@ -447,12 +445,10 @@ int OTFImporter::handleSend(void * userData, uint64_t time, uint32_t sender,
     time = convertTime(userData, time);
     CommRecord * cr = NULL;
     QLinkedList<CommRecord *> * unmatched = (*(((OTFImporter *) userData)->unmatched_recvs))[sender - 1];
-    bool useSize = ((OTFImporter *) userData)->enforceMessageSize;
     for (QLinkedList<CommRecord *>::Iterator itr = unmatched->begin();
          itr != unmatched->end(); ++itr)
     {
-        if (useSize ? OTFImporter::compareComms((*itr), sender, receiver, type, length)
-                    : OTFImporter::compareComms((*itr), sender, receiver, type))
+        if (OTFImporter::compareComms((*itr), sender, receiver, type))
         {
             cr = *itr;
             cr->send_time = time;
@@ -488,12 +484,10 @@ int OTFImporter::handleRecv(void * userData, uint64_t time, uint32_t receiver,
     time = convertTime(userData, time);
     CommRecord * cr = NULL;
     QLinkedList<CommRecord *> * unmatched = (*(((OTFImporter*) userData)->unmatched_sends))[sender - 1];
-    bool useSize = ((OTFImporter *) userData)->enforceMessageSize;
     for (QLinkedList<CommRecord *>::Iterator itr = unmatched->begin();
          itr != unmatched->end(); ++itr)
     {
-        if (useSize ? OTFImporter::compareComms((*itr), sender -1, receiver -1, type, length)
-                    : OTFImporter::compareComms((*itr), sender -1, receiver -1, type))
+        if (OTFImporter::compareComms((*itr), sender -1, receiver -1, type))
         {
             cr = *itr;
             cr->recv_time = time;

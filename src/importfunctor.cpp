@@ -47,14 +47,14 @@ void ImportFunctor::doImportOTF2(QString dataFileName)
     connect(importer, SIGNAL(finishRead()), this, SLOT(finishInitialRead()));
     connect(importer, SIGNAL(matchingUpdate(int, QString)), this,
             SLOT(updateMatching(int, QString)));
-    Trace* trace = importer->importOTF2(dataFileName, options);
+    Trace* trace = importer->importOTF2(dataFileName);
     delete importer;
 
     if (trace)
     {
         connect(trace, SIGNAL(updatePreprocess(int, QString)), this,
                 SLOT(updatePreprocess(int, QString)));
-        trace->preprocess(options);
+        trace->preprocess();
     }
 
     traceElapsed = traceTimer.nsecsElapsed();
@@ -76,14 +76,14 @@ void ImportFunctor::doImportOTF(QString dataFileName)
     connect(importer, SIGNAL(finishRead()), this, SLOT(finishInitialRead()));
     connect(importer, SIGNAL(matchingUpdate(int, QString)), this,
             SLOT(updateMatching(int, QString)));
-    Trace* trace = importer->importOTF(dataFileName, options);
+    Trace* trace = importer->importOTF(dataFileName);
     delete importer;
 
     if (trace)
     {
         connect(trace, SIGNAL(updatePreprocess(int, QString)), this,
                 SLOT(updatePreprocess(int, QString)));
-        trace->preprocess(options);
+        trace->preprocess();
     }
 
     traceElapsed = traceTimer.nsecsElapsed();

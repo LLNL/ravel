@@ -152,7 +152,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
-    delete importdialog;
     delete ui;
 }
 
@@ -181,35 +180,28 @@ void MainWindow::readSettings()
 
 // The following functions relay a signal from one vis (hooked up in the
 // constructor) to all of the rest
-void MainWindow::pushSteps(float start, float stop, bool jump)
+void MainWindow::pushTime(float start, float stop, bool jump)
 {
     for(int i = 0; i < viswidgets.size(); i++)
     {
-        viswidgets[i]->setSteps(start, stop, jump);
+        viswidgets[i]->setTime(start, stop, jump);
     }
 }
 
-void MainWindow::selectEvent(Event * event, bool aggregate, bool overdraw)
+void MainWindow::selectEvent(Event * event)
 {
     for(int i = 0; i < viswidgets.size(); i++)
     {
-        viswidgets[i]->selectEvent(event, aggregate, overdraw);
+        viswidgets[i]->selectEvent(event);
     }
 }
 
-void MainWindow::selectEntities(QList<int> entities, Gnome * gnome)
+void MainWindow::selectEntities(QList<int> entities)
 {
     for(int i = 0; i < viswidgets.size(); i++)
     {
-        viswidgets[i]->selectEntities(entities, gnome);
+        viswidgets[i]->selectEntities(entities);
     }
-}
-
-void MainWindow::launchImportOptions()
-{
-    delete importdialog;
-    importdialog = new ImportOptionsDialog(this, importoptions);
-    importdialog->show();
 }
 
 void MainWindow::launchVisOptions()
@@ -263,19 +255,16 @@ void MainWindow::importTrace(QString dataFileName){
     progress->show();
 
     importThread = new QThread();
-    importWorker = new ImportFunctor(importoptions);
+    importWorker = new ImportFunctor();
     importWorker->moveToThread(importThread);
 
     if (dataFileName.endsWith("otf", Qt::CaseInsensitive))
     {
-        importoptions->origin = ImportOptions::OF_OTF;
         connect(this, SIGNAL(operate(QString)), importWorker,
                 SLOT(doImportOTF(QString)));
     }
     else if (dataFileName.endsWith("otf2", Qt::CaseInsensitive))
     {
-        importoptions->origin = ImportOptions::OF_OTF2;
-        importoptions->waitallMerge = false; // Not applicable
         connect(this, SIGNAL(operate(QString)), importWorker,
                 SLOT(doImportOTF2(QString)));
     }
@@ -360,7 +349,7 @@ void MainWindow::activeTraceChanged(bool first)
     // On the first trace, choose these default settings
     if (first)
     {
-        splitter_sizes[splitterMap[TIMEVIS]] = traditional_height;
+        splitter_sizes[splitterMap[TIMEVIS]] = this->height() - 70;
         viswidgets[TIMEVIS]->setClosed(false);
 
         ui->splitter->setSizes(splitter_sizes);
@@ -422,7 +411,6 @@ void MainWindow::closeTrace()
     else // We must have no traces left
     {
         ui->menuTraces->setEnabled(false);
-        ui->actionSave->setEnabled(false);
         ui->actionClose->setEnabled(false);
         for(int i = 0; i < viswidgets.size(); i++)
         {

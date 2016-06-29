@@ -62,19 +62,17 @@ public:
     void closeEvent(QCloseEvent *);
 
 public slots:
-    void launchImportOptions();
     void launchVisOptions();
 
     // Signal relays
-    void pushSteps(float start, float stop, bool jump = false);
-    void selectEvent(Event * event, bool aggregate, bool overdraw);
-    void selectEntities(QList<int> entities, Gnome *gnome);
+    void pushTime(float start, float stop, bool jump = false);
+    void selectEvent(Event * event);
+    void selectEntities(QList<int> entities);
 
     // Importing & Progress Bar
     void importTracebyGUI();
     void traceFinished(Trace * trace);
     void updateProgress(int portion, QString msg);
-    void traceSwitch();
 
     // High level GUI update
     void handleSplitter(int pos, int index);

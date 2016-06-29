@@ -35,7 +35,6 @@ class CommDrawInterface
 public:
     virtual void drawMessage(QPainter * painter, Message * message)=0;
     virtual void drawCollective(QPainter * painter, CollectiveRecord * cr)=0;
-    virtual void drawDelayTracking(QPainter * painter, CommEvent * p2p)=0;
 };
 
 #endif // COMMDRAWINTERFACE_H

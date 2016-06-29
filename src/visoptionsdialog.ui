@@ -1,28 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-Copyright (c) 2014, Lawrence Livermore National Security, LLC.
-Produced at the Lawrence Livermore National Laboratory.
-
-This file is part of Ravel.
-Written by Kate Isaacs, kisaacs@acm.org, All rights reserved.
-LLNL-CODE-663885
-
-For details, see https://github.com/scalability-llnl/ravel
-Please also see the LICENSE file for our notice and the LGPL.
-
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License (as published by
-the Free Software Foundation) version 2.1 dated February 1999.
-
-This program is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the IMPLIED WARRANTY OF
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the terms and
-conditions of the GNU General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public License
-along with this program; if not, write to the Free Software Foundation,
-Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
--->
 <ui version="4.0">
  <class>VisOptionsDialog</class>
  <widget class="QDialog" name="VisOptionsDialog">
@@ -31,7 +7,7 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
     <x>0</x>
     <y>0</y>
     <width>357</width>
-    <height>292</height>
+    <height>150</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -39,52 +15,9 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QCheckBox" name="showAggregateCheckBox">
-     <property name="toolTip">
-      <string>Show steps in between messaging events. MPI only.</string>
-     </property>
-     <property name="text">
-      <string>show aggregate event steps</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QCheckBox" name="traceBackCheckBox">
-     <property name="toolTip">
-      <string>Experimental.</string>
-     </property>
-     <property name="text">
-      <string>trace back idle time</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QCheckBox" name="inactiveCheckBox">
-     <property name="toolTip">
-      <string>Cluster glyphs have transparent area to show inactive timelines at that step.</string>
-     </property>
-     <property name="text">
-      <string>show inactive proportion in cluster steps</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QCheckBox" name="metricColorTraditionalCheckBox">
-     <property name="toolTip">
-      <string>Physical timeline events also colored using metric.</string>
-     </property>
-     <property name="text">
-      <string>color physical time view with structure metric</string>
-     </property>
-    </widget>
-   </item>
-   <item>
     <widget class="QCheckBox" name="absoluteTimeCheckBox">
-     <property name="toolTip">
-      <string>Physical time axis shows absolute time rather than offset time.</string>
-     </property>
      <property name="text">
-      <string>absolute time in physical time view</string>
+      <string>use absolute time</string>
      </property>
     </widget>
    </item>

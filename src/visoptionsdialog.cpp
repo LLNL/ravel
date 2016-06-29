@@ -89,12 +89,6 @@ void VisOptionsDialog::onAbsoluteTime(bool absolute)
     options->absoluteTime = absolute;
 }
 
-
-void VisOptionsDialog::onMetricColorTraditional(bool metricColor)
-{
-    options->colorTraditionalByMetric = metricColor;
-}
-
 void VisOptionsDialog::onMetric(QString metric)
 {
     if (!isSet)
@@ -132,10 +126,7 @@ void VisOptionsDialog::onColorCombo(QString type)
 
 void VisOptionsDialog::setUIState()
 {
-    if (options->absoluteTime)
-        ui->absoluteTimeCheckBox->setChecked(true);
-    else
-        ui->absoluteTimeCheckBox->setChecked(true);
+    ui->absoluteTimeCheckBox->setChecked(options->absoluteTime);
 
     if (options->maptype == VisOptions::COLOR_SEQUENTIAL)
         ui->colorComboBox->setCurrentIndex(0);

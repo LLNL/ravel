@@ -48,7 +48,7 @@ public:
     void mouseMoveEvent(QMouseEvent * event);
 
 public slots:
-    void setSteps(float start, float stop, bool jump = false);
+    void setTime(float start, float stop, bool jump = false);
 
 protected:
     void qtPaint(QPainter *painter);
@@ -61,7 +61,6 @@ private:
     // We can do this by time or steps, currently steps
     unsigned long long minTime;
     unsigned long long maxTime;
-    int maxTime;
     int startCursor;
     int stopCursor;
     unsigned long long startTime;

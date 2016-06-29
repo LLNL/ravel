@@ -46,7 +46,7 @@ class OTF2Importer
 public:
     OTF2Importer();
     ~OTF2Importer();
-    RawTrace * importOTF2(const char* otf_file, bool _enforceMessageSize);
+    RawTrace * importOTF2(const char* otf_file);
 
     class OTF2Attribute {
     public:
@@ -359,8 +359,6 @@ private:
     void setEvtCallbacks();
     void processCollectives();
     void defineEntities();
-
-    bool enforceMessageSize;
 
     OTF2_Reader * otfReader;
     OTF2_GlobalDefReaderCallbacks * global_def_callbacks;
