@@ -75,7 +75,7 @@ MainWindow::MainWindow(QWidget *parent) :
                                                                    ui->overviewLabelWidget));
 
     connect(overview, SIGNAL(timeChanged(float, float, bool)), this,
-            SLOT(pushSteps(float, float, bool)));
+            SLOT(pushTime(float, float, bool)));
     viswidgets.push_back(overview);
     splitterMap.push_back(1);
     splitterActions.push_back(ui->actionMetric_Overview);
@@ -93,9 +93,9 @@ MainWindow::MainWindow(QWidget *parent) :
     timescaleLabel->setAlignment(Qt::AlignRight | Qt::AlignBottom);
 
     connect((timevis), SIGNAL(timeChanged(float, float, bool)), this,
-            SLOT(pushSteps(float, float, bool)));
-    connect((timevis), SIGNAL(eventClicked(Event *, bool, bool)), this,
-            SLOT(selectEvent(Event *, bool, bool)));
+            SLOT(pushTime(float, float, bool)));
+    connect((timevis), SIGNAL(eventClicked(Event *)), this,
+            SLOT(selectEvent(Event *)));
     connect((timevis), SIGNAL(timeScaleString(QString)), timescaleLabel,
             SLOT(setText(QString)));
     viswidgets.push_back(timevis);
@@ -277,7 +277,6 @@ void MainWindow::importTrace(QString dataFileName){
         delete importWorker;
     }
 
-    connect(importWorker, SIGNAL(switching()), this, SLOT(traceSwitch()));
     connect(importWorker, SIGNAL(done(Trace *)), this,
             SLOT(traceFinished(Trace *)));
     connect(importWorker, SIGNAL(reportProgress(int, QString)), this,
@@ -336,6 +335,8 @@ void MainWindow::activeTraceChanged(bool first)
     if (!traces[activeTrace]->metrics->contains(visoptions->metric))
     {
         visoptions->metric = "None";
+        if (traces[activeTrace]->metrics->size() > 0)
+            visoptions->metric = traces[activeTrace]->metrics->at(0);
     }
 
     for(int i = 0; i < viswidgets.size(); i++)

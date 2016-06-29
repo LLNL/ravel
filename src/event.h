@@ -64,7 +64,7 @@ public:
 
     bool hasMetric(QString name);
     double getMetric(QString name);
-
+    void addMetric(QString name, double event_value);
 
     // Call tree info
     Event * caller;

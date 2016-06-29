@@ -61,6 +61,7 @@ private:
     // We can do this by time or steps, currently steps
     unsigned long long minTime;
     unsigned long long maxTime;
+    unsigned long long initTime;
     int startCursor;
     int stopCursor;
     unsigned long long startTime;

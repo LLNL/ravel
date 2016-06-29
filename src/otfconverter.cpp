@@ -164,6 +164,7 @@ void OTFConverter::convert()
 // link them into a call tree
 void OTFConverter::matchEvents()
 {
+    trace->metrics->append("Function Count");
     // We can handle each set of events separately
     QStack<EventRecord *> * stack = new QStack<EventRecord *>();
 
@@ -402,6 +403,7 @@ void OTFConverter::matchEvents()
                     }
                 }
 
+                e->addMetric("Function Count", 1);
                 (*(trace->events))[(*evt)->entity]->append(e);
             }
             else // Begin a subroutine
@@ -433,6 +435,7 @@ void OTFConverter::matchEvents()
             endtime = std::max(endtime, bgn->time);
             Event * e = new Event(bgn->time, endtime, bgn->value,
                           bgn->entity, bgn->entity);
+            e->addMetric("Function Count", 1);
             if (!stack->isEmpty())
             {
                 stack->top()->children.append(e);

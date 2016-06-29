@@ -232,14 +232,20 @@ void TraditionalVis::wheelEvent(QWheelEvent * event)
     } else {
         // Horizontal
         lastStartTime = startTime;
-        float middleTime = startTime + timeSpan / 2.0;
+        double middleTime = startTime + timeSpan / 2.0;
         timeSpan *= scale;
         startTime = middleTime - timeSpan / 2.0;
+        if (startTime < 0)
+        {
+            timeSpan += startTime;
+            startTime = 0;
+        }
     }
     repaint();
     changeSource = true;
     // startTime & timeSpan are calculated during painting when we
     // examine each element
+    std::cout << "New time: " << startTime << " - " << (startTime + timeSpan) << " : " << timeSpan << std::endl;
     emit timeChanged(startTime, startTime + timeSpan, false);
 }
 
@@ -653,7 +659,7 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
         if (evt == selected_event)
             painter->setPen(QPen(QColor(0, 0, 0)));
 
-        unsigned long long drawnEnter = std::max(startTime, evt->enter);
+        unsigned long long drawnEnter = std::max((unsigned long long) startTime, evt->enter);
         unsigned long long available_w = (evt->getVisibleEnd(drawnEnter)
                            - drawnEnter)
                             / 1.0 / timeSpan * rect().width() + 2;

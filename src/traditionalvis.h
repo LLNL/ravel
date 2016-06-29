@@ -84,10 +84,10 @@ private:
         unsigned long long stop;
     };
 
-    unsigned long long minTime;
-    unsigned long long maxTime;
-    unsigned long long startTime;
-    unsigned long long timeSpan;
+    double minTime;
+    double maxTime;
+    double startTime;
+    double timeSpan;
     QRect lassoRect;
     float blockheight;
 

@@ -144,3 +144,9 @@ double Event::getMetric(QString name)
 
     return 0;
 }
+
+void Event::addMetric(QString name, double event_value)
+{
+    metrics->addMetric(name, event_value);
+}
+

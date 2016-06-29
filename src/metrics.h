@@ -16,15 +16,7 @@ public:
     double getMetric(QString name);
     QList<QString> getMetricList();
 
-    class MetricPair {
-    public:
-        MetricPair(double _e)
-            : event(_e) {}
-
-        double event; // value at event
-    };
-
-    QMap<QString, MetricPair *> * metrics; // Lateness or Counters etc
+    QMap<QString, double> * metrics; // Lateness or Counters etc
 };
 
 #endif // METRICS_H

@@ -164,6 +164,9 @@ void Trace::preprocess()
 // Find the smallest event in a timeline that contains the given time
 Event * Trace::findEvent(int entity, unsigned long long time)
 {
+    if (entity < 0 || entity >= roots->size())
+        return NULL;
+
     Event * found = NULL;
     for (QVector<Event *>::Iterator root = roots->at(entity)->begin();
          root != roots->at(entity)->end(); ++root)

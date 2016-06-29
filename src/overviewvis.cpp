@@ -30,6 +30,7 @@
 #include "trace.h"
 #include "event.h"
 #include "commevent.h"
+#include "function.h"
 
 OverviewVis::OverviewVis(QWidget *parent, VisOptions * _options)
     : VisWidget(parent = parent, _options = _options)
@@ -120,9 +121,9 @@ void OverviewVis::mouseReleaseEvent(QMouseEvent * event) {
     // PreVis int timespan = maxTime - minTime;
     int width = size().width() - 2 * border;
 
-    unsigned long long timeSpan = maxTime - minTime;
-    startTime = (startCursor / 1.0 / width) * timeSpan + minTime;
-    stopTime = (stopCursor / 1.0 / width) * timeSpan + minTime;
+    unsigned long long timeSpan = maxTime - initTime;
+    startTime = (startCursor / 1.0 / width) * timeSpan + initTime;
+    stopTime = (stopCursor / 1.0 / width) * timeSpan + initTime;
 
     changeSource = true;
     emit timeChanged(startTime, stopTime, true);
@@ -137,9 +138,17 @@ void OverviewVis::setTrace(Trace * t)
     cacheMetric = options->metric;
     maxTime = trace->max_time;
     minTime = trace->min_time;
+    initTime = minTime;
+    for (QVector<QVector<Event *> *>::Iterator events = trace->events->begin();
+         events != trace->events->end(); ++events)
+    {
+        if (trace->functions->value((*events)->first()->function)->name == "MPI_Init"
+            && (*events)->first()->exit > initTime)
+            initTime = (*events)->first()->exit;
+    }
 
-    startTime = minTime;
-    stopTime = initTimeSpan + minTime;
+    startTime = initTime;
+    stopTime = initTimeSpan + initTime;
 }
 
 
@@ -153,7 +162,7 @@ void OverviewVis::processVis()
         return;
     int width = size().width() - 2 * border;
     heights = QVector<float>(width, 0);
-    int timeSpan = maxTime - minTime + 1;
+    unsigned long long timeSpan = maxTime - initTime + 1;
     timeWidth = width / 1.0 / timeSpan;
     int start_int, stop_int;
     QString metric = options->metric;
@@ -170,8 +179,8 @@ void OverviewVis::processVis()
             // value
 
             // start and stop are the cursor positions
-            float start = (width - 1) * (((*evt)->enter - minTime) / 1.0 / timeSpan);
-            float stop = start + timeWidth * ((*evt)->exit - (*evt)->exit);
+            float start = (width - 1) * ((std::max((double)(*evt)->enter - initTime, 0.0)) / 1.0 / timeSpan);
+            float stop = start + std::max(0.0, (double) timeWidth * ((double) (*evt)->exit - std::max((*evt)->enter, initTime)));
             start_int = static_cast<int>(start);
             stop_int = static_cast<int>(stop);
 
