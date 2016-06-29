@@ -70,8 +70,17 @@ void TraditionalVis::setTrace(Trace * t)
     // Determine/save time information
     minTime = t->min_time;
     maxTime = t->max_time;
-    startTime = minTime;
-    timeSpan = startTime + initTimeSpan;
+    double initTime = minTime;
+    for (QVector<QVector<Event *> *>::Iterator events = trace->events->begin();
+         events != trace->events->end(); ++events)
+    {
+        if (trace->functions->value((*events)->first()->function)->name == "MPI_Init"
+            && (*events)->first()->exit > initTime)
+            initTime = (*events)->first()->exit;
+    }
+
+    startTime = initTime;
+    timeSpan = std::min((double) initTimeSpan, maxTime - initTime);
 }
 
 void TraditionalVis::mouseDoubleClickEvent(QMouseEvent * event)
@@ -245,7 +254,6 @@ void TraditionalVis::wheelEvent(QWheelEvent * event)
     changeSource = true;
     // startTime & timeSpan are calculated during painting when we
     // examine each element
-    std::cout << "New time: " << startTime << " - " << (startTime + timeSpan) << " : " << timeSpan << std::endl;
     emit timeChanged(startTime, startTime + timeSpan, false);
 }
 
@@ -274,7 +282,6 @@ void TraditionalVis::prepaint()
     if (!visProcessed)
         return;
     closed = false;
-    drawnEvents.clear();    
 }
 
 
@@ -285,8 +292,10 @@ void TraditionalVis::drawNativeGL()
         return;
 
     int effectiveHeight = rect().height() - timescaleHeight;
-    if (effectiveHeight / entitySpan >= 3 && rect().width() / timeSpan >= 3)
+    if (effectiveHeight / entitySpan >= 3 && drawnEvents.size() < 6000)
         return;
+
+    drawnEvents.clear();
 
     // Setup viewport
     int width = rect().width();
@@ -348,6 +357,7 @@ void TraditionalVis::paintNotStepEventsGL(Event * evt,
     if (evt->enter > startTime + timeSpan || evt->exit < startTime)
         return; // Out of time
 
+    drawnEvents[evt] = QRect(0,0,0,0);
     int x, y, w, h;
     w = evt->exit - evt->enter;
     y = (entitySpan + startEntity - position) * barheight - 1;
@@ -358,9 +368,9 @@ void TraditionalVis::paintNotStepEventsGL(Event * evt,
         w -= (startTime - evt->enter);
 
     QColor color = options->colormap->color(evt->getMetric(options->metric)); //    (*(*evt)->metrics)[metric]->event);
-    if (evt->hasMetric(options->metric))
-        color= options->colormap->color(evt->getMetric(options->metric));
-    else
+    //if (evt->hasMetric(options->metric))
+    //    color= options->colormap->color(evt->getMetric(options->metric));
+    //else
     {
         if (evt == selected_event)
         {
@@ -403,8 +413,11 @@ void TraditionalVis::qtPaint(QPainter *painter)
     if(!visProcessed)
         return;
 
-    if ((rect().height() - timescaleHeight) / entitySpan >= 3)
+    if ((rect().height() - timescaleHeight) / entitySpan >= 3 && drawnEvents.size() <= 6000)
+    {
+        drawnEvents.clear();
         paintEvents(painter);
+    }
 
     drawEntityLabels(painter, rect().height() - timescaleHeight,
                       entityheight);
@@ -644,7 +657,7 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
             painter->fillRect(QRectF(x, y, w, h),
                               QBrush(QColor(graycolor, graycolor, graycolor)));
         }
-
+        drawnEvents[evt] = QRect(x, y, w, h);
 
         // Draw border
         if (entity_spacing > 0)
