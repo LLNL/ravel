@@ -44,7 +44,6 @@ public:
     bool enter;
     QList<Event *> children;
     QMap<QString, unsigned long long> * metrics;
-    QMap<QString, int> * ravel_info;
 
     // Based on time
     bool operator<(const EventRecord &);

@@ -95,17 +95,17 @@ void ImportFunctor::doImportOTF(QString dataFileName)
 
 void ImportFunctor::finishInitialRead()
 {
-    emit(reportProgress(25, "Constructing events..."));
+    emit(reportProgress(35, "Constructing events..."));
 }
 
 void ImportFunctor::updateMatching(int portion, QString msg)
 {
-    emit(reportProgress(25 + portion, msg));
+    emit(reportProgress(35 + portion, msg));
 }
 
 void ImportFunctor::updatePreprocess(int portion, QString msg)
 {
-    emit(reportProgress(50 + portion / 2.0, msg));
+    emit(reportProgress(95 + portion / 2.0, msg));
 }
 
 void ImportFunctor::switchProgress()

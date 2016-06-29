@@ -31,7 +31,6 @@
 #include <QSet>
 #include <QMap>
 
-class Partition;
 class CommBundle;
 class Message;
 class CollectiveRecord;
@@ -64,7 +63,6 @@ public:
     virtual CollectiveRecord * getCollective() { return NULL; }
 
 
-    Partition * partition;
     CommEvent * comm_next;
     CommEvent * comm_prev;
     CommEvent * true_next;

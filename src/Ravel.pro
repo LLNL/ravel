@@ -48,7 +48,6 @@ SOURCES  += main.cpp \
     visoptions.cpp \
     collectiverecord.cpp \
     verticallabel.cpp \
-    rpartition.cpp \
     metricrangedialog.cpp \
     otfcollective.cpp \
     commevent.cpp \
@@ -83,7 +82,6 @@ HEADERS += \
     visoptions.h \
     collectiverecord.h \
     verticallabel.h \
-    rpartition.h \
     metricrangedialog.h \
     otfcollective.h \
     commevent.h \

@@ -27,12 +27,10 @@
 #include <otf2/OTF2_GeneralDefinitions.h>
 #include <iostream>
 #include "metrics.h"
-#include "rpartition.h"
 
 CommEvent::CommEvent(unsigned long long _enter, unsigned long long _exit,
                      int _function, int _entity, int _pe, int _phase)
     : Event(_enter, _exit, _function, _entity, _pe),
-      partition(NULL),
       comm_next(NULL),
       comm_prev(NULL),
       true_next(NULL),
@@ -82,7 +80,7 @@ bool CommEvent::hasMetric(QString name)
     else if (caller && caller->metrics->hasMetric(name))
         return true;
     else
-        return partition->metrics->hasMetric(name);
+        return false;
 }
 
 double CommEvent::getMetric(QString name)
@@ -92,9 +90,6 @@ double CommEvent::getMetric(QString name)
 
     if (caller && caller->metrics->hasMetric(name))
         return caller->metrics->getMetric(name);
-
-    if (partition->metrics->hasMetric(name))
-        return partition->metrics->getMetric(name);
 
     return 0;
 }

@@ -36,7 +36,6 @@
 #include "otfcollective.h"
 #include "function.h"
 #include "entity.h"
-#include "importoptions.h"
 #include "primaryentitygroup.h"
 
 OTF2Importer::OTF2Importer()
@@ -51,7 +50,6 @@ OTF2Importer::OTF2Importer()
       sendcount(0),
       recvcount(0),
       enforceMessageSize(false),
-      options(new ImportOptions()),
       otfReader(NULL),
       global_def_callbacks(NULL),
       global_evt_callbacks(NULL),
@@ -86,8 +84,6 @@ OTF2Importer::OTF2Importer()
       metrics(QList<OTF2_AttributeRef>()),
       metric_names(new QList<QString>()),
       metric_units(new QMap<QString, QString>()),
-      stepRef(0),
-      phaseRef(0)
 {
     collective_definitions->insert(0, new OTFCollective(0, 1, "Barrier"));
     collective_definitions->insert(1, new OTFCollective(1, 2, "Bcast"));
@@ -569,41 +565,6 @@ void OTF2Importer::processDefinitions()
             t->entityorder->insert(t->entities->at(i), i);
         entitygroups->insert(index, t);
         index++;
-    }
-
-    // Ravel info
-    for (QMap<OTF2_AttributeRef, OTF2Attribute *>::Iterator attr = attributeMap->begin();
-         attr != attributeMap->end(); ++attr)
-    {
-        OTF2Attribute * attribute = attr.value();
-        QString name = stringMap->value(attribute->name);
-        if (name == "Ravel")
-        {
-            from_saved_version = stringMap->value(attribute->description);
-            options->origin = ImportOptions::OF_SAVE_OTF2;
-        }
-        else if (name == "step")
-        {
-            stepRef = attr.key();
-        }
-        else if (name == "phase")
-        {
-            phaseRef = attr.key();
-        }
-        else if (name.startsWith("option_")) // Import Options
-        {
-            options->setOption(name, stringMap->value(attribute->description));
-        }
-        else
-        {
-            metrics.append(attr.key());
-            if (name.endsWith("_agg"))
-            {
-                metric_names->append(name.left(name.length() - 4));
-                metric_units->insert(metric_names->last(),
-                                     stringMap->value(attribute->description));
-            }
-        }
     }
 }
 

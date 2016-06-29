@@ -48,7 +48,6 @@ TraditionalVis::TraditionalVis(QWidget * parent, VisOptions * _options)
     maxTime(0),
     startTime(0),
     timeSpan(0),
-    stepToTime(new QVector<TimePair *>()),
     lassoRect(QRect()),
     blockheight(0)
 {
@@ -57,13 +56,6 @@ TraditionalVis::TraditionalVis(QWidget * parent, VisOptions * _options)
 
 TraditionalVis::~TraditionalVis()
 {
-    for (QVector<TimePair *>::Iterator itr = stepToTime->begin();
-         itr != stepToTime->end(); itr++)
-    {
-        delete *itr;
-        *itr = NULL;
-    }
-    delete stepToTime;
 }
 
 void TraditionalVis::setTrace(Trace * t)
@@ -71,43 +63,16 @@ void TraditionalVis::setTrace(Trace * t)
     VisWidget::setTrace(t);
 
     // Initial conditions
-    startTime = 0;
-    int stopTime = startTime + inittimeSpan;
     startEntity = 0;
     entitySpan = trace->num_pes;
     maxEntities = trace->num_pes;
     startPartition = 0;
 
     // Determine/save time information
-    minTime = ULLONG_MAX;
-    maxTime = 0;
-    startTime = ULLONG_MAX;
-    unsigned long long stopTime = 0;
-    maxTime = trace->max_time;
-    for (QList<Partition*>::Iterator part = trace->partitions->begin();
-         part != trace->partitions->end(); ++part)
-    {
-        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
-             = (*part)->events->begin(); event_list != (*part)->events->end();
-             ++event_list)
-        {
-            for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
-                 evt != (event_list.value())->end(); ++evt)
-            {
-                if ((*evt)->exit > maxTime)
-                    maxTime = (*evt)->exit;
-                if ((*evt)->enter < minTime)
-                    minTime = (*evt)->enter;
-                if ((*evt)->step >= boundStep(startTime)
-                        && (*evt)->enter < startTime)
-                    startTime = (*evt)->enter;
-                if ((*evt)->step <= boundStep(stopTime)
-                        && (*evt)->exit > stopTime)
-                    stopTime = (*evt)->exit;
-            }
-        }
-    }
-    timeSpan = stopTime - startTime;
+    minTime = t->min_time;
+    maxTime = t->max_time;
+    startTime = minTime;
+    timeSpan = startTime + initTimeSpan;
 }
 
 void TraditionalVis::mouseDoubleClickEvent(QMouseEvent * event)
@@ -304,60 +269,7 @@ void TraditionalVis::prepaint()
     if (!visProcessed)
         return;
     closed = false;
-    drawnEvents.clear();
-    int bottomTime = floor(startTime) - 1;
-    // Fix bottomTime in the case where there are no steps in the view,
-    // otherwise partition place will be lost
-    while (bottomTime > 0 && stepToTime->value(bottomTime/2)->stop > startTime)
-       bottomTime -= 2;
-    if (jumped) // We have to redo the active_partitions
-    {
-        // We know this list is in order, so we only have to go so far
-        //int topStep = boundStep(startTime + timeSpan) + 1;
-        Partition * part = NULL;
-        for (int i = 0; i < trace->partitions->length(); ++i)
-        {
-            part = trace->partitions->at(i);
-            if (part->max_time >= bottomTime)
-            {
-                startPartition = i;
-                break;
-            }
-        }
-    }
-    else // We nudge the active partitions as necessary
-    {
-        Partition * part = NULL;
-        if (startTime <= lastStartTime) // check earlier partitions
-        {
-            // Keep setting the one before until its right
-            for (int i = startPartition; i >= 0; --i)
-            {
-                part = trace->partitions->at(i);
-                if (part->max_time >= bottomTime)
-                {
-                    startPartition = i;
-                }
-                else
-                {
-                    break;
-                }
-            }
-        }
-        else if (startTime > lastStartTime) // check current partitions up
-        {
-            // As soon as we find one, we're good
-            for (int i = startPartition; i < trace->partitions->length(); ++i)
-            {
-                part = trace->partitions->at(i);
-                if (part->max_time >= bottomTime)
-                {
-                    startPartition = i;
-                    break;
-                }
-            }
-        }
-    }
+    drawnEvents.clear();    
 }
 
 
@@ -370,9 +282,6 @@ void TraditionalVis::drawNativeGL()
     int effectiveHeight = rect().height() - timescaleHeight;
     if (effectiveHeight / entitySpan >= 3 && rect().width() / timeSpan >= 3)
         return;
-
-    QString metric(options->metric);
-    unsigned long long stopTime = startTime + timeSpan;
 
     // Setup viewport
     int width = rect().width();
@@ -392,20 +301,29 @@ void TraditionalVis::drawNativeGL()
 
     // Generate buffers to hold each bar. We don't know how many there will
     // be since we draw one per event.
-    QVector<GLfloat> bars = QVector<GLfloat>();
-    QVector<GLfloat> colors = QVector<GLfloat>();
+    QVector<GLfloat> * bars = new QVector<GLfloat>();
+    QVector<GLfloat> * colors = new QVector<GLfloat>();
 
     // Process events for values
     float x, y, w; // true position
     float position; // placement of entity
-    Partition * part = NULL;
-    int oldStart = startTime;
-    int oldStop = timeSpan + startTime;
-    int step, stopTime = 0;
+    int stopTime = 0;
     int uppertime = startTime + timeSpan + 2;
     startTime = maxStep;
     QColor color;
     float maxEntity = entitySpan + startEntity;
+
+    for (int i = start; i <= end; ++i)
+    {
+        position = i;
+        QVector<Event *> * roots = trace->roots->at(i);
+        for (QVector<Event *>::Iterator root = roots->begin();
+             root != roots->end(); ++root)
+        {
+            paintNotStepEventsGL(painter, *root, position, entity_spacing,
+                                 barheight, blockheight, &extents, bars, colors);
+        }
+    }
     for (int i = startPartition; i < trace->partitions->length(); ++i)
     {
         part = trace->partitions->at(i);
@@ -432,14 +350,6 @@ void TraditionalVis::drawNativeGL()
                     continue;
 
 
-                // save step information for emitting
-                step = (*evt)->step;
-                if (step >= 0 && step > stopTime)
-                    stopTime = step;
-                if (step >= 0 && step < startTime) {
-                    startTime = step;
-                }
-
                 // Calculate position of this bar in float space
                 w = (*evt)->exit - (*evt)->enter;
                 x = 0;
@@ -460,19 +370,19 @@ void TraditionalVis::drawNativeGL()
                         color = QColor(200, 200, 255);
                 }
 
-                bars.append(x);
-                bars.append(y);
-                bars.append(x);
-                bars.append(y + barheight);
-                bars.append(x + w);
-                bars.append(y + barheight);
-                bars.append(x + w);
-                bars.append(y);
+                bars->append(x);
+                bars->append(y);
+                bars->append(x);
+                bars->append(y + barheight);
+                bars->append(x + w);
+                bars->append(y + barheight);
+                bars->append(x + w);
+                bars->append(y);
                 for (int j = 0; j < 4; ++j)
                 {
-                    colors.append(color.red() / 255.0);
-                    colors.append(color.green() / 255.0);
-                    colors.append(color.blue() / 255.0);
+                    colors->append(color.red() / 255.0);
+                    colors->append(color.green() / 255.0);
+                    colors->append(color.blue() / 255.0);
                 }
 
             }
@@ -482,17 +392,76 @@ void TraditionalVis::drawNativeGL()
     // Draw
     glEnableClientState(GL_COLOR_ARRAY);
     glEnableClientState(GL_VERTEX_ARRAY);
-    glColorPointer(3,GL_FLOAT,0,colors.constData());
-    glVertexPointer(2,GL_FLOAT,0,bars.constData());
-    glDrawArrays(GL_QUADS,0,bars.size()/2);
+    glColorPointer(3,GL_FLOAT,0,colors->constData());
+    glVertexPointer(2,GL_FLOAT,0,bars->constData());
+    glDrawArrays(GL_QUADS,0,bars->size()/2);
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_COLOR_ARRAY);
-    if (stopTime == 0 && startTime == maxStep)
+    delete bars;
+    delete colors;
+}
+
+// To make sure events have correct overlapping, this draws from the root down
+// TODO: Have a level cut off so we don't descend all the way down the tree
+void TraditionalVis::paintNotStepEventsGL(QPainter *painter, Event * evt,
+                                          float position, float barheight,
+                                          QVector<GLfloat> * bars,
+                                          QVector<GLfloat> * colors)
+{
+    if (evt->enter > startTime + timeSpan || evt->exit < startTime)
+        return; // Out of time
+
+    int x, y, w, h;
+    w = evt->exit - evt->enter;
+    y = (entitySpan + startEntity - position) * barheight - 1;
+    x = 0;
+    if (evt->enter >= startTime)
+        x = evt->enter - startTime;
+    else
+        w -= (startTime - evt->enter);
+
+    color = options->colormap->color((*evt)->getMetric(options->metric)); //    (*(*evt)->metrics)[metric]->event);
+    if (options->colorTraditionalByMetric
+            && evt->hasMetric(options->metric))
+        color= options->colormap->color((*evt)->getMetric(options->metric));
+    else
     {
-        stopTime = oldStop;
-        startTime = oldStart;
+        if (evt == selected_event)
+        {
+            color = Qt::yellow;
+        }
+        else
+        {
+            int graycolor = std::max(100, 100 + evt->depth * 20);
+            color = QColor(graycolor, graycolor, graycolor);
+        }
     }
-    timeSpan = stopTime - startTime;
+
+    QBrush(QColor(graycolor, graycolor, graycolor));
+
+    bars->append(x);
+    bars->append(y);
+    bars->append(x);
+    bars->append(y + barheight);
+    bars->append(x + w);
+    bars->append(y + barheight);
+    bars->append(x + w);
+    bars->append(y);
+    for (int j = 0; j < 4; ++j)
+    {
+        colors->append(color.red() / 255.0);
+        colors->append(color.green() / 255.0);
+        colors->append(color.blue() / 255.0);
+    }
+
+    for (QVector<Event *>::Iterator child = evt->callees->begin();
+         child != evt->callees->end(); ++child)
+    {
+        paintNotStepEvents(painter, *child, position,
+                           barheight, bars, colors);
+    }
+
+
 }
 
 
@@ -526,246 +495,31 @@ void TraditionalVis::paintEvents(QPainter *painter)
     if (canvasHeight / entitySpan > 12)
         entity_spacing = 3;
 
-    float x, y, w, h;
-    float cx, cw; // For extended color
     blockheight = floor(canvasHeight / entitySpan);
     float barheight = blockheight - entity_spacing;
     entityheight = blockheight;
-    int oldStart = startTime;
-    int oldStop = timeSpan + startTime;
-    int upperTime = startTime + timeSpan + 2;
     startTime = maxStep;
-    int stopTime = 0;
     QRect extents = QRect(labelWidth, 0, rect().width(), canvasHeight);
 
     painter->setFont(QFont("Helvetica", 10));
-    QFontMetrics font_metrics = painter->fontMetrics();
 
-    int position, step;
-    bool complete;
-    //QSet<Message *> drawMessages = QSet<Message *>();
+    int position;
     QSet<CommBundle *> drawComms = QSet<CommBundle *>();
     QSet<CommBundle *> selectedComms = QSet<CommBundle *>();
-    unsigned long long stopTime = startTime + timeSpan;
     painter->setPen(QPen(QColor(0, 0, 0)));
-    Partition * part = NULL;
 
     int start = std::max(int(floor(startEntity)), 0);
     int end = std::min(int(ceil(startEntity + entitySpan)),
                        trace->num_pes - 1);
     for (int i = start; i <= end; ++i)
     {
-        position = order_to_proc[i];
+        position = i;
         QVector<Event *> * roots = trace->roots->at(i);
         for (QVector<Event *>::Iterator root = roots->begin();
              root != roots->end(); ++root)
         {
             paintNotStepEvents(painter, *root, position, entity_spacing,
                                barheight, blockheight, &extents);
-        }
-    }
-
-    int one_tick = std::max(2.0, ceil(rect().width() / 1.0 / timeSpan));
-
-    for (int i = startPartition; i < trace->partitions->length(); ++i)
-    {
-        part = trace->partitions->at(i);
-        if (part->min_time > upperTime)
-            break;
-        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
-             = part->events->begin(); event_list != part->events->end();
-             ++event_list)
-        {
-
-            for (QList<CommEvent *>::Iterator evt = (event_list.value())->begin();
-                 evt != (event_list.value())->end(); ++evt)
-            {
-
-                position = (*evt)->pe;
-                // Out of entity span test
-               if (position < floor(startEntity)
-                       || position > ceil(startEntity + entitySpan))
-                   continue;
-                y = floor((position - startEntity) * blockheight) + 1;
-
-
-                 // Out of time span test
-                if ((*evt)->exit < startTime || (*evt)->enter > stopTime)
-                    continue;
-
-                w = ((*evt)->exit - (*evt)->enter) / 1.0
-                        / timeSpan * rect().width();
-                cw = ((*evt)->extent_end - (*evt)->extent_begin) / 1.0
-                        / timeSpan * rect().width();
-
-                if ((*evt)->exit == (*evt)->enter)
-                {
-                    w = one_tick;
-                }
-                if ((*evt)->extent_end == (*evt)->extent_begin)
-                {
-                    cw = one_tick;
-                }
-
-
-                if (w >= 2) // we know cw >= w
-                {
-                    x = floor(static_cast<long long>((*evt)->enter - startTime)
-                              / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
-                    h = barheight;
-
-                    cx = floor(static_cast<long long>((*evt)->extent_begin - startTime)
-                               / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
-
-
-                    // Corrections for partially drawn
-                    complete = true;
-                    if (y < 0) {
-                        h = barheight - fabs(y);
-                        y = 0;
-                        complete = false;
-                    } else if (y + barheight > canvasHeight) {
-                        h = canvasHeight - y;
-                        complete = false;
-                    }
-                    if (x < labelWidth) {
-                        w -= (labelWidth - x);
-                        x = labelWidth;
-                        complete = false;
-                    } else if (x + w > rect().width()) {
-                        w = rect().width() - x;
-                        complete = false;
-                    }
-
-                    if (cx < labelWidth) {
-                        cw -= (labelWidth - cx);
-                        cx = labelWidth;
-                        complete = false;
-                    } else if (cx + cw > rect().width()) {
-                        cw = rect().width() - cx;
-                        complete = false;
-                    }
-
-
-                    // Change pen color if selected
-                    if (*evt == selected_event && !selected_aggregate)
-                        painter->setPen(QPen(Qt::yellow));
-
-                    if (options->colorTraditionalByMetric
-                        && (*evt)->hasMetric(options->metric))
-                    {
-                        // Background color on the larger image
-                        if (entity_spacing > 0)
-                            painter->fillRect(QRectF(cx+1, y+1, cw-2, h-2),
-                                              QBrush(options->colormap->color((*evt)->getMetric(options->metric))));
-                        else
-                            painter->fillRect(QRectF(cx, y, cw, h),
-                                              QBrush(options->colormap->color((*evt)->getMetric(options->metric))));
-
-                        painter->fillRect(QRectF(x, y, w, h),
-                                          QBrush(options->colormap->color((*evt)->getMetric(options->metric))));
-                    }
-                    else
-                    {
-                        if (*evt == selected_event && !selected_aggregate)
-                            painter->fillRect(QRectF(x, y, w, h),
-                                              QBrush(Qt::yellow));
-                        else
-                            // Draw event
-                            painter->fillRect(QRectF(x, y, w, h),
-                                              QBrush(QColor(200, 200, 255)));
-                    }
-
-                    // Draw border
-                    if (entity_spacing > 0)
-                    {
-                        if (complete)
-                            painter->drawRect(QRectF(x,y,w,h));
-                        else
-                            incompleteBox(painter, x, y, w, h, &extents);
-                    }
-
-                    // Revert pen color
-                    if (*evt == selected_event && !selected_aggregate)
-                        painter->setPen(QPen(QColor(0, 0, 0)));
-
-                    drawnEvents[*evt] = QRect(x, y, w, h);
-
-                    unsigned long long drawnEnter = std::max(startTime, (*evt)->enter);
-                    unsigned long long available_w = ((*evt)->exit - drawnEnter)
-                                        / 1.0 / timeSpan * rect().width() + 2;
-                    QString fxnName = ((*(trace->functions))[(*evt)->function])->name;
-                    QRect fxnRect = painter->fontMetrics().boundingRect(fxnName);
-                    if (fxnRect.width() < available_w && fxnRect.height() < h)
-                        painter->drawText(x + 2, y + fxnRect.height(), fxnName);
-
-                    // Selected aggregate
-                    if (*evt == selected_event && selected_aggregate)
-                    {
-                        int xa = labelWidth;
-                        if ((*evt)->comm_prev)
-                            xa = floor(static_cast<long long>((*evt)->comm_prev->exit - startTime)
-                                       / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
-                        int wa = x - xa;
-                        painter->setPen(QPen(Qt::yellow));
-                        painter->drawRect(xa, y, wa, h);
-                        painter->setPen(QPen(QColor(0, 0, 0)));
-                    }
-
-                }
-                else if (cw >= 2) // Still draw the surrounding
-                {
-                    cx = floor(static_cast<long long>((*evt)->extent_begin - startTime)
-                               / 1.0 / timeSpan * rect().width()) + 1 + labelWidth;
-                    h = barheight;
-
-                    // Corrections for partially drawn
-                    complete = true;
-                    if (y < 0) {
-                        h = barheight - fabs(y);
-                        y = 0;
-                        complete = false;
-                    } else if (y + barheight > canvasHeight) {
-                        h = canvasHeight - y;
-                        complete = false;
-                    }
-
-                    if (cx < labelWidth) {
-                        cw -= (labelWidth - cx);
-                        cx = labelWidth;
-                        complete = false;
-                    } else if (cx + cw > rect().width()) {
-                        cw = rect().width() - cx;
-                        complete = false;
-                    }
-
-
-                    // Change pen color if selected
-                    if (*evt == selected_event && !selected_aggregate)
-                        painter->setPen(QPen(Qt::yellow));
-
-                    if (options->colorTraditionalByMetric
-                        && (*evt)->hasMetric(options->metric))
-                    {
-                        // Background color on the larger image
-                        if (entity_spacing > 0)
-                            painter->fillRect(QRectF(cx+1, y+1, cw-2, h-2),
-                                              QBrush(options->colormap->color((*evt)->getMetric(options->metric))));
-                        else
-                            painter->fillRect(QRectF(cx, y, cw, h),
-                                              QBrush(options->colormap->color((*evt)->getMetric(options->metric))));
-                    }
-
-                    // Revert pen color
-                    if (*evt == selected_event && !selected_aggregate)
-                        painter->setPen(QPen(QColor(0, 0, 0)));
-
-                    drawnEvents[*evt] = QRect(cx, y, cw, h);
-                }
-                (*evt)->addComms(&drawComms);
-                if (*evt == selected_event)
-                    (*evt)->addComms(&selectedComms);
-            }
         }
     }
 
@@ -788,17 +542,6 @@ void TraditionalVis::paintEvents(QPainter *painter)
         }
     }
 
-    if (selected_event && options->traceBack)
-    {
-        selected_event->track_delay(painter, this);
-    }
-
-    if (stopTime == 0 && startTime == maxStep)
-    {
-        stopTime = oldStop;
-        startTime = oldStart;
-    }
-    timeSpan = stopTime - startTime;
     painter->fillRect(QRectF(0,canvasHeight,rect().width(),rect().height()),
                       QBrush(QColor(Qt::white)));
 }
@@ -917,7 +660,11 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
     if (evt->enter > startTime + timeSpan || evt->exit < startTime)
         return; // Out of time
     if (evt->isCommEvent())
-        return; // Drawn later
+    {
+        (*evt)->addComms(&drawComms);
+        if (*evt == selected_event)
+            (*evt)->addComms(&selectedComms);
+    }
 
     int x, y, w, h;
     w = (evt->exit - evt->enter) / 1.0 / timeSpan * rect().width();
@@ -927,13 +674,6 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
         x = floor(static_cast<long long>(evt->enter - startTime) / 1.0
                   / timeSpan * rect().width()) + 1 + labelWidth;
         h = barheight;
-
-        if (evt->function == idleFunction)
-        {
-            h = barheight / 2;
-            y += barheight / 4;
-        }
-
 
         // Corrections for partially drawn
         bool complete = true;

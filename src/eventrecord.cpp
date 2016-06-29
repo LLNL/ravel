@@ -32,8 +32,7 @@ EventRecord::EventRecord(unsigned long _entity, unsigned long long int _t,
       value(_v),
       enter(_e),
       children(QList<Event *>()),
-      metrics(NULL),
-      ravel_info(NULL)
+      metrics(NULL)
 {
 }
 
@@ -41,8 +40,6 @@ EventRecord::~EventRecord()
 {
     if (metrics)
         delete metrics;
-    if (ravel_info)
-        delete ravel_info;
 }
 
 bool EventRecord::operator<(const EventRecord &event)

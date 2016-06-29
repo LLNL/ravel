@@ -25,7 +25,6 @@
 #include "event.h"
 #include "function.h"
 #include "metrics.h"
-#include "rpartition.h"
 #include <iostream>
 
 Event::Event(unsigned long long _enter, unsigned long long _exit,

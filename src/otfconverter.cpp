@@ -240,6 +240,10 @@ void OTFConverter::matchEvents()
             if (!((*evt)->enter)) // End of a subroutine
             {
                 EventRecord * bgn = stack->pop();
+                if (bgn->time < trace->min_time)
+                    trace->min_time = bgn->time;
+                if((*evt)->time > trace->max_time)
+                    trace->max_time = (*evt)->time;
 
                 // Partition/handle comm events
                 CollectiveRecord * cr = NULL;

@@ -298,18 +298,6 @@ void MainWindow::importTrace(QString dataFileName){
     emit(operate(dataFileName));
 }
 
-// Switch importing progress bar - something weird currently happens here
-void MainWindow::traceSwitch()
-{
-    progress->close();
-    delete progress;
-
-    progress = new QProgressDialog("Clustering...","",0,0,this);
-    progress->setWindowTitle("Clustering Progress");
-    progress->setCancelButton(0);
-    progress->show();
-}
-
 void MainWindow::traceFinished(Trace * trace)
 {
     progress->close();
@@ -322,13 +310,6 @@ void MainWindow::traceFinished(Trace * trace)
     {
         QMessageBox msgBox;
         msgBox.setText("Error: Trace processing failed.");
-        msgBox.exec();
-        return;
-    }
-    else if (trace->partitions->size() < 1)
-    {
-        QMessageBox msgBox;
-        msgBox.setText("Error: No communication phases found. Abandoning trace.");
         msgBox.exec();
         return;
     }

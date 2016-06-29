@@ -35,9 +35,6 @@
 #include <QSharedPointer>
 #include <QElapsedTimer>
 
-#include "importoptions.h"
-
-class Partition;
 class Event;
 class CommEvent;
 class Function;
@@ -54,8 +51,6 @@ public:
     ~Trace();
 
     void preprocess();
-    void partition();
-    void mergePartitions(QList<QList<Partition *> *> * components);
     Event * findEvent(int entity, unsigned long long time);
 
     QString name;
@@ -65,7 +60,6 @@ public:
     int units;
     qint64 totalTime;
 
-    QList<Partition *> * partitions;
     QList<QString> * metrics;
     QMap<QString, QString> * metric_units;
 
@@ -86,55 +80,14 @@ public:
 
     int mpi_group; // functionGroup index of "MPI" functions
 
-    int max_time; // largest global step
-    QList<Partition * > * dag_entries; // Leap 0 in the dag
-    QMap<int, QSet<Partition *> *> * dag_step_dict; // Map leap to partition
-
-    // This is for aggregate event reporting... lists all functions
-    // and how much time was spent in each
-    class FunctionPair {
-    public:
-        FunctionPair(int _f, long long int _t)
-            : fxn(_f), time(_t) {}
-        FunctionPair()
-            : fxn(0), time(0) {}
-        FunctionPair(const FunctionPair &fp)
-        {
-            fxn = fp.fxn;
-            time = fp.time;
-        }
-
-        // Backwards for greatest to lease
-        bool operator<(const FunctionPair &fp) const { return time > fp.time; }
-
-        int fxn;
-        long long int time;
-    };
-    QList<FunctionPair> getAggregateFunctions(CommEvent *evt);
+    unsigned long long max_time; // largest time
+    unsigned long long min_time; // starting time
 
 signals:
     // This is for progress bars
     void updatePreprocess(int, QString);
 
 private:
-    // Link the comm events together by order
-    void chainCommEvents();
-
-    // Partition Dag
-    void set_partition_dag();
-    void set_dag_steps();
-    void set_dag_entries();
-    void clear_dag_step_dict();
-
-
-    // For debugging
-    void output_graph(QString filename, bool byparent = false);
-    void print_partition_info(QString message, QString graph_name = "",
-                              bool partition_count = false);
-
-    // Extra metrics somewhat for debugging
-    void addPartitionMetric();
-
     bool isProcessed; // Partitions exist
 
     QElapsedTimer totalTimer;

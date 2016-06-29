@@ -28,7 +28,6 @@
 #include <iostream>
 #include <cmath>
 #include "trace.h"
-#include "rpartition.h"
 #include "event.h"
 #include "commevent.h"
 
@@ -138,7 +137,6 @@ void OverviewVis::setTrace(Trace * t)
     maxTime = trace->max_time;
     minTime = trace->min_time;
 
-
     startTime = minTime;
     stopTime = initTimeSpan + minTime;
 }
@@ -154,17 +152,17 @@ void OverviewVis::processVis()
         return;
     int width = size().width() - 2 * border;
     heights = QVector<float>(width, 0);
-    int timeSpan = maxTime + 1;
+    int timeSpan = maxTime - minTime + 1;
     timeWidth = width / 1.0 / timeSpan;
     int start_int, stop_int;
     QString metric = options->metric;
     //stepPositions = QVector<std::pair<int, int> >(maxStep+1, std::pair<int, int>(width + 1, -1));
-    for (QList<Partition *>::Iterator part = trace->partitions->begin();
-         part != trace->partitions->end(); ++part)
+    for (QVector<QVector<Event *> *>::Iterator events = trace->events->begin();
+         events != trace->events->end(); ++events)
     {
-        for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
-             = (*part)->events->begin();
-             event_list != (*part)->events->end(); ++event_list)
+        for (QVector<Event *>::Iterator event_list
+             = (*events)->begin();
+             event_list != (*events)->end(); ++event_list)
         {
             // For each event, we figure out which steps it spans and then we
             // accumulate height over those steps based on the event's metric
@@ -173,8 +171,8 @@ void OverviewVis::processVis()
                  evt != (event_list.value())->end(); ++evt)
             {
                 // start and stop are the cursor positions
-                float start = (width - 1) * (((*evt)->enter) / 1.0 / timeSpan);
-                float stop = start + timeWidth;
+                float start = (width - 1) * (((*evt)->enter - minTime) / 1.0 / timeSpan);
+                float stop = start + timeWidth * ((*evt)->exit - (*evt)->exit);
                 start_int = static_cast<int>(start);
                 stop_int = static_cast<int>(stop);
 

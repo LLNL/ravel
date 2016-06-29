@@ -34,7 +34,6 @@ class RawTrace;
 class OTFImporter;
 class OTF2Importer;
 class Trace;
-class Partition;
 class CommEvent;
 class CounterRecord;
 class EventRecord;
@@ -70,7 +69,6 @@ private:
 
     RawTrace * rawtrace;
     Trace * trace;
-    int phaseFunction;
 
     static const int event_match_portion = 24;
     static const int message_match_portion = 0;
