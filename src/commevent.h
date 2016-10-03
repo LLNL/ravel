@@ -157,6 +157,8 @@ public:
 
     virtual QSet<Partition *> * mergeForMessagesHelper()=0;
 
+    unsigned long long getAggDuration();
+
     Partition * partition;
     CommEvent * comm_next;
     CommEvent * comm_prev;

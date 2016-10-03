@@ -139,6 +139,20 @@ double CommEvent::getMetric(QString name, bool aggregate)
     return 0;
 }
 
+unsigned long long CommEvent::getAggDuration()
+{
+    // Since we don't know when the trace started recording, we never
+    // count the first aggregate duration as it could be misleading
+    unsigned long long agg_duration = 0;
+
+    if (comm_prev)
+    {
+        agg_duration = enter - comm_prev->exit;
+    }
+
+    return agg_duration;
+}
+
 void CommEvent::calculate_differential_metric(QString metric_name,
                                               QString base_name, bool aggregates)
 {

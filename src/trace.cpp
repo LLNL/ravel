@@ -673,6 +673,13 @@ void Trace::calculate_partition_lateness()
     metrics->append(p_late);
     (*metric_units)[p_late] = RavelUtils::getUnits(units);
 
+    QString p_duration = "Duration";
+    if (options.origin != ImportOptions::OF_CHARM)
+    {
+        metrics->append(p_duration);
+        (*metric_units)[p_duration] = RavelUtils::getUnits(units);
+    }
+
     for (int i = 0; i < counterlist.size(); i++)
     {
         metrics->append("Step " + counterlist[i]);
@@ -681,7 +688,8 @@ void Trace::calculate_partition_lateness()
         valueslist.append(0);
     }
 
-    unsigned long long int mintime, aggmintime;
+    unsigned long long int mintime, aggmintime, duration, aggduration,
+        minduration, minaggduration;
     int per_step = 2;
     if (!use_aggregates)
         per_step = 1;
@@ -695,6 +703,7 @@ void Trace::calculate_partition_lateness()
         for (int i = (*part)->min_global_step;
              i <= (*part)->max_global_step; i += per_step)
         {
+            // Events at the same step in this partition
             QList<CommEvent *> * i_list = new QList<CommEvent *>();
 
             for (QMap<unsigned long, QList<CommEvent *> *>::Iterator event_list
@@ -716,6 +725,10 @@ void Trace::calculate_partition_lateness()
             for (int j = 0; j < valueslist.size(); j++)
                 valueslist[j] = DBL_MAX;
 
+            // Find min duration
+            minduration = ULLONG_MAX;
+            minaggduration = ULLONG_MAX;
+
 
             // Set lateness;
             if (use_aggregates)
@@ -727,6 +740,15 @@ void Trace::calculate_partition_lateness()
                         mintime = (*evt)->exit;
                     if ((*evt)->enter < aggmintime)
                         aggmintime = (*evt)->enter;
+
+                    duration = (*evt)->exit - (*evt)->enter;
+                    aggduration = (*evt)->getAggDuration();
+                    if (duration < minduration)
+                        minduration = duration;
+
+                    if (aggduration < minaggduration)
+                        minaggduration = aggduration;
+
 
                     for (int j = 0; j < counterlist.size(); j++)
                     {
@@ -745,6 +767,10 @@ void Trace::calculate_partition_lateness()
 
                     if (options.origin != ImportOptions::OF_CHARM)
                     {
+                        (*evt)->metrics->addMetric(p_duration,
+                                                   (*evt)->exit - (*evt)->enter - minduration,
+                                                   (*evt)->getAggDuration() - minaggduration);
+
                         double evt_time = (*evt)->exit - (*evt)->enter;
                         double agg_time = (*evt)->enter;
                         if ((*evt)->comm_prev)
@@ -769,6 +795,10 @@ void Trace::calculate_partition_lateness()
                     if ((*evt)->exit < mintime)
                         mintime = (*evt)->exit;
 
+                    duration = (*evt)->exit - (*evt)->enter;
+                    if (duration < minduration)
+                        minduration = duration;
+
                     for (int j = 0; j < counterlist.size(); j++)
                     {
                         if ((*evt)->getMetric(counterlist[j]) < valueslist[per_step*j])
@@ -784,6 +814,10 @@ void Trace::calculate_partition_lateness()
 
                     if (options.origin != ImportOptions::OF_CHARM)
                     {
+
+                        (*evt)->metrics->addMetric(p_duration,
+                                                   (*evt)->exit - (*evt)->enter - minduration);
+
                         double evt_time = (*evt)->exit - (*evt)->enter;
                         for (int j = 0; j < counterlist.size(); j++)
                         {
