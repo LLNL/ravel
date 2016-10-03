@@ -248,6 +248,8 @@ void MainWindow::writeSettings()
     settings.beginGroup("Data");
     settings.setValue("directory", dataDirectory);
     settings.endGroup();
+    importoptions->saveSettings(&settings);
+
 }
 
 void MainWindow::readSettings()
@@ -257,6 +259,7 @@ void MainWindow::readSettings()
     settings.beginGroup("Data");
     dataDirectory = settings.value("directory", "").toString();
     settings.endGroup();
+    importoptions->readSettings(&settings);
 }
 
 // The following functions relay a signal from one vis (hooked up in the

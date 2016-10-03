@@ -27,6 +27,7 @@
 
 #include <QString>
 #include <QList>
+#include <QSettings>
 
 // Container for all the structure extraction options
 class ImportOptions
@@ -40,6 +41,8 @@ public:
     QList<QString> getOptionNames();
     QString getOptionValue(QString option);
     void setOption(QString option, QString value);
+    void saveSettings(QSettings * settings);
+    void readSettings(QSettings * settings);
 
     enum OriginFormat { OF_NONE, OF_SAVE_OTF2, OF_OTF2, OF_OTF, OF_CHARM };
 
