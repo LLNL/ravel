@@ -21,6 +21,51 @@ ImportOptions::ImportOptions(bool _waitall, bool _leap, bool _skip,
 {
 }
 
+void ImportOptions::saveSettings(QSettings * settings)
+{
+    settings->beginGroup("Import");
+    settings->setValue("waitallMerge", waitallMerge);
+    settings->setValue("callerMerge", callerMerge);
+    settings->setValue("leapMerge", leapMerge);
+    settings->setValue("leapSkip", leapSkip);
+    settings->setValue("partitionbyFunction", partitionByFunction);
+    settings->setValue("globalMerge", globalMerge);
+    settings->setValue("cluster", cluster);
+    settings->setValue("isendCoalescing", isendCoalescing);
+    settings->setValue("enforceMessageSizes", enforceMessageSizes);
+    settings->setValue("partitionFunction", partitionFunction);
+    settings->setValue("seedClusters", seedClusters);
+    settings->setValue("clusterSeed", qlonglong(clusterSeed));
+    settings->setValue("advancedStepping", advancedStepping);
+    settings->setValue("reorderReceives", reorderReceives);
+    settings->setValue("isset", true);
+    settings->endGroup();
+}
+
+void ImportOptions::readSettings(QSettings * settings)
+{
+    settings->beginGroup("Import");
+    bool check = settings->value("isset").toBool();
+    if (check)
+    {
+        waitallMerge = settings->value("waitallMerge").toBool();
+        callerMerge = settings->value("callerMerge").toBool();
+        leapMerge = settings->value("leapMerge").toBool();
+        leapSkip = settings->value("leapSkip").toBool();
+        partitionByFunction = settings->value("partitionbyFunction").toBool();
+        globalMerge = settings->value("globalMerge").toBool();
+        cluster = settings->value("cluster").toBool();
+        isendCoalescing = settings->value("isendCoalescing").toBool();
+        enforceMessageSizes = settings->value("enforceMessageSizes").toBool();
+        partitionFunction = settings->value("partitionFunction").toString();
+        seedClusters = settings->value("seedClusters").toBool();
+        clusterSeed = settings->value("clusterSeed").toInt();
+        advancedStepping = settings->value("advancedStepping").toBool();
+        reorderReceives = settings->value("reorderReceives").toBool();
+    }
+    settings->endGroup();
+}
+
 QList<QString> ImportOptions::getOptionNames()
 {
     QList<QString> names = QList<QString>();
