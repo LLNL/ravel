@@ -35,7 +35,6 @@ add_definitions(${Qt5Widgets_DEFINITIONS})
 
 # ui files
 qt5_wrap_ui(ui_mainwindow.h mainwindow.ui)
-qt5_wrap_ui(ui_importoptionsdialog.h importoptionsdialog.ui)
 qt5_wrap_ui(ui_metricrangedialog.h metricrangedialog.ui)
 qt5_wrap_ui(ui_visoptionsdialog.h visoptionsdialog.ui)
 
@@ -48,27 +47,18 @@ set(Ravel_SOURCES
     mainwindow.cpp
     viswidget.cpp
     overviewvis.cpp
-    stepvis.cpp
     colormap.cpp
     commrecord.cpp
     eventrecord.cpp
     rawtrace.cpp
     otfconverter.cpp
     function.cpp
-    importoptionsdialog.cpp
-    importoptions.cpp
     timelinevis.cpp
     traditionalvis.cpp
     visoptionsdialog.cpp
     visoptions.cpp
     importfunctor.cpp
-    gnome.cpp
-    exchangegnome.cpp
     collectiverecord.cpp
-    partitioncluster.cpp
-    clusterevent.cpp
-    clustervis.cpp
-    clustertreevis.cpp
     verticallabel.cpp
     rpartition.cpp
     metricrangedialog.cpp
@@ -81,11 +71,7 @@ set(Ravel_SOURCES
     counterrecord.cpp
     otf2importer.cpp
     entity.cpp
-    clusterentity.cpp
     entitygroup.cpp
-    otf2exporter.cpp
-    otf2exportfunctor.cpp
-    charmimporter.cpp
     primaryentitygroup.cpp
     metrics.cpp
     ${ADDED_SOURCES}
@@ -106,20 +92,12 @@ set(Ravel_HEADERS
     otfconverter.h
     function.h
     ravelutils.h
-    importoptionsdialog.h
-    importoptions.h
     timelinevis.h
     traditionalvis.h
     visoptionsdialog.h
     visoptions.h
     importfunctor.h
-    gnome.h
-    exchangegnome.h
     collectiverecord.h
-    partitioncluster.h
-    clusterevent.h
-    clustervis.h
-    clustertreevis.h
     verticallabel.h
     rpartition.h
     metricrangedialog.h
@@ -135,9 +113,6 @@ set(Ravel_HEADERS
     entity.h
     clusterentity.h
     entitygroup.h
-    otf2exporter.h
-    otf2exportfunctor.h
-    charmimporter.h
     primaryentitygroup.h
     metrics.h
     ${ADDED_HEADERS}
@@ -145,7 +120,6 @@ set(Ravel_HEADERS
 
 set(Ravel_UIC
     ui_mainwindow.h
-    ui_importoptionsdialog.h
     ui_visoptionsdialog.h
     ui_metricrangedialog.h
 )
