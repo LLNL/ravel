@@ -688,7 +688,9 @@ void Trace::calculate_partition_lateness()
     if (options.origin != ImportOptions::OF_CHARM)
     {
         for (int i = 0; i < metrics->size(); i++)
+        {
             counterlist.append(metrics->at(i));
+        }
     }
 
     QList<double> valueslist = QList<double>();
@@ -804,7 +806,7 @@ void Trace::calculate_partition_lateness()
                             (*evt)->metrics->addMetric("Step " + counterlist[j],
                                                        (*evt)->getMetric(counterlist[j]) - valueslist[per_step*j],
                                                        (*evt)->getMetric(counterlist[j], true) - valueslist[per_step*j+1]);
-                            (*evt)->metrics->setMetric(counterlist[j],
+                            (*evt)->metrics->addMetric(counterlist[j],
                                                        (*evt)->getMetric(counterlist[j]) / 1.0 / evt_time,
                                                        (*evt)->getMetric(counterlist[j], true) / 1.0 / agg_time);
                         }
@@ -847,7 +849,7 @@ void Trace::calculate_partition_lateness()
                         {
                             (*evt)->metrics->addMetric("Step " + counterlist[j],
                                                        (*evt)->getMetric(counterlist[j]) - valueslist[per_step*j]);
-                            (*evt)->metrics->setMetric(counterlist[j],
+                            (*evt)->metrics->addMetric(counterlist[j],
                                                        (*evt)->getMetric(counterlist[j]) / 1.0 / evt_time);
                         }
                     }

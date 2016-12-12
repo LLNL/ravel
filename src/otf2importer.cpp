@@ -564,9 +564,12 @@ void OTF2Importer::processDefinitions()
         commIndexMap->insert(comm.key(), index);
         EntityGroup * t = new EntityGroup(index, stringMap->value((comm.value())->name));
         delete t->entities;
-        t->entities = groupMap->value((comm.value())->group)->members;
+        //t->entities = groupMap->value((comm.value())->group)->members;
         for (int i = 0; i < t->entities->size(); i++)
+        {
             t->entityorder->insert(t->entities->at(i), i);
+            t->entities->append(t->entities->at(i));
+        }
         entitygroups->insert(index, t);
         index++;
     }
