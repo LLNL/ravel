@@ -60,7 +60,6 @@ set(Ravel_SOURCES
     importfunctor.cpp
     collectiverecord.cpp
     verticallabel.cpp
-    rpartition.cpp
     metricrangedialog.cpp
     otfcollective.cpp
     commevent.cpp
@@ -99,7 +98,6 @@ set(Ravel_HEADERS
     importfunctor.h
     collectiverecord.h
     verticallabel.h
-    rpartition.h
     metricrangedialog.h
     otfcollective.h
     commevent.h
