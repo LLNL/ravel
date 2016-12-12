@@ -17,7 +17,7 @@ public:
     // May need to keep additional names if we have several that are the same
 
     // This order is important for communicator rank ID
-    QList<unsigned long> * entities;
+    QList<unsigned long long> * entities;
     QMap<unsigned long, int> * entityorder;
 };
 

@@ -3,7 +3,7 @@
 EntityGroup::EntityGroup(int _id, QString _name)
     : id(_id),
       name(_name),
-      entities(new QList<unsigned long>()),
+      entities(new QList<unsigned long long>()),
       entityorder(new QMap<unsigned long, int>())
 {
 }
