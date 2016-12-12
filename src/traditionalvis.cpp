@@ -653,7 +653,7 @@ void TraditionalVis::paintNotStepEvents(QPainter *painter, Event * evt,
         {
             // Draw event
             int graycolor = 0;
-            graycolor = std::max(100, 100 + evt->depth * 20);
+            graycolor = std::min(240, std::max(100, 100 + evt->depth * 20));
             painter->fillRect(QRectF(x, y, w, h),
                               QBrush(QColor(graycolor, graycolor, graycolor)));
         }
