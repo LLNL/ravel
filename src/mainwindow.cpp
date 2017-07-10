@@ -436,6 +436,8 @@ void MainWindow::traceFinished(Trace * trace)
 
     delete importWorker;
     delete progress;
+    importThread->quit();
+    importThread->wait();
     delete importThread;
 
     if (!trace)
