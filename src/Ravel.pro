@@ -132,12 +132,6 @@ macx: LIBS += -L$${HOME}/opt/lib -lotf2
 macx: INCLUDEPATH += $${HOME}/opt/include/otf2/
 macx: DEPENDPATH += $${HOME}/opt/include/otf2/
 
-unix:!macx: LIBS += -L$${HOME}/opt/lib -lmuster
-
-macx: LIBS += -L$${HOME}/opt/muster/lib -lmuster
-macx: INCLUDEPATH += $${HOME}/opt/muster/include
-macx: DEPENDPATH += $${HOME}/opt/muster/include
-
 OTHER_FILES += \
     CMakeLists.txt
 
