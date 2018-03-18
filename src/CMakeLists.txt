@@ -5,7 +5,6 @@ find_package(Qt5 REQUIRED Core Widgets OpenGL Concurrent)
 
 # Dependencies over Qt5
 find_package(OpenGL)
-#find_package(Muster REQUIRED)
 find_package(OTF)
 find_package(OTF2 REQUIRED)
 find_package(ZLIB REQUIRED)
@@ -16,7 +15,6 @@ set(CMAKE_AUTOMOC ON)
 
 # Includes, Definitions, Flags
 include_directories(${Qt5Widgets_INCLUDE_DIRS}
-    #${Muster_INCLUDE_DIRS}
                     ${OTF2_INCLUDE_DIRS}
                     ${ZLIB_INCLUDE_DIRS}
                    )
@@ -132,7 +130,6 @@ target_link_libraries(Ravel
                       Qt5::OpenGL
                       Qt5::Concurrent
                       ${OPENGL_LIBRARIES}
-		      # ${Muster_LIBRARIES}
                       ${OTF2_LIBRARIES}
                       ${ZLIB_LIBRARIES}
                      )
