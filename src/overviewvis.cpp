@@ -135,7 +135,8 @@ void OverviewVis::setTrace(Trace * t)
     for (QVector<QVector<Event *> *>::Iterator events = trace->events->begin();
          events != trace->events->end(); ++events)
     {
-        if (trace->functions->value((*events)->first()->function)->name == "MPI_Init"
+        if (!(*events)->empty()
+            && trace->functions->value((*events)->first()->function)->name == "MPI_Init"
             && (*events)->first()->exit > initTime)
             initTime = (*events)->first()->exit;
     }
