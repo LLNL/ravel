@@ -34,6 +34,22 @@ To install:
 If a dependency is not found, add its install directory to the
 `CMAKE_PREFIX_PATH` environment variable.
 
+The following testing setups have been tried
+| OS             | Ravel                       | OTF2                        | QT                | Status |
+|----------------|-----------------------------|-----------------------------|-------------------|--------|
+| Ubuntu 14.04.5 | Default(/usr/local/bin)     | Default(/opt/otf2)          | Default($HOME/Qt) | <ul><li>- [x] Works</li></ul>  |
+| Ubuntu 14.04.5 | Default(/usr/local/bin)     | Custom(/usr/local/lib/otf2) | Default($HOME/Qt) | <ul><li>- [x] Works</li></ul>  |
+| Ubuntu 14.04.5 | Custom(/usr/local/lib/otf2) | Default(/opt/otf2)          | Default($HOME/Qt) | <ul><li>- [x] Works</li></ul>  |
+| Ubuntu 14.04.5 | Custom(/usr/local/lib/otf2) | Custom(/usr/local/lib/otf2) | Default($HOME/Qt) | <ul><li>- [x] Works</li></ul>  |
+| Ubuntu 16.04.4 | Default(/usr/local/bin)     | Default(/opt/otf2)          | Default($HOME/Qt) | <ul><li>- [x] Works</li></ul>  |
+| Ubuntu 16.04.4 | Default(/usr/local/bin)     | Custom(/usr/local/lib/otf2) | Default($HOME/Qt) | <ul><li>- [x] Works</li></ul>  |
+| Ubuntu 16.04.4 | Custom(/usr/local/lib/otf2) | Default(/opt/otf2)          | Default($HOME/Qt) | <ul><li>- [x] Works</li></ul>  |
+| Ubuntu 16.04.4 | Custom(/usr/local/lib/otf2) | Custom(/usr/local/lib/otf2) | Default($HOME/Qt) | <ul><li>- [x] Works</li></ul>  |
+| Ubuntu 18.04   | Default(/usr/local/bin)     | Default(/opt/otf2)          | Default($HOME/Qt) | <ul><li>- [x] Works</li></ul>  |
+| Ubuntu 18.04   | Default(/usr/local/bin)     | Custom(/usr/local/lib/otf2) | Default($HOME/Qt) | <ul><li>- [x] Works</li></ul>  |
+| Ubuntu 18.04   | Custom(/usr/local/lib/otf2) | Default(/opt/otf2)          | Default($HOME/Qt) | <ul><li>- [x] Works</li></ul>  |
+| Ubuntu 18.04   | Custom(/usr/local/lib/otf2) | Custom(/usr/local/lib/otf2) | Default($HOME/Qt) | <ul><li>- [x] Works</li></ul>  |
+
 Usage
 -----
 
