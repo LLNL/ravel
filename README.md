@@ -34,9 +34,9 @@ To install:
 If a dependency is not found, add its install directory to the
 `CMAKE_PREFIX_PATH` environment variable.
 
-The following testing setups have been tried
+The following testing setups have been tested:
 
-| OS             | Ravel                       | OTF2                        | QT                | Status |
+| OS             | Ravel                       | OTF2(2.1.1)                 | QT(5.10.1)        | Status |
 |----------------|-----------------------------|-----------------------------|-------------------|--------|
 | Ubuntu 14.04.5 | Default(/usr/local/bin)     | Default(/opt/otf2)          | Default($HOME/Qt) | <ul><li>- [x] Runs</li></ul>  |
 | Ubuntu 14.04.5 | Default(/usr/local/bin)     | Custom(/usr/local/lib/otf2) | Default($HOME/Qt) | <ul><li>- [x] Runs</li></ul>  |
