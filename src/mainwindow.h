@@ -36,6 +36,7 @@ class Trace;
 class VisWidget;
 class VisOptions;
 class VisOptionsDialog;
+class TaskPropertyWindow;
 
 class QAction;
 class ImportFunctor;
@@ -68,6 +69,8 @@ public slots:
     void pushTime(float start, float stop, bool jump = false);
     void selectEvent(Event * event);
     void selectEntities(QList<int> entities);
+
+    void openTaskPropertyWindow(Event * event);
 
     // Importing & Progress Bar
     void importTracebyGUI();
@@ -118,6 +121,8 @@ private:
     // Color stuff & other vis options
     VisOptions * visoptions;
     VisOptionsDialog * visdialog;
+
+    TaskPropertyWindow * taskwindow;
 
     QString activetracename;
 

@@ -43,6 +43,7 @@
 
 TraditionalVis::TraditionalVis(QWidget * parent, VisOptions * _options)
     : TimelineVis(parent = parent, _options),
+    ctrlPressed(false),
     minTime(0),
     maxTime(0),
     startTime(0),
@@ -82,6 +83,51 @@ void TraditionalVis::setTrace(Trace * t)
 
     startTime = initTime;
     timeSpan = std::min((double) initTimeSpan, maxTime - initTime);
+}
+
+void TraditionalVis::keyPressed(QKeyEvent * event)
+{
+    if( !visProcessed )
+        return;
+    
+    if( event->key() == Qt::Key_Control )
+        ctrlPressed = true;
+}
+
+void TraditionalVis::keyReleased(QKeyEvent * event)
+{
+    if( !visProcessed )
+        return;
+
+    if( event->key() == Qt::Key_Control )
+        ctrlPressed = false;
+}
+
+void TraditionalVis::mousePressEvent(QMouseEvent * event)
+{
+    if( !visProcessed )
+        return;
+
+    if ( event->button() == Qt::LeftButton )
+    {
+        mousex = event->x();
+        mousey = event->y();
+        for( QMap<Event *, QRect>::Iterator evt = drawnEvents.begin();
+             evt != drawnEvents.end(); evt++ )
+            if( evt.value().contains(mousex, mousey) )
+            {
+                if( evt.key() == selected_event )
+                {
+                    selected_event = NULL;
+                }
+                else
+                {
+                    selected_event = evt.key();
+                }
+                break;
+            }
+        emit taskPropertyDisplay(selected_event);
+    }
 }
 
 void TraditionalVis::mouseDoubleClickEvent(QMouseEvent * event)

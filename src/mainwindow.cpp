@@ -34,6 +34,7 @@
 #include "visoptions.h"
 #include "visoptionsdialog.h"
 #include "importfunctor.h"
+#include "taskpropertywindow.h"
 
 #include <QFileDialog>
 #include <QFileInfo>
@@ -60,6 +61,7 @@ MainWindow::MainWindow(QWidget *parent) :
     progress(NULL),
     visoptions(new VisOptions()),
     visdialog(NULL),
+    taskwindow(NULL),
     activetracename(""),
     activetraces(QStack<QString>()),
     dataDirectory("")
@@ -98,6 +100,8 @@ MainWindow::MainWindow(QWidget *parent) :
             SLOT(selectEvent(Event *)));
     connect((timevis), SIGNAL(timeScaleString(QString)), timescaleLabel,
             SLOT(setText(QString)));
+    connect((timevis), SIGNAL(taskPropertyDisplay(Event *)), this,
+            SLOT(openTaskPropertyWindow(Event *)));
     viswidgets.push_back(timevis);
     splitterMap.push_back(0);
     splitterActions.push_back(ui->actionPhysical_Time);
@@ -202,6 +206,13 @@ void MainWindow::selectEntities(QList<int> entities)
     {
         viswidgets[i]->selectEntities(entities);
     }
+}
+
+void MainWindow::openTaskPropertyWindow(Event *event)
+{
+    delete taskwindow;
+    taskwindow = new TaskPropertyWindow(this, event);
+    taskwindow->show();
 }
 
 void MainWindow::launchVisOptions()
