@@ -150,7 +150,7 @@ MainWindow::MainWindow(QWidget *parent) :
     sizes.append(500);
     sizes.append(70);
     ui->splitter->setSizes(sizes);
-    ui->sideSplitter->setSizes(sizes);
+    ui->sideSplitter->setSizes(sizes);    
 
 }
 
@@ -211,7 +211,21 @@ void MainWindow::selectEntities(QList<int> entities)
 void MainWindow::openTaskPropertyWindow(Event *event)
 {
     delete taskwindow;
-    taskwindow = new TaskPropertyWindow(this, event);
+    int function_id = event->function;
+    for(QList<Trace *>::Iterator trc = this->traces.begin();
+        trc != this->traces.end(); trc++)
+    {
+        for(QMap<int, Function *>::Iterator fnc = (*trc)->functions->begin();
+            fnc != (*trc)->functions->end(); fnc++)
+        {
+            if(fnc.key() == function_id)
+            {
+                QString units = RavelUtils::RavelUtils::getUnits((*trc)->units);
+                taskwindow = new TaskPropertyWindow(this, event, fnc.value(), units);
+                break;
+            }
+        }
+    }
     taskwindow->show();
 }
 

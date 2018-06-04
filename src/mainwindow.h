@@ -30,11 +30,13 @@
 #include <QStack>
 #include <QList>
 #include <QVector>
+#include "traditionalvis.h"
 
 class Event;
 class Trace;
 class VisWidget;
 class VisOptions;
+class TraditionalVis;
 class VisOptionsDialog;
 class TaskPropertyWindow;
 

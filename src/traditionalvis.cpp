@@ -43,7 +43,6 @@
 
 TraditionalVis::TraditionalVis(QWidget * parent, VisOptions * _options)
     : TimelineVis(parent = parent, _options),
-    ctrlPressed(false),
     minTime(0),
     maxTime(0),
     startTime(0),
@@ -51,7 +50,6 @@ TraditionalVis::TraditionalVis(QWidget * parent, VisOptions * _options)
     lassoRect(QRect()),
     blockheight(0)
 {
-
 }
 
 TraditionalVis::~TraditionalVis()
@@ -85,28 +83,10 @@ void TraditionalVis::setTrace(Trace * t)
     timeSpan = std::min((double) initTimeSpan, maxTime - initTime);
 }
 
-void TraditionalVis::keyPressed(QKeyEvent * event)
-{
-    if( !visProcessed )
-        return;
-    
-    if( event->key() == Qt::Key_Control )
-        ctrlPressed = true;
-}
-
-void TraditionalVis::keyReleased(QKeyEvent * event)
-{
-    if( !visProcessed )
-        return;
-
-    if( event->key() == Qt::Key_Control )
-        ctrlPressed = false;
-}
-
 void TraditionalVis::mousePressEvent(QMouseEvent * event)
 {
     if( !visProcessed )
-        return;
+        return;    
 
     if ( event->button() == Qt::LeftButton )
     {

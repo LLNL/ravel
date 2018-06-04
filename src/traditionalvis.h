@@ -46,8 +46,6 @@ public:
     void mouseDoubleClickEvent(QMouseEvent * event);
     void rightDrag(QMouseEvent * event);
 
-    void keyPressed(QKeyEvent * event);
-    void keyReleased(QKeyEvent * event); 
     void mousePressEvent(QMouseEvent * event);
 
     void drawMessage(QPainter * painter, Message * message);
@@ -79,7 +77,6 @@ protected:
                               QVector<GLfloat> * colors);
 
 private:
-    bool ctrlPressed;
     // For keeping track of map betewen real time and step time
     class TimePair {
     public:
