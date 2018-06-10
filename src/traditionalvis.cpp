@@ -88,7 +88,7 @@ void TraditionalVis::mousePressEvent(QMouseEvent * event)
     if( !visProcessed )
         return;    
 
-    if ( event->button() == Qt::LeftButton )
+    if ( event->button() == Qt::RightButton )
     {
         mousex = event->x();
         mousey = event->y();
