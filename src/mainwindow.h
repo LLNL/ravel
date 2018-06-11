@@ -36,6 +36,8 @@ class Trace;
 class VisWidget;
 class VisOptions;
 class VisOptionsDialog;
+class FilterDialog;
+class StatisticsDialog;
 
 class QAction;
 class ImportFunctor;
@@ -63,6 +65,8 @@ public:
 
 public slots:
     void launchVisOptions();
+    void launchFilterOptions();
+    void launchAnalysisView();
 
     // Signal relays
     void pushTime(float start, float stop, bool jump = false);
@@ -118,6 +122,9 @@ private:
     // Color stuff & other vis options
     VisOptions * visoptions;
     VisOptionsDialog * visdialog;
+
+    FilterDialog *filterdialog;
+    StatisticsDialog *histogramview;
 
     QString activetracename;
 
