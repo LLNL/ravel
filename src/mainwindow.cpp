@@ -34,6 +34,7 @@
 #include "visoptions.h"
 #include "visoptionsdialog.h"
 #include "importfunctor.h"
+#include "taskpropertywindow.h"
 
 #include <QFileDialog>
 #include <QFileInfo>
@@ -60,6 +61,7 @@ MainWindow::MainWindow(QWidget *parent) :
     progress(NULL),
     visoptions(new VisOptions()),
     visdialog(NULL),
+    taskwindow(NULL),
     activetracename(""),
     activetraces(QStack<QString>()),
     dataDirectory("")
@@ -98,6 +100,8 @@ MainWindow::MainWindow(QWidget *parent) :
             SLOT(selectEvent(Event *)));
     connect((timevis), SIGNAL(timeScaleString(QString)), timescaleLabel,
             SLOT(setText(QString)));
+    connect((timevis), SIGNAL(taskPropertyDisplay(Event *)), this,
+            SLOT(openTaskPropertyWindow(Event *)));
     viswidgets.push_back(timevis);
     splitterMap.push_back(0);
     splitterActions.push_back(ui->actionPhysical_Time);
@@ -202,6 +206,27 @@ void MainWindow::selectEntities(QList<int> entities)
     {
         viswidgets[i]->selectEntities(entities);
     }
+}
+
+void MainWindow::openTaskPropertyWindow(Event *event)
+{
+    delete taskwindow;
+    int function_id = event->function;
+    for(QList<Trace *>::Iterator trc = this->traces.begin();
+        trc != this->traces.end(); trc++)
+    {
+        for(QMap<int, Function *>::Iterator fnc = (*trc)->functions->begin();
+            fnc != (*trc)->functions->end(); fnc++)
+        {
+            if(fnc.key() == function_id)
+            {
+                QString units = RavelUtils::RavelUtils::getUnits((*trc)->units);
+                taskwindow = new TaskPropertyWindow(this, event, fnc.value(), units);
+                break;
+            }
+        }
+    }
+    taskwindow->show();
 }
 
 void MainWindow::launchVisOptions()

@@ -30,12 +30,15 @@
 #include <QStack>
 #include <QList>
 #include <QVector>
+#include "traditionalvis.h"
 
 class Event;
 class Trace;
 class VisWidget;
 class VisOptions;
+class TraditionalVis;
 class VisOptionsDialog;
+class TaskPropertyWindow;
 
 class QAction;
 class ImportFunctor;
@@ -54,7 +57,7 @@ class MainWindow;
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
-    
+
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
@@ -68,6 +71,8 @@ public slots:
     void pushTime(float start, float stop, bool jump = false);
     void selectEvent(Event * event);
     void selectEntities(QList<int> entities);
+
+    void openTaskPropertyWindow(Event * event);
 
     // Importing & Progress Bar
     void importTracebyGUI();
@@ -91,7 +96,7 @@ public slots:
 signals:
     void operate(const QString &);
     void exportTrace(Trace *, const QString&, const QString&);
-    
+
 private:
     Ui::MainWindow *ui;
     void importTrace(QString dataFileName);
@@ -118,6 +123,8 @@ private:
     // Color stuff & other vis options
     VisOptions * visoptions;
     VisOptionsDialog * visdialog;
+
+    TaskPropertyWindow * taskwindow;
 
     QString activetracename;
 
