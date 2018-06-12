@@ -250,7 +250,6 @@ void MainWindow::launchVisOptions()
 
 void MainWindow::launchFilterOptions()
 {
-    qDebug("What?");
     delete filterdialog;
     filterdialog = new FilterDialog(this);
     filterdialog->show();
