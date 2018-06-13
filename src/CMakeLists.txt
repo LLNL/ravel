@@ -35,6 +35,7 @@ add_definitions(${Qt5Widgets_DEFINITIONS})
 qt5_wrap_ui(ui_mainwindow.h mainwindow.ui)
 qt5_wrap_ui(ui_metricrangedialog.h metricrangedialog.ui)
 qt5_wrap_ui(ui_visoptionsdialog.h visoptionsdialog.ui)
+qt5_wrap_ui(ui_taskpropertywindow.h taskpropertywindow.ui)
 
 # Sources and UI Files
 set(Ravel_SOURCES
@@ -71,6 +72,7 @@ set(Ravel_SOURCES
     entitygroup.cpp
     primaryentitygroup.cpp
     metrics.cpp
+    taskpropertywindow.cpp
     ${ADDED_SOURCES}
 )
 
@@ -111,6 +113,7 @@ set(Ravel_HEADERS
     entitygroup.h
     primaryentitygroup.h
     metrics.h
+    taskpropertywindow.h
     ${ADDED_HEADERS}
 )
 
@@ -118,6 +121,7 @@ set(Ravel_UIC
     ui_mainwindow.h
     ui_visoptionsdialog.h
     ui_metricrangedialog.h
+    ui_taskpropertywindow.h
 )
 
 # Build Target
