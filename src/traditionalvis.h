@@ -45,8 +45,7 @@ public:
     void wheelEvent(QWheelEvent * event);
     void mouseDoubleClickEvent(QMouseEvent * event);
     void rightDrag(QMouseEvent * event);
-
-    void mousePressEvent(QMouseEvent * event);
+    void rightClickEvent(QMouseEvent * event);
 
     void drawMessage(QPainter * painter, Message * message);
     void drawCollective(QPainter * painter, CollectiveRecord * cr);

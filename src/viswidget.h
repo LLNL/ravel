@@ -106,6 +106,7 @@ protected:
     QMap<Event *, QRect> drawnEvents;
     QList<int> selected_entities;
     Event * selected_event;
+    Event * task_property_event;
     Event * hover_event;
     bool closed;
 

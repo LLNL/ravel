@@ -50,9 +50,11 @@ VisWidget::VisWidget(QWidget *parent, VisOptions * _options) :
     drawnEvents(QMap<Event *, QRect>()),
     selected_entities(QList<int>()),
     selected_event(NULL),
+    task_property_event(NULL),
     hover_event(NULL),
     closed(false)
 {
+    setFocusPolicy(Qt::StrongFocus);
     // GLWidget options
     setMinimumSize(30, 50);
     setAutoFillBackground(false);

@@ -83,31 +83,21 @@ void TraditionalVis::setTrace(Trace * t)
     timeSpan = std::min((double) initTimeSpan, maxTime - initTime);
 }
 
-void TraditionalVis::mousePressEvent(QMouseEvent * event)
+void TraditionalVis::rightClickEvent(QMouseEvent * event)
 {
     if( !visProcessed )
         return;
 
-    if ( event->button() == Qt::RightButton )
-    {
-        mousex = event->x();
-        mousey = event->y();
-        for( QMap<Event *, QRect>::Iterator evt = drawnEvents.begin();
-             evt != drawnEvents.end(); evt++ )
-            if( evt.value().contains(mousex, mousey) )
-            {
-                if( evt.key() == selected_event )
-                {
-                    selected_event = NULL;
-                }
-                else
-                {
-                    selected_event = evt.key();
-                }
-                break;
-            }
-        emit taskPropertyDisplay(selected_event);
-    }
+    mousex = event->x();
+    mousey = event->y();
+    for( QMap<Event *, QRect>::Iterator evt = drawnEvents.begin();
+         evt != drawnEvents.end(); evt++ )
+        if( evt.value().contains(mousex, mousey) )
+        {
+            task_property_event = evt.key();
+            break;
+        }
+    emit taskPropertyDisplay(task_property_event);
 }
 
 void TraditionalVis::mouseDoubleClickEvent(QMouseEvent * event)
