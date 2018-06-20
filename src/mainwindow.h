@@ -35,7 +35,6 @@ class Event;
 class Trace;
 class VisWidget;
 class VisOptions;
-class TraditionalVis;
 class VisOptionsDialog;
 class TaskPropertyWindow;
 

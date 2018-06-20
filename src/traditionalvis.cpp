@@ -85,14 +85,14 @@ void TraditionalVis::setTrace(Trace * t)
 
 void TraditionalVis::rightClickEvent(QMouseEvent * event)
 {
-    if( !visProcessed )
+    if (!visProcessed)
         return;
 
     mousex = event->x();
     mousey = event->y();
-    for( QMap<Event *, QRect>::Iterator evt = drawnEvents.begin();
-         evt != drawnEvents.end(); evt++ )
-        if( evt.value().contains(mousex, mousey) )
+    for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin();
+         evt != drawnEvents.end(); ++evt)
+        if (evt.value().contains(mousex, mousey))
         {
             task_property_event = evt.key();
             break;

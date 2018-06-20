@@ -212,13 +212,13 @@ void MainWindow::openTaskPropertyWindow(Event *event)
 {
     delete taskwindow;
     int function_id = event->function;
-    for(QList<Trace *>::Iterator trc = this->traces.begin();
-        trc != this->traces.end(); trc++)
+    for (QList<Trace *>::Iterator trc = this->traces.begin();
+        trc != this->traces.end(); ++trc)
     {
-        for(QMap<int, Function *>::Iterator fnc = (*trc)->functions->begin();
-            fnc != (*trc)->functions->end(); fnc++)
+        for (QMap<int, Function *>::Iterator fnc = (*trc)->functions->begin();
+            fnc != (*trc)->functions->end(); ++fnc)
         {
-            if(fnc.key() == function_id)
+            if (fnc.key() == function_id)
             {
                 QString units = RavelUtils::RavelUtils::getUnits((*trc)->units);
                 taskwindow = new TaskPropertyWindow(this, event, fnc.value(), units);

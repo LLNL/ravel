@@ -41,7 +41,7 @@ public:
     virtual void mouseDoubleClickEvent(QMouseEvent * event);
     void leaveEvent(QEvent * event);
     virtual void rightDrag(QMouseEvent * event) { Q_UNUSED(event); }
-    virtual void rightClickEvent(QMouseEvent * event){ Q_UNUSED(event); }
+    virtual void rightClickEvent(QMouseEvent * event) { Q_UNUSED(event); }
 
 public slots:
     virtual void selectEvent(Event * event, bool aggregate, bool overdraw);

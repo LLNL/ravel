@@ -142,7 +142,7 @@ void TimelineVis::mousePressEvent(QMouseEvent * event)
     if (event->button() == Qt::RightButton)
     {
         rightPressed = true;
-        if( Qt::ControlModifier && event->modifiers() )
+        if (Qt::ControlModifier && event->modifiers())
             rightClickEvent(event);
     }
     mousex = event->x();
