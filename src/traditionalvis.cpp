@@ -480,9 +480,14 @@ void TraditionalVis::paintEvents(QPainter *painter)
         for (QVector<Event *>::Iterator root = roots->begin();
              root != roots->end(); ++root)
         {
-            paintNotStepEvents(painter, *root, position, entity_spacing,
-                               barheight, blockheight, &extents, &drawComms,
-                               &selectedComms);
+            if (filterApplied && filterEvents.contains(*root))
+                paintNotStepEvents(painter, *root, position, entity_spacing,
+                                   barheight, blockheight, &extents, &drawComms,
+                                   &selectedComms);
+            else if (!filterApplied)
+                paintNotStepEvents(painter, *root, position, entity_spacing,
+                                   barheight, blockheight, &extents, &drawComms,
+                                   &selectedComms);
         }
     }
 

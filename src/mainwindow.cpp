@@ -251,8 +251,16 @@ void MainWindow::launchVisOptions()
 void MainWindow::launchFilterOptions()
 {
     delete filterdialog;
-    filterdialog = new FilterDialog(this);
-    filterdialog->show();
+    if (!viswidgets[TIMEVIS]->getFilterEvents().empty())
+        filterdialog = new FilterDialog(this, this->traces, viswidgets[TIMEVIS]->getFilterEvents());
+    else
+        filterdialog = new FilterDialog(this, this->traces);
+    int dialogCode = filterdialog->exec();
+    if (dialogCode == QDialog::Accepted && filterdialog->filterApplied)
+    {
+        viswidgets[TIMEVIS]->setFilterApplied(true);
+        viswidgets[TIMEVIS]->setFilterEvents(filterdialog->getFilterEvents());
+    }
 }
 
 void MainWindow::importTracebyGUI()
