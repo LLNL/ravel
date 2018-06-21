@@ -96,26 +96,6 @@
     </rect>
    </property>
   </widget>
-  <widget class="QSpinBox" name="filterStart">
-   <property name="geometry">
-    <rect>
-     <x>100</x>
-     <y>280</y>
-     <width>161</width>
-     <height>31</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QSpinBox" name="filterEnd">
-   <property name="geometry">
-    <rect>
-     <x>340</x>
-     <y>280</y>
-     <width>171</width>
-     <height>31</height>
-    </rect>
-   </property>
-  </widget>
   <widget class="QLabel" name="filterStartLabel">
    <property name="geometry">
     <rect>
@@ -186,6 +166,38 @@
    </property>
    <property name="text">
     <string>Select All</string>
+   </property>
+  </widget>
+  <widget class="QDoubleSpinBox" name="filterStart">
+   <property name="geometry">
+    <rect>
+     <x>100</x>
+     <y>280</y>
+     <width>161</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="decimals">
+    <number>0</number>
+   </property>
+   <property name="maximum">
+    <double>10000000000000000000.000000000000000</double>
+   </property>
+  </widget>
+  <widget class="QDoubleSpinBox" name="filterEnd">
+   <property name="geometry">
+    <rect>
+     <x>340</x>
+     <y>280</y>
+     <width>171</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="decimals">
+    <number>0</number>
+   </property>
+   <property name="maximum">
+    <double>10000000000000000000.000000000000000</double>
    </property>
   </widget>
  </widget>

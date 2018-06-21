@@ -31,11 +31,15 @@ public slots:
     void captureInput();
     void selectAll(bool);
     void addToSelectedEvents(QTableWidgetItem *);
+    void captureStartTime(double);
+    void captureEndTime(double);
 
 private:
     Ui::AddFunctionsDialog *ui;
     QList<Trace *> traces;
     QString filterName;
+    unsigned long long start;
+    unsigned long long end;
     QMap<int, Function *> matchingFunctions;
     QList<Event *> matchingEvents;
     QSet<Event *> selectedEvents;
@@ -44,6 +48,7 @@ private:
 
     void filterByName(QString name);
     void filterByRegex(QString regexString);
+    void filterByTime(unsigned long long start, unsigned long long end);
 };
 
 #endif // ADDFUNCTIONSDIALOG_H

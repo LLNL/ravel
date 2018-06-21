@@ -8,6 +8,8 @@ AddFunctionsDialog::AddFunctionsDialog(QWidget *parent, QList<Trace *> _traces, 
     QDialog(parent),
     traces(_traces),
     filterName(""),
+    start(0),
+    end(0),
     allClicked(false),
     matchingFunctions(QMap<int, Function *>()),
     matchingEvents(QList<Event *>()),
@@ -26,6 +28,8 @@ AddFunctionsDialog::AddFunctionsDialog(QWidget *parent, QList<Trace *> _traces, 
     connect(ui->filterString, SIGNAL(textChanged()), this, SLOT(captureInput()));
     connect(ui->selectAllFunctions, SIGNAL(clicked(bool)), this, SLOT(selectAll(bool)));
     connect(ui->filterTable, SIGNAL(itemChanged(QTableWidgetItem*)), this, SLOT(addToSelectedEvents(QTableWidgetItem*)));
+    connect(ui->filterStart, SIGNAL(valueChanged(double)), this, SLOT(captureStartTime(double)));
+    connect(ui->filterEnd, SIGNAL(valueChanged(double)), this, SLOT(captureEndTime(double)));
 }
 
 AddFunctionsDialog::~AddFunctionsDialog()
@@ -79,6 +83,30 @@ void AddFunctionsDialog::captureInput()
     }
     else if (ui->filterOptions->currentIndex() == 1)
         filterByName(filterName);
+}
+
+void AddFunctionsDialog::captureStartTime(double time)
+{
+    if (ui->filterOptions->currentIndex() == 2)
+    {
+        start = time;
+        if (start < end && end != 0)
+        {
+            filterByTime(start, end);
+        }
+    }
+}
+
+void AddFunctionsDialog::captureEndTime(double time)
+{
+    if (ui->filterOptions->currentIndex() == 2)
+    {
+        end = time;
+        if (start < end && end != 0)
+        {
+            filterByTime(start, end);
+        }
+    }
 }
 
 void AddFunctionsDialog::selectAll(bool checked)
@@ -158,6 +186,58 @@ void AddFunctionsDialog::filterByName(QString name)
                         {
                             if (!matchingEvents.contains(*itr))
                                 matchingEvents.append(*itr);
+                        }
+                    }
+                }
+            }
+        }
+        ui->filterTable->setRowCount(matchingEvents.size());
+        int counter = 0;
+        foreach (Event * evt, matchingEvents)
+        {
+            QTableWidgetItem *lastItemCheckBox = new QTableWidgetItem();
+            if (selectedEvents.contains(evt))
+                lastItemCheckBox->setCheckState(Qt::Checked);
+            else
+                lastItemCheckBox->setCheckState(Qt::Unchecked);
+            ui->filterTable->setItem(counter, 0, lastItemCheckBox);
+            QTableWidgetItem *lastItemStart = new QTableWidgetItem(QString::number(evt->enter));
+            ui->filterTable->setItem(counter, 1, lastItemStart);
+            QTableWidgetItem *lastItemEnd = new QTableWidgetItem(QString::number(evt->exit));
+            ui->filterTable->setItem(counter, 2, lastItemEnd);
+
+            for (QList<Trace *>::Iterator trc = traces.begin();
+                 trc != traces.end(); ++trc)
+            {
+                if ((*trc)->functions->contains(evt->function))
+                {
+                    QTableWidgetItem *lastItemName = new QTableWidgetItem((*trc)->functions->value(evt->function)->name);
+                    ui->filterTable->setItem(counter, 3, lastItemName);
+                    break;
+                }
+            }
+            counter++;
+        }
+    }
+}
+
+void AddFunctionsDialog::filterByTime(unsigned long long start, unsigned long long end)
+{
+    if (!this->traces.empty())
+    {
+        for (QList<Trace *>::Iterator trc = this->traces.begin();
+             trc != this->traces.end(); ++trc)
+        {
+            for (QVector<QVector<Event *> *>::Iterator eitr = (*trc)->events->begin();
+                 eitr != (*trc)->events->end(); ++eitr)
+            {
+                for (QVector<Event *>::Iterator itr = (*eitr)->begin();
+                     itr != (*eitr)->end(); ++itr)
+                {
+                    if ((*itr)->enter >= start && (*itr)->exit <= end)
+                    {
+                        if (!matchingEvents.contains(*itr)) {
+                            matchingEvents.append(*itr);
                         }
                     }
                 }

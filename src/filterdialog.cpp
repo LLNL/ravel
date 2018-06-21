@@ -64,7 +64,6 @@ void FilterDialog::openAddFunctionsDialog()
     {
         QSet<Event *> selectedEvents = addFuncDialog->getSelectedEvents();
         QSet<Event *> deletedEvents = addFuncDialog->getDeletedEvents();
-        QList<int> deletedRows;
         if (!selectedEvents.empty())
         {
             foreach (Event * evt, selectedEvents)
@@ -104,21 +103,18 @@ void FilterDialog::openAddFunctionsDialog()
                             break;
                         }
                     }
-                    deletedRows = QList<int>();
                     for (int counter = 0; counter < ui->infoFunctions->rowCount(); ++counter)
                     {
                         if (ui->infoFunctions->item(counter, 0)->text() == QString::number(evt->enter) &&
                                 ui->infoFunctions->item(counter, 1)->text() == QString::number(evt->exit) &&
                                 ui->infoFunctions->item(counter, 2)->text() == eventName)
-                            deletedRows.append(counter);
+                        {
+                            ui->infoFunctions->removeRow(counter);
+                            break;
+                        }
                     }
                     filterEvents.remove(evt);
                 }
-            }
-            for (QList<int>::Iterator itr = deletedRows.begin();
-                 itr != deletedRows.end(); ++itr)
-            {
-                ui->infoFunctions->removeRow(*itr);
             }
             if (!filterEvents.empty())
                 filterApplied = true;
