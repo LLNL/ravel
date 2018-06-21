@@ -26,18 +26,15 @@ public:
 
 public slots:
     void openAddFunctionsDialog();
-    void openRemoveFunctionsDialog();
     void openImportFunctionsDialog();
 
 private:
     Ui::FilterDialog *ui;
     QList<Trace *> traces;
+    QSet<Event *> filterEvents;
 
     // Add functions
     AddFunctionsDialog *addFuncDialog;
-    QSet<Event *> filterEvents;
-
-    // Remove functions
 
     // Import Functions
 };

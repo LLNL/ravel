@@ -22,6 +22,7 @@ public:
                                 QList<Trace *> _traces = QList<Trace *>(),
                                 QSet<Event *> _selectedEvents = QSet<Event *>());
     QSet<Event *> getSelectedEvents();
+    QSet<Event *> getDeletedEvents();
     QString getFilterName();
     ~AddFunctionsDialog();
 
@@ -38,6 +39,7 @@ private:
     QMap<int, Function *> matchingFunctions;
     QList<Event *> matchingEvents;
     QSet<Event *> selectedEvents;
+    QSet<Event *> deletedEvents;
     bool allClicked;
 
     void filterByName(QString name);

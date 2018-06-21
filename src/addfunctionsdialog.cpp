@@ -12,6 +12,7 @@ AddFunctionsDialog::AddFunctionsDialog(QWidget *parent, QList<Trace *> _traces, 
     matchingFunctions(QMap<int, Function *>()),
     matchingEvents(QList<Event *>()),
     selectedEvents(_filterEvents),
+    deletedEvents(QSet<Event *>()),
     ui(new Ui::AddFunctionsDialog)
 {
     ui->setupUi(this);
@@ -35,6 +36,11 @@ AddFunctionsDialog::~AddFunctionsDialog()
 QSet<Event *> AddFunctionsDialog::getSelectedEvents()
 {
     return selectedEvents;
+}
+
+QSet<Event *> AddFunctionsDialog::getDeletedEvents()
+{
+    return deletedEvents;
 }
 
 QString AddFunctionsDialog::getFilterName()
@@ -112,7 +118,10 @@ void AddFunctionsDialog::addToSelectedEvents(QTableWidgetItem *item)
     else if (item->column() == 0 && item->checkState() == Qt::Unchecked)
     {
         if (selectedEvents.contains(matchingEvents[item->row()]))
+        {
+            deletedEvents.insert(matchingEvents[item->row()]);
             selectedEvents.remove(matchingEvents[item->row()]);
+        }
     }
 }
 
@@ -155,21 +164,14 @@ void AddFunctionsDialog::filterByName(QString name)
             }
         }
         ui->filterTable->setRowCount(matchingEvents.size());
-        if (!selectedEvents.empty())
-        {
-            foreach (Event * evt, selectedEvents)
-            {
-                if (matchingEvents.contains(evt))
-                {
-                    matchingEvents.removeAll(evt);
-                }
-            }
-        }
         int counter = 0;
         foreach (Event * evt, matchingEvents)
         {
             QTableWidgetItem *lastItemCheckBox = new QTableWidgetItem();
-            lastItemCheckBox->setCheckState(Qt::Unchecked);
+            if (selectedEvents.contains(evt))
+                lastItemCheckBox->setCheckState(Qt::Checked);
+            else
+                lastItemCheckBox->setCheckState(Qt::Unchecked);
             ui->filterTable->setItem(counter, 0, lastItemCheckBox);
             QTableWidgetItem *lastItemStart = new QTableWidgetItem(QString::number(evt->enter));
             ui->filterTable->setItem(counter, 1, lastItemStart);

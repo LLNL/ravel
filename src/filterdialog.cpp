@@ -38,7 +38,6 @@ FilterDialog::FilterDialog(QWidget *parent, QList<Trace *> _traces, QSet<Event *
         }
     }
     connect(ui->addFunctions, SIGNAL(clicked()), this, SLOT(openAddFunctionsDialog()));
-    connect(ui->removeFunctions, SIGNAL(clicked()), this, SLOT(openRemoveFunctionsDialog()));
     connect(ui->importFunctions, SIGNAL(clicked()), this, SLOT(openImportFunctionsDialog()));
 }
 
@@ -64,6 +63,8 @@ void FilterDialog::openAddFunctionsDialog()
     if (dialogCode == QDialog::Accepted)
     {
         QSet<Event *> selectedEvents = addFuncDialog->getSelectedEvents();
+        QSet<Event *> deletedEvents = addFuncDialog->getDeletedEvents();
+        QList<int> deletedRows;
         if (!selectedEvents.empty())
         {
             foreach (Event * evt, selectedEvents)
@@ -89,14 +90,42 @@ void FilterDialog::openAddFunctionsDialog()
                     filterEvents.insert(evt);
                 }
             }
-            filterApplied = true;
+            foreach (Event * evt, deletedEvents)
+            {
+                if (filterEvents.contains(evt))
+                {
+                    QString eventName;
+                    for (QList<Trace *>::Iterator trc = traces.begin();
+                         trc != traces.end(); ++trc)
+                    {
+                        if ((*trc)->functions->contains(evt->function))
+                        {
+                            eventName = (*trc)->functions->value(evt->function)->name;
+                            break;
+                        }
+                    }
+                    deletedRows = QList<int>();
+                    for (int counter = 0; counter < ui->infoFunctions->rowCount(); ++counter)
+                    {
+                        if (ui->infoFunctions->item(counter, 0)->text() == QString::number(evt->enter) &&
+                                ui->infoFunctions->item(counter, 1)->text() == QString::number(evt->exit) &&
+                                ui->infoFunctions->item(counter, 2)->text() == eventName)
+                            deletedRows.append(counter);
+                    }
+                    filterEvents.remove(evt);
+                }
+            }
+            for (QList<int>::Iterator itr = deletedRows.begin();
+                 itr != deletedRows.end(); ++itr)
+            {
+                ui->infoFunctions->removeRow(*itr);
+            }
+            if (!filterEvents.empty())
+                filterApplied = true;
+            else
+                filterApplied = false;
         }
     }
-}
-
-void FilterDialog::openRemoveFunctionsDialog()
-{
-    qDebug(ui->removeFunctions->text().toLatin1());
 }
 
 void FilterDialog::openImportFunctionsDialog()

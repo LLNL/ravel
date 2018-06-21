@@ -42,24 +42,11 @@
     <string>Add</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="removeFunctions">
-   <property name="geometry">
-    <rect>
-     <x>400</x>
-     <y>50</y>
-     <width>91</width>
-     <height>25</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Remove</string>
-   </property>
-  </widget>
   <widget class="QPushButton" name="importFunctions">
    <property name="geometry">
     <rect>
      <x>400</x>
-     <y>180</y>
+     <y>50</y>
      <width>91</width>
      <height>25</height>
     </rect>
