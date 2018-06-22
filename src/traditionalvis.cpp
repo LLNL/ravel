@@ -50,7 +50,6 @@ TraditionalVis::TraditionalVis(QWidget * parent, VisOptions * _options)
     lassoRect(QRect()),
     blockheight(0)
 {
-
 }
 
 TraditionalVis::~TraditionalVis()
@@ -82,6 +81,23 @@ void TraditionalVis::setTrace(Trace * t)
 
     startTime = initTime;
     timeSpan = std::min((double) initTimeSpan, maxTime - initTime);
+}
+
+void TraditionalVis::rightClickEvent(QMouseEvent * event)
+{
+    if (!visProcessed)
+        return;
+
+    mousex = event->x();
+    mousey = event->y();
+    for (QMap<Event *, QRect>::Iterator evt = drawnEvents.begin();
+         evt != drawnEvents.end(); ++evt)
+        if (evt.value().contains(mousex, mousey))
+        {
+            task_property_event = evt.key();
+            break;
+        }
+    emit taskPropertyDisplay(task_property_event);
 }
 
 void TraditionalVis::mouseDoubleClickEvent(QMouseEvent * event)

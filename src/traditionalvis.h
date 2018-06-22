@@ -45,12 +45,14 @@ public:
     void wheelEvent(QWheelEvent * event);
     void mouseDoubleClickEvent(QMouseEvent * event);
     void rightDrag(QMouseEvent * event);
+    void rightClickEvent(QMouseEvent * event);
 
     void drawMessage(QPainter * painter, Message * message);
     void drawCollective(QPainter * painter, CollectiveRecord * cr);
 
 signals:
     void timeScaleString(QString);
+    void taskPropertyDisplay(Event *);
 
 public slots:
     void setTime(float start, float stop, bool jump = false);
