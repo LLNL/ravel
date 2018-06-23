@@ -23,7 +23,6 @@ public:
                                 QSet<Event *> _selectedEvents = QSet<Event *>());
     QSet<Event *> getSelectedEvents();
     QSet<Event *> getDeletedEvents();
-    QString getFilterName();
     ~AddFunctionsDialog();
 
 public slots:
@@ -37,7 +36,6 @@ public slots:
 private:
     Ui::AddFunctionsDialog *ui;
     QList<Trace *> traces;
-    QString filterName;
     unsigned long long start;
     unsigned long long end;
     QMap<int, Function *> matchingFunctions;
@@ -46,9 +44,10 @@ private:
     QSet<Event *> deletedEvents;
     bool allClicked;
 
-    void filterByName(QString name);
-    void filterByRegex(QString regexString);
+    void getMatches(QString string);
+    void filterByString(QString name);
     void filterByTime(unsigned long long start, unsigned long long end);
+    void populateTable();
 };
 
 #endif // ADDFUNCTIONSDIALOG_H

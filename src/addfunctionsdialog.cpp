@@ -7,7 +7,6 @@
 AddFunctionsDialog::AddFunctionsDialog(QWidget *parent, QList<Trace *> _traces, QSet<Event *> _filterEvents) :
     QDialog(parent),
     traces(_traces),
-    filterName(""),
     start(0),
     end(0),
     allClicked(false),
@@ -47,11 +46,6 @@ QSet<Event *> AddFunctionsDialog::getDeletedEvents()
     return deletedEvents;
 }
 
-QString AddFunctionsDialog::getFilterName()
-{
-    return filterName;
-}
-
 void AddFunctionsDialog::switchVisibility(int option)
 {
     switch(option)
@@ -76,13 +70,8 @@ void AddFunctionsDialog::switchVisibility(int option)
 
 void AddFunctionsDialog::captureInput()
 {
-    filterName = ui->filterString->toPlainText();
-    if (ui->filterOptions->currentIndex() == 0)
-    {
-        // do something!
-    }
-    else if (ui->filterOptions->currentIndex() == 1)
-        filterByName(filterName);
+    QString filterString = ui->filterString->toPlainText();
+    filterByString(filterString);
 }
 
 void AddFunctionsDialog::captureStartTime(double time)
@@ -153,80 +142,77 @@ void AddFunctionsDialog::addToSelectedEvents(QTableWidgetItem *item)
     }
 }
 
-void AddFunctionsDialog::filterByName(QString name)
+void AddFunctionsDialog::getMatches(QString string)
 {
-    if (!this->traces.empty())
+    for (QList<Trace *>::Iterator trc = traces.begin();
+         trc != traces.end(); ++trc)
     {
-        for (QList<Trace *>::Iterator trc = this->traces.begin();
-             trc != this->traces.end(); ++trc)
+        for (QMap<int, Function *>::Iterator fnc = (*trc)->functions->begin();
+             fnc != (*trc)->functions->end(); ++fnc)
         {
-            for (QMap<int, Function *>::Iterator fnc = (*trc)->functions->begin();
-                 fnc != (*trc)->functions->end(); ++fnc)
-            {
-                if (!QString::compare(fnc.value()->name, name, Qt::CaseInsensitive))
+            switch (ui->filterOptions->currentIndex()) {
+            case 0:
+                if (QString(fnc.value()->name).contains(QRegExp(string)) && string.size() != 0)
                 {
                     matchingFunctions.insert(fnc.key(), fnc.value());
-                    qDebug("Found it! " + name.toLatin1());
                 }
+                break;
+            case 1:
+                if (!QString::compare(fnc.value()->name, string, Qt::CaseInsensitive))
+                {
+                    matchingFunctions.insert(fnc.key(), fnc.value());
+                }
+                break;
             }
         }
-        for (QMap<int, Function *>::Iterator fnc = matchingFunctions.begin();
-             fnc != matchingFunctions.end(); ++fnc)
+    }
+}
+
+void AddFunctionsDialog::filterByString(QString name)
+{
+    if (!traces.empty())
+    {
+        if (name.length() == 0)
         {
-            for (QList<Trace *>::Iterator trc = this->traces.begin();
-                 trc != this->traces.end(); ++trc)
+            matchingEvents.clear();
+        }
+        else
+        {
+            qDebug("Name length = " + QString::number(name.length()).toLatin1());
+            qDebug("Matching events length = " + QString::number(matchingEvents.size()).toLatin1());
+            getMatches(name);
+            for (QMap<int, Function *>::Iterator fnc = matchingFunctions.begin();
+                 fnc != matchingFunctions.end(); ++fnc)
             {
-                for (QVector<QVector<Event *> *>::Iterator eitr = (*trc)->events->begin();
-                     eitr != (*trc)->events->end(); ++eitr)
+                for (QList<Trace *>::Iterator trc = traces.begin();
+                     trc != traces.end(); ++trc)
                 {
-                    for (QVector<Event *>::Iterator itr = (*eitr)->begin();
-                         itr != (*eitr)->end(); ++itr)
+                    for (QVector<QVector<Event *> *>::Iterator eitr = (*trc)->events->begin();
+                         eitr != (*trc)->events->end(); ++eitr)
                     {
-                        if (fnc.key() == (*itr)->function)
+                        for (QVector<Event *>::Iterator itr = (*eitr)->begin();
+                             itr != (*eitr)->end(); ++itr)
                         {
-                            if (!matchingEvents.contains(*itr))
-                                matchingEvents.append(*itr);
+                            if (fnc.key() == (*itr)->function)
+                            {
+                                if (!matchingEvents.contains(*itr))
+                                    matchingEvents.append(*itr);
+                            }
                         }
                     }
                 }
             }
         }
-        ui->filterTable->setRowCount(matchingEvents.size());
-        int counter = 0;
-        foreach (Event * evt, matchingEvents)
-        {
-            QTableWidgetItem *lastItemCheckBox = new QTableWidgetItem();
-            if (selectedEvents.contains(evt))
-                lastItemCheckBox->setCheckState(Qt::Checked);
-            else
-                lastItemCheckBox->setCheckState(Qt::Unchecked);
-            ui->filterTable->setItem(counter, 0, lastItemCheckBox);
-            QTableWidgetItem *lastItemStart = new QTableWidgetItem(QString::number(evt->enter));
-            ui->filterTable->setItem(counter, 1, lastItemStart);
-            QTableWidgetItem *lastItemEnd = new QTableWidgetItem(QString::number(evt->exit));
-            ui->filterTable->setItem(counter, 2, lastItemEnd);
-
-            for (QList<Trace *>::Iterator trc = traces.begin();
-                 trc != traces.end(); ++trc)
-            {
-                if ((*trc)->functions->contains(evt->function))
-                {
-                    QTableWidgetItem *lastItemName = new QTableWidgetItem((*trc)->functions->value(evt->function)->name);
-                    ui->filterTable->setItem(counter, 3, lastItemName);
-                    break;
-                }
-            }
-            counter++;
-        }
+        populateTable();
     }
 }
 
 void AddFunctionsDialog::filterByTime(unsigned long long start, unsigned long long end)
 {
-    if (!this->traces.empty())
+    if (!traces.empty())
     {
-        for (QList<Trace *>::Iterator trc = this->traces.begin();
-             trc != this->traces.end(); ++trc)
+        for (QList<Trace *>::Iterator trc = traces.begin();
+             trc != traces.end(); ++trc)
         {
             for (QVector<QVector<Event *> *>::Iterator eitr = (*trc)->events->begin();
                  eitr != (*trc)->events->end(); ++eitr)
@@ -243,32 +229,38 @@ void AddFunctionsDialog::filterByTime(unsigned long long start, unsigned long lo
                 }
             }
         }
-        ui->filterTable->setRowCount(matchingEvents.size());
-        int counter = 0;
-        foreach (Event * evt, matchingEvents)
-        {
-            QTableWidgetItem *lastItemCheckBox = new QTableWidgetItem();
-            if (selectedEvents.contains(evt))
-                lastItemCheckBox->setCheckState(Qt::Checked);
-            else
-                lastItemCheckBox->setCheckState(Qt::Unchecked);
-            ui->filterTable->setItem(counter, 0, lastItemCheckBox);
-            QTableWidgetItem *lastItemStart = new QTableWidgetItem(QString::number(evt->enter));
-            ui->filterTable->setItem(counter, 1, lastItemStart);
-            QTableWidgetItem *lastItemEnd = new QTableWidgetItem(QString::number(evt->exit));
-            ui->filterTable->setItem(counter, 2, lastItemEnd);
+        populateTable();
+    }
+}
 
-            for (QList<Trace *>::Iterator trc = traces.begin();
-                 trc != traces.end(); ++trc)
+void AddFunctionsDialog::populateTable()
+{
+    ui->filterTable->setRowCount(matchingEvents.size());
+    qDebug("Size = " + QString::number(matchingEvents.size()).toLatin1());
+    int counter = 0;
+    foreach (Event * evt, matchingEvents)
+    {
+        QTableWidgetItem *lastItemCheckBox = new QTableWidgetItem();
+        if (selectedEvents.contains(evt))
+            lastItemCheckBox->setCheckState(Qt::Checked);
+        else
+            lastItemCheckBox->setCheckState(Qt::Unchecked);
+        ui->filterTable->setItem(counter, 0, lastItemCheckBox);
+        QTableWidgetItem *lastItemStart = new QTableWidgetItem(QString::number(evt->enter));
+        ui->filterTable->setItem(counter, 1, lastItemStart);
+        QTableWidgetItem *lastItemEnd = new QTableWidgetItem(QString::number(evt->exit));
+        ui->filterTable->setItem(counter, 2, lastItemEnd);
+
+        for (QList<Trace *>::Iterator trc = traces.begin();
+             trc != traces.end(); ++trc)
+        {
+            if ((*trc)->functions->contains(evt->function))
             {
-                if ((*trc)->functions->contains(evt->function))
-                {
-                    QTableWidgetItem *lastItemName = new QTableWidgetItem((*trc)->functions->value(evt->function)->name);
-                    ui->filterTable->setItem(counter, 3, lastItemName);
-                    break;
-                }
+                QTableWidgetItem *lastItemName = new QTableWidgetItem((*trc)->functions->value(evt->function)->name);
+                ui->filterTable->setItem(counter, 3, lastItemName);
+                break;
             }
-            counter++;
         }
+        counter++;
     }
 }
