@@ -53,6 +53,11 @@
      <string>Start and End Time</string>
     </property>
    </item>
+   <item>
+    <property name="text">
+     <string>Time Duration</string>
+    </property>
+   </item>
   </widget>
   <widget class="QLabel" name="filterOptionsLabel">
    <property name="geometry">
@@ -91,7 +96,7 @@
     <rect>
      <x>120</x>
      <y>280</y>
-     <width>391</width>
+     <width>301</width>
      <height>31</height>
     </rect>
    </property>
@@ -198,6 +203,19 @@
    </property>
    <property name="maximum">
     <double>10000000000000000000.000000000000000</double>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="filterButton">
+   <property name="geometry">
+    <rect>
+     <x>430</x>
+     <y>280</y>
+     <width>89</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Filter</string>
    </property>
   </widget>
  </widget>
