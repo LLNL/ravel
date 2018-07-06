@@ -218,6 +218,74 @@
     <string>Filter</string>
    </property>
   </widget>
+  <widget class="QLabel" name="filterDurationLabel">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>280</y>
+     <width>81</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Duration</string>
+   </property>
+  </widget>
+  <widget class="QDoubleSpinBox" name="filterDuration">
+   <property name="geometry">
+    <rect>
+     <x>100</x>
+     <y>280</y>
+     <width>161</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="decimals">
+    <number>0</number>
+   </property>
+   <property name="maximum">
+    <double>10000000000000000000.000000000000000</double>
+   </property>
+  </widget>
+  <widget class="QRadioButton" name="filterSec">
+   <property name="geometry">
+    <rect>
+     <x>270</x>
+     <y>280</y>
+     <width>50</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>s</string>
+   </property>
+  </widget>
+  <widget class="QRadioButton" name="filterMSec">
+   <property name="geometry">
+    <rect>
+     <x>320</x>
+     <y>280</y>
+     <width>50</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>ms</string>
+   </property>
+  </widget>
+  <widget class="QRadioButton" name="filterNSec">
+   <property name="geometry">
+    <rect>
+     <x>370</x>
+     <y>280</y>
+     <width>50</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>ns</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections>

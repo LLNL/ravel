@@ -22,6 +22,11 @@ AddFunctionsDialog::AddFunctionsDialog(QWidget *parent, QList<Trace *> _traces, 
     ui->filterStart->setVisible(false);
     ui->filterEndLabel->setVisible(false);
     ui->filterEnd->setVisible(false);
+    ui->filterDurationLabel->setVisible(false);
+    ui->filterDuration->setVisible(false);
+    ui->filterSec->setVisible(false);
+    ui->filterMSec->setVisible(false);
+    ui->filterNSec->setVisible(false);
 
     connect(ui->filterOptions, SIGNAL(currentIndexChanged(int)), this, SLOT(switchVisibility(int)));
     connect(ui->filterButton, SIGNAL(clicked()), this, SLOT(captureInput()));
@@ -58,6 +63,11 @@ void AddFunctionsDialog::switchVisibility(int option)
                 ui->filterStart->setVisible(false);
                 ui->filterEndLabel->setVisible(false);
                 ui->filterEnd->setVisible(false);
+                ui->filterDurationLabel->setVisible(false);
+                ui->filterDuration->setVisible(false);
+                ui->filterSec->setVisible(false);
+                ui->filterMSec->setVisible(false);
+                ui->filterNSec->setVisible(false);
                 break;
         case 2: ui->filterStringLabel->setVisible(false);
                 ui->filterString->setVisible(false);
@@ -66,6 +76,24 @@ void AddFunctionsDialog::switchVisibility(int option)
                 ui->filterStart->setVisible(true);
                 ui->filterEndLabel->setVisible(true);
                 ui->filterEnd->setVisible(true);
+                ui->filterDurationLabel->setVisible(false);
+                ui->filterDuration->setVisible(false);
+                ui->filterSec->setVisible(false);
+                ui->filterMSec->setVisible(false);
+                ui->filterNSec->setVisible(false);
+                break;
+        case 3: ui->filterStringLabel->setVisible(false);
+                ui->filterString->setVisible(false);
+                ui->filterButton->setVisible(true);
+                ui->filterStartLabel->setVisible(false);
+                ui->filterStart->setVisible(false);
+                ui->filterEndLabel->setVisible(false);
+                ui->filterEnd->setVisible(false);
+                ui->filterDurationLabel->setVisible(true);
+                ui->filterDuration->setVisible(true);
+                ui->filterSec->setVisible(true);
+                ui->filterMSec->setVisible(true);
+                ui->filterNSec->setVisible(true);
                 break;
     }
 }
