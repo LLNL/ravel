@@ -53,6 +53,7 @@ private:
     void filterByTime(unsigned long long start, unsigned long long end);
     void filterByDuration(unsigned long long duration, int option);
     void populateTable();
+    double decideFactor(QString, QString);
 };
 
 #endif // ADDFUNCTIONSDIALOG_H

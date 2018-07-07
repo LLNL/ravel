@@ -3,6 +3,7 @@
 #include "trace.h"
 #include "function.h"
 #include "event.h"
+#include "ravelutils.h"
 
 AddFunctionsDialog::AddFunctionsDialog(QWidget *parent, QList<Trace *> _traces, QSet<Event *> _filterEvents) :
     QDialog(parent),
@@ -289,8 +290,51 @@ void AddFunctionsDialog::filterByTime(unsigned long long start, unsigned long lo
     }
 }
 
+double AddFunctionsDialog::decideFactor(QString units, QString option_units) // Might need to add other possibilities as mentioned in getUnits function
+{
+    if (!QString::compare(units, "s", Qt::CaseInsensitive))
+    {
+        if (!QString::compare(option_units, "ns", Qt::CaseInsensitive))
+            return 1e+9;
+        else if (!QString::compare(option_units, "ms", Qt::CaseInsensitive))
+            return 1000;
+    }
+    else if (!QString::compare(units, "ms", Qt::CaseInsensitive))
+    {
+        if (!QString::compare(option_units, "s", Qt::CaseInsensitive))
+            return 0.001;
+        else if (!QString::compare(option_units, "ns", Qt::CaseInsensitive))
+            return 1e+6;
+    }
+    else if (!QString::compare(units, "ns", Qt::CaseInsensitive))
+    {
+        if (!QString::compare(option_units, "s", Qt::CaseInsensitive))
+            return 1e-9;
+        else if (!QString::compare(option_units, "ms", Qt::CaseInsensitive))
+            return 1e-6;
+    }
+
+}
+
 void AddFunctionsDialog::filterByDuration(unsigned long long duration, int option)
 {
+    QString units = RavelUtils::RavelUtils::getUnits(this->traces[0]->units); // Is this correct?
+    QString option_units;
+    bool change = false;
+    switch (option) {
+    case 0:
+        option_units = "s";
+        break;
+    case 1:
+        option_units = "ms";
+        break;
+    case 2:
+        option_units = "ns";
+        break;
+    }
+    if (QString::compare(units, option_units, Qt::CaseInsensitive))
+        change = true;
+
     if (!this->traces.empty())
     {
         for (QList<Trace *>::Iterator trc = this->traces.begin();
@@ -302,7 +346,13 @@ void AddFunctionsDialog::filterByDuration(unsigned long long duration, int optio
                 for (QVector<Event *>::Iterator itr = (*eitr)->begin();
                      itr != (*eitr)->end(); ++itr)
                 {
-                    if ( abs((*itr)->enter - (*itr)->exit) >= duration)
+                    unsigned long long time = abs((*itr)->exit - (*itr)->enter);
+                    if (change)
+                    {
+                        double factor = decideFactor(units, option_units);
+                        time *= factor;
+                    }
+                    if ( time >= duration)
                     {
                         if (!this->matchingEvents.contains(*itr)) {
                             this->matchingEvents.append(*itr);
