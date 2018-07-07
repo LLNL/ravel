@@ -78,7 +78,7 @@
     </rect>
    </property>
    <property name="columnCount">
-    <number>2</number>
+    <number>3</number>
    </property>
    <attribute name="horizontalHeaderCascadingSectionResizes">
     <bool>false</bool>
@@ -91,12 +91,17 @@
    </attribute>
    <column>
     <property name="text">
-     <string>Active</string>
+     <string>Start Time</string>
     </property>
    </column>
    <column>
     <property name="text">
-     <string>Description</string>
+     <string>End Time</string>
+    </property>
+   </column>
+   <column>
+    <property name="text">
+     <string>Name</string>
     </property>
    </column>
   </widget>
