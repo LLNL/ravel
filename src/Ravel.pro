@@ -109,7 +109,7 @@ FORMS += \
     mainwindow.ui \
     visoptionsdialog.ui \
     metricrangedialog.ui \
-    taskpropertywindow.ui
+    taskpropertywindow.ui \
     filterdialog.ui \
     addfunctionsdialog.ui
 
