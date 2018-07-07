@@ -9,6 +9,8 @@ AddFunctionsDialog::AddFunctionsDialog(QWidget *parent, QList<Trace *> _traces, 
     traces(_traces),
     start(0),
     end(0),
+    duration(0),
+    option(0),
     allClicked(false),
     matchingFunctions(QMap<int, Function *>()),
     matchingEvents(QList<Event *>()),
@@ -28,12 +30,18 @@ AddFunctionsDialog::AddFunctionsDialog(QWidget *parent, QList<Trace *> _traces, 
     ui->filterMSec->setVisible(false);
     ui->filterNSec->setVisible(false);
 
+    ui->filterRadioGroup->setId(ui->filterSec, 0);
+    ui->filterRadioGroup->setId(ui->filterMSec, 1);
+    ui->filterRadioGroup->setId(ui->filterNSec, 2);
+
     connect(ui->filterOptions, SIGNAL(currentIndexChanged(int)), this, SLOT(switchVisibility(int)));
     connect(ui->filterButton, SIGNAL(clicked()), this, SLOT(captureInput()));
     connect(ui->selectAllFunctions, SIGNAL(clicked(bool)), this, SLOT(selectAll(bool)));
     connect(ui->filterTable, SIGNAL(itemChanged(QTableWidgetItem*)), this, SLOT(addToSelectedEvents(QTableWidgetItem*)));
     connect(ui->filterStart, SIGNAL(valueChanged(double)), this, SLOT(captureStartTime(double)));
     connect(ui->filterEnd, SIGNAL(valueChanged(double)), this, SLOT(captureEndTime(double)));
+    connect(ui->filterDuration, SIGNAL(valueChanged(double)), this, SLOT(captureDuration(double)));
+    connect(ui->filterRadioGroup, SIGNAL(buttonClicked(int)), this, SLOT(captureOption(int)));
 }
 
 AddFunctionsDialog::~AddFunctionsDialog()
@@ -100,11 +108,19 @@ void AddFunctionsDialog::switchVisibility(int option)
 
 void AddFunctionsDialog::captureInput()
 {
-    QString filterString = ui->filterString->toPlainText();
-    this->matchingEvents.clear();
-    this->matchingFunctions.clear();
-    ui->filterTable->clear();
-    filterByString(filterString);
+    if (ui->filterOptions->currentIndex() == 0 || ui->filterOptions->currentIndex() == 1)
+    {
+        QString filterString = ui->filterString->toPlainText();
+        this->matchingEvents.clear();
+        this->matchingFunctions.clear();
+        ui->filterTable->clear();
+        filterByString(filterString);
+    }
+    else if (ui->filterOptions->currentIndex() == 3)
+    {
+        if (duration > 0)
+            filterByDuration(duration, option);
+    }
 }
 
 void AddFunctionsDialog::captureStartTime(double time)
@@ -129,6 +145,19 @@ void AddFunctionsDialog::captureEndTime(double time)
             filterByTime(start, end);
         }
     }
+}
+
+void AddFunctionsDialog::captureDuration(double time)
+{
+    if (ui->filterOptions->currentIndex() == 3)
+    {
+        duration = time;
+    }
+}
+
+void AddFunctionsDialog::captureOption(int id)
+{
+    option = id;
 }
 
 void AddFunctionsDialog::selectAll(bool checked)
@@ -248,6 +277,32 @@ void AddFunctionsDialog::filterByTime(unsigned long long start, unsigned long lo
                      itr != (*eitr)->end(); ++itr)
                 {
                     if ((*itr)->enter >= start && (*itr)->exit <= end)
+                    {
+                        if (!this->matchingEvents.contains(*itr)) {
+                            this->matchingEvents.append(*itr);
+                        }
+                    }
+                }
+            }
+        }
+        populateTable();
+    }
+}
+
+void AddFunctionsDialog::filterByDuration(unsigned long long duration, int option)
+{
+    if (!this->traces.empty())
+    {
+        for (QList<Trace *>::Iterator trc = this->traces.begin();
+             trc != this->traces.end(); ++trc)
+        {
+            for (QVector<QVector<Event *> *>::Iterator eitr = (*trc)->events->begin();
+                 eitr != (*trc)->events->end(); ++eitr)
+            {
+                for (QVector<Event *>::Iterator itr = (*eitr)->begin();
+                     itr != (*eitr)->end(); ++itr)
+                {
+                    if ( abs((*itr)->enter - (*itr)->exit) >= duration)
                     {
                         if (!this->matchingEvents.contains(*itr)) {
                             this->matchingEvents.append(*itr);

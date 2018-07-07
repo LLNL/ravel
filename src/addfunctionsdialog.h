@@ -32,12 +32,16 @@ public slots:
     void addToSelectedEvents(QTableWidgetItem *);
     void captureStartTime(double);
     void captureEndTime(double);
+    void captureDuration(double);
+    void captureOption(int);
 
 private:
     Ui::AddFunctionsDialog *ui;
     QList<Trace *> traces;
     unsigned long long start;
     unsigned long long end;
+    unsigned long long duration;
+    int option;
     QMap<int, Function *> matchingFunctions;
     QList<Event *> matchingEvents;
     QSet<Event *> selectedEvents;
@@ -47,6 +51,7 @@ private:
     void getMatches(QString string);
     void filterByString(QString name);
     void filterByTime(unsigned long long start, unsigned long long end);
+    void filterByDuration(unsigned long long duration, int option);
     void populateTable();
 };
 
