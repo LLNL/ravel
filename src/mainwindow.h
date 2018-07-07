@@ -30,6 +30,7 @@
 #include <QStack>
 #include <QList>
 #include <QVector>
+#include "traditionalvis.h"
 
 class Event;
 class Trace;
@@ -37,6 +38,8 @@ class VisWidget;
 class VisOptions;
 class VisOptionsDialog;
 class TaskPropertyWindow;
+class TraditionalVis;
+class FilterDialog;
 
 class QAction;
 class ImportFunctor;
@@ -64,6 +67,7 @@ public:
 
 public slots:
     void launchVisOptions();
+    void launchFilterOptions();
 
     // Signal relays
     void pushTime(float start, float stop, bool jump = false);
@@ -123,6 +127,7 @@ private:
     VisOptionsDialog * visdialog;
 
     TaskPropertyWindow * taskwindow;
+    FilterDialog *filterdialog;
 
     QString activetracename;
 

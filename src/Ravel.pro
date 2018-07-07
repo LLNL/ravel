@@ -62,7 +62,8 @@ SOURCES  += main.cpp \
     primaryentitygroup.cpp \
     entitygroup.cpp \
     importfunctor.cpp \
-    taskpropertywindow.cpp
+    taskpropertywindow.cpp \
+    filterdialog.cpp
 
 HEADERS += \
     trace.h \
@@ -99,14 +100,16 @@ HEADERS += \
     entitygroup.h \
     ravelutils.h \
     importfunctor.h \
-    taskpropertywindow.h
+    taskpropertywindow.h \
+    filterdialog.h
 
 FORMS += \
     mainwindow.ui \
     visoptionsdialog.ui \
     metricrangedialog.ui \
     taskpropertywindow.ui
-
+    filterdialog.ui \
+    
 HOME = $$system(echo $HOME)
 
 contains(DEFINES, OTF1LIB) {

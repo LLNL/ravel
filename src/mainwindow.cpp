@@ -35,6 +35,7 @@
 #include "visoptionsdialog.h"
 #include "importfunctor.h"
 #include "taskpropertywindow.h"
+#include "filterdialog.h"
 
 #include <QFileDialog>
 #include <QFileInfo>
@@ -62,6 +63,7 @@ MainWindow::MainWindow(QWidget *parent) :
     visoptions(new VisOptions()),
     visdialog(NULL),
     taskwindow(NULL),
+    filterdialog(NULL),
     activetracename(""),
     activetraces(QStack<QString>()),
     dataDirectory("")
@@ -120,6 +122,9 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionVisualization, SIGNAL(triggered()), this,
             SLOT(launchVisOptions()));
     ui->actionVisualization->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_V));
+
+    connect(ui->actionFilters, SIGNAL(triggered()), this, SLOT(launchFilterOptions()));
+    ui->actionFilters->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_F));
 
     connect(ui->actionPhysical_Time, SIGNAL(triggered()), this,
             SLOT(togglePhysicalTime()));
@@ -241,6 +246,14 @@ void MainWindow::launchVisOptions()
 
     for(int i = 0; i < viswidgets.size(); i++)
         viswidgets[i]->repaint();
+}
+
+void MainWindow::launchFilterOptions()
+{
+    qDebug("What?");
+    delete filterdialog;
+    filterdialog = new FilterDialog(this);
+    filterdialog->show();
 }
 
 void MainWindow::importTracebyGUI()
