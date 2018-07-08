@@ -264,7 +264,7 @@
      <x>0</x>
      <y>0</y>
      <width>1600</width>
-     <height>25</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -280,6 +280,7 @@
      <string>Options</string>
     </property>
     <addaction name="actionVisualization"/>
+    <addaction name="actionFilters"/>
    </widget>
    <widget class="QMenu" name="menuViews">
     <property name="title">
@@ -379,6 +380,11 @@
   <action name="actionSave">
    <property name="text">
     <string>Save Current Trace</string>
+   </property>
+  </action>
+  <action name="actionFilters">
+   <property name="text">
+    <string>Filters</string>
    </property>
   </action>
  </widget>

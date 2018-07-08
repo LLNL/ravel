@@ -62,7 +62,9 @@ SOURCES  += main.cpp \
     primaryentitygroup.cpp \
     entitygroup.cpp \
     importfunctor.cpp \
-    taskpropertywindow.cpp
+    taskpropertywindow.cpp \
+    filterdialog.cpp \
+    addfunctionsdialog.cpp
 
 HEADERS += \
     trace.h \
@@ -99,13 +101,17 @@ HEADERS += \
     entitygroup.h \
     ravelutils.h \
     importfunctor.h \
-    taskpropertywindow.h
+    taskpropertywindow.h \
+    filterdialog.h \
+    addfunctionsdialog.h
 
 FORMS += \
     mainwindow.ui \
     visoptionsdialog.ui \
     metricrangedialog.ui \
-    taskpropertywindow.ui
+    taskpropertywindow.ui \
+    filterdialog.ui \
+    addfunctionsdialog.ui
 
 HOME = $$system(echo $HOME)
 

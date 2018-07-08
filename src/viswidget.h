@@ -31,6 +31,7 @@
 #include <QString>
 #include <QRect>
 #include <QColor>
+#include <QSet>
 
 #include "visoptions.h"
 #include "commdrawinterface.h"
@@ -55,8 +56,11 @@ public:
     virtual QSize sizeHint() const;
 
     void setClosed(bool _closed);
+    void setFilterApplied(bool _filterApplied);
     bool isClosed() { return closed; }
     void setVisOptions(VisOptions * _options);
+    void setFilterEvents(QSet<Event *> _filterEvents);
+    QSet<Event *> getFilterEvents();
     QWidget * container;
 
     virtual int getHeight() { return rect().height(); }
@@ -104,11 +108,13 @@ protected:
 
     // Interactions
     QMap<Event *, QRect> drawnEvents;
+    QSet<Event *> filterEvents;
     QList<int> selected_entities;
     Event * selected_event;
     Event * task_property_event;
     Event * hover_event;
     bool closed;
+    bool filterApplied;
 
     static const int initTimeSpan = 90000;
     static const int timescaleHeight = 20;

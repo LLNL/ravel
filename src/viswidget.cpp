@@ -48,11 +48,13 @@ VisWidget::VisWidget(QWidget *parent, VisOptions * _options) :
     changeSource(false),
     border(20),
     drawnEvents(QMap<Event *, QRect>()),
+    filterEvents(QSet<Event *>()),
     selected_entities(QList<int>()),
     selected_event(NULL),
     task_property_event(NULL),
     hover_event(NULL),
-    closed(false)
+    closed(false),
+    filterApplied(false)
 {
     setFocusPolicy(Qt::StrongFocus);
     // GLWidget options
@@ -231,11 +233,25 @@ void VisWidget::setClosed(bool _closed)
     closed = _closed;
 }
 
+void VisWidget::setFilterApplied(bool _filterApplied)
+{
+    filterApplied = _filterApplied;
+}
+
 void VisWidget::setVisOptions(VisOptions * _options)
 {
     options = _options;
 }
 
+void VisWidget::setFilterEvents(QSet<Event *> _filterEvents)
+{
+    filterEvents = _filterEvents;
+}
+
+QSet<Event *> VisWidget::getFilterEvents()
+{
+    return filterEvents;
+}
 
 // Draws a timescale (physical). Note this can fail if the span is short
 // enough which can happen when we find no events.
