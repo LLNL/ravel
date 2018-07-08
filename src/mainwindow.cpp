@@ -259,15 +259,30 @@ void MainWindow::launchAnalysisView()
              fnc != (*trc)->functions->end(); ++fnc)
         {
             unsigned long long duration = 0;
-            for (QVector<QVector<Event *> *>::Iterator eitr = (*trc)->events->begin();
-                 eitr != (*trc)->events->end(); ++eitr)
+            if (filterdialog->filterApplied)
             {
-                for (QVector<Event *>::Iterator itr = (*eitr)->begin();
-                     itr != (*eitr)->end(); ++itr)
+                QSet<Event *> filteredEvents = viswidgets[TIMEVIS]->getFilterEvents();
+                for (QSet<Event *>::Iterator itr = filteredEvents.begin();
+                     itr != filteredEvents.end(); ++itr)
                 {
                     if ((*itr)->function == fnc.key())
                     {
                         duration += abs((*itr)->exit - (*itr)->enter);
+                    }
+                }
+            }
+            else
+            {
+                for (QVector<QVector<Event *> *>::Iterator eitr = (*trc)->events->begin();
+                     eitr != (*trc)->events->end(); ++eitr)
+                {
+                    for (QVector<Event *>::Iterator itr = (*eitr)->begin();
+                         itr != (*eitr)->end(); ++itr)
+                    {
+                        if ((*itr)->function == fnc.key())
+                        {
+                            duration += abs((*itr)->exit - (*itr)->enter);
+                        }
                     }
                 }
             }
