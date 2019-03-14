@@ -310,9 +310,9 @@ void TimelineVis::drawEntityLabels(QPainter * painter, int effectiveHeight,
         skip = ceil(float(entitySpan) / total_labels);
     }
 
-    int start = std::max(floor(startEntity), 0.0);
+    int start = std::max(floor(startEntity), 0.0f);
     int end = std::min(ceil(startEntity + entitySpan),
-                       maxEntities - 1.0);
+                       maxEntities - 1.0f);
 
     if (trace->processingElements)
     {
