@@ -41,6 +41,7 @@
 #include <QLocale>
 #include <QMouseEvent>
 #include <QWheelEvent>
+#include <QPainterPath> 
 
 #include "function.h"
 
